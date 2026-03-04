@@ -1,0 +1,20 @@
+# StratAtlas generated artifacts
+
+# Product build outputs (keep folder skeleton only)
+.product/build_target/Current/**
+!.product/build_target/Current/.gitkeep
+
+.product/build_target/Old versions/**
+!.product/build_target/Old versions/.gitkeep
+
+.product/build_target/logs/**
+!.product/build_target/logs/.gitkeep
+
+# Tool-generated artifacts and scratch outputs
+.product/build_target/tool_artifacts/**
+!.product/build_target/tool_artifacts/.gitkeep
+
+# OS noise
+Thumbs.db
+.DS_Store
+

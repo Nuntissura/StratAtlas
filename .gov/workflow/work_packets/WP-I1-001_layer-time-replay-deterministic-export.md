@@ -1,0 +1,32 @@
+# WP-I1-001 - Layer/Time Replay Deterministic Export
+
+Date Opened: 2026-03-04
+Status: PLANNED
+Iteration: I1
+
+## Intent
+
+Deliver the I1 slice for layer system, time/replay behavior, and deterministic export paths.
+
+## Linked Requirements
+
+- REQ-0200..REQ-0212
+
+## Required Pre-Work
+
+- Confirm I1 sub-spec is written and approved.
+- Ensure traceability rows for REQ-0200..REQ-0212 are mapped.
+- Move Task Board status to `SUB-SPEC` or `IN-PROGRESS` before coding starts.
+
+## Initial Scope
+
+- Layer contract and licensing/export enforcement.
+- Time controls and replay mode behavior.
+- Deterministic export path and performance-budget validation.
+
+## Exit Criteria
+
+- I1 outcomes recorded on Task Board.
+- REQ-0200..REQ-0212 statuses updated in index.
+- Traceability and verification evidence linked.
+
