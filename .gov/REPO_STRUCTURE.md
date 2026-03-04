@@ -36,8 +36,8 @@ StratAtlas/
 |
 |-- .product/                             # Product engine (implementation only)
 |   |-- Worktrees/                        # Active code worktrees
-|   |   |-- wt_main/
-|   |   `-- wt_user_<name>/
+|   |   |-- wt_main/                      # Canonical product main worktree/branch (publish target)
+|   |   `-- wt_user_<name>/               # Personal/parallel coder worktree (local branch, not pushed)
 |   `-- build_target/                     # Build outputs + packaging artifacts
 |       |-- Current/
 |       |-- Old versions/
@@ -64,6 +64,7 @@ StratAtlas/
 - Contains implementation worktrees and build artifacts.
 - Must not become a second home for specs, policy, or workflow governance docs.
 - Product changes must map back to active governance records (Work Packet + Task Board).
+- Only `wt_main` is a GitHub publish target; `wt_user_*` worktrees are local parallel-development spaces.
 
 ---
 
@@ -73,7 +74,7 @@ StratAtlas/
 2. Define or update scope in `.gov/workflow/work_packets/` and `.gov/workflow/taskboard/TASK_BOARD.md`.
 3. Run preflight (`.gov/repo_scripts/governance_preflight.ps1`) and follow `.gov/workflow/GOVERNANCE_WORKFLOW.md`.
 4. Ensure `.gov/Spec/` reflects the requirement and traceability impact.
-5. Implement in `.product/Worktrees/...`.
+5. Implement production-bound code in `.product/Worktrees/wt_main`.
 6. Record outcomes back in governance artifacts.
 7. Keep build outputs, logs, and tool artifacts confined to `.product/build_target/`.
 

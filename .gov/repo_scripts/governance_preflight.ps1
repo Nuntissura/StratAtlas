@@ -50,6 +50,8 @@ $requiredDirectories = @(
     ".gov\Spec\sub-specs",
     ".gov\repo_scripts",
     ".gov\templates",
+    ".product\Worktrees",
+    ".product\Worktrees\wt_main",
     ".product\build_target\Current",
     ".product\build_target\Old versions",
     ".product\build_target\logs",
@@ -60,7 +62,8 @@ $requiredGitIgnorePatterns = @(
     ".product/build_target/Current/**",
     ".product/build_target/Old versions/**",
     ".product/build_target/logs/**",
-    ".product/build_target/tool_artifacts/**"
+    ".product/build_target/tool_artifacts/**",
+    ".product/Worktrees/wt_user_*/**"
 )
 
 $requiredWorkPackets = @(

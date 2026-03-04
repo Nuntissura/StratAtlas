@@ -36,7 +36,11 @@ If these disagree with implementation, reconcile governance intent first.
 
 ## 4) Product Worktree and Build Target Policy
 
-- Implementation happens under `.product/Worktrees/` (`wt_main` or `wt_user_*`).
+- Shippable product coding is done in `.product/Worktrees/wt_main`.
+- `wt_main` is the canonical product worktree and branch for GitHub publication.
+- `wt_user_*` worktrees are personal/local coding sandboxes (for example: `wt_user_ilja`).
+- Additional coders should each use their own `wt_user_<name>` worktree + branch for parallel work.
+- Only `wt_main` changes are pushed to GitHub.
 - Build outputs go to `.product/build_target/Current/`.
 - Previous outputs are archived under `.product/build_target/Old versions/`.
 - Build logs go to `.product/build_target/logs/`.

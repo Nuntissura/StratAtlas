@@ -15,6 +15,14 @@ Keep this split explicit in every change.
 - Product implements **how** requirements are delivered.
 - If they conflict, governance artifacts are updated first, then product code follows.
 
+## 1.1) Worktree and Branch Policy
+
+- Canonical product worktree: `.product/Worktrees/wt_main`
+- Canonical publish branch/worktree: `wt_main`
+- Personal coder worktrees: `.product/Worktrees/wt_user_<name>`
+- Parallel coders each get their own `wt_user_<name>` worktree + branch.
+- Only `wt_main` is pushed to GitHub.
+
 ## 2) Single Source of Truth for Work
 
 - Build order roadmap: `.gov/workflow/ROADMAP.md`
@@ -28,7 +36,7 @@ Execution loop:
 1. Confirm sequence and scope against `.gov/workflow/ROADMAP.md`.
 2. Choose or create a Work Packet.
 3. Update the Task Board row for that WP.
-4. Implement only in-scope work under `.product/`.
+4. Implement shippable product code in `.product/Worktrees/wt_main`.
 5. Run preflight: `powershell -ExecutionPolicy Bypass -File .gov/repo_scripts/governance_preflight.ps1`.
 6. Run the governance-sync checklist in `.gov/workflow/GOVERNANCE_WORKFLOW.md`.
 7. Update the WP and Task Board with outcome, evidence, and next step.

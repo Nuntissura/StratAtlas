@@ -14,7 +14,9 @@
 .product/build_target/tool_artifacts/**
 !.product/build_target/tool_artifacts/.gitkeep
 
+# Personal/local coder worktrees (never push these)
+.product/Worktrees/wt_user_*/**
+
 # OS noise
 Thumbs.db
 .DS_Store
-

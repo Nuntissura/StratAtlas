@@ -14,12 +14,16 @@ Use this before starting implementation work or cutting build outputs.
 
 ## Product/build readiness
 
+- [ ] `.product/Worktrees/wt_main/` exists and is the active publish worktree.
+- [ ] Personal/parallel work happens in `.product/Worktrees/wt_user_<name>/` worktrees.
+- [ ] Only `wt_main` changes are prepared for GitHub push.
 - [ ] `.product/build_target/Current/` exists.
 - [ ] `.product/build_target/Old versions/` exists.
 - [ ] `.product/build_target/logs/` exists.
 - [ ] `.product/build_target/tool_artifacts/` exists.
 - [ ] Build output path and log path are known for the current WP.
 - [ ] `.gitignore` contains rules for build/log/tool-artifact folders.
+- [ ] `.gitignore` ignores `.product/Worktrees/wt_user_*/**`.
 
 ## Maintenance readiness
 

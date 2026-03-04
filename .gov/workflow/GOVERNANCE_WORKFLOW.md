@@ -78,4 +78,5 @@ When build order changes:
 - [ ] Traceability entries exist for changed requirements.
 - [ ] Roadmap order is still accurate.
 - [ ] Build readiness checklist remains accurate.
+- [ ] Product publish changes are sourced from `.product/Worktrees/wt_main` (not `wt_user_*`).
 - [ ] `PROJECT_CODEX.md` and `AGENTS.md` still reflect current workflow.
