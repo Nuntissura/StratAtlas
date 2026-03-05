@@ -1,7 +1,7 @@
-# WP-I3-001 - Collaboration CRDT Session Replay
+﻿# WP-I3-001 - Collaboration CRDT Session Replay
 
 Date Opened: 2026-03-04
-Status: PLANNED
+Status: SUB-SPEC
 Iteration: I3
 
 ## Intent
@@ -29,4 +29,9 @@ Deliver merge-safe collaboration and attribution-rich session replay.
 - I3 outcomes recorded on Task Board.
 - REQ-0400..REQ-0403 statuses updated in index.
 - Traceability and verification evidence linked.
+
+
+## Progress Log
+
+- 2026-03-05: Sub-spec advanced from STUB to DRAFT and moved into active sub-spec phase.
 

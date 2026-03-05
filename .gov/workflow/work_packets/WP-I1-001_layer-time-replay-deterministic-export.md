@@ -1,7 +1,7 @@
-# WP-I1-001 - Layer/Time Replay Deterministic Export
+﻿# WP-I1-001 - Layer/Time Replay Deterministic Export
 
 Date Opened: 2026-03-04
-Status: PLANNED
+Status: SUB-SPEC
 Iteration: I1
 
 ## Intent
@@ -31,3 +31,9 @@ Deliver the I1 slice for layer system, time/replay behavior, and deterministic e
 - I1 outcomes recorded on Task Board.
 - REQ-0200..REQ-0212 statuses updated in index.
 - Traceability and verification evidence linked.
+
+## Progress Log
+
+- 2026-03-05: Sub-spec advanced from STUB to DRAFT and moved into active sub-spec phase.
+- 2026-03-05: I1 dependency baseline installed in `.product/Worktrees/wt_main` (MapLibre, Cesium, deck.gl, charts, loaders, DuckDB-WASM) to unblock implementation.
+

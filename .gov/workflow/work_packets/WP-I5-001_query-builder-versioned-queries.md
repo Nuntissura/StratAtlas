@@ -1,7 +1,7 @@
-# WP-I5-001 - Query Builder Versioned Queries
+﻿# WP-I5-001 - Query Builder Versioned Queries
 
 Date Opened: 2026-03-04
-Status: PLANNED
+Status: SUB-SPEC
 Iteration: I5
 
 ## Intent
@@ -29,4 +29,9 @@ Deliver composable query-builder workflows with saved and versioned queries.
 - I5 outcomes recorded on Task Board.
 - REQ-0600..REQ-0604 statuses updated in index.
 - Traceability and verification evidence linked.
+
+
+## Progress Log
+
+- 2026-03-05: Sub-spec advanced from STUB to DRAFT and moved into active sub-spec phase.
 

@@ -1,7 +1,7 @@
-# WP-I10-001 - Strategic Game Modeling
+﻿# WP-I10-001 - Strategic Game Modeling
 
 Date Opened: 2026-03-04
-Status: PLANNED
+Status: SUB-SPEC
 Iteration: I10
 
 ## Intent
@@ -29,4 +29,9 @@ Deliver strategic game-modeling capability with auditable, non-operational guard
 - I10 outcomes recorded on Task Board.
 - REQ-1100..REQ-1113 statuses updated in index.
 - Traceability and verification evidence linked.
+
+
+## Progress Log
+
+- 2026-03-05: Sub-spec advanced from STUB to DRAFT and moved into active sub-spec phase.
 

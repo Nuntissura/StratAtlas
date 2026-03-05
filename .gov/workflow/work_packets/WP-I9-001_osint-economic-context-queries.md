@@ -1,7 +1,7 @@
-# WP-I9-001 - OSINT Economic Context Queries
+﻿# WP-I9-001 - OSINT Economic Context Queries
 
 Date Opened: 2026-03-04
-Status: PLANNED
+Status: SUB-SPEC
 Iteration: I9
 
 ## Intent
@@ -29,4 +29,9 @@ Deliver curated OSINT and economic context integration with context-aware query/
 - I9 outcomes recorded on Task Board.
 - REQ-1000..REQ-1003 statuses updated in index.
 - Traceability and verification evidence linked.
+
+
+## Progress Log
+
+- 2026-03-05: Sub-spec advanced from STUB to DRAFT and moved into active sub-spec phase.
 

@@ -1,7 +1,7 @@
-# WP-I8-001 - Context Deviation Infrastructure Propagation
+﻿# WP-I8-001 - Context Deviation Infrastructure Propagation
 
 Date Opened: 2026-03-04
-Status: PLANNED
+Status: SUB-SPEC
 Iteration: I8
 
 ## Intent
@@ -29,4 +29,9 @@ Deliver context deviation detection and infrastructure propagation in scenarios.
 - I8 outcomes recorded on Task Board.
 - REQ-0900..REQ-0904 statuses updated in index.
 - Traceability and verification evidence linked.
+
+
+## Progress Log
+
+- 2026-03-05: Sub-spec advanced from STUB to DRAFT and moved into active sub-spec phase.
 

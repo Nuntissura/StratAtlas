@@ -1,7 +1,7 @@
-# WP-I7-001 - Context Intake First Domains
+﻿# WP-I7-001 - Context Intake First Domains
 
 Date Opened: 2026-03-04
-Status: PLANNED
+Status: SUB-SPEC
 Iteration: I7
 
 ## Intent
@@ -29,4 +29,9 @@ Deliver context intake framework foundations and first approved domains.
 - I7 outcomes recorded on Task Board.
 - REQ-0800..REQ-0810 statuses updated in index.
 - Traceability and verification evidence linked.
+
+
+## Progress Log
+
+- 2026-03-05: Sub-spec advanced from STUB to DRAFT and moved into active sub-spec phase.
 

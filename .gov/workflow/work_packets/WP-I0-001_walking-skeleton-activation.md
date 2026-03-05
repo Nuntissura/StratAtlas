@@ -1,7 +1,7 @@
 # WP-I0-001 - Walking Skeleton Activation
 
 Date Opened: 2026-03-04
-Status: PLANNED
+Status: IN-PROGRESS
 Iteration: I0
 
 ## Intent
@@ -18,6 +18,11 @@ Activate the first implementation slice for the I0 walking skeleton.
 - Confirm sub-spec for I0 is written and approved.
 - Ensure traceability rows for REQ-0100..REQ-0112 are mapped.
 - Confirm Task Board status is `SUB-SPEC` or `IN-PROGRESS` before coding starts.
+
+## Progress Log
+
+- 2026-03-05: Sub-spec expanded from STUB to DRAFT contract for implementation.
+- 2026-03-05: Product implementation scaffold started in `.product/Worktrees/wt_main`.
 
 ## Initial Scope
 
