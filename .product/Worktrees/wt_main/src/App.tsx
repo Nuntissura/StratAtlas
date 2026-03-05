@@ -6,6 +6,8 @@ import type {
   SensitivityMarking,
   UserRole,
 } from './contracts/i0'
+import type { UiMode } from './features/i1/modes'
+import { REQUIRED_UI_MODES } from './features/i1/modes'
 import { backend } from './lib/backend'
 
 const ROLES: UserRole[] = ['viewer', 'analyst', 'administrator', 'auditor']
@@ -17,6 +19,7 @@ const modeLabel = (forcedOffline: boolean): string =>
 function App() {
   const [role, setRole] = useState<UserRole>('analyst')
   const [marking, setMarking] = useState<SensitivityMarking>('INTERNAL')
+  const [mode, setMode] = useState<UiMode>('offline')
   const [forcedOffline, setForcedOffline] = useState<boolean>(false)
   const [analystNote, setAnalystNote] = useState<string>('Initial analyst workspace state')
   const [activeLayers, setActiveLayers] = useState<string[]>(['base-map', 'context-panel'])
@@ -33,11 +36,12 @@ function App() {
   const workspaceState = useMemo(
     () => ({
       mode: modeLabel(forcedOffline),
+      workflowMode: mode,
       note: analystNote,
       activeLayers,
       uiVersion: 'i0-walking-skeleton',
     }),
-    [activeLayers, analystNote, forcedOffline],
+    [activeLayers, analystNote, forcedOffline, mode],
   )
 
   const refresh = async (): Promise<void> => {
@@ -128,6 +132,13 @@ function App() {
         ? result.ui_state.activeLayers.filter((layer): layer is string => typeof layer === 'string')
         : []
       setAnalystNote(restoredNote)
+      const restoredMode =
+        typeof result.ui_state.workflowMode === 'string'
+          ? (result.ui_state.workflowMode as UiMode)
+          : undefined
+      if (restoredMode && REQUIRED_UI_MODES.includes(restoredMode)) {
+        setMode(restoredMode)
+      }
       if (restoredLayers.length > 0) {
         setActiveLayers(restoredLayers)
       }
@@ -170,7 +181,7 @@ function App() {
 
   return (
     <div className="shell">
-      <header className="header">
+      <header className="header" data-testid="region-header">
         <div className="identity">
           <h1>StratAtlas I0 Walking Skeleton</h1>
           <p>Bundle determinism, audit chain, markings, and offline-first controls</p>
@@ -185,7 +196,7 @@ function App() {
       </header>
 
       <main className="layout">
-        <section className="panel workspace">
+        <section className="panel workspace" data-testid="region-left-panel">
           <h2>Workspace</h2>
           <label className="field">
             Role
@@ -206,6 +217,16 @@ function App() {
               {MARKINGS.map((currentMarking) => (
                 <option key={currentMarking} value={currentMarking}>
                   {currentMarking}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="field">
+            Mode
+            <select value={mode} onChange={(event) => setMode(event.target.value as UiMode)}>
+              {REQUIRED_UI_MODES.map((currentMode) => (
+                <option key={currentMode} value={currentMode}>
+                  {currentMode}
                 </option>
               ))}
             </select>
@@ -250,11 +271,11 @@ function App() {
           <p className="status-line">{integrityState}</p>
         </section>
 
-        <section className="panel map-panel">
+        <section className="panel map-panel" data-testid="region-main-canvas">
           <h2>Main Canvas Placeholder</h2>
           <div className="map-placeholder">
-            <p>2D/3D render surfaces are planned for I1.</p>
-            <p>Current mode: {modeLabel(forcedOffline)}</p>
+            <p>2D/3D render surfaces are being introduced in I1.</p>
+            <p>Current mode: {mode}</p>
             <p>Layer count: {activeLayers.length}</p>
           </div>
 
@@ -277,7 +298,7 @@ function App() {
           </div>
         </section>
 
-        <section className="panel audit-panel">
+        <section className="panel audit-panel" data-testid="region-right-panel">
           <h2>Audit Ledger</h2>
           <p>Current head hash: {auditHead || 'n/a'}</p>
           <div className="audit-list">
@@ -296,6 +317,10 @@ function App() {
           </div>
         </section>
       </main>
+      <footer className="panel footer-panel" data-testid="region-bottom-panel">
+        <strong>Bottom Panel</strong>
+        <span>{` Mode=${mode} | Connectivity=${offline ? 'offline' : 'online'} | Audit events=${auditEvents.length}`}</span>
+      </footer>
     </div>
   )
 }

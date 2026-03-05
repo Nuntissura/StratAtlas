@@ -1,7 +1,7 @@
-# WP-I0-001 - Walking Skeleton Activation
+﻿# WP-I0-001 - Walking Skeleton Activation
 
 Date Opened: 2026-03-04
-Status: IN-PROGRESS
+Status: VERIFIED
 Iteration: I0
 
 ## Intent
@@ -36,3 +36,6 @@ Activate the first implementation slice for the I0 walking skeleton.
 - I0 scope outcomes recorded on Task Board.
 - Requirement statuses updated in index.
 - Traceability and verification evidence linked.
+
+- 2026-03-05: Implementation completed and verified via lint/test/build evidence.
+

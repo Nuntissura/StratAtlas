@@ -14,4 +14,13 @@ describe('App', () => {
 
     expect(await screen.findByText(/Bundle .* created/)).toBeInTheDocument()
   })
+
+  it('renders required I1 UI regions', async () => {
+    render(<App />)
+    expect(await screen.findByTestId('region-header')).toBeInTheDocument()
+    expect(screen.getByTestId('region-left-panel')).toBeInTheDocument()
+    expect(screen.getByTestId('region-main-canvas')).toBeInTheDocument()
+    expect(screen.getByTestId('region-right-panel')).toBeInTheDocument()
+    expect(screen.getByTestId('region-bottom-panel')).toBeInTheDocument()
+  })
 })

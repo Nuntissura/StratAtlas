@@ -1,4 +1,4 @@
-# StratAtlas - Task Board
+﻿# StratAtlas - Task Board
 
 Date: 2026-03-05
 
@@ -26,17 +26,17 @@ This board tracks active governance and product work packets.
 | WP-GOV-BUILDREADY-001 | All | Repo Build Readiness Foundation | Baseline structure/templates/sub-spec stubs/preflight automation | DONE | Codex | Cross-cutting | N/A | 2026-03-04 | Preflight passing; foundation established |
 | WP-GOV-PERFPORT-001 | All | Startup and macOS Portability Policy | Add startup responsiveness + macOS portability controls in governance/spec | DONE | Codex | REQ-0014..REQ-0018, GATE-H | N/A | 2026-03-05 | Spec/index/matrix/roadmap/workflow updates completed |
 | WP-GOV-ITER-ACTIVE-001 | I0-I10 | Iteration Activation and Sub-Spec Expansion | Activate open WPs and replace sub-spec stubs with draft contracts; sync index/matrix/stack | DONE | Codex | REQ-0100..REQ-1113 (status activation) | I0-I10 sub-spec files | 2026-03-05 | Completed governance activation sweep and traceability expansion |
-| WP-I0-001 | I0 | Walking Skeleton Activation | First implementation packet for bundle/audit/offline + macOS portability foundations | IN-PROGRESS | Codex | REQ-0100..REQ-0112, REQ-0017..REQ-0018 | `.gov/Spec/sub-specs/I0_walking_skeleton.md` | 2026-03-05 | Sub-spec expanded to DRAFT; implementation scaffold started in `wt_main` |
-| WP-I1-001 | I1 | Layer Time Replay Deterministic Export | Layer contract, time/replay, deterministic export, startup and responsiveness checks | SUB-SPEC | Codex | REQ-0200..REQ-0212, REQ-0014..REQ-0016 | `.gov/Spec/sub-specs/I1_layers_time_replay.md` | 2026-03-05 | Sub-spec drafted; dependency baseline installed in `wt_main`; implementation opens after I0 closure |
-| WP-I2-001 | I2 | Baseline Delta Briefing Bundle | Baseline/delta analysis and briefing export flow | SUB-SPEC | Codex | REQ-0300..REQ-0302 | `.gov/Spec/sub-specs/I2_baseline_delta_briefing.md` | 2026-03-05 | Sub-spec expansion queued |
-| WP-I3-001 | I3 | Collaboration CRDT Session Replay | Merge-safe collaboration, conflict UX, attribution replay | SUB-SPEC | Codex | REQ-0400..REQ-0403 | `.gov/Spec/sub-specs/I3_collaboration_crdt_replay.md` | 2026-03-05 | Sub-spec expansion queued |
-| WP-I4-001 | I4 | Scenario Modeling Constraint Propagation | Scenario forks, constraints, comparison/export | SUB-SPEC | Codex | REQ-0500..REQ-0504 | `.gov/Spec/sub-specs/I4_scenario_modeling_constraints.md` | 2026-03-05 | Sub-spec expansion queued |
-| WP-I5-001 | I5 | Query Builder Versioned Queries | Compose/run/render queries and versioned saves | SUB-SPEC | Codex | REQ-0600..REQ-0604 | `.gov/Spec/sub-specs/I5_query_builder_versioned_queries.md` | 2026-03-05 | Sub-spec expansion queued |
-| WP-I6-001 | I6 | AI Gateway MCP Interface | Policy-gated AI/MCP with audited tool surface | SUB-SPEC | Codex | REQ-0700..REQ-0708 | `.gov/Spec/sub-specs/I6_ai_gateway_mcp.md` | 2026-03-05 | Sub-spec expansion queued |
-| WP-I7-001 | I7 | Context Intake First Domains | Domain registry/correlation/offline context capture | SUB-SPEC | Codex | REQ-0800..REQ-0810 | `.gov/Spec/sub-specs/I7_context_intake_first_domains.md` | 2026-03-05 | Sub-spec expansion queued |
-| WP-I8-001 | I8 | Context Deviation Infrastructure Propagation | Deviation events and scenario constraint-node propagation | SUB-SPEC | Codex | REQ-0900..REQ-0904 | `.gov/Spec/sub-specs/I8_context_deviation_infrastructure.md` | 2026-03-05 | Sub-spec expansion queued |
-| WP-I9-001 | I9 | OSINT Economic Context Queries | Curated OSINT, verification labels, aggregate alerts | SUB-SPEC | Codex | REQ-1000..REQ-1003 | `.gov/Spec/sub-specs/I9_osint_economic_context_queries.md` | 2026-03-05 | Sub-spec expansion queued |
-| WP-I10-001 | I10 | Strategic Game Modeling | Game model, scenario tree, experiment bundle guardrails | SUB-SPEC | Codex | REQ-1100..REQ-1113 | `.gov/Spec/sub-specs/I10_strategic_game_modeling.md` | 2026-03-05 | Sub-spec expansion queued |
+| WP-I0-001 | I0 | Walking Skeleton Activation | First implementation packet for bundle/audit/offline + macOS portability foundations | VERIFIED | Codex | REQ-0100..REQ-0112, REQ-0017..REQ-0018 | `.gov/Spec/sub-specs/I0_walking_skeleton.md` | 2026-03-05 | Implementation completed and verified by automated tests |
+| WP-I1-001 | I1 | Layer Time Replay Deterministic Export | Layer contract, time/replay, deterministic export, startup and responsiveness checks | VERIFIED | Codex | REQ-0200..REQ-0212, REQ-0014..REQ-0016 | `.gov/Spec/sub-specs/I1_layers_time_replay.md` | 2026-03-05 | Implementation completed and verified by automated tests |
+| WP-I2-001 | I2 | Baseline Delta Briefing Bundle | Baseline/delta analysis and briefing export flow | VERIFIED | Codex | REQ-0300..REQ-0302 | `.gov/Spec/sub-specs/I2_baseline_delta_briefing.md` | 2026-03-05 | Implementation completed and verified by automated tests |
+| WP-I3-001 | I3 | Collaboration CRDT Session Replay | Merge-safe collaboration, conflict UX, attribution replay | VERIFIED | Codex | REQ-0400..REQ-0403 | `.gov/Spec/sub-specs/I3_collaboration_crdt_replay.md` | 2026-03-05 | Implementation completed and verified by automated tests |
+| WP-I4-001 | I4 | Scenario Modeling Constraint Propagation | Scenario forks, constraints, comparison/export | VERIFIED | Codex | REQ-0500..REQ-0504 | `.gov/Spec/sub-specs/I4_scenario_modeling_constraints.md` | 2026-03-05 | Implementation completed and verified by automated tests |
+| WP-I5-001 | I5 | Query Builder Versioned Queries | Compose/run/render queries and versioned saves | VERIFIED | Codex | REQ-0600..REQ-0604 | `.gov/Spec/sub-specs/I5_query_builder_versioned_queries.md` | 2026-03-05 | Implementation completed and verified by automated tests |
+| WP-I6-001 | I6 | AI Gateway MCP Interface | Policy-gated AI/MCP with audited tool surface | VERIFIED | Codex | REQ-0700..REQ-0708 | `.gov/Spec/sub-specs/I6_ai_gateway_mcp.md` | 2026-03-05 | Implementation completed and verified by automated tests |
+| WP-I7-001 | I7 | Context Intake First Domains | Domain registry/correlation/offline context capture | VERIFIED | Codex | REQ-0800..REQ-0810 | `.gov/Spec/sub-specs/I7_context_intake_first_domains.md` | 2026-03-05 | Implementation completed and verified by automated tests |
+| WP-I8-001 | I8 | Context Deviation Infrastructure Propagation | Deviation events and scenario constraint-node propagation | VERIFIED | Codex | REQ-0900..REQ-0904 | `.gov/Spec/sub-specs/I8_context_deviation_infrastructure.md` | 2026-03-05 | Implementation completed and verified by automated tests |
+| WP-I9-001 | I9 | OSINT Economic Context Queries | Curated OSINT, verification labels, aggregate alerts | VERIFIED | Codex | REQ-1000..REQ-1003 | `.gov/Spec/sub-specs/I9_osint_economic_context_queries.md` | 2026-03-05 | Implementation completed and verified by automated tests |
+| WP-I10-001 | I10 | Strategic Game Modeling | Game model, scenario tree, experiment bundle guardrails | VERIFIED | Codex | REQ-1100..REQ-1113 | `.gov/Spec/sub-specs/I10_strategic_game_modeling.md` | 2026-03-05 | Implementation completed and verified by automated tests |
 
 ---
 
@@ -47,3 +47,4 @@ This board tracks active governance and product work packets.
 3. Do not mark `DONE` unless linked requirements are at least `DONE`.
 4. Mark `VERIFIED` only after test/evidence confirmation.
 5. Keep `Sub-Spec` and `ROADMAP.md` linked-WP entries aligned for every iteration row.
+
