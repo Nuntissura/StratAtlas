@@ -8,6 +8,9 @@ Param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
+if ($PSVersionTable.PSVersion.Major -ge 7) {
+    $PSNativeCommandUseErrorActionPreference = $false
+}
 
 function Invoke-CheckCommand {
     Param(
@@ -32,14 +35,21 @@ function Invoke-CheckCommand {
 
     Push-Location $WorkingDirectory
     try {
+        $previousErrorActionPreference = $ErrorActionPreference
+        $ErrorActionPreference = "Continue"
         $output = & $Executable @Arguments 2>&1
+        $ErrorActionPreference = $previousErrorActionPreference
         $output | Set-Content -Path $LogPath -Encoding UTF8
         $exitCode = $LASTEXITCODE
+        if ($null -eq $exitCode) {
+            $exitCode = 0
+        }
         $result.ExitCode = $exitCode
         $result.Passed = ($exitCode -eq 0)
         $result.Details = if ($result.Passed) { "Command passed." } else { "Command failed with exit code $exitCode." }
     }
     catch {
+        $ErrorActionPreference = "Stop"
         $_ | Out-String | Set-Content -Path $LogPath -Encoding UTF8
         $result.ExitCode = 1
         $result.Passed = $false
