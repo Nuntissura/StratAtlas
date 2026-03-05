@@ -11,6 +11,7 @@ Deliver the I1 slice for layer system, time/replay behavior, and deterministic e
 ## Linked Requirements
 
 - REQ-0200..REQ-0212
+- REQ-0014, REQ-0015, REQ-0016 (startup and state-change budgets)
 
 ## Required Pre-Work
 
@@ -23,10 +24,10 @@ Deliver the I1 slice for layer system, time/replay behavior, and deterministic e
 - Layer contract and licensing/export enforcement.
 - Time controls and replay mode behavior.
 - Deterministic export path and performance-budget validation.
+- Startup and common state-change responsiveness validation against spec budgets.
 
 ## Exit Criteria
 
 - I1 outcomes recorded on Task Board.
 - REQ-0200..REQ-0212 statuses updated in index.
 - Traceability and verification evidence linked.
-

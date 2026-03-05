@@ -1,6 +1,6 @@
 # StratAtlas Build Readiness Checklist
 
-Date: 2026-03-04
+Date: 2026-03-05
 
 Use this before starting implementation work or cutting build outputs.
 
@@ -8,8 +8,10 @@ Use this before starting implementation work or cutting build outputs.
 
 - [ ] `.gov/workflow/ROADMAP.md` reflects current build order.
 - [ ] `.gov/workflow/taskboard/TASK_BOARD.md` has active/updated WP rows.
+- [ ] Roadmap iteration rows and Task Board rows reference the same WP IDs and sub-spec files.
 - [ ] `.gov/Spec/REQUIREMENTS_INDEX.md` statuses align with active work.
 - [ ] `.gov/Spec/TRACEABILITY_MATRIX.md` mappings exist for active requirements.
+- [ ] `.gov/Spec/TECH_STACK.md` reflects current stack/runtime assumptions for active scope.
 - [ ] Relevant sub-spec exists under `.gov/Spec/sub-specs/` and is approved.
 
 ## Product/build readiness
@@ -24,12 +26,16 @@ Use this before starting implementation work or cutting build outputs.
 - [ ] Build output path and log path are known for the current WP.
 - [ ] `.gitignore` contains rules for build/log/tool-artifact folders.
 - [ ] `.gitignore` ignores `.product/Worktrees/wt_user_*/**`.
+- [ ] Startup budget evidence plan exists (cold/warm launch + state-change feedback targets).
+- [ ] No new Windows-only runtime path assumptions were introduced in core code paths.
+- [ ] macOS smoke-test plan is recorded for the active iteration/WP.
 
 ## Maintenance readiness
 
 - [ ] `PROJECT_CODEX.md` still reflects workflow reality.
 - [ ] `AGENTS.md` still reflects workflow and build-order rules.
 - [ ] `MODEL_BEHAVIOR.md` remains aligned with spec and safety boundaries.
+- [ ] `SPEC_GOVERNANCE.md` still matches actual sync and maintenance process.
 
 ## Command
 

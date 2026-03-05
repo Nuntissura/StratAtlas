@@ -13,8 +13,10 @@ Keep governance source-of-truth artifacts continuously synchronized.
 - `.gov/workflow/taskboard/TASK_BOARD.md`
 - `.gov/Spec/REQUIREMENTS_INDEX.md`
 - `.gov/Spec/TRACEABILITY_MATRIX.md`
+- `.gov/Spec/TECH_STACK.md`
 - `PROJECT_CODEX.md`
 - `AGENTS.md`
+- `MODEL_BEHAVIOR.md`
 
 ## Trigger
 
@@ -25,6 +27,6 @@ Keep governance source-of-truth artifacts continuously synchronized.
 
 - Task Board reflects actual active and planned work.
 - Roadmap order still matches delivery intent.
-- Requirements and traceability states match implementation reality.
+- Requirements, traceability, and stack-decision records match implementation reality.
+- Iteration rows are fully represented across roadmap, taskboard, and work packets.
 - Agent guidance files remain aligned with governance workflow.
-

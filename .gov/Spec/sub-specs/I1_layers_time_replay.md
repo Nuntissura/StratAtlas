@@ -9,8 +9,8 @@ Linked Requirements: `REQ-0200..REQ-0212`
 ## Scope
 
 Layer system contract, time/replay behavior, deterministic export, and performance budget checks.
+Includes startup (cold/warm) and analyst state-change responsiveness budget validation.
 
 ## Required Sections
 
 This file must be expanded using `.gov/templates/SUB_SPEC_TEMPLATE.md` before implementation merges for I1.
-

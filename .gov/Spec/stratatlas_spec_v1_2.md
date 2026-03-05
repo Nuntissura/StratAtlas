@@ -2,7 +2,7 @@
 ## Product Specification v1.2
 *Interactive Geospatial Analysis Workstation*
 
-**Date:** 2026-03-04  
+**Date:** 2026-03-05  
 **Status:** Draft  
 **Audience:** Engineering, Product, Security/Compliance, Stakeholders  
 **Supersedes:** `stratatlas_spec_v1_1.md`, `stratatlas_spec_v1_0.md`, `stratatlas_spec_v0_4.md`, `stratatlas_spec_v1_0_reset.md`
@@ -107,6 +107,16 @@ StratAtlas MUST support the following deployment profiles:
 4) **Cloud-assisted** (optional AI processing via gateway; policy enforced)
 
 Each profile MUST specify: identity, key management, storage placement, audit retention, and whether external AI access is enabled.
+
+### 5.1 Desktop Platform Portability Contract [NEW in v1.2]
+
+StratAtlas MUST preserve desktop portability so Windows implementation choices do not block a later macOS release.
+
+Normative rules:
+- Desktop runtime-critical code MUST avoid hard dependencies on Windows-only APIs unless isolated behind a platform adapter.
+- Filesystem, paths, process invocation, and environment handling MUST use platform-neutral abstractions (no hard-coded drive letters or path separators in core paths).
+- Desktop packaging and runtime behavior MUST be tested on Windows and SHOULD be smoke-tested on macOS throughout development.
+- New external dependencies SHOULD be selected only if they support Windows and macOS for the required feature scope.
 
 ---
 
@@ -461,11 +471,15 @@ The spec MUST define measurable performance budgets, tested against reference ha
 - 2D pan/zoom interaction: **<= 50 ms** frame time while aggregated rendering is active
 - Time scrub (warm cache, adjacent windows): **<= 250 ms** end-to-end update
 - Time scrub (cold cache): **<= 2.0 s** end-to-end update
+- Desktop app startup (cold launch): **<= 8.0 s** to interactive shell
+- Desktop app startup (warm relaunch): **<= 3.0 s** to interactive shell
+- Analyst state-change feedback (layer toggle/filter/apply action): **<= 300 ms** UI feedback at P95
 - Bundle open (local): **<= 5.0 s** to interactive
 - 4K image export (map + legend + provenance): **<= 3.0 s**
 - Briefing bundle export (including manifests/hashes): **<= 15 s**
 
 If a budget cannot be met, the UI MUST degrade gracefully via aggregation (tiling, clustering, downsampling) and MUST surface a clear indicator that the view is aggregated.
+If a state change exceeds the 300 ms feedback target, the UI MUST show non-blocking progress feedback.
 
 ### 11.6 Accessibility
 StratAtlas SHOULD meet WCAG/508-level accessibility expectations (keyboard operation, non-color-only semantics).
@@ -722,6 +736,11 @@ If AI integration is enabled (I6+):
 - Copilot audit logging operational and verified
 - Misuse constraints (Section 3.2) enforced in AI prompts and outputs
 
+### Gate H — Desktop Portability & Startup
+- Desktop startup budgets from Section 11.5 MUST be met on reference hardware.
+- Build/runtime path handling MUST remain platform-neutral (Windows + macOS portability preserved).
+- No new Windows-only dependency may be introduced in core runtime paths without approved platform abstraction and roadmap impact note.
+
 
 ---
 
@@ -729,8 +748,8 @@ If AI integration is enabled (I6+):
 Iterations are defined as **capability slices** that satisfy Section 17. Each iteration MUST produce a detailed sub-spec before implementation begins.
 
 Example ordering (modifiable):
-- I0: Walking skeleton (bundle creation + reopen + audit + markings + offline open)
-- I1: Layer system + time/replay + deterministic export
+- I0: Walking skeleton (bundle creation + reopen + audit + markings + offline open + startup instrumentation + portability baseline)
+- I1: Layer system + time/replay + deterministic export + startup/interaction tuning
 - I2: Baseline/delta compare + briefing bundle
 - I3: Collaboration + CRDT merge + session replay
 - I4: Scenario modeling + constraint propagation + scenario export
@@ -963,3 +982,4 @@ This appendix catalogues approved and planned contextual data domains. New domai
 | v1.0 | 2026-03-04 | Added: Contextual Data Intake Framework (Section 7.4), Context Store in storage model, expanded MCP tool surface, Event Taxonomy (Section 16), Data Domain Registry (Appendix D), deviation detection on context domains, context-aware queries and alerts, Release Gate F, capability sub-spec requirement, I7–I9 iterations. |
 | v1.1 | 2026-03-04 | Added: Strategic Game Modeling Framework (Section 20); tightened bundle asset addressing (asset_id + sha256); added Evidence/Context/Model/AI labeling; added explicit performance budgets; strengthened schema requirements. |
 | v1.2 | 2026-03-04 | Added: AI Copilot Integration (Section 15.5) with narration, query suggestion, SAT pre-population, briefing draft, and continuous monitoring. Added: Visualization Technology Contract (Section 6.4) defining rendering, charting, spatial analysis, and offline analytics engine requirements. Added Gate G (AI Safety). |
+| v1.2.1 | 2026-03-05 | Added desktop startup budgets and state-change feedback budget (Section 11.5). Added desktop portability contract for Windows→macOS path (Section 5.1). Added Gate H (Desktop Portability & Startup). |

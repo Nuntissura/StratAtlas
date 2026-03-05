@@ -1,7 +1,7 @@
 # StratAtlas — Technology Stack
 
-**Spec Version:** v1.1  
-**Last Updated:** 2026-03-04  
+**Spec Version:** v1.2.1  
+**Last Updated:** 2026-03-05  
 **Status:** Proposed (requires team review before adoption)
 
 ---
@@ -14,6 +14,8 @@ Every technology choice must satisfy:
 3. **Proven at scale** (used in production by organizations with similar data volumes)
 4. **Offline-capable** (must work in air-gapped deployment profile or degrade gracefully)
 5. **No vendor lock-in** (no required proprietary services or API keys)
+6. **Startup and interaction performant** (supports startup + state-change budgets in spec §11.5)
+7. **Desktop-portable** (does not block Windows-to-macOS portability for runtime-critical paths)
 
 ---
 
@@ -223,6 +225,15 @@ Shared viewport state → switching 2D ↔ 3D preserves camera position and laye
 | Alternatives considered | Electron (heavier, larger attack surface), native desktop (too expensive to build cross-platform) |
 | Risks | Smaller ecosystem than Electron; some web APIs may need Rust bridges |
 | Spec alignment | §5 deployment profiles (air-gapped workstation, on-prem), §12 Open Points recommendation for desktop-first |
+
+---
+
+### Desktop Portability and Startup Policy
+
+- Prefer dependencies with maintained Windows and macOS support for desktop runtime paths.
+- Keep OS-specific behavior behind Rust/TypeScript adapters instead of scattering platform conditionals.
+- Use path-safe abstractions (`PathBuf`/platform-aware path utilities) and avoid hard-coded separators/drive assumptions.
+- Track and enforce cold/warm startup and state-change feedback budgets in performance validation.
 
 ---
 

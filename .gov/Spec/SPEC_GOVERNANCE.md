@@ -1,7 +1,7 @@
 # StratAtlas - Spec Governance
 
 **Created:** 2026-03-04  
-**Purpose:** Define how the specification, requirements index, and traceability matrix are maintained.
+**Purpose:** Define how the specification, requirements index, traceability matrix, and tech stack are maintained.
 
 ---
 
@@ -41,6 +41,8 @@ Anyone on the team can propose a spec change via pull request against `.gov/Spec
 Every spec PR MUST include:
 - A clear rationale in the PR description
 - Updated `REQUIREMENTS_INDEX.md` if any MUST/SHOULD/MAY statement is added, modified, or removed
+- Updated `TRACEABILITY_MATRIX.md` when requirement mappings or verification strategy changes
+- Updated `TECH_STACK.md` when the change impacts architecture/runtime dependencies or portability assumptions
 - A changelog entry in the spec's Appendix E
 
 ---
@@ -127,6 +129,9 @@ Technology choices are recorded in `TECH_STACK.md` with:
 ### 6.2 Architecture Decision Records (ADRs)
 Major architectural choices also get a formal ADR in `docs/adr/NNN-title.md`. ADRs are permanent: they are superseded, never deleted.
 
+### 6.3 Update Trigger
+If a requirement change introduces, removes, or constrains runtime dependencies/platform behavior, `TECH_STACK.md` MUST be updated in the same PR.
+
 ---
 
 ## 7. Sync Cadence
@@ -162,10 +167,17 @@ When a change affects iteration order, implementation scope, requirement status,
 
 - `REQUIREMENTS_INDEX.md`
 - `TRACEABILITY_MATRIX.md`
+- `TECH_STACK.md` (when architecture/runtime assumptions are impacted)
 - `ROADMAP.md`
 - `TASK_BOARD.md`
-- `PROJECT_CODEX.md` and `AGENTS.md` when workflow rules for humans/agents are changed
+- `PROJECT_CODEX.md`, `AGENTS.md`, and `MODEL_BEHAVIOR.md` when workflow rules for humans/agents are changed
 
 ### 8.3 Enforcement
-No work packet may be considered complete if roadmap/taskboard/requirements/traceability are out of sync with actual implementation state.
+No work packet may be considered complete if roadmap/taskboard/requirements/traceability/tech-stack records are out of sync with actual implementation state.
 
+### 8.4 Representation Completeness Rule
+Each iteration in `ROADMAP.md` MUST have:
+
+- exactly one corresponding Task Board row (`WP-I*`) with matching iteration ID,
+- exactly one corresponding work packet file in `.gov/workflow/work_packets/`,
+- a matching linked sub-spec path in roadmap and task board entries.

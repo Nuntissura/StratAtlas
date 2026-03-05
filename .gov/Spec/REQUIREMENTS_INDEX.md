@@ -1,7 +1,7 @@
 # StratAtlas — Requirements Index
 
-**Spec Version:** v1.1  
-**Last Updated:** 2026-03-04  
+**Spec Version:** v1.2.1  
+**Last Updated:** 2026-03-05  
 **Governance:** See `SPEC_GOVERNANCE.md` for maintenance rules.
 
 ---
@@ -36,6 +36,11 @@ REQ-NNNN | LEVEL | §Section | Description | Iteration Target | Status
 | REQ-0011 | MUST | §11.4 | Every layer/chart/annotation/export labeled as Observed Evidence, Curated Context, Modeled Output, or AI-Derived Interpretation | All | PENDING |
 | REQ-0012 | MUST | §11.4 | Modeled outputs MUST include uncertainty representation and MUST NOT be presented as observed | All | PENDING |
 | REQ-0013 | MUST | §17 | No capability is "implemented" until it satisfies the slice definition of done | All | PENDING |
+| REQ-0014 | MUST | §11.5 | Desktop app startup (cold launch) MUST be <= 8.0 s to interactive shell on reference workstation | All | PENDING |
+| REQ-0015 | MUST | §11.5 | Desktop app startup (warm relaunch) MUST be <= 3.0 s to interactive shell on reference workstation | All | PENDING |
+| REQ-0016 | MUST | §11.5 | Analyst state-change actions (layer/filter/apply) MUST provide feedback <= 300 ms P95; if exceeded, UI MUST show non-blocking progress | All | PENDING |
+| REQ-0017 | MUST | §5.1 | Runtime path/process/environment handling MUST remain platform-neutral without hard-coded Windows-only assumptions in core paths | All | PENDING |
+| REQ-0018 | SHOULD | §5.1 | Desktop packaging/runtime SHOULD be smoke-tested on macOS during development to preserve portability | All | PENDING |
 
 ---
 
@@ -212,6 +217,8 @@ REQ-NNNN | LEVEL | §Section | Description | Iteration Target | Status
 | GATE-D | MUST | §18 | Core analysis on saved projects/bundles functions offline with explicit UI state | D | PENDING |
 | GATE-E | MUST | §18 | Performance budgets met on reference hardware/datasets | E | PENDING |
 | GATE-F | MUST | §18 | Context domain provenance, graceful degradation, not presented as primary evidence | F | PENDING |
+| GATE-G | MUST | §18 | AI safety controls operational whenever AI integration is enabled | G | PENDING |
+| GATE-H | MUST | §18 | Desktop startup and portability controls met for Windows and macOS path | H | PENDING |
 
 ---
 
@@ -219,9 +226,9 @@ REQ-NNNN | LEVEL | §Section | Description | Iteration Target | Status
 
 | Level | Count |
 |-------|-------|
-| MUST | 82 |
-| SHOULD | 14 |
+| MUST | 86 |
+| SHOULD | 15 |
 | MAY | 3 |
-| **Total** | **99** |
+| **Total** | **104** |
 
 *Note: This index captures the primary normative requirements. Sub-specs will decompose these into finer-grained implementation requirements with IDs in the REQ-NNxx range (e.g., REQ-0101a, REQ-0101b).*

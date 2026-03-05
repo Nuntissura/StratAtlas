@@ -33,6 +33,7 @@ $requiredFiles = @(
     ".gov\Spec\REQUIREMENTS_INDEX.md",
     ".gov\Spec\TRACEABILITY_MATRIX.md",
     ".gov\Spec\SPEC_GOVERNANCE.md",
+    ".gov\Spec\TECH_STACK.md",
     ".gov\workflow\ROADMAP.md",
     ".gov\workflow\GOVERNANCE_WORKFLOW.md",
     ".gov\workflow\BUILD_READINESS_CHECKLIST.md",
@@ -69,6 +70,7 @@ $requiredGitIgnorePatterns = @(
 $requiredWorkPackets = @(
     "WP-GOV-MAINT-001",
     "WP-GOV-BUILDREADY-001",
+    "WP-GOV-PERFPORT-001",
     "WP-I0-001",
     "WP-I1-001",
     "WP-I2-001",
@@ -143,6 +145,24 @@ if (Test-Path $taskBoardPath -PathType Leaf) {
 }
 else {
     Add-CheckResult -ResultList $results -Category "TaskBoard" -Target "TASK_BOARD.md" -Passed $false -Details "Task board file missing"
+}
+
+$roadmapPath = Join-Path $repoRoot ".gov\workflow\ROADMAP.md"
+if (Test-Path $roadmapPath -PathType Leaf) {
+    $roadmapContent = Get-Content -Raw $roadmapPath
+
+    foreach ($packetId in ($requiredWorkPackets | Where-Object { $_ -like "WP-I*" })) {
+        $containsPacket = $roadmapContent -match [regex]::Escape($packetId)
+        Add-CheckResult -ResultList $results -Category "Roadmap" -Target $packetId -Passed $containsPacket -Details ($(if ($containsPacket) { "Referenced in ROADMAP.md" } else { "Missing iteration work packet link in ROADMAP.md" }))
+    }
+
+    foreach ($subSpecFileName in $requiredSubSpecs) {
+        $containsSubSpec = $roadmapContent -match [regex]::Escape($subSpecFileName)
+        Add-CheckResult -ResultList $results -Category "RoadmapSubSpec" -Target $subSpecFileName -Passed $containsSubSpec -Details ($(if ($containsSubSpec) { "Referenced in ROADMAP.md" } else { "Missing sub-spec link in ROADMAP.md" }))
+    }
+}
+else {
+    Add-CheckResult -ResultList $results -Category "Roadmap" -Target "ROADMAP.md" -Passed $false -Details "Roadmap file missing"
 }
 
 $gitIgnorePath = Join-Path $repoRoot ".gitignore"

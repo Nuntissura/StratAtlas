@@ -47,6 +47,13 @@ If these disagree with implementation, reconcile governance intent first.
 - Tool/scanner/script outputs go to `.product/build_target/tool_artifacts/`.
 - Contents of build target artifact folders must remain gitignored (except `.gitkeep` placeholders).
 
+## 4.1 Startup Performance and Portability Rules
+
+- Prioritize startup speed and state-change responsiveness as core quality targets.
+- Keep runtime code portable to macOS: avoid hard-coded Windows paths/separators in core product paths.
+- Do not add Windows-only runtime dependencies in core paths unless isolated behind an approved platform adapter.
+- When performance-sensitive behavior changes, update WP evidence and traceability references accordingly.
+
 ## 5) Safety Boundaries (Spec Section 3.2)
 
 Do not implement:
@@ -66,4 +73,5 @@ Do not implement:
 ## 7) Always-Maintained Sentiment
 
 - Treat roadmap and build order as living governance artifacts, not one-time docs.
-- Keep `PROJECT_CODEX.md` and `AGENTS.md` aligned with current workflow rules.
+- Keep `PROJECT_CODEX.md`, `AGENTS.md`, and `MODEL_BEHAVIOR.md` aligned with current workflow rules.
+- Keep `REQUIREMENTS_INDEX.md`, `TRACEABILITY_MATRIX.md`, and `TECH_STACK.md` current whenever scope, verification, or runtime assumptions change.

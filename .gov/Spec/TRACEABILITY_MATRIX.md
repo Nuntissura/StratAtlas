@@ -1,7 +1,7 @@
 # StratAtlas — Traceability Matrix
 
-**Spec Version:** v1.1  
-**Last Updated:** 2026-03-04  
+**Spec Version:** v1.2.1  
+**Last Updated:** 2026-03-05  
 **Governance:** See `SPEC_GOVERNANCE.md` for maintenance rules.
 
 ---
@@ -43,6 +43,11 @@ REQ-ID | Component(s) | Test(s) | Iteration | Verified
 | REQ-0011 | client/panels, client/charts | tests/unit/test_evidence_labeling | All | |
 | REQ-0012 | client/panels, client/charts | tests/unit/test_modeled_output_uncertainty | All | |
 | REQ-0013 | *(process gate, not code)* | tests/integration/test_slice_definition_of_done | All | |
+| REQ-0014 | client/tauri, client/startup | tests/performance/test_startup_cold | All | |
+| REQ-0015 | client/tauri, client/startup | tests/performance/test_startup_warm | All | |
+| REQ-0016 | client/map, client/panels, client/scenarios | tests/performance/test_state_change_feedback | All | |
+| REQ-0017 | client/tauri, control-plane/config, gateway/mcp | tests/integration/test_platform_neutral_paths | All | |
+| REQ-0018 | build/ci, product/worktree_policy | tests/integration/test_macos_smoke_build | All | |
 
 ---
 
@@ -100,8 +105,10 @@ REQ-ID | Component(s) | Test(s) | Iteration | Verified
 | Gate B — Provenance & Reproducibility | Deterministic replay test suite | REQ-0101, REQ-0104, REQ-0105, REQ-0009 | |
 | Gate C — Security & Governance | RBAC + audit + marking integration tests | REQ-0008, REQ-0010, REQ-0100, REQ-0106 | |
 | Gate D — Offline Operability | Air-gapped environment test (no network) | REQ-0108 | |
-| Gate E — Performance | Performance budget test suite on reference hardware | REQ-0112, REQ-0206–REQ-0211 | |
+| Gate E — Performance | Performance budget test suite on reference hardware | REQ-0014–REQ-0016, REQ-0112, REQ-0206–REQ-0211 | |
 | Gate F — Context Integrity | Context domain integration tests | REQ-0800–REQ-0810 | |
+| Gate G — AI Safety | AI gateway and copilot safety test suite | REQ-0700–REQ-0708, REQ-0011, REQ-0012 | |
+| Gate H — Desktop Portability & Startup | Startup budget and cross-platform smoke test suite | REQ-0014–REQ-0018 | |
 
 ---
 
@@ -116,6 +123,7 @@ For quick lookup: "What requirements does this component implement?"
 | control-plane/policy | REQ-0001–REQ-0008, REQ-0111, REQ-0203 |
 | control-plane/provenance | REQ-0009 |
 | control-plane/registry | REQ-0202, REQ-0801 |
+| control-plane/config | REQ-0017 |
 | recorder/bundles | REQ-0101–REQ-0104, REQ-0110, REQ-0808 |
 | recorder/replay | REQ-0105, REQ-0112 |
 | recorder/events | REQ-0903 |
@@ -127,16 +135,19 @@ For quick lookup: "What requirements does this component implement?"
 | analytics/alerts | REQ-0002, REQ-1002, REQ-1003 |
 | context/adapters | REQ-0004, REQ-0006, REQ-0801, REQ-1000 |
 | context/correlation | REQ-0802, REQ-0803 |
-| client/map | REQ-0200, REQ-0206, REQ-0211 |
+| client/map | REQ-0016, REQ-0200, REQ-0206, REQ-0211 |
+| client/startup | REQ-0014, REQ-0015 |
 | client/timeline | REQ-0207, REQ-0208 |
-| client/panels | REQ-0011, REQ-0012, REQ-0200, REQ-0804, REQ-0805 |
+| client/panels | REQ-0011, REQ-0012, REQ-0016, REQ-0200, REQ-0804, REQ-0805 |
 | client/charts | REQ-0011, REQ-0012, REQ-0301 |
 | client/briefing | REQ-0209, REQ-0210, REQ-0302 |
-| client/scenarios | REQ-0500–REQ-0504, REQ-0904 |
+| client/scenarios | REQ-0016, REQ-0500–REQ-0504, REQ-0904 |
 | client/queries | REQ-0600–REQ-0604 |
 | client/collab | REQ-0400–REQ-0403 |
 | gateway/auth | REQ-0700 |
 | gateway/mcp | REQ-0702–REQ-0708 |
 | gateway/policy | REQ-0700, REQ-0701 |
+| build/ci | REQ-0018 |
+| product/worktree_policy | REQ-0018 |
 | plugins/sandbox | REQ-0204, REQ-0205 |
 | sync/crdt | REQ-0400, REQ-0402, REQ-0403 |

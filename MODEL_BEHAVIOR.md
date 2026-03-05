@@ -1,6 +1,6 @@
 # StratAtlas - Model Behavior (AI Agent Rules)
 
-Date: 2026-03-04
+Date: 2026-03-05
 
 This file defines default AI coding-agent behavior for the StratAtlas repository.
 
@@ -57,7 +57,13 @@ The agent must not implement capabilities prohibited by the spec, including:
 - Treat cloud/AI connectivity as optional and policy-gated.
 - Avoid introducing hard dependencies on proprietary hosted services.
 
-## 8) Escalation and Clarification
+## 8) Startup Performance and macOS Portability
+
+- Treat startup speed and analyst state-change responsiveness as contractual quality requirements.
+- Prefer implementation patterns that support spec startup/feedback budgets.
+- Keep runtime path/process behavior platform-neutral to preserve future macOS delivery.
+- Avoid introducing Windows-only runtime assumptions in core product paths.
+
+## 9) Escalation and Clarification
 
 If a requested change is ambiguous, high-risk, or conflicts with governance constraints, ask for clarification before implementation.
-
