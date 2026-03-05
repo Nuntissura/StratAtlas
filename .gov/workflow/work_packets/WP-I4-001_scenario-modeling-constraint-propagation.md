@@ -1,8 +1,10 @@
-﻿# WP-I4-001 - Scenario Modeling Constraint Propagation
+# WP-I4-001 - Scenario Modeling Constraint Propagation
 
 Date Opened: 2026-03-04
-Status: VERIFIED
+Status: IMPLEMENTED
 Iteration: I4
+Workflow Version: 2.0
+Linked Test Suite: .gov/workflow/wp_test_suites/TS-WP-I4-001.md
 
 ## Intent
 
@@ -16,7 +18,7 @@ Deliver scenario fork modeling with constraint propagation and exportability.
 
 - Confirm I4 sub-spec is written and approved.
 - Ensure traceability rows for REQ-0500..REQ-0504 are mapped.
-- Move Task Board status to `SUB-SPEC` or `IN-PROGRESS` before coding starts.
+- Move Task Board status to `SPEC-MAPPED` or `IN-PROGRESS` before coding starts.
 
 ## Initial Scope
 
@@ -29,6 +31,7 @@ Deliver scenario fork modeling with constraint propagation and exportability.
 - I4 outcomes recorded on Task Board.
 - REQ-0500..REQ-0504 statuses updated in index.
 - Traceability and verification evidence linked.
+- E2E-VERIFIED requires runtime evidence and user sign-off.
 
 
 ## Progress Log
@@ -38,3 +41,69 @@ Deliver scenario fork modeling with constraint propagation and exportability.
 
 - 2026-03-05: Implementation completed and verified via lint/test/build evidence.
 
+## Linked Primitives
+
+- PRIM-0013 | <name> | linked contract for this iteration
+
+## Primitive Matrix Impact
+
+- Add/update rows in .gov/Spec/PRIMITIVES_MATRIX.md for linked primitives.
+
+## Expected Files Touched
+
+- .gov/Spec/REQUIREMENTS_INDEX.md
+- .gov/Spec/TRACEABILITY_MATRIX.md
+- .gov/Spec/PRIMITIVES_INDEX.md
+- .gov/Spec/PRIMITIVES_MATRIX.md
+- .gov/workflow/taskboard/TASK_BOARD.md
+- .gov/workflow/work_packets/WP-I4-001_scenario-modeling-constraint-propagation.md
+- .gov/workflow/wp_test_suites/TS-WP-I4-001.md
+- .product/Worktrees/wt_main/src/<implementation_files>
+
+## Interconnection Plan
+
+| Primitive | Feature/Tool | Technology | Combined Outcome |
+|-----------|--------------|------------|------------------|
+| <primitive> | <feature/tool> | <tech> | <why this combination matters> |
+
+## Spec-Test Coverage Plan
+
+### Dependency and Environment Tests
+- [ ] Dependency graph/lock integrity tests
+- [ ] Runtime compatibility checks
+
+### UI Contract Tests
+- [ ] Required regions/modes/states
+- [ ] Error/degraded-state UX
+
+### Functional Flow Tests
+- [ ] Golden flow and edge cases
+- [ ] Persistence/replay/export flows
+
+### Code Correctness Tests
+- [ ] Unit tests
+- [ ] Integration tests
+- [ ] Static analysis (lint/type/schema)
+
+### Red-Team and Abuse Tests
+- [ ] Non-goal enforcement (spec section 3.2)
+- [ ] Policy bypass scenarios
+- [ ] Adversarial/invalid input cases
+
+### Additional Tests
+- [ ] Performance budgets
+- [ ] Offline behavior
+- [ ] Reliability/recovery
+
+## Checkpoint Commit Plan
+
+1. Governance kickoff commit (spec/wp/taskboard/traceability/primitives/test-suite).
+2. Implementation commit(s).
+3. Verification/status promotion commit.
+## Evidence
+
+- Test Suite Execution:
+- Logs:
+- Screenshots/Exports:
+- Build Artifacts:
+- User Sign-off:

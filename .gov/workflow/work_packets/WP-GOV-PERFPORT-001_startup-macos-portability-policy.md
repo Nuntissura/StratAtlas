@@ -1,7 +1,7 @@
 # WP-GOV-PERFPORT-001 - Startup and macOS Portability Policy
 
 Date Opened: 2026-03-05
-Status: DONE
+Status: IMPLEMENTED
 Iteration: All
 
 ## Intent

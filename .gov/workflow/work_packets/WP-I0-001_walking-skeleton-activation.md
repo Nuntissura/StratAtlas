@@ -1,8 +1,10 @@
-﻿# WP-I0-001 - Walking Skeleton Activation
+# WP-I0-001 - Walking Skeleton Activation
 
 Date Opened: 2026-03-04
-Status: VERIFIED
+Status: IMPLEMENTED
 Iteration: I0
+Workflow Version: 2.0
+Linked Test Suite: .gov/workflow/wp_test_suites/TS-WP-I0-001.md
 
 ## Intent
 
@@ -17,7 +19,7 @@ Activate the first implementation slice for the I0 walking skeleton.
 
 - Confirm sub-spec for I0 is written and approved.
 - Ensure traceability rows for REQ-0100..REQ-0112 are mapped.
-- Confirm Task Board status is `SUB-SPEC` or `IN-PROGRESS` before coding starts.
+- Confirm Task Board status is `SPEC-MAPPED` or `IN-PROGRESS` before coding starts.
 
 ## Progress Log
 
@@ -36,6 +38,76 @@ Activate the first implementation slice for the I0 walking skeleton.
 - I0 scope outcomes recorded on Task Board.
 - Requirement statuses updated in index.
 - Traceability and verification evidence linked.
+- E2E-VERIFIED requires runtime evidence and user sign-off.
 
 - 2026-03-05: Implementation completed and verified via lint/test/build evidence.
 
+## Linked Primitives
+
+- PRIM-0001 | <name> | linked contract for this iteration
+- PRIM-0002 | <name> | linked contract for this iteration
+- PRIM-0003 | <name> | linked contract for this iteration
+- PRIM-0004 | <name> | linked contract for this iteration
+
+## Primitive Matrix Impact
+
+- Add/update rows in .gov/Spec/PRIMITIVES_MATRIX.md for linked primitives.
+
+## Expected Files Touched
+
+- .gov/Spec/REQUIREMENTS_INDEX.md
+- .gov/Spec/TRACEABILITY_MATRIX.md
+- .gov/Spec/PRIMITIVES_INDEX.md
+- .gov/Spec/PRIMITIVES_MATRIX.md
+- .gov/workflow/taskboard/TASK_BOARD.md
+- .gov/workflow/work_packets/WP-I0-001_walking-skeleton-activation.md
+- .gov/workflow/wp_test_suites/TS-WP-I0-001.md
+- .product/Worktrees/wt_main/src/<implementation_files>
+
+## Interconnection Plan
+
+| Primitive | Feature/Tool | Technology | Combined Outcome |
+|-----------|--------------|------------|------------------|
+| <primitive> | <feature/tool> | <tech> | <why this combination matters> |
+
+## Spec-Test Coverage Plan
+
+### Dependency and Environment Tests
+- [ ] Dependency graph/lock integrity tests
+- [ ] Runtime compatibility checks
+
+### UI Contract Tests
+- [ ] Required regions/modes/states
+- [ ] Error/degraded-state UX
+
+### Functional Flow Tests
+- [ ] Golden flow and edge cases
+- [ ] Persistence/replay/export flows
+
+### Code Correctness Tests
+- [ ] Unit tests
+- [ ] Integration tests
+- [ ] Static analysis (lint/type/schema)
+
+### Red-Team and Abuse Tests
+- [ ] Non-goal enforcement (spec section 3.2)
+- [ ] Policy bypass scenarios
+- [ ] Adversarial/invalid input cases
+
+### Additional Tests
+- [ ] Performance budgets
+- [ ] Offline behavior
+- [ ] Reliability/recovery
+
+## Checkpoint Commit Plan
+
+1. Governance kickoff commit (spec/wp/taskboard/traceability/primitives/test-suite).
+2. Implementation commit(s).
+3. Verification/status promotion commit.
+## Evidence
+
+- Test Suite Execution:
+- Logs:
+- Screenshots/Exports:
+- Build Artifacts:
+- User Sign-off:

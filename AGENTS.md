@@ -15,12 +15,15 @@ These rules apply to the full repository unless a deeper directory adds stricter
 - `.gov/Spec/stratatlas_spec_v1_2.md`
 - `.gov/Spec/REQUIREMENTS_INDEX.md`
 - `.gov/Spec/TRACEABILITY_MATRIX.md`
+- `.gov/Spec/PRIMITIVES_INDEX.md`
+- `.gov/Spec/PRIMITIVES_MATRIX.md`
 - `.gov/Spec/SPEC_GOVERNANCE.md`
 - `.gov/Spec/TECH_STACK.md`
 - `.gov/workflow/ROADMAP.md`
 - `.gov/workflow/GOVERNANCE_WORKFLOW.md`
 - `.gov/workflow/BUILD_READINESS_CHECKLIST.md`
 - `.gov/workflow/taskboard/TASK_BOARD.md`
+- `.gov/workflow/wp_test_suites/`
 - `.gov/Spec/sub-specs/`
 
 If these disagree with implementation, reconcile governance intent first.
@@ -28,11 +31,15 @@ If these disagree with implementation, reconcile governance intent first.
 ## 3) Work Packet Discipline
 
 - Work should map to `.gov/workflow/work_packets/WP-*.md`.
+- Every WP MUST have a linked spec-vs-code suite in `.gov/workflow/wp_test_suites/TS-WP-*.md`.
 - Status belongs on `.gov/workflow/taskboard/TASK_BOARD.md`.
 - Scope changes require governance updates before product implementation.
 - Iteration sequencing must follow `.gov/workflow/ROADMAP.md` unless governance explicitly changes it.
 - Apply the checklist in `.gov/workflow/GOVERNANCE_WORKFLOW.md` on every relevant PR.
 - Before implementation/build work, run `powershell -ExecutionPolicy Bypass -File .gov/repo_scripts/governance_preflight.ps1`.
+- Prefer WP creation via `powershell -ExecutionPolicy Bypass -File .gov/repo_scripts/new_work_packet.ps1` (creates linked test suite and checkpoint commit by default; use `-SkipCheckpointCommit` only when explicitly needed).
+- Before product implementation, create a governance checkpoint commit (for crash/session-reset resilience).
+- Only `E2E-VERIFIED` means done; `IMPLEMENTED` does not.
 
 ## 4) Product Worktree and Build Target Policy
 
@@ -74,4 +81,4 @@ Do not implement:
 
 - Treat roadmap and build order as living governance artifacts, not one-time docs.
 - Keep `PROJECT_CODEX.md`, `AGENTS.md`, and `MODEL_BEHAVIOR.md` aligned with current workflow rules.
-- Keep `REQUIREMENTS_INDEX.md`, `TRACEABILITY_MATRIX.md`, and `TECH_STACK.md` current whenever scope, verification, or runtime assumptions change.
+- Keep `REQUIREMENTS_INDEX.md`, `TRACEABILITY_MATRIX.md`, `PRIMITIVES_INDEX.md`, `PRIMITIVES_MATRIX.md`, and `TECH_STACK.md` current whenever scope, verification, or runtime assumptions change.

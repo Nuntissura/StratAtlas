@@ -1,0 +1,49 @@
+# StratAtlas - Primitives Matrix
+
+**Spec Version:** v1.2.1  
+**Last Updated:** 2026-03-05  
+**Purpose:** Map primitives to work packets, implementation modules, tests, and technology/tool combinations.
+
+---
+
+## Matrix Format
+
+```
+PRIM-ID | WP | REQs | Components | Tests | Tech/Tools | Combined With | Verification Tier | Last Verified
+```
+
+---
+
+## Primitive Coverage Matrix
+
+| Primitive ID | WP | REQs | Components | Tests | Tech/Tools | Combined With | Verification Tier | Last Verified |
+|--------------|----|------|------------|-------|------------|---------------|-------------------|---------------|
+| PRIM-0001 | WP-I0-001 | REQ-0101..REQ-0105 | src/contracts/i0.ts, src/lib/backend.ts, src-tauri/src/lib.rs | src/lib/backend.test.ts, src/App.test.tsx | Tauri, TypeScript, Rust | PRIM-0002, PRIM-0003, PRIM-0004 | IMPLEMENTED | 2026-03-05 |
+| PRIM-0002 | WP-I0-001 | REQ-0010, REQ-0106, REQ-0107 | src/lib/backend.ts, src-tauri/src/lib.rs | src/lib/backend.test.ts, src-tauri/src/lib.rs (unit tests) | SHA-256, Tauri invoke | PRIM-0001 | IMPLEMENTED | 2026-03-05 |
+| PRIM-0003 | WP-I0-001 | REQ-0008, REQ-0011 | src/contracts/i0.ts, src/App.tsx | src/App.test.tsx | React, TypeScript | PRIM-0001, PRIM-0004 | IMPLEMENTED | 2026-03-05 |
+| PRIM-0004 | WP-I0-001 | REQ-0009 | src/contracts/i0.ts, src/App.tsx | src/lib/backend.test.ts | TypeScript | PRIM-0001, PRIM-0003 | IMPLEMENTED | 2026-03-05 |
+| PRIM-0005 | WP-I1-001 | REQ-0200 | src/features/i1/modes.ts, src/App.tsx | src/features/i1/i1.test.ts, src/App.test.tsx | React, Vitest | PRIM-0006 | IMPLEMENTED | 2026-03-05 |
+| PRIM-0006 | WP-I1-001 | REQ-0201 | src/features/i1/modes.ts, src/App.tsx | src/features/i1/i1.test.ts | React | PRIM-0005, PRIM-0009 | IMPLEMENTED | 2026-03-05 |
+| PRIM-0007 | WP-I1-001 | REQ-0202, REQ-0203 | src/features/i1/layers.ts | src/features/i1/i1.test.ts | TypeScript | PRIM-0008 | IMPLEMENTED | 2026-03-05 |
+| PRIM-0008 | WP-I1-001 | REQ-0204, REQ-0205 | src/features/i1/plugins.ts | src/features/i1/i1.test.ts | TypeScript | PRIM-0007 | IMPLEMENTED | 2026-03-05 |
+| PRIM-0009 | WP-I1-001 | REQ-0014..REQ-0016, REQ-0206..REQ-0211 | src/features/i1/performance.ts | src/features/i1/i1.test.ts | TypeScript, Vitest | PRIM-0006 | IMPLEMENTED | 2026-03-05 |
+| PRIM-0010 | WP-I2-001 | REQ-0300, REQ-0301 | src/features/i2/baselineDelta.ts | src/features/i2/i2.test.ts | TypeScript | PRIM-0011 | IMPLEMENTED | 2026-03-05 |
+| PRIM-0011 | WP-I2-001 | REQ-0302 | src/features/i2/baselineDelta.ts | src/features/i2/i2.test.ts | TypeScript | PRIM-0010 | IMPLEMENTED | 2026-03-05 |
+| PRIM-0012 | WP-I3-001 | REQ-0400..REQ-0403 | src/features/i3/collaboration.ts | src/features/i3/i3.test.ts | Yjs, TypeScript | PRIM-0002 | IMPLEMENTED | 2026-03-05 |
+| PRIM-0013 | WP-I4-001 | REQ-0500..REQ-0504 | src/features/i4/scenarios.ts | src/features/i4/i4.test.ts | TypeScript | PRIM-0019 | IMPLEMENTED | 2026-03-05 |
+| PRIM-0014 | WP-I5-001 | REQ-0600..REQ-0604 | src/features/i5/queryBuilder.ts | src/features/i5/i5.test.ts | TypeScript | PRIM-0016 | IMPLEMENTED | 2026-03-05 |
+| PRIM-0015 | WP-I6-001 | REQ-0700..REQ-0708 | src/features/i6/aiGateway.ts | src/features/i6/i6.test.ts | TypeScript | PRIM-0001, PRIM-0014 | IMPLEMENTED | 2026-03-05 |
+| PRIM-0016 | WP-I7-001 | REQ-0800..REQ-0810 | src/features/i7/contextIntake.ts | src/features/i7/i7.test.ts | TypeScript | PRIM-0010, PRIM-0018 | IMPLEMENTED | 2026-03-05 |
+| PRIM-0017 | WP-I8-001 | REQ-0900..REQ-0904 | src/features/i8/deviation.ts | src/features/i8/i8.test.ts | TypeScript | PRIM-0016 | IMPLEMENTED | 2026-03-05 |
+| PRIM-0018 | WP-I9-001 | REQ-1000..REQ-1003 | src/features/i9/osint.ts | src/features/i9/i9.test.ts | TypeScript | PRIM-0016, PRIM-0017 | IMPLEMENTED | 2026-03-05 |
+| PRIM-0019 | WP-I10-001 | REQ-1100..REQ-1113 | src/features/i10/gameModeling.ts | src/features/i10/i10.test.ts | TypeScript | PRIM-0013 | IMPLEMENTED | 2026-03-05 |
+
+---
+
+## Maintenance Rules
+
+1. Every new WP must add at least one row to this matrix.
+2. Every `Linked Primitives` entry in a WP must exist in `PRIMITIVES_INDEX.md`.
+3. `E2E-VERIFIED` may be used only with linked evidence in WP and test-suite artifacts.
+4. Matrix updates are required whenever components/tests/technology combinations change.
+

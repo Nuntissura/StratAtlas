@@ -22,7 +22,9 @@ REQ-ID | Component(s) | Test(s) | Iteration | Verified
 
 - **Component:** Source module or service that implements the requirement
 - **Test:** Test file or suite that verifies the requirement
-- **Verified:** Date the test passed against the implementation, or blank
+- **Verified:** Date implementation-level tests passed, or blank
+
+**Important:** `Verified` here is implementation-level verification. Done status is only `E2E-VERIFIED` in WP/taskboard/test-suite governance.
 
 ---
 
@@ -211,6 +213,24 @@ REQ-ID | Component(s) | Test(s) | Iteration | Verified
 | REQ-1111 | .product/Worktrees/wt_main/src/features/i10/gameModeling.ts | .product/Worktrees/wt_main/src/features/i10/i10.test.ts | I10 | 2026-03-05 |
 | REQ-1112 | .product/Worktrees/wt_main/src/features/i10/gameModeling.ts | .product/Worktrees/wt_main/src/features/i10/i10.test.ts | I10 | 2026-03-05 |
 | REQ-1113 | .product/Worktrees/wt_main/src/features/i10/gameModeling.ts | .product/Worktrees/wt_main/src/features/i10/i10.test.ts | I10 | 2026-03-05 |
+
+---
+
+## Work Packet Coverage and Primitive Links
+
+| WP ID | Iteration | Requirements | Primitives | Test Suite | Status | Evidence |
+|------|-----------|--------------|------------|------------|--------|----------|
+| WP-I0-001 | I0 | REQ-0100..REQ-0112, REQ-0017..REQ-0018 | PRIM-0001, PRIM-0002, PRIM-0003, PRIM-0004 | .gov/workflow/wp_test_suites/TS-WP-I0-001.md | IMPLEMENTED | pending e2e evidence |
+| WP-I1-001 | I1 | REQ-0200..REQ-0212, REQ-0014..REQ-0016 | PRIM-0005, PRIM-0006, PRIM-0007, PRIM-0008, PRIM-0009 | .gov/workflow/wp_test_suites/TS-WP-I1-001.md | IMPLEMENTED | pending e2e evidence |
+| WP-I2-001 | I2 | REQ-0300..REQ-0302 | PRIM-0010, PRIM-0011 | .gov/workflow/wp_test_suites/TS-WP-I2-001.md | IMPLEMENTED | pending e2e evidence |
+| WP-I3-001 | I3 | REQ-0400..REQ-0403 | PRIM-0012 | .gov/workflow/wp_test_suites/TS-WP-I3-001.md | IMPLEMENTED | pending e2e evidence |
+| WP-I4-001 | I4 | REQ-0500..REQ-0504 | PRIM-0013 | .gov/workflow/wp_test_suites/TS-WP-I4-001.md | IMPLEMENTED | pending e2e evidence |
+| WP-I5-001 | I5 | REQ-0600..REQ-0604 | PRIM-0014 | .gov/workflow/wp_test_suites/TS-WP-I5-001.md | IMPLEMENTED | pending e2e evidence |
+| WP-I6-001 | I6 | REQ-0700..REQ-0708 | PRIM-0015 | .gov/workflow/wp_test_suites/TS-WP-I6-001.md | IMPLEMENTED | pending e2e evidence |
+| WP-I7-001 | I7 | REQ-0800..REQ-0810 | PRIM-0016 | .gov/workflow/wp_test_suites/TS-WP-I7-001.md | IMPLEMENTED | pending e2e evidence |
+| WP-I8-001 | I8 | REQ-0900..REQ-0904 | PRIM-0017 | .gov/workflow/wp_test_suites/TS-WP-I8-001.md | IMPLEMENTED | pending e2e evidence |
+| WP-I9-001 | I9 | REQ-1000..REQ-1003 | PRIM-0018 | .gov/workflow/wp_test_suites/TS-WP-I9-001.md | IMPLEMENTED | pending e2e evidence |
+| WP-I10-001 | I10 | REQ-1100..REQ-1113 | PRIM-0019 | .gov/workflow/wp_test_suites/TS-WP-I10-001.md | IMPLEMENTED | pending e2e evidence |
 
 ---
 

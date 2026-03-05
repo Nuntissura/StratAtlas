@@ -1,7 +1,7 @@
 # WP-GOV-MAINT-001 - Governance Sync Sweep
 
 Date Opened: 2026-03-04
-Status: ACTIVE (RECURRING)
+Status: RECURRING
 
 ## Intent
 
@@ -13,6 +13,8 @@ Keep governance source-of-truth artifacts continuously synchronized.
 - `.gov/workflow/taskboard/TASK_BOARD.md`
 - `.gov/Spec/REQUIREMENTS_INDEX.md`
 - `.gov/Spec/TRACEABILITY_MATRIX.md`
+- `.gov/Spec/PRIMITIVES_INDEX.md`
+- `.gov/Spec/PRIMITIVES_MATRIX.md`
 - `.gov/Spec/TECH_STACK.md`
 - `PROJECT_CODEX.md`
 - `AGENTS.md`

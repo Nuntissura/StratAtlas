@@ -17,6 +17,8 @@ StratAtlas/
 |   |   |-- stratatlas_spec_v1_2.md
 |   |   |-- REQUIREMENTS_INDEX.md
 |   |   |-- TRACEABILITY_MATRIX.md
+|   |   |-- PRIMITIVES_INDEX.md
+|   |   |-- PRIMITIVES_MATRIX.md
 |   |   |-- SPEC_GOVERNANCE.md
 |   |   |-- TECH_STACK.md
 |   |   `-- sub-specs/                    # Iteration sub-specs (I0..I10)
@@ -27,9 +29,10 @@ StratAtlas/
 |   |   |-- taskboard/
 |   |   |   `-- TASK_BOARD.md             # Live work + governance maintenance status
 |   |   |-- work_packets/                 # WP-*.md files live here
+|   |   |-- wp_test_suites/               # TS-WP-*.md spec-vs-code suites per WP
 |   |   `-- fail_log/                     # Governance-side failure logs
 |   |-- templates/                        # Reusable governance templates (WP + sub-spec)
-|   |-- repo_scripts/                     # Governance automation scripts (preflight)
+|   |-- repo_scripts/                     # Governance automation scripts (preflight + WP creation + checkpoint commits)
 |   |-- audits/                           # Audit artifacts/reports
 |   |-- doc/                              # Governance documentation
 |   `-- examples_ref/                     # Reference examples
@@ -72,11 +75,13 @@ StratAtlas/
 
 1. Confirm sequencing in `.gov/workflow/ROADMAP.md`.
 2. Define or update scope in `.gov/workflow/work_packets/` and `.gov/workflow/taskboard/TASK_BOARD.md`.
+3. Create or update the linked spec-vs-code suite in `.gov/workflow/wp_test_suites/`.
 3. Run preflight (`.gov/repo_scripts/governance_preflight.ps1`) and follow `.gov/workflow/GOVERNANCE_WORKFLOW.md`.
-4. Ensure `.gov/Spec/` reflects the requirement and traceability impact.
-5. Implement production-bound code in `.product/Worktrees/wt_main`.
-6. Record outcomes back in governance artifacts.
-7. Keep build outputs, logs, and tool artifacts confined to `.product/build_target/`.
+4. Ensure `.gov/Spec/` reflects requirement, traceability, and primitive impact.
+5. Create a governance checkpoint commit before product implementation.
+6. Implement production-bound code in `.product/Worktrees/wt_main`.
+7. Record outcomes back in governance artifacts.
+8. Keep build outputs, logs, and tool artifacts confined to `.product/build_target/`.
 
 ---
 

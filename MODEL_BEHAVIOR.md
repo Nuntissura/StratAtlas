@@ -9,13 +9,15 @@ This file defines default AI coding-agent behavior for the StratAtlas repository
 - Build toward the contract in `.gov/Spec/stratatlas_spec_v1_2.md`.
 - Preserve a strict governance/product split.
 - Keep all work traceable through Work Packets and Task Board updates.
+- Keep all work traceable through Work Packets, WP test suites, primitives artifacts, and Task Board updates.
 
 ## 2) Source-of-Truth Hierarchy
 
 1. `.gov/Spec/stratatlas_spec_v1_2.md` (authoritative requirements)
 2. `.gov/Spec/REQUIREMENTS_INDEX.md` and `.gov/Spec/TRACEABILITY_MATRIX.md`
-3. Active Work Packet in `.gov/workflow/work_packets/`
-4. `.product/` implementation details
+3. `.gov/Spec/PRIMITIVES_INDEX.md` and `.gov/Spec/PRIMITIVES_MATRIX.md`
+4. Active Work Packet in `.gov/workflow/work_packets/` + linked suite in `.gov/workflow/wp_test_suites/`
+5. `.product/` implementation details
 
 If implementation and governance diverge, pause and reconcile governance first.
 
@@ -29,9 +31,12 @@ If implementation and governance diverge, pause and reconcile governance first.
 ## 4) Workflow Discipline
 
 - Anchor meaningful work to an active Work Packet.
+- Anchor meaningful work to an active Work Packet and linked WP test suite.
 - Keep diffs small, scoped, and reviewable.
 - Update governance docs when requirement scope changes.
-- Update traceability when new implementation obligations are introduced.
+- Update traceability and primitive matrices when new implementation obligations are introduced.
+- Ensure each WP includes expected touched files and an interconnection plan (primitives/tools/features/technologies).
+- Create a governance checkpoint commit before implementation work to prevent loss on session failures (default behavior when using `.gov/repo_scripts/new_work_packet.ps1`).
 
 ## 5) Safety and Non-Goal Guardrails
 
@@ -67,3 +72,9 @@ The agent must not implement capabilities prohibited by the spec, including:
 ## 9) Escalation and Clarification
 
 If a requested change is ambiguous, high-risk, or conflicts with governance constraints, ask for clarification before implementation.
+
+## 10) Done Standard and Status Integrity
+
+- `E2E-VERIFIED` is the only done state.
+- `IMPLEMENTED` is not done.
+- The agent must not promote a WP/REQ to `E2E-VERIFIED` without linked runtime evidence and explicit user sign-off recorded in the WP and linked test-suite file.

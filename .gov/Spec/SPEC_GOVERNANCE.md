@@ -1,7 +1,7 @@
 # StratAtlas - Spec Governance
 
 **Created:** 2026-03-04  
-**Purpose:** Define how the specification, requirements index, traceability matrix, and tech stack are maintained.
+**Purpose:** Define how the specification, requirements index, traceability matrix, primitives artifacts, and tech stack are maintained.
 
 ---
 
@@ -11,6 +11,8 @@
 .gov/Spec/stratatlas_spec_v1_2.md     <- Authoritative contract (what the system must do)
   |- REQUIREMENTS_INDEX.md             <- Extracted requirements with stable IDs
   |- TRACEABILITY_MATRIX.md            <- Requirements -> components -> tests
+  |- PRIMITIVES_INDEX.md               <- Canonical reusable primitive registry
+  |- PRIMITIVES_MATRIX.md              <- Primitive -> WP/component/test/tech combinations
   |- TECH_STACK.md                     <- Technology decisions with rationale
   `- sub-specs/I0_*.md                 <- Per-iteration detailed specs
      sub-specs/I1_*.md
@@ -42,6 +44,7 @@ Every spec PR MUST include:
 - A clear rationale in the PR description
 - Updated `REQUIREMENTS_INDEX.md` if any MUST/SHOULD/MAY statement is added, modified, or removed
 - Updated `TRACEABILITY_MATRIX.md` when requirement mappings or verification strategy changes
+- Updated `PRIMITIVES_INDEX.md` and `PRIMITIVES_MATRIX.md` when reusable contracts or combinations changed
 - Updated `TECH_STACK.md` when the change impacts architecture/runtime dependencies or portability assumptions
 - A changelog entry in the spec's Appendix E
 
@@ -79,13 +82,30 @@ The matrix is updated at these events:
 | Event | Action |
 |-------|--------|
 | Sub-spec written for iteration N | Add rows for all `REQ-NNxx` requirements with component and test mappings |
-| Implementation begins | Update status in index from `PENDING` to `IN-PROGRESS` |
-| Tests pass | Update `Verified` column with date |
-| Iteration ships | Mark all verified requirements as `DONE` |
-| Post-ship verification | Mark as `VERIFIED` after production confirmation |
+| Implementation begins | Update status in index from `SPEC-MAPPED` to `IN-PROGRESS` |
+| Contract tests pass | Promote to `IMPLEMENTED` |
+| E2E runtime verification + sign-off | Promote to `E2E-VERIFIED` |
 
 ### 4.2 Reverse Index
 The "Component -> Requirements" reverse index at the bottom of the matrix MUST be updated whenever a new requirement-to-component mapping is added.
+
+### 4.3 Work Packet Coverage
+The "Work Packet Coverage and Primitive Links" section in `TRACEABILITY_MATRIX.md` MUST be updated whenever a WP is created or re-scoped.
+
+---
+
+## 4A. Primitive Governance Maintenance
+
+### 4A.1 Primitive Index
+
+- Every reusable contract-level building block must have a `PRIM-XXXX` entry in `PRIMITIVES_INDEX.md`.
+- Primitive rows must include linked requirement ranges and first iteration target.
+
+### 4A.2 Primitive Matrix
+
+- Every WP must add or update rows in `PRIMITIVES_MATRIX.md`.
+- Rows must include primitive combinations with tools/features/technology choices.
+- `E2E-VERIFIED` may only be used with linked WP/test-suite evidence.
 
 ---
 
@@ -141,13 +161,17 @@ Before each iteration begins, the team reviews:
 - [ ] Sub-spec is written and approved
 - [ ] All new requirements are in `REQUIREMENTS_INDEX.md`
 - [ ] `TRACEABILITY_MATRIX.md` has rows for all new requirements (component + test columns populated)
+- [ ] `PRIMITIVES_INDEX.md` has entries for all new reusable primitives
+- [ ] `PRIMITIVES_MATRIX.md` has WP/primitive rows for planned combinations
 - [ ] JSON Schemas for new artifacts are drafted in `schemas/`
 - [ ] Performance budget test stubs exist in `tests/performance/`
+- [ ] Linked WP test suite exists under `.gov/workflow/wp_test_suites/`
 
 ### 7.2 Post-Iteration Sync
 After each iteration ships:
 - [ ] All requirement statuses updated in `REQUIREMENTS_INDEX.md`
-- [ ] `TRACEABILITY_MATRIX.md` verified columns populated
+- [ ] `TRACEABILITY_MATRIX.md` verification + WP coverage sections updated
+- [ ] `PRIMITIVES_INDEX.md` and `PRIMITIVES_MATRIX.md` updated
 - [ ] Release gates re-evaluated
 - [ ] Spec changelog updated if amendments were made during the iteration
 
@@ -167,13 +191,15 @@ When a change affects iteration order, implementation scope, requirement status,
 
 - `REQUIREMENTS_INDEX.md`
 - `TRACEABILITY_MATRIX.md`
+- `PRIMITIVES_INDEX.md`
+- `PRIMITIVES_MATRIX.md`
 - `TECH_STACK.md` (when architecture/runtime assumptions are impacted)
 - `ROADMAP.md`
 - `TASK_BOARD.md`
 - `PROJECT_CODEX.md`, `AGENTS.md`, and `MODEL_BEHAVIOR.md` when workflow rules for humans/agents are changed
 
 ### 8.3 Enforcement
-No work packet may be considered complete if roadmap/taskboard/requirements/traceability/tech-stack records are out of sync with actual implementation state.
+No work packet may be considered complete if roadmap/taskboard/requirements/traceability/primitives/tech-stack records are out of sync with actual implementation state.
 
 ### 8.4 Representation Completeness Rule
 Each iteration in `ROADMAP.md` MUST have:

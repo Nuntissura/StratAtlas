@@ -1,7 +1,7 @@
 # WP-GOV-ITER-ACTIVE-001 - Iteration Activation and Sub-Spec Expansion
 
 Date Opened: 2026-03-05
-Status: DONE
+Status: IMPLEMENTED
 Iteration: I0-I10
 
 ## Intent
@@ -10,7 +10,7 @@ Activate all open iteration work packets into active governance flow and elimina
 
 ## In Scope
 
-- Move open iteration rows from `PLANNED` to active governance statuses (`IN-PROGRESS`/`SUB-SPEC`).
+- Move open iteration rows from `SPEC-MAPPED` to active governance statuses (`IN-PROGRESS`/`IMPLEMENTED`).
 - Expand I0-I10 sub-spec files from STUB templates to draft contracts.
 - Synchronize requirements index and traceability matrix with new sub-spec coverage.
 - Record dependency baseline alignment in `TECH_STACK.md`.
@@ -18,7 +18,7 @@ Activate all open iteration work packets into active governance flow and elimina
 ## Outcomes
 
 - `WP-I0-001` moved to `IN-PROGRESS`.
-- `WP-I1-001` through `WP-I10-001` moved to `SUB-SPEC`.
+- `WP-I1-001` through `WP-I10-001` moved to `IMPLEMENTED` after implementation/test baseline capture.
 - I0-I10 sub-spec files now contain full required section structure.
 - `REQUIREMENTS_INDEX.md` statuses aligned with activation state.
 - `TRACEABILITY_MATRIX.md` expanded for I2-I10 mappings.
