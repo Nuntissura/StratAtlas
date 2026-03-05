@@ -5,6 +5,8 @@ Status: IMPLEMENTED
 Iteration: I8
 Workflow Version: 2.0
 Linked Test Suite: .gov/workflow/wp_test_suites/TS-WP-I8-001.md
+Linked Spec Extraction: .gov/workflow/wp_spec_extractions/SX-WP-I8-001.md
+Linked WP Check Script: .gov/workflow/wp_checks/check-WP-I8-001.ps1
 
 ## Intent
 
@@ -60,7 +62,8 @@ Deliver context deviation detection and infrastructure propagation in scenarios.
 - .gov/workflow/work_packets/WP-I8-001_context-deviation-infrastructure-propagation.md
 - .gov/workflow/wp_test_suites/TS-WP-I8-001.md
 - .product/Worktrees/wt_main/src/<implementation_files>
-
+- .gov/workflow/wp_spec_extractions/SX-WP-I8-001.md
+- .gov/workflow/wp_checks/check-WP-I8-001.ps1
 ## Interconnection Plan
 
 | Primitive | Feature/Tool | Technology | Combined Outcome |
@@ -108,3 +111,9 @@ Deliver context deviation detection and infrastructure propagation in scenarios.
 - Screenshots/Exports: N/A (CLI-driven validation)
 - Build Artifacts: .product/Worktrees/wt_main/dist
 - User Sign-off: Pending
+- Proof Artifact: .product/build_target/tool_artifacts/wp_runs/WP-I8-001/
+## Proof of Implementation
+
+- Command Runs: reference linked check script output.
+- Proof Artifact: .product/build_target/tool_artifacts/wp_runs/WP-I8-001/
+- Claim Standard: do not claim completion without linked command evidence and artifact paths.

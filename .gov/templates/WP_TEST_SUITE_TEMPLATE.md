@@ -63,6 +63,11 @@ Iteration: I0..I10 or All
 - [ ] Accessibility or usability checks
 - [ ] Reliability/recovery checks
 
+## Automation Hook
+
+- Command: `powershell -ExecutionPolicy Bypass -File .gov/workflow/wp_checks/check-WP-<...>.ps1`
+- Artifacts: `.product/build_target/tool_artifacts/wp_runs/WP-<...>/`
+
 ## Execution Summary
 
 - Last Run Date:
@@ -71,4 +76,3 @@ Iteration: I0..I10 or All
 - Evidence Paths:
 - Reviewer:
 - User Sign-off:
-

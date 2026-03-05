@@ -22,6 +22,8 @@ The following files are mandatory and must stay synchronized:
 - `.gov/workflow/taskboard/TASK_BOARD.md`
 - `.gov/workflow/work_packets/WP-*.md`
 - `.gov/workflow/wp_test_suites/TS-WP-*.md`
+- `.gov/workflow/wp_spec_extractions/SX-WP-*.md`
+- `.gov/workflow/wp_checks/check-WP-*.ps1`
 - `PROJECT_CODEX.md`
 - `AGENTS.md`
 - `MODEL_BEHAVIOR.md`
@@ -70,10 +72,12 @@ When a WP is created or activated:
 
 1. Create WP from template (or via `.gov/repo_scripts/new_work_packet.ps1`).
 2. Create linked test suite in `.gov/workflow/wp_test_suites/`.
-3. Update task board row (owner/scope/status/sub-spec/requirements).
-4. Update traceability WP coverage section.
-5. Update primitives index and primitives matrix.
-6. Create a governance checkpoint commit before product implementation (automatic when using `new_work_packet.ps1` unless `-SkipCheckpointCommit` is passed).
+3. Create/update linked spec extraction in `.gov/workflow/wp_spec_extractions/` (use `.gov/repo_scripts/update_wp_spec_extract.ps1`).
+4. Create linked check script in `.gov/workflow/wp_checks/` (delegating to `.gov/repo_scripts/run_wp_checks.ps1`).
+5. Update task board row (owner/scope/status/sub-spec/requirements).
+6. Update traceability WP coverage section.
+7. Update primitives index and primitives matrix.
+8. Create a governance checkpoint commit before product implementation (automatic when using `new_work_packet.ps1` unless `-SkipCheckpointCommit` is passed).
 
 ### Trigger C: Implementation progress
 
@@ -102,6 +106,8 @@ Every WP must include these sections:
 
 - `Linked Requirements`
 - `Linked Primitives`
+- `Linked Spec Extraction`
+- `Linked WP Check Script`
 - `Primitive Matrix Impact`
 - `Expected Files Touched`
 - `Interconnection Plan`
@@ -113,6 +119,7 @@ Every WP must include these sections:
   - red-team tests
   - additional tests (performance/offline/reliability/etc.)
 - `Checkpoint Commit Plan`
+- `Proof of Implementation`
 - `Evidence`
 
 ---
@@ -129,6 +136,22 @@ Use `.gov/repo_scripts/governance_checkpoint_commit.ps1` to standardize this.
 
 ---
 
+## 6A) WP Loop Method (No-Shortcut Enforcement)
+
+Per WP, run this loop:
+
+1. `SPEC EXTRACT`: refresh extraction with `.gov/repo_scripts/update_wp_spec_extract.ps1`.
+2. `PLAN`: confirm WP/suite/check-script scope and expected touched files.
+3. `EXECUTE`: implement changes in `.product/Worktrees/wt_main`.
+4. `VERIFY`: run `.gov/workflow/wp_checks/check-WP-<...>.ps1` (or `.gov/repo_scripts/run_wp_checks.ps1`).
+5. `ENFORCE`: run `.gov/repo_scripts/enforce_wp_template_compliance.ps1`.
+6. `SYNC`: run `.gov/repo_scripts/governance_preflight.ps1` and update taskboard/traceability/primitives.
+7. `CHECKPOINT`: commit governance/implementation evidence before moving to next WP.
+
+No status claim may skip the `VERIFY` + `ENFORCE` + proof artifact requirement.
+
+---
+
 ## 7) Cadence
 
 - Per PR touching `.product/`: governance-sync check required.
@@ -142,6 +165,8 @@ Use `.gov/repo_scripts/governance_checkpoint_commit.ps1` to standardize this.
 
 - [ ] Work maps to an active WP.
 - [ ] Linked test suite exists and is current.
+- [ ] Linked spec extraction exists and is current.
+- [ ] Linked WP check script exists and runs.
 - [ ] Task board row exists and is current.
 - [ ] Requirement statuses match real implementation state.
 - [ ] Traceability entries are updated.
@@ -150,5 +175,6 @@ Use `.gov/repo_scripts/governance_checkpoint_commit.ps1` to standardize this.
 - [ ] Roadmap order is still accurate.
 - [ ] Build readiness checklist remains accurate.
 - [ ] Product publish changes are sourced from `.product/Worktrees/wt_main`.
+- [ ] WP template compliance check passes (`enforce_wp_template_compliance.ps1`).
 - [ ] Startup/performance and macOS-portability requirements are reflected when affected.
 - [ ] `PROJECT_CODEX.md`, `AGENTS.md`, and `MODEL_BEHAVIOR.md` reflect current workflow.

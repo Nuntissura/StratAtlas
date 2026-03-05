@@ -64,3 +64,14 @@ Any roadmap update must also update:
 - `.gov/Spec/REQUIREMENTS_INDEX.md` (targets/status where needed)
 - `.gov/Spec/TRACEABILITY_MATRIX.md` (mapping impact where needed)
 - `.gov/Spec/TECH_STACK.md` (when architecture/dependency implications change)
+
+---
+
+## 5) Governance Control Track
+
+In parallel with iteration delivery, maintain governance control packets:
+
+- `WP-GOV-MAINT-001`: recurring synchronization sweep.
+- `WP-GOV-LOOP-001`: enforce reusable WP loop with linked spec extraction, check scripts, template compliance gates, and proof-first status claims.
+
+Governance control packets are complete only when preflight and template-compliance checks pass with linked artifacts.

@@ -71,3 +71,8 @@ Validate this WP against linked requirements/primitives with dependency, UI, fun
 - Evidence Paths: .product/Worktrees/wt_main (src/, src-tauri/, dist/)
 - Reviewer: Codex
 - User Sign-off: Pending
+
+## Automation Hook
+
+- Command: powershell -ExecutionPolicy Bypass -File .gov/workflow/wp_checks/check-WP-I1-001.ps1
+- Artifacts: .product/build_target/tool_artifacts/wp_runs/WP-I1-001/

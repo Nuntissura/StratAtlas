@@ -1,7 +1,7 @@
 # StratAtlas - Requirements Index
 
 **Spec Version:** v1.2.1  
-**Last Updated:** 2026-03-05  
+**Last Updated:** 2026-03-06  
 **Governance:** See `SPEC_GOVERNANCE.md` for maintenance rules.
 
 ---
@@ -41,6 +41,10 @@ REQ-NNNN | LEVEL | Â§Section | Description | Iteration Target | Status
 | REQ-0016 | MUST | Â§11.5 | Analyst state-change actions (layer/filter/apply) MUST provide feedback <= 300 ms P95; if exceeded, UI MUST show non-blocking progress | All | IMPLEMENTED |
 | REQ-0017 | MUST | Â§5.1 | Runtime path/process/environment handling MUST remain platform-neutral without hard-coded Windows-only assumptions in core paths | All | IMPLEMENTED |
 | REQ-0018 | SHOULD | Â§5.1 | Desktop packaging/runtime SHOULD be smoke-tested on macOS during development to preserve portability | All | IMPLEMENTED |
+| REQ-0019 | MUST | Â§17 | Every WP MUST maintain linked test suite, spec extraction, and WP check script artifacts | All | IMPLEMENTED |
+| REQ-0020 | MUST | Â§17 | WP status claims MUST include proof artifact paths and command evidence | All | IMPLEMENTED |
+| REQ-0021 | MUST | Â§18 | Governance preflight MUST enforce WP template compliance to prevent shortcut execution | All | IMPLEMENTED |
+| REQ-0022 | SHOULD | Â§17 | Teams SHOULD run WP loop automation (`run_wp_loop.ps1`) before status-promotion sweeps | All | IMPLEMENTED |
 
 ---
 
@@ -226,10 +230,10 @@ REQ-NNNN | LEVEL | Â§Section | Description | Iteration Target | Status
 
 | Level | Count |
 |-------|-------|
-| MUST | 86 |
-| SHOULD | 15 |
+| MUST | 89 |
+| SHOULD | 16 |
 | MAY | 3 |
-| **Total** | **104** |
+| **Total** | **108** |
 
 *Note: This index captures the primary normative requirements. Sub-specs will decompose these into finer-grained implementation requirements with IDs in the REQ-NNxx range (e.g., REQ-0101a, REQ-0101b).*
 

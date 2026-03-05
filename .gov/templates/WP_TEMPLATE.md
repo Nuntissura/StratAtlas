@@ -3,8 +3,10 @@
 Date Opened: YYYY-MM-DD
 Status: SPEC-MAPPED
 Iteration: I0..I10 or All
-Workflow Version: 2.0
+Workflow Version: 3.0
 Linked Test Suite: `.gov/workflow/wp_test_suites/TS-WP-<...>.md`
+Linked Spec Extraction: `.gov/workflow/wp_spec_extractions/SX-WP-<...>.md`
+Linked WP Check Script: `.gov/workflow/wp_checks/check-WP-<...>.ps1`
 
 ## Intent
 
@@ -49,6 +51,8 @@ Linked Test Suite: `.gov/workflow/wp_test_suites/TS-WP-<...>.md`
 - `.gov/workflow/taskboard/TASK_BOARD.md`
 - `.gov/workflow/work_packets/<this_wp>.md`
 - `.gov/workflow/wp_test_suites/<linked_test_suite>.md`
+- `.gov/workflow/wp_spec_extractions/<linked_spec_extract>.md`
+- `.gov/workflow/wp_checks/<linked_wp_check_script>.ps1`
 - `.product/Worktrees/wt_main/src/<implementation_files>`
 
 ## Interconnection Plan
@@ -92,6 +96,12 @@ Linked Test Suite: `.gov/workflow/wp_test_suites/TS-WP-<...>.md`
 2. Implementation commit(s).
 3. Verification/status promotion commit.
 
+## Proof of Implementation
+
+- Command Runs: `powershell -ExecutionPolicy Bypass -File .gov/workflow/wp_checks/check-WP-<...>.ps1`
+- Proof Artifact: `.product/build_target/tool_artifacts/wp_runs/WP-<...>/`
+- Claim Standard: never mark completion without linked command evidence and artifact paths.
+
 ## Exit Criteria
 
 - Task board and requirements index statuses are synchronized.
@@ -106,9 +116,9 @@ Linked Test Suite: `.gov/workflow/wp_test_suites/TS-WP-<...>.md`
 - Logs:
 - Screenshots/Exports:
 - Build Artifacts:
+- Proof Artifact:
 - User Sign-off:
 
 ## Progress Log
 
 - YYYY-MM-DD: WP initialized.
-

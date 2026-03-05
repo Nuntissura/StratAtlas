@@ -1,7 +1,7 @@
 # StratAtlas - Traceability Matrix
 
 **Spec Version:** v1.2.1  
-**Last Updated:** 2026-03-05  
+**Last Updated:** 2026-03-06  
 **Governance:** See `SPEC_GOVERNANCE.md` for maintenance rules.
 
 ---
@@ -50,6 +50,10 @@ REQ-ID | Component(s) | Test(s) | Iteration | Verified
 | REQ-0016 | .product/Worktrees/wt_main/src/features/i1/performance.ts | .product/Worktrees/wt_main/src/features/i1/i1.test.ts | All | 2026-03-05 |
 | REQ-0017 | .product/Worktrees/wt_main/src-tauri/src/lib.rs; .product/Worktrees/wt_main/src/lib/backend.ts | .product/Worktrees/wt_main/src-tauri/src/lib.rs (unit tests); .product/Worktrees/wt_main/src/lib/backend.test.ts | All | 2026-03-05 |
 | REQ-0018 | .product/Worktrees/wt_main/src-tauri/src/lib.rs; .product/Worktrees/wt_main/src/lib/backend.ts | .product/Worktrees/wt_main/src-tauri/src/lib.rs (unit tests); .product/Worktrees/wt_main/src/lib/backend.test.ts | All | 2026-03-05 |
+| REQ-0019 | .gov/repo_scripts/new_work_packet.ps1; .gov/repo_scripts/bootstrap_wp_loop_assets.ps1 | .gov/repo_scripts/enforce_wp_template_compliance.ps1 | All | 2026-03-06 |
+| REQ-0020 | .gov/repo_scripts/run_wp_checks.ps1; .gov/workflow/work_packets/WP-*.md | .gov/repo_scripts/enforce_wp_template_compliance.ps1 | All | 2026-03-06 |
+| REQ-0021 | .gov/repo_scripts/governance_preflight.ps1; .gov/repo_scripts/enforce_wp_template_compliance.ps1 | .gov/repo_scripts/governance_preflight.ps1 | All | 2026-03-06 |
+| REQ-0022 | .gov/repo_scripts/run_wp_loop.ps1 | .gov/repo_scripts/run_wp_loop.ps1 | All | 2026-03-06 |
 
 ---
 
@@ -272,3 +276,5 @@ For quick lookup: "What requirements does this component implement?"
 | .product/Worktrees/wt_main/src/features/i9/osint.ts | REQ-0001..REQ-0007, REQ-1000..REQ-1003 |
 | .product/Worktrees/wt_main/src/features/i10/gameModeling.ts | REQ-0001..REQ-0007, REQ-1100..REQ-1113 |
 | .product/Worktrees/wt_main/src-tauri/src/lib.rs | REQ-0017..REQ-0018, REQ-0100..REQ-0112 |
+
+| WP-GOV-LOOP-001 | All | REQ-0019..REQ-0022 | PRIM-0020, PRIM-0021, PRIM-0022, PRIM-0023 | .gov/workflow/wp_test_suites/TS-WP-GOV-LOOP-001.md | IMPLEMENTED | .gov/workflow/wp_spec_extractions/SX-WP-GOV-LOOP-001.md; .product/build_target/tool_artifacts/wp_runs/WP-GOV-LOOP-001/20260306_002544 |

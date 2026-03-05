@@ -13,3 +13,4 @@ Each suite must include all required categories:
 - Code correctness tests
 - Red-team and abuse tests
 - Additional tests (performance/offline/reliability/accessibility)
+- Automation hook command pointing to `.gov/workflow/wp_checks/check-WP-<...>.ps1`

@@ -1,7 +1,7 @@
 # StratAtlas - Technology Stack
 
 **Spec Version:** v1.2.1  
-**Last Updated:** 2026-03-05  
+**Last Updated:** 2026-03-06  
 **Status:** Active baseline in `.product/Worktrees/wt_main` (I0-I10 contract implementation + verified test coverage)
 
 ---
@@ -313,4 +313,25 @@ The following dependency families are installed in .product/Worktrees/wt_main as
 - Tooling and tests: @tauri-apps/cli, vitest, @testing-library/*, @playwright/test.
 
 This establishes dependency download readiness and executable contract coverage for I0-I10, with iterative hardening to continue in subsequent packets.
+
+---
+
+## Governance Automation Stack (2026-03-06)
+
+| Tooling | Role in WP Loop |
+|---------|------------------|
+| PowerShell 7+ | Canonical automation runtime for governance scripts |
+| Git (non-interactive CLI) | Checkpoint commits and reproducible WP state transitions |
+| pnpm + Vitest + ESLint | Product dependency, correctness, and UI/functional verification hooks |
+| Cargo test | Rust-side contract checks for Tauri/runtime adapters |
+| Markdown templates + validators | Enforced WP/suite/spec-extraction/check-script skeletons |
+
+Governance loop scripts:
+
+- `.gov/repo_scripts/new_work_packet.ps1`
+- `.gov/repo_scripts/update_wp_spec_extract.ps1`
+- `.gov/repo_scripts/run_wp_checks.ps1`
+- `.gov/repo_scripts/run_wp_loop.ps1`
+- `.gov/repo_scripts/enforce_wp_template_compliance.ps1`
+- `.gov/repo_scripts/governance_preflight.ps1`
 

@@ -55,20 +55,32 @@ $requiredFiles = @(
     ".gov\workflow\BUILD_READINESS_CHECKLIST.md",
     ".gov\workflow\taskboard\TASK_BOARD.md",
     ".gov\workflow\wp_test_suites\README.md",
+    ".gov\workflow\wp_spec_extractions\README.md",
+    ".gov\workflow\wp_checks\README.md",
     "PROJECT_CODEX.md",
     "AGENTS.md",
     "MODEL_BEHAVIOR.md",
     ".gov\templates\WP_TEMPLATE.md",
     ".gov\templates\WP_TEST_SUITE_TEMPLATE.md",
+    ".gov\templates\WP_SPEC_EXTRACT_TEMPLATE.md",
+    ".gov\templates\WP_CHECK_SCRIPT_TEMPLATE.ps1",
     ".gov\templates\SUB_SPEC_TEMPLATE.md",
     ".gov\repo_scripts\new_work_packet.ps1",
     ".gov\repo_scripts\governance_checkpoint_commit.ps1",
-    ".gov\repo_scripts\governance_preflight.ps1"
+    ".gov\repo_scripts\governance_preflight.ps1",
+    ".gov\repo_scripts\run_wp_checks.ps1",
+    ".gov\repo_scripts\run_wp_loop.ps1",
+    ".gov\repo_scripts\update_wp_spec_extract.ps1",
+    ".gov\repo_scripts\bootstrap_wp_loop_assets.ps1",
+    ".gov\repo_scripts\red_team_guardrail_check.ps1",
+    ".gov\repo_scripts\enforce_wp_template_compliance.ps1"
 )
 
 $requiredDirectories = @(
     ".gov\workflow\work_packets",
     ".gov\workflow\wp_test_suites",
+    ".gov\workflow\wp_spec_extractions",
+    ".gov\workflow\wp_checks",
     ".gov\workflow\taskboard",
     ".gov\Spec\sub-specs",
     ".gov\repo_scripts",
@@ -94,6 +106,7 @@ $requiredWorkPackets = @(
     "WP-GOV-BUILDREADY-001",
     "WP-GOV-PERFPORT-001",
     "WP-GOV-ITER-ACTIVE-001",
+    "WP-GOV-LOOP-001",
     "WP-I0-001",
     "WP-I1-001",
     "WP-I2-001",
@@ -143,6 +156,7 @@ $requiredWpHeadings = @(
     "## Interconnection Plan",
     "## Spec-Test Coverage Plan",
     "## Checkpoint Commit Plan",
+    "## Proof of Implementation",
     "## Evidence"
 )
 
@@ -154,6 +168,7 @@ $requiredSuiteHeadings = @(
     "## Code Correctness Tests",
     "## Red-Team and Abuse Tests",
     "## Additional Tests",
+    "## Automation Hook",
     "## Execution Summary"
 )
 
@@ -233,7 +248,9 @@ foreach ($wpFile in $workPacketFiles) {
             ".gov/Spec/TRACEABILITY_MATRIX.md",
             ".gov/Spec/PRIMITIVES_INDEX.md",
             ".gov/Spec/PRIMITIVES_MATRIX.md",
-            ".gov/workflow/taskboard/TASK_BOARD.md"
+            ".gov/workflow/taskboard/TASK_BOARD.md",
+            ".gov/workflow/wp_spec_extractions/",
+            ".gov/workflow/wp_checks/"
         )
         foreach ($anchor in $expectedFileAnchors) {
             $present = $raw -match [regex]::Escape($anchor)
@@ -327,8 +344,10 @@ if (Test-Path $taskBoardPath -PathType Leaf) {
         }
     }
 
+    $legendMatches = [regex]::Matches($taskBoardContent, '(?m)^-\s+`?([A-Z0-9-]+)`?\s*$')
+    $legendValues = @($legendMatches | ForEach-Object { $_.Groups[1].Value } | Sort-Object -Unique)
     foreach ($status in $allowedWpStatuses) {
-        $hasLegend = $taskBoardContent -match ("(?m)^- ``" + [regex]::Escape($status) + "``$")
+        $hasLegend = $legendValues -contains $status
         Add-CheckResult -ResultList $results -Category "TaskBoardStatusLegend" -Target $status -Passed $hasLegend -Details ($(if ($hasLegend) { "Status legend contains $status" } else { "Task board status legend missing $status" }))
     }
 }
@@ -419,7 +438,10 @@ foreach ($guidanceFile in $guidanceFiles) {
         "E2E-VERIFIED",
         "PRIMITIVES_INDEX.md",
         "PRIMITIVES_MATRIX.md",
-        "wp_test_suites"
+        "wp_test_suites",
+        "wp_spec_extractions",
+        "wp_checks",
+        "proof"
     )
     foreach ($requiredToken in $mustContain) {
         $hasToken = $guidanceRaw -match [regex]::Escape($requiredToken)
@@ -437,6 +459,17 @@ if (Test-Path $gitIgnorePath -PathType Leaf) {
 }
 else {
     Add-CheckResult -ResultList $results -Category "GitIgnore" -Target ".gitignore" -Passed $false -Details ".gitignore missing"
+}
+
+$templateComplianceScript = Join-Path $repoRoot ".gov\repo_scripts\enforce_wp_template_compliance.ps1"
+if (Test-Path $templateComplianceScript -PathType Leaf) {
+    & $templateComplianceScript
+    $templateExit = $LASTEXITCODE
+    $templatePassed = $templateExit -eq 0
+    Add-CheckResult -ResultList $results -Category "TemplateCompliance" -Target "enforce_wp_template_compliance.ps1" -Passed $templatePassed -Details ($(if ($templatePassed) { "WP template compliance passed" } else { "WP template compliance failed" }))
+}
+else {
+    Add-CheckResult -ResultList $results -Category "TemplateCompliance" -Target "enforce_wp_template_compliance.ps1" -Passed $false -Details "Missing compliance script"
 }
 
 $totalChecks = $results.Count

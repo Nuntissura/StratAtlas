@@ -29,6 +29,8 @@ Keep this split explicit in every change.
 - Task board: `.gov/workflow/taskboard/TASK_BOARD.md`
 - Work packets: `.gov/workflow/work_packets/WP-*.md`
 - WP test suites: `.gov/workflow/wp_test_suites/TS-WP-*.md`
+- WP spec extractions: `.gov/workflow/wp_spec_extractions/SX-WP-*.md`
+- WP check scripts: `.gov/workflow/wp_checks/check-WP-*.ps1`
 - Maintenance workflow: `.gov/workflow/GOVERNANCE_WORKFLOW.md`
 - Readiness checklist: `.gov/workflow/BUILD_READINESS_CHECKLIST.md`
 
@@ -38,12 +40,15 @@ Execution loop:
 2. Choose or create a Work Packet and confirm linked sub-spec (prefer `.gov/repo_scripts/new_work_packet.ps1`).
 3. Update the Task Board row for that WP (status/owner/requirements/sub-spec).
 4. Create/update the linked WP test suite (`.gov/workflow/wp_test_suites/`).
-5. Update `REQUIREMENTS_INDEX.md`, `TRACEABILITY_MATRIX.md`, `PRIMITIVES_INDEX.md`, `PRIMITIVES_MATRIX.md`, and `TECH_STACK.md` if scope or architecture assumptions changed.
-6. Create a governance checkpoint commit before product implementation (automatic when using `new_work_packet.ps1` unless `-SkipCheckpointCommit` is passed).
-7. Implement shippable product code in `.product/Worktrees/wt_main`.
-8. Run preflight: `powershell -ExecutionPolicy Bypass -File .gov/repo_scripts/governance_preflight.ps1`.
-9. Run the governance-sync checklist in `.gov/workflow/GOVERNANCE_WORKFLOW.md`.
-10. Update the WP, test suite, and Task Board with outcome, evidence, and next step.
+5. Create/update the linked WP spec extraction (`.gov/workflow/wp_spec_extractions/`) via `.gov/repo_scripts/update_wp_spec_extract.ps1`.
+6. Ensure linked WP check script exists (`.gov/workflow/wp_checks/`) and executes via `.gov/repo_scripts/run_wp_checks.ps1`.
+7. Update `REQUIREMENTS_INDEX.md`, `TRACEABILITY_MATRIX.md`, `PRIMITIVES_INDEX.md`, `PRIMITIVES_MATRIX.md`, and `TECH_STACK.md` if scope or architecture assumptions changed.
+8. Create a governance checkpoint commit before product implementation (automatic when using `new_work_packet.ps1` unless `-SkipCheckpointCommit` is passed).
+9. Implement shippable product code in `.product/Worktrees/wt_main`.
+10. Run preflight: `powershell -ExecutionPolicy Bypass -File .gov/repo_scripts/governance_preflight.ps1`.
+11. Enforce WP template compliance: `powershell -ExecutionPolicy Bypass -File .gov/repo_scripts/enforce_wp_template_compliance.ps1`.
+12. Run the governance-sync checklist in `.gov/workflow/GOVERNANCE_WORKFLOW.md`.
+13. Update WP/test suite/taskboard with outcome + proof artifact path (`.product/build_target/tool_artifacts/wp_runs/<WP-ID>/`).
 
 ## 3) Canonical Decision Files
 
@@ -104,6 +109,8 @@ The following must stay synchronized at all times:
 - `.gov/workflow/ROADMAP.md`
 - `.gov/workflow/taskboard/TASK_BOARD.md`
 - `.gov/workflow/wp_test_suites/`
+- `.gov/workflow/wp_spec_extractions/`
+- `.gov/workflow/wp_checks/`
 - `.gov/workflow/GOVERNANCE_WORKFLOW.md`
 - `.gov/workflow/BUILD_READINESS_CHECKLIST.md`
 - `PROJECT_CODEX.md`
@@ -115,3 +122,4 @@ The following must stay synchronized at all times:
 - `E2E-VERIFIED` is the only done state.
 - `IMPLEMENTED` means code and lower-level checks exist, but not done.
 - No WP may be promoted to `E2E-VERIFIED` without linked evidence and explicit user sign-off in WP + test-suite artifacts.
+- Never overstate implementation state: every claim must cite proof artifacts and command evidence.

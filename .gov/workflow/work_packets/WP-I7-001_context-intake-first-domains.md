@@ -5,6 +5,8 @@ Status: IMPLEMENTED
 Iteration: I7
 Workflow Version: 2.0
 Linked Test Suite: .gov/workflow/wp_test_suites/TS-WP-I7-001.md
+Linked Spec Extraction: .gov/workflow/wp_spec_extractions/SX-WP-I7-001.md
+Linked WP Check Script: .gov/workflow/wp_checks/check-WP-I7-001.ps1
 
 ## Intent
 
@@ -60,7 +62,8 @@ Deliver context intake framework foundations and first approved domains.
 - .gov/workflow/work_packets/WP-I7-001_context-intake-first-domains.md
 - .gov/workflow/wp_test_suites/TS-WP-I7-001.md
 - .product/Worktrees/wt_main/src/<implementation_files>
-
+- .gov/workflow/wp_spec_extractions/SX-WP-I7-001.md
+- .gov/workflow/wp_checks/check-WP-I7-001.ps1
 ## Interconnection Plan
 
 | Primitive | Feature/Tool | Technology | Combined Outcome |
@@ -108,3 +111,9 @@ Deliver context intake framework foundations and first approved domains.
 - Screenshots/Exports: N/A (CLI-driven validation)
 - Build Artifacts: .product/Worktrees/wt_main/dist
 - User Sign-off: Pending
+- Proof Artifact: .product/build_target/tool_artifacts/wp_runs/WP-I7-001/
+## Proof of Implementation
+
+- Command Runs: reference linked check script output.
+- Proof Artifact: .product/build_target/tool_artifacts/wp_runs/WP-I7-001/
+- Claim Standard: do not claim completion without linked command evidence and artifact paths.

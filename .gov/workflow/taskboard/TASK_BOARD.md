@@ -37,13 +37,15 @@ This board tracks active governance and product work packets.
 | WP-I9-001 | I9 | OSINT Economic Context Queries | Curated OSINT, verification labels, aggregate alerts | IMPLEMENTED | Codex | REQ-1000..REQ-1003 | `.gov/Spec/sub-specs/I9_osint_economic_context_queries.md` | `.gov/workflow/wp_test_suites/TS-WP-I9-001.md` | 2026-03-05 | Integrated I0-I10 shell + passing verification checks captured; pending user sign-off for E2E |
 | WP-I10-001 | I10 | Strategic Game Modeling | Game model, scenario tree, experiment bundle guardrails | IMPLEMENTED | Codex | REQ-1100..REQ-1113 | `.gov/Spec/sub-specs/I10_strategic_game_modeling.md` | `.gov/workflow/wp_test_suites/TS-WP-I10-001.md` | 2026-03-05 | Integrated I0-I10 shell + passing verification checks captured; pending user sign-off for E2E |
 
+| WP-GOV-LOOP-001 | All | WP Loop Proof Enforcement | Reusable no-shortcut WP governance loop (spec extraction + checks + proof + compliance gate) | IMPLEMENTED | Codex | REQ-0019..REQ-0022 | N/A | .gov/workflow/wp_test_suites/TS-WP-GOV-LOOP-001.md | 2026-03-06 | Spec extraction: .gov/workflow/wp_spec_extractions/SX-WP-GOV-LOOP-001.md; check script: .gov/workflow/wp_checks/check-WP-GOV-LOOP-001.ps1 |
 ---
 
 ## Usage Rules
 
 1. Every meaningful change maps to a WP row.
 2. Every WP row must have a linked test-suite file.
-3. Update this board in the same PR as any WP status change.
-4. `E2E-VERIFIED` is the only done status.
-5. `E2E-VERIFIED` requires linked runtime evidence plus user sign-off.
-6. Keep `Sub-Spec`, `Test Suite`, and `ROADMAP.md` links aligned for each iteration row.
+3. Every WP row must maintain linked `SX-WP-*` spec extraction and `check-WP-*` check-script references inside the WP file.
+4. Update this board in the same PR as any WP status change.
+5. `E2E-VERIFIED` is the only done status.
+6. `E2E-VERIFIED` requires linked runtime evidence plus user sign-off.
+7. Keep `Sub-Spec`, `Test Suite`, and `ROADMAP.md` links aligned for each iteration row.

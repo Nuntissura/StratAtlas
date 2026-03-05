@@ -5,6 +5,8 @@ Status: IMPLEMENTED
 Iteration: I3
 Workflow Version: 2.0
 Linked Test Suite: .gov/workflow/wp_test_suites/TS-WP-I3-001.md
+Linked Spec Extraction: .gov/workflow/wp_spec_extractions/SX-WP-I3-001.md
+Linked WP Check Script: .gov/workflow/wp_checks/check-WP-I3-001.ps1
 
 ## Intent
 
@@ -60,7 +62,8 @@ Deliver merge-safe collaboration and attribution-rich session replay.
 - .gov/workflow/work_packets/WP-I3-001_collaboration-crdt-session-replay.md
 - .gov/workflow/wp_test_suites/TS-WP-I3-001.md
 - .product/Worktrees/wt_main/src/<implementation_files>
-
+- .gov/workflow/wp_spec_extractions/SX-WP-I3-001.md
+- .gov/workflow/wp_checks/check-WP-I3-001.ps1
 ## Interconnection Plan
 
 | Primitive | Feature/Tool | Technology | Combined Outcome |
@@ -108,3 +111,9 @@ Deliver merge-safe collaboration and attribution-rich session replay.
 - Screenshots/Exports: N/A (CLI-driven validation)
 - Build Artifacts: .product/Worktrees/wt_main/dist
 - User Sign-off: Pending
+- Proof Artifact: .product/build_target/tool_artifacts/wp_runs/WP-I3-001/
+## Proof of Implementation
+
+- Command Runs: reference linked check script output.
+- Proof Artifact: .product/build_target/tool_artifacts/wp_runs/WP-I3-001/
+- Claim Standard: do not claim completion without linked command evidence and artifact paths.

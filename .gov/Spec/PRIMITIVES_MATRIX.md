@@ -1,7 +1,7 @@
 # StratAtlas - Primitives Matrix
 
 **Spec Version:** v1.2.1  
-**Last Updated:** 2026-03-05  
+**Last Updated:** 2026-03-06  
 **Purpose:** Map primitives to work packets, implementation modules, tests, and technology/tool combinations.
 
 ---
@@ -47,3 +47,8 @@ PRIM-ID | WP | REQs | Components | Tests | Tech/Tools | Combined With | Verifica
 3. `E2E-VERIFIED` may be used only with linked evidence in WP and test-suite artifacts.
 4. Matrix updates are required whenever components/tests/technology combinations change.
 
+
+| PRIM-0020 | WP-GOV-LOOP-001 | REQ-0019, REQ-0022 | .gov/workflow/wp_spec_extractions/SX-WP-*.md; .gov/repo_scripts/update_wp_spec_extract.ps1 | .gov/repo_scripts/enforce_wp_template_compliance.ps1 | PowerShell, Markdown | PRIM-0021, PRIM-0022 | IMPLEMENTED | 2026-03-06 |
+| PRIM-0021 | WP-GOV-LOOP-001 | REQ-0019, REQ-0020 | .gov/workflow/wp_checks/check-WP-*.ps1; .gov/repo_scripts/run_wp_checks.ps1 | .gov/repo_scripts/run_wp_checks.ps1 | PowerShell, pnpm, cargo | PRIM-0020, PRIM-0023 | IMPLEMENTED | 2026-03-06 |
+| PRIM-0022 | WP-GOV-LOOP-001 | REQ-0020 | .gov/workflow/work_packets/WP-*.md; .product/build_target/tool_artifacts/wp_runs/* | .gov/repo_scripts/enforce_wp_template_compliance.ps1 | Markdown, JSON artifacts | PRIM-0021 | IMPLEMENTED | 2026-03-06 |
+| PRIM-0023 | WP-GOV-LOOP-001 | REQ-0021 | .gov/repo_scripts/enforce_wp_template_compliance.ps1; .gov/repo_scripts/governance_preflight.ps1 | .gov/repo_scripts/governance_preflight.ps1 | PowerShell regex validators | PRIM-0020, PRIM-0021 | IMPLEMENTED | 2026-03-06 |

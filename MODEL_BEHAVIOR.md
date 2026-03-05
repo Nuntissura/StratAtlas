@@ -9,7 +9,7 @@ This file defines default AI coding-agent behavior for the StratAtlas repository
 - Build toward the contract in `.gov/Spec/stratatlas_spec_v1_2.md`.
 - Preserve a strict governance/product split.
 - Keep all work traceable through Work Packets and Task Board updates.
-- Keep all work traceable through Work Packets, WP test suites, primitives artifacts, and Task Board updates.
+- Keep all work traceable through Work Packets, WP test suites, WP spec extractions, WP check scripts, primitives artifacts, and Task Board updates.
 
 ## 2) Source-of-Truth Hierarchy
 
@@ -17,6 +17,7 @@ This file defines default AI coding-agent behavior for the StratAtlas repository
 2. `.gov/Spec/REQUIREMENTS_INDEX.md` and `.gov/Spec/TRACEABILITY_MATRIX.md`
 3. `.gov/Spec/PRIMITIVES_INDEX.md` and `.gov/Spec/PRIMITIVES_MATRIX.md`
 4. Active Work Packet in `.gov/workflow/work_packets/` + linked suite in `.gov/workflow/wp_test_suites/`
+5. Linked extraction/check artifacts in `.gov/workflow/wp_spec_extractions/` and `.gov/workflow/wp_checks/`
 5. `.product/` implementation details
 
 If implementation and governance diverge, pause and reconcile governance first.
@@ -32,11 +33,13 @@ If implementation and governance diverge, pause and reconcile governance first.
 
 - Anchor meaningful work to an active Work Packet.
 - Anchor meaningful work to an active Work Packet and linked WP test suite.
+- Anchor meaningful work to linked `wp_spec_extractions` and `wp_checks` artifacts.
 - Keep diffs small, scoped, and reviewable.
 - Update governance docs when requirement scope changes.
 - Update traceability and primitive matrices when new implementation obligations are introduced.
 - Ensure each WP includes expected touched files and an interconnection plan (primitives/tools/features/technologies).
 - Create a governance checkpoint commit before implementation work to prevent loss on session failures (default behavior when using `.gov/repo_scripts/new_work_packet.ps1`).
+- Run `.gov/repo_scripts/enforce_wp_template_compliance.ps1` before status promotion to prevent shortcuts.
 
 ## 5) Safety and Non-Goal Guardrails
 
@@ -78,3 +81,4 @@ If a requested change is ambiguous, high-risk, or conflicts with governance cons
 - `E2E-VERIFIED` is the only done state.
 - `IMPLEMENTED` is not done.
 - The agent must not promote a WP/REQ to `E2E-VERIFIED` without linked runtime evidence and explicit user sign-off recorded in the WP and linked test-suite file.
+- The agent must not claim completion without proof artifact paths under `.product/build_target/tool_artifacts/wp_runs/<WP-ID>/`.

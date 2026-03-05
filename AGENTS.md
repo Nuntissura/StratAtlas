@@ -24,6 +24,8 @@ These rules apply to the full repository unless a deeper directory adds stricter
 - `.gov/workflow/BUILD_READINESS_CHECKLIST.md`
 - `.gov/workflow/taskboard/TASK_BOARD.md`
 - `.gov/workflow/wp_test_suites/`
+- `.gov/workflow/wp_spec_extractions/`
+- `.gov/workflow/wp_checks/`
 - `.gov/Spec/sub-specs/`
 
 If these disagree with implementation, reconcile governance intent first.
@@ -32,14 +34,20 @@ If these disagree with implementation, reconcile governance intent first.
 
 - Work should map to `.gov/workflow/work_packets/WP-*.md`.
 - Every WP MUST have a linked spec-vs-code suite in `.gov/workflow/wp_test_suites/TS-WP-*.md`.
+- Every WP MUST have a linked spec extraction in `.gov/workflow/wp_spec_extractions/SX-WP-*.md`.
+- Every WP MUST have a linked check script in `.gov/workflow/wp_checks/check-WP-*.ps1`.
 - Status belongs on `.gov/workflow/taskboard/TASK_BOARD.md`.
 - Scope changes require governance updates before product implementation.
 - Iteration sequencing must follow `.gov/workflow/ROADMAP.md` unless governance explicitly changes it.
 - Apply the checklist in `.gov/workflow/GOVERNANCE_WORKFLOW.md` on every relevant PR.
 - Before implementation/build work, run `powershell -ExecutionPolicy Bypass -File .gov/repo_scripts/governance_preflight.ps1`.
+- Enforce template contract before status promotion: `powershell -ExecutionPolicy Bypass -File .gov/repo_scripts/enforce_wp_template_compliance.ps1`.
 - Prefer WP creation via `powershell -ExecutionPolicy Bypass -File .gov/repo_scripts/new_work_packet.ps1` (creates linked test suite and checkpoint commit by default; use `-SkipCheckpointCommit` only when explicitly needed).
+- Backfill/update all legacy WP loop assets with `powershell -ExecutionPolicy Bypass -File .gov/repo_scripts/bootstrap_wp_loop_assets.ps1`.
+- Generate/update per-WP spec extraction snapshots with `powershell -ExecutionPolicy Bypass -File .gov/repo_scripts/update_wp_spec_extract.ps1 -All`.
 - Before product implementation, create a governance checkpoint commit (for crash/session-reset resilience).
 - Only `E2E-VERIFIED` means done; `IMPLEMENTED` does not.
+- Never claim completion without proof artifacts under `.product/build_target/tool_artifacts/wp_runs/<WP-ID>/` and linked command evidence.
 
 ## 4) Product Worktree and Build Target Policy
 

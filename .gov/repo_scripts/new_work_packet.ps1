@@ -26,6 +26,8 @@ Param(
         ".gov/workflow/taskboard/TASK_BOARD.md",
         ".gov/workflow/work_packets/<this_wp>.md",
         ".gov/workflow/wp_test_suites/<linked_test_suite>.md",
+        ".gov/workflow/wp_spec_extractions/<linked_spec_extract>.md",
+        ".gov/workflow/wp_checks/<linked_wp_check_script>.ps1",
         ".product/Worktrees/wt_main/src/<implementation_files>"
     ),
     [switch]$SkipCheckpointCommit
@@ -89,8 +91,8 @@ function Ensure-TableRow {
     [System.IO.File]::WriteAllText($Path, ($newLines -join "`r`n") + "`r`n", [System.Text.UTF8Encoding]::new($false))
 }
 
-if ($WpId -notmatch '^WP-(GOV|I\d+)-\d{3}$') {
-    throw "WpId must match WP-(GOV|I<digit+>)-NNN. Example: WP-I3-002"
+if ($WpId -notmatch '^WP-(GOV(?:-[A-Z0-9]+)*|I\d+)-\d{3}$') {
+    throw "WpId must match WP-(GOV(-TOKEN)*)-NNN or WP-I<digit+>-NNN. Example: WP-GOV-LOOP-001 or WP-I3-002"
 }
 
 $allowedStatuses = @("SPEC-MAPPED", "IN-PROGRESS", "IMPLEMENTED", "E2E-VERIFIED", "BLOCKED", "RECURRING")
@@ -98,15 +100,28 @@ if ($allowedStatuses -notcontains $Status) {
     throw "Status '$Status' is invalid. Allowed: $($allowedStatuses -join ', ')"
 }
 
+$Requirements = @($Requirements | ForEach-Object { $_ -split "," } | ForEach-Object { $_.Trim() } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Sort-Object -Unique)
+$PrimitiveIds = @($PrimitiveIds | ForEach-Object { $_ -split "," } | ForEach-Object { $_.Trim() } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Sort-Object -Unique)
+
 $scriptDirectory = Split-Path -Parent $MyInvocation.MyCommand.Path
 $repoRoot = Resolve-Path (Join-Path $scriptDirectory "..\..")
 
 $workPacketDir = Join-Path $repoRoot ".gov/workflow/work_packets"
 $suiteDir = Join-Path $repoRoot ".gov/workflow/wp_test_suites"
+$specExtractDir = Join-Path $repoRoot ".gov/workflow/wp_spec_extractions"
+$wpChecksDir = Join-Path $repoRoot ".gov/workflow/wp_checks"
 $taskBoardPath = Join-Path $repoRoot ".gov/workflow/taskboard/TASK_BOARD.md"
 $tracePath = Join-Path $repoRoot ".gov/Spec/TRACEABILITY_MATRIX.md"
 $primitiveIndexPath = Join-Path $repoRoot ".gov/Spec/PRIMITIVES_INDEX.md"
 $primitiveMatrixPath = Join-Path $repoRoot ".gov/Spec/PRIMITIVES_MATRIX.md"
+$checkTemplatePath = Join-Path $repoRoot ".gov/templates/WP_CHECK_SCRIPT_TEMPLATE.ps1"
+
+if (-not (Test-Path $specExtractDir -PathType Container)) {
+    New-Item -Path $specExtractDir -ItemType Directory -Force | Out-Null
+}
+if (-not (Test-Path $wpChecksDir -PathType Container)) {
+    New-Item -Path $wpChecksDir -ItemType Directory -Force | Out-Null
+}
 
 $today = Get-Date -Format "yyyy-MM-dd"
 $slug = Get-Slug -InputText $Title
@@ -114,14 +129,31 @@ $wpFileName = "{0}_{1}.md" -f $WpId, $slug
 $wpPath = Join-Path $workPacketDir $wpFileName
 $suiteFileName = "TS-{0}.md" -f $WpId
 $suitePath = Join-Path $suiteDir $suiteFileName
+$specExtractFileName = "SX-{0}.md" -f $WpId
+$specExtractPath = Join-Path $specExtractDir $specExtractFileName
+$wpCheckFileName = "check-{0}.ps1" -f $WpId
+$wpCheckPath = Join-Path $wpChecksDir $wpCheckFileName
+
+$suiteRel = ".gov/workflow/wp_test_suites/$suiteFileName"
+$specExtractRel = ".gov/workflow/wp_spec_extractions/$specExtractFileName"
+$wpCheckRel = ".gov/workflow/wp_checks/$wpCheckFileName"
 
 if (Test-Path $wpPath -PathType Leaf) {
     throw "Work packet already exists: $wpPath"
 }
 
+$normalizedExpected = @()
+foreach ($item in $ExpectedFiles) {
+    $value = $item.Replace("<this_wp>.md", $wpFileName)
+    $value = $value.Replace("<linked_test_suite>.md", $suiteFileName)
+    $value = $value.Replace("<linked_spec_extract>.md", $specExtractFileName)
+    $value = $value.Replace("<linked_wp_check_script>.ps1", $wpCheckFileName)
+    $normalizedExpected += $value
+}
+
 $reqBullets = ($Requirements | ForEach-Object { "- $_" }) -join "`r`n"
 $primBullets = ($PrimitiveIds | ForEach-Object { "- $_ | <name> | <reason>" }) -join "`r`n"
-$expectedBullets = ($ExpectedFiles | ForEach-Object { "- $_" }) -join "`r`n"
+$expectedBullets = ($normalizedExpected | ForEach-Object { "- $_" }) -join "`r`n"
 
 $wpContent = @"
 # $WpId - $Title
@@ -129,8 +161,10 @@ $wpContent = @"
 Date Opened: $today
 Status: $Status
 Iteration: $Iteration
-Workflow Version: 2.0
-Linked Test Suite: .gov/workflow/wp_test_suites/$suiteFileName
+Workflow Version: 3.0
+Linked Test Suite: $suiteRel
+Linked Spec Extraction: $specExtractRel
+Linked WP Check Script: $wpCheckRel
 
 ## Intent
 
@@ -210,6 +244,12 @@ $expectedBullets
 2. Implementation commit(s).
 3. Verification/status promotion commit.
 
+## Proof of Implementation
+
+- Command Runs: `powershell -ExecutionPolicy Bypass -File $wpCheckRel`
+- Proof Artifact: `.product/build_target/tool_artifacts/wp_runs/$WpId/`
+- Claim Standard: do not claim completion without linked command output and artifact paths.
+
 ## Exit Criteria
 
 - Task board and requirements index statuses are synchronized.
@@ -224,11 +264,12 @@ $expectedBullets
 - Logs:
 - Screenshots/Exports:
 - Build Artifacts:
+- Proof Artifact: .product/build_target/tool_artifacts/wp_runs/$WpId/
 - User Sign-off:
 
 ## Progress Log
 
-- $today: WP scaffold created via `.gov/repo_scripts/new_work_packet.ps1`.
+- ${today}: WP scaffold created via `.gov/repo_scripts/new_work_packet.ps1`.
 "@
 
 [System.IO.File]::WriteAllText($wpPath, $wpContent + "`r`n", [System.Text.UTF8Encoding]::new($false))
@@ -302,6 +343,11 @@ Validate WP delivery against linked requirements and primitives.
 - [ ] Accessibility/usability checks
 - [ ] Reliability/recovery checks
 
+## Automation Hook
+
+- Command: `powershell -ExecutionPolicy Bypass -File $wpCheckRel`
+- Artifacts: `.product/build_target/tool_artifacts/wp_runs/$WpId/`
+
 ## Execution Summary
 
 - Last Run Date:
@@ -314,10 +360,12 @@ Validate WP delivery against linked requirements and primitives.
 
 [System.IO.File]::WriteAllText($suitePath, $suiteContent + "`r`n", [System.Text.UTF8Encoding]::new($false))
 
-$reqSummary = ($Requirements -join ", ")
-$rowSubSpec = $SubSpecPath
-$taskBoardRow = "| $WpId | $Iteration | $Title | <scope> | $Status | $Owner | $reqSummary | $rowSubSpec | .gov/workflow/wp_test_suites/$suiteFileName | $today | Initialized via new_work_packet.ps1 |"
+$checkTemplate = Get-Content -Raw $checkTemplatePath
+$checkScriptContent = $checkTemplate.Replace("<WP-ID>", $WpId)
+[System.IO.File]::WriteAllText($wpCheckPath, $checkScriptContent.TrimEnd() + "`r`n", [System.Text.UTF8Encoding]::new($false))
 
+$reqSummary = ($Requirements -join ", ")
+$taskBoardRow = "| $WpId | $Iteration | $Title | <scope> | $Status | $Owner | $reqSummary | $SubSpecPath | $suiteRel | $today | Spec extraction: $specExtractRel; check script: $wpCheckRel |"
 Ensure-TableRow -Path $taskBoardPath -RowPrefix "| $WpId |" -RowValue $taskBoardRow -AnchorHeader "## Active Board"
 
 $traceRaw = Get-Content $tracePath -Raw
@@ -334,7 +382,7 @@ if ($traceRaw -notmatch [regex]::Escape($traceSection)) {
 "@
 }
 if ($traceRaw -notmatch [regex]::Escape("| $WpId |")) {
-    $traceRaw += "`r`n| $WpId | $Iteration | $reqSummary | $($PrimitiveIds -join ', ') | .gov/workflow/wp_test_suites/$suiteFileName | $Status | <link evidence> |"
+    $traceRaw += "`r`n| $WpId | $Iteration | $reqSummary | $($PrimitiveIds -join ', ') | $suiteRel | $Status | $specExtractRel |"
 }
 [System.IO.File]::WriteAllText($tracePath, $traceRaw.TrimEnd() + "`r`n", [System.Text.UTF8Encoding]::new($false))
 
@@ -356,8 +404,13 @@ foreach ($primitiveId in $PrimitiveIds) {
 }
 [System.IO.File]::WriteAllText($primitiveMatrixPath, $primitiveMatrixRaw.TrimEnd() + "`r`n", [System.Text.UTF8Encoding]::new($false))
 
+$extractScript = Join-Path $scriptDirectory "update_wp_spec_extract.ps1"
+& $extractScript -WpId $WpId
+
 Write-Host "Created WP: $wpPath"
 Write-Host "Created Test Suite: $suitePath"
+Write-Host "Created WP Check Script: $wpCheckPath"
+Write-Host "Created/Updated Spec Extraction: $specExtractPath"
 Write-Host "Updated TASK_BOARD.md, TRACEABILITY_MATRIX.md, PRIMITIVES_INDEX.md, PRIMITIVES_MATRIX.md"
 
 if (-not $SkipCheckpointCommit) {
