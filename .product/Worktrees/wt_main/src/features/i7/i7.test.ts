@@ -27,5 +27,11 @@ describe('I7 context intake', () => {
       presentation_type: 'sidebar_timeseries',
     } as const
     expect(allowsMapPointRendering(nonSpatial)).toBe(false)
+
+    const invalidDomain = {
+      ...validDomain,
+      source_url: 'ftp://example.test',
+    } as const
+    expect(validateDomainRegistration(invalidDomain)).toBe(false)
   })
 })

@@ -22,9 +22,17 @@ export const runQuery = (
       if (condition.operator === 'equals') {
         return current === condition.value
       }
+      if (condition.operator === 'contains') {
+        if (typeof current !== 'string') {
+          return false
+        }
+        return current.toLowerCase().includes(String(condition.value).toLowerCase())
+      }
+
       if (typeof current !== 'number' || typeof condition.value !== 'number') {
         return false
       }
+
       if (condition.operator === 'greater_than') {
         return current > condition.value
       }

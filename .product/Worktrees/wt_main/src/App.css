@@ -93,12 +93,14 @@
 
 select,
 textarea,
+input,
 button {
   font: inherit;
 }
 
 select,
-textarea {
+textarea,
+input {
   border-radius: 8px;
   border: 1px solid #3a4a72;
   background: #131a2a;
@@ -144,11 +146,23 @@ button:disabled {
   color: #b9c6e6;
 }
 
+.status-line.error {
+  color: #ffb0b0;
+}
+
 .map-placeholder {
   border: 1px dashed #48629e;
   border-radius: 8px;
   padding: 0.9rem;
   background: #131a2a;
+  margin-bottom: 1rem;
+}
+
+.sub-panel {
+  border: 1px solid #36466f;
+  border-radius: 8px;
+  background: #121a2a;
+  padding: 0.8rem;
   margin-bottom: 1rem;
 }
 

@@ -23,5 +23,11 @@ describe('I5 query builder', () => {
       conditions: [{ field: 'speed', operator: 'greater_than', value: 10 }],
     }
     expect(bumpQueryVersion(query).version).toBe(2)
+
+    const containsResult = runQuery(
+      [{ field: 'type', operator: 'contains', value: 'ves' }],
+      rows,
+    )
+    expect(containsResult).toHaveLength(2)
   })
 })

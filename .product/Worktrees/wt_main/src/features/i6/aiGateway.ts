@@ -21,6 +21,9 @@ export const submitAiAnalysis = (request: AiAnalysisRequest): AiAnalysisResult =
   if (!request.allowed) {
     throw new Error('AI gateway policy denied request')
   }
+  if (request.role === 'viewer') {
+    throw new Error('Viewer role is not allowed to submit AI analysis')
+  }
   const invalidRef = request.refs.find(
     (ref) => !ref.bundle_id || !ref.asset_id || !ref.sha256,
   )
@@ -30,7 +33,7 @@ export const submitAiAnalysis = (request: AiAnalysisRequest): AiAnalysisResult =
   return {
     label: 'AI-Derived Interpretation',
     refs: request.refs,
-    content: `Generated analysis for ${request.refs.length} referenced assets`,
+    content: `Generated analysis for ${request.refs.length} referenced assets: ${request.prompt.slice(0, 140)}`,
   }
 }
 

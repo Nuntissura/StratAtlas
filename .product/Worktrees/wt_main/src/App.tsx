@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+﻿import { useEffect, useMemo, useState } from 'react'
 import './App.css'
 import type {
   AuditEvent,
@@ -8,6 +8,20 @@ import type {
 } from './contracts/i0'
 import type { UiMode } from './features/i1/modes'
 import { REQUIRED_UI_MODES } from './features/i1/modes'
+import { I1_BUDGETS, shouldDegradeRendering } from './features/i1/performance'
+import { buildBriefingBundle, computeDensityDelta } from './features/i2/baselineDelta'
+import { runQuery, bumpQueryVersion, type VersionedQuery } from './features/i5/queryBuilder'
+import { submitAiAnalysis } from './features/i6/aiGateway'
+import { validateDomainRegistration, type ContextDomain } from './features/i7/contextIntake'
+import { detectDeviation, type DeviationEvent } from './features/i8/deviation'
+import {
+  CURATED_OSINT_SOURCES,
+  aggregateAlerts,
+  validateCuratedSource,
+  type OsintEvent,
+  type VerificationLevel,
+} from './features/i9/osint'
+import { buildPayoffProxy, validateGameModel } from './features/i10/gameModeling'
 import { backend } from './lib/backend'
 
 const ROLES: UserRole[] = ['viewer', 'analyst', 'administrator', 'auditor']
@@ -15,6 +29,29 @@ const MARKINGS: SensitivityMarking[] = ['PUBLIC', 'INTERNAL', 'RESTRICTED']
 
 const modeLabel = (forcedOffline: boolean): string =>
   forcedOffline ? 'Offline (forced)' : 'Online-capable'
+
+const parseNumericSeries = (value: string): number[] =>
+  value
+    .split(',')
+    .map((entry) => Number(entry.trim()))
+    .filter((entry) => Number.isFinite(entry))
+
+const createDomainDraft = (): ContextDomain => ({
+  domain_id: `ctx-${Date.now()}`,
+  domain_name: 'Port Throughput',
+  domain_class: 'economic_indicator',
+  source_name: 'UNCTAD',
+  source_url: 'https://example.test/context',
+  license: 'public',
+  update_cadence: 'monthly',
+  spatial_binding: 'point',
+  temporal_resolution: 'monthly',
+  sensitivity_class: 'PUBLIC',
+  confidence_baseline: 'A',
+  methodology_notes: 'Official aggregation',
+  offline_behavior: 'pre_cacheable',
+  presentation_type: 'map_overlay',
+})
 
 function App() {
   const [role, setRole] = useState<UserRole>('analyst')
@@ -30,6 +67,29 @@ function App() {
   const [status, setStatus] = useState<string>('Ready')
   const [busy, setBusy] = useState<boolean>(false)
   const [integrityState, setIntegrityState] = useState<string>('No bundle validation yet')
+  const [replayCursor, setReplayCursor] = useState<number>(0)
+  const [replayFrameMs, setReplayFrameMs] = useState<number>(32)
+  const [baselineInput, setBaselineInput] = useState<string>('10,12,16,21,30')
+  const [eventInput, setEventInput] = useState<string>('8,18,20,26,31')
+  const [versionedQuery, setVersionedQuery] = useState<VersionedQuery>({
+    queryId: 'query-main',
+    version: 1,
+    conditions: [{ field: 'speed', operator: 'greater_than', value: 20 }],
+  })
+  const [aiPrompt, setAiPrompt] = useState<string>('Summarize this selected bundle.')
+  const [aiSummary, setAiSummary] = useState<string>('')
+  const [domains, setDomains] = useState<ContextDomain[]>([])
+  const [domainDraft, setDomainDraft] = useState<ContextDomain>(createDomainDraft)
+  const [deviationBaselineInput, setDeviationBaselineInput] = useState<string>('100,98,102,99')
+  const [deviationObservedInput, setDeviationObservedInput] = useState<string>('120,124,119,130')
+  const [deviationThreshold, setDeviationThreshold] = useState<number>(0.2)
+  const [deviationType, setDeviationType] =
+    useState<DeviationEvent['deviation_type']>('trade_flow')
+  const [osintSource, setOsintSource] = useState<string>(CURATED_OSINT_SOURCES[0])
+  const [osintVerification, setOsintVerification] = useState<VerificationLevel>('reported')
+  const [osintAoi, setOsintAoi] = useState<string>('aoi-1')
+  const [osintEvents, setOsintEvents] = useState<OsintEvent[]>([])
+  const [gameAssumption, setGameAssumption] = useState<string>('Supply remains constrained')
 
   const offline = forcedOffline || !navigator.onLine
 
@@ -39,9 +99,76 @@ function App() {
       workflowMode: mode,
       note: analystNote,
       activeLayers,
+      replayCursor,
+      queryVersion: versionedQuery.version,
       uiVersion: 'i0-walking-skeleton',
     }),
-    [activeLayers, analystNote, forcedOffline, mode],
+    [activeLayers, analystNote, forcedOffline, mode, replayCursor, versionedQuery.version],
+  )
+
+  const queryRows = useMemo(
+    () => [
+      { id: 1, speed: 14, type: 'vessel', region: 'aoi-1' },
+      { id: 2, speed: 37, type: 'vessel', region: 'aoi-1' },
+      { id: 3, speed: 48, type: 'aircraft', region: 'aoi-2' },
+      { id: 4, speed: 61, type: 'vessel', region: 'aoi-3' },
+    ],
+    [],
+  )
+
+  const queryResult = useMemo(
+    () => runQuery(versionedQuery.conditions, queryRows),
+    [queryRows, versionedQuery.conditions],
+  )
+
+  const baselineSeries = useMemo(() => parseNumericSeries(baselineInput), [baselineInput])
+  const eventSeries = useMemo(() => parseNumericSeries(eventInput), [eventInput])
+  const densityDelta = useMemo(
+    () => computeDensityDelta(baselineSeries, eventSeries),
+    [baselineSeries, eventSeries],
+  )
+  const briefingBundle = useMemo(
+    () => buildBriefingBundle('baseline_window', 'event_window', densityDelta.delta),
+    [densityDelta.delta],
+  )
+
+  const deviationEvent = useMemo(
+    () =>
+      detectDeviation(
+        parseNumericSeries(deviationBaselineInput).map((value, index) => ({
+          ts: `b-${index}`,
+          value,
+        })),
+        parseNumericSeries(deviationObservedInput).map((value, index) => ({
+          ts: `o-${index}`,
+          value,
+        })),
+        deviationThreshold,
+        deviationType,
+      ),
+    [deviationBaselineInput, deviationObservedInput, deviationThreshold, deviationType],
+  )
+
+  const osintSummary = useMemo(
+    () => aggregateAlerts(osintEvents, osintAoi),
+    [osintAoi, osintEvents],
+  )
+
+  const gameModelValid = useMemo(
+    () =>
+      validateGameModel({
+        game_id: 'gm-main',
+        actors: [{ actor_id: 'state-a', actor_type: 'state' }],
+        actions: [{ action_id: 'policy-1', category: 'policy' }],
+        assumptions: [gameAssumption],
+        bundle_refs: selectedBundleId ? [selectedBundleId] : [],
+      }),
+    [gameAssumption, selectedBundleId],
+  )
+
+  const payoffProxy = useMemo(
+    () => buildPayoffProxy('throughput', 100, 15),
+    [],
   )
 
   const refresh = async (): Promise<void> => {
@@ -98,7 +225,7 @@ function App() {
             source: 'workspace.session',
             license: 'internal',
             retrievedAt: new Date().toISOString(),
-            pipelineVersion: 'i0',
+            pipelineVersion: 'i10',
           },
         ],
       })
@@ -179,12 +306,76 @@ function App() {
     }
   }
 
+  const onSaveQueryVersion = () => {
+    setVersionedQuery((previous) => bumpQueryVersion(previous))
+  }
+
+  const onUpdateQueryThreshold = (threshold: number) => {
+    setVersionedQuery((previous) => ({
+      ...previous,
+      conditions: [{ field: 'speed', operator: 'greater_than', value: threshold }],
+    }))
+  }
+
+  const onSubmitAiSummary = () => {
+    const selectedBundle = bundles.find((bundle) => bundle.bundle_id === selectedBundleId)
+    if (!selectedBundle) {
+      setAiSummary('Select a bundle before AI analysis.')
+      return
+    }
+    try {
+      const firstAsset = selectedBundle.assets[0]
+      const result = submitAiAnalysis({
+        role,
+        allowed: !offline,
+        prompt: aiPrompt,
+        refs: [
+          {
+            bundle_id: selectedBundle.bundle_id,
+            asset_id: firstAsset?.asset_id ?? 'ui-state',
+            sha256: firstAsset?.sha256 ?? selectedBundle.ui_state_hash,
+          },
+        ],
+      })
+      setAiSummary(result.content)
+    } catch (error) {
+      setAiSummary(String(error))
+    }
+  }
+
+  const onRegisterDomain = () => {
+    if (!validateDomainRegistration(domainDraft)) {
+      setStatus('Context domain registration rejected: missing required metadata.')
+      return
+    }
+    setDomains((previous) => [domainDraft, ...previous])
+    setDomainDraft(createDomainDraft())
+  }
+
+  const onAddOsintEvent = () => {
+    if (!validateCuratedSource(osintSource)) {
+      setStatus(`OSINT source rejected: ${osintSource}`)
+      return
+    }
+    setOsintEvents((previous) => [
+      ...previous,
+      {
+        source: osintSource.toUpperCase(),
+        verification: osintVerification,
+        aoi: osintAoi,
+      },
+    ])
+  }
+
   return (
     <div className="shell">
       <header className="header" data-testid="region-header">
         <div className="identity">
-          <h1>StratAtlas I0 Walking Skeleton</h1>
-          <p>Bundle determinism, audit chain, markings, and offline-first controls</p>
+          <h1>StratAtlas Integrated Workbench</h1>
+          <p>
+            I0-I10 shell: bundle determinism, replay/compare workflows, querying, AI
+            policy gating, context intake, deviation tracking, and strategic modeling
+          </p>
         </div>
         <div className="status-block">
           <span className={offline ? 'pill offline' : 'pill online'}>
@@ -192,6 +383,7 @@ function App() {
           </span>
           <span className="pill neutral">Role: {role}</span>
           <span className="pill neutral">Marking: {marking}</span>
+          <span className="pill neutral">Query v{versionedQuery.version}</span>
         </div>
       </header>
 
@@ -269,15 +461,142 @@ function App() {
           </div>
           <p className="status-line">{status}</p>
           <p className="status-line">{integrityState}</p>
+
+          <h3>Query Builder (I5)</h3>
+          <label className="field">
+            Minimum Speed
+            <input
+              type="number"
+              value={Number(versionedQuery.conditions[0]?.value ?? 20)}
+              onChange={(event) => onUpdateQueryThreshold(Number(event.target.value))}
+            />
+          </label>
+          <div className="controls">
+            <button onClick={onSaveQueryVersion}>Save Query Version</button>
+          </div>
+          <p className="status-line">Query matches: {queryResult.length}</p>
+
+          <h3>AI Gateway (I6)</h3>
+          <label className="field">
+            Prompt
+            <textarea value={aiPrompt} onChange={(event) => setAiPrompt(event.target.value)} rows={3} />
+          </label>
+          <div className="controls">
+            <button onClick={onSubmitAiSummary}>Submit AI Analysis</button>
+          </div>
+          <p className="status-line">{aiSummary || 'No AI analysis yet.'}</p>
         </section>
 
         <section className="panel map-panel" data-testid="region-main-canvas">
-          <h2>Main Canvas Placeholder</h2>
+          <h2>Main Canvas and Workflow Surface</h2>
           <div className="map-placeholder">
-            <p>2D/3D render surfaces are being introduced in I1.</p>
             <p>Current mode: {mode}</p>
             <p>Layer count: {activeLayers.length}</p>
+            <p>
+              Replay budget {I1_BUDGETS.panZoomFrameMs}ms:
+              {' '}
+              {shouldDegradeRendering(replayFrameMs) ? 'degrade rendering' : 'within budget'}
+            </p>
           </div>
+
+          {mode === 'replay' && (
+            <div className="sub-panel">
+              <h3>Replay Controls (I1)</h3>
+              <label className="field">
+                Replay Cursor
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  value={replayCursor}
+                  onChange={(event) => setReplayCursor(Number(event.target.value))}
+                />
+              </label>
+              <label className="field">
+                Measured Frame (ms)
+                <input
+                  type="number"
+                  value={replayFrameMs}
+                  onChange={(event) => setReplayFrameMs(Number(event.target.value))}
+                />
+              </label>
+            </div>
+          )}
+
+          {mode === 'compare' && (
+            <div className="sub-panel">
+              <h3>Baseline / Delta / Briefing (I2)</h3>
+              <label className="field">
+                Baseline Series
+                <input
+                  type="text"
+                  value={baselineInput}
+                  onChange={(event) => setBaselineInput(event.target.value)}
+                />
+              </label>
+              <label className="field">
+                Event Series
+                <input
+                  type="text"
+                  value={eventInput}
+                  onChange={(event) => setEventInput(event.target.value)}
+                />
+              </label>
+              <p className="status-line">Delta: [{densityDelta.delta.join(', ')}]</p>
+              <p className="status-line">{briefingBundle.summary}</p>
+            </div>
+          )}
+
+          {mode === 'live_recent' && (
+            <div className="sub-panel">
+              <h3>Context Deviation (I8)</h3>
+              <label className="field">
+                Baseline
+                <input
+                  type="text"
+                  value={deviationBaselineInput}
+                  onChange={(event) => setDeviationBaselineInput(event.target.value)}
+                />
+              </label>
+              <label className="field">
+                Observed
+                <input
+                  type="text"
+                  value={deviationObservedInput}
+                  onChange={(event) => setDeviationObservedInput(event.target.value)}
+                />
+              </label>
+              <label className="field">
+                Threshold
+                <input
+                  type="number"
+                  step={0.05}
+                  value={deviationThreshold}
+                  onChange={(event) => setDeviationThreshold(Number(event.target.value))}
+                />
+              </label>
+              <label className="field">
+                Deviation Type
+                <select
+                  value={deviationType}
+                  onChange={(event) =>
+                    setDeviationType(event.target.value as DeviationEvent['deviation_type'])
+                  }
+                >
+                  <option value="trade_flow">trade_flow</option>
+                  <option value="infrastructure">infrastructure</option>
+                  <option value="regulatory">regulatory</option>
+                </select>
+              </label>
+              <p className="status-line">
+                Deviation:
+                {' '}
+                {deviationEvent
+                  ? `${deviationEvent.deviation_type} (${deviationEvent.score.toFixed(2)})`
+                  : 'none'}
+              </p>
+            </div>
+          )}
 
           <h3>Bundle Registry</h3>
           <div className="bundle-list">
@@ -299,8 +618,98 @@ function App() {
         </section>
 
         <section className="panel audit-panel" data-testid="region-right-panel">
-          <h2>Audit Ledger</h2>
+          <h2>Governance, Context, and Audit</h2>
           <p>Current head hash: {auditHead || 'n/a'}</p>
+
+          <h3>Context Intake (I7)</h3>
+          <label className="field">
+            Domain Name
+            <input
+              type="text"
+              value={domainDraft.domain_name}
+              onChange={(event) =>
+                setDomainDraft((previous) => ({
+                  ...previous,
+                  domain_name: event.target.value,
+                }))
+              }
+            />
+          </label>
+          <label className="field">
+            Source URL
+            <input
+              type="text"
+              value={domainDraft.source_url}
+              onChange={(event) =>
+                setDomainDraft((previous) => ({
+                  ...previous,
+                  source_url: event.target.value,
+                }))
+              }
+            />
+          </label>
+          <div className="controls">
+            <button onClick={onRegisterDomain}>Register Domain</button>
+          </div>
+          <p className="status-line">Registered domains: {domains.length}</p>
+
+          <h3>OSINT Aggregation (I9)</h3>
+          <label className="field">
+            Source
+            <select value={osintSource} onChange={(event) => setOsintSource(event.target.value)}>
+              {CURATED_OSINT_SOURCES.map((source) => (
+                <option key={source} value={source}>
+                  {source}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="field">
+            Verification
+            <select
+              value={osintVerification}
+              onChange={(event) => setOsintVerification(event.target.value as VerificationLevel)}
+            >
+              <option value="confirmed">confirmed</option>
+              <option value="reported">reported</option>
+              <option value="alleged">alleged</option>
+            </select>
+          </label>
+          <label className="field">
+            AOI
+            <input
+              type="text"
+              value={osintAoi}
+              onChange={(event) => setOsintAoi(event.target.value)}
+            />
+          </label>
+          <div className="controls">
+            <button onClick={onAddOsintEvent}>Add OSINT Event</button>
+          </div>
+          <p className="status-line">
+            Alerts in {osintAoi}: {osintSummary.count}
+            {' '}
+            (alleged {osintSummary.verificationBreakdown.alleged})
+          </p>
+
+          <h3>Strategic Model (I10)</h3>
+          <label className="field">
+            Assumption
+            <input
+              type="text"
+              value={gameAssumption}
+              onChange={(event) => setGameAssumption(event.target.value)}
+            />
+          </label>
+          <p className="status-line">
+            Model valid: {gameModelValid ? 'yes' : 'no'} | Payoff proxy:
+            {' '}
+            {payoffProxy.metric}
+            {' '}
+            [{payoffProxy.uncertainty[0]}, {payoffProxy.uncertainty[1]}]
+          </p>
+
+          <h3>Audit Ledger</h3>
           <div className="audit-list">
             {auditEvents.length === 0 && <p>No events recorded.</p>}
             {auditEvents
@@ -319,7 +728,9 @@ function App() {
       </main>
       <footer className="panel footer-panel" data-testid="region-bottom-panel">
         <strong>Bottom Panel</strong>
-        <span>{` Mode=${mode} | Connectivity=${offline ? 'offline' : 'online'} | Audit events=${auditEvents.length}`}</span>
+        <span>
+          {`Mode=${mode} | Connectivity=${offline ? 'offline' : 'online'} | Audit events=${auditEvents.length} | Query matches=${queryResult.length}`}
+        </span>
       </footer>
     </div>
   )

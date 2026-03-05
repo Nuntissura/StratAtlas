@@ -18,5 +18,13 @@ describe('I8 context deviation detection', () => {
     expect(event?.event_type).toBe('context.deviation')
     expect(event?.deviation_type).toBe('trade_flow')
     expect(event?.score).toBeGreaterThan(0.2)
+
+    const zeroBaseline = detectDeviation(
+      [{ ts: '1', value: 0 }],
+      [{ ts: '2', value: 1 }],
+      0.2,
+      'infrastructure',
+    )
+    expect(zeroBaseline?.deviation_type).toBe('infrastructure')
   })
 })

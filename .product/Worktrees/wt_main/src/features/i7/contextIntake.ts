@@ -46,7 +46,11 @@ export const validateDomainRegistration = (domain: ContextDomain): boolean =>
       domain.domain_name &&
       domain.source_name &&
       domain.source_url &&
-      domain.license,
+      domain.source_url.startsWith('http') &&
+      domain.license &&
+      domain.update_cadence &&
+      domain.temporal_resolution &&
+      domain.methodology_notes,
   )
 
 export const allowsMapPointRendering = (domain: ContextDomain): boolean =>

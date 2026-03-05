@@ -9,7 +9,7 @@ describe('App', () => {
     const user = userEvent.setup()
     render(<App />)
 
-    expect(screen.getByText('StratAtlas I0 Walking Skeleton')).toBeInTheDocument()
+    expect(screen.getByText('StratAtlas Integrated Workbench')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Create Bundle' }))
 
     expect(await screen.findByText(/Bundle .* created/)).toBeInTheDocument()
@@ -22,5 +22,22 @@ describe('App', () => {
     expect(screen.getByTestId('region-main-canvas')).toBeInTheDocument()
     expect(screen.getByTestId('region-right-panel')).toBeInTheDocument()
     expect(screen.getByTestId('region-bottom-panel')).toBeInTheDocument()
+  })
+
+  it('runs compare workflow and updates delta output', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.selectOptions(screen.getByLabelText('Mode'), 'compare')
+    expect(await screen.findByText('Baseline / Delta / Briefing (I2)')).toBeInTheDocument()
+
+    const baselineInput = screen.getByLabelText('Baseline Series')
+    const eventInput = screen.getByLabelText('Event Series')
+    await user.clear(baselineInput)
+    await user.type(baselineInput, '1,2,3')
+    await user.clear(eventInput)
+    await user.type(eventInput, '2,4,6')
+
+    expect(await screen.findByText('Delta: [1, 2, 3]')).toBeInTheDocument()
   })
 })

@@ -36,6 +36,7 @@ Deliver context deviation detection and infrastructure propagation in scenarios.
 
 ## Progress Log
 
+- 2026-03-05: Integrated I0-I10 app shell expanded in .product/Worktrees/wt_main/src/App.tsx with replay/compare/query/AI/context/deviation/OSINT/game-model workflows.
 - 2026-03-05: Sub-spec advanced from STUB to DRAFT and moved into active sub-spec phase.
 
 
@@ -102,8 +103,8 @@ Deliver context deviation detection and infrastructure propagation in scenarios.
 3. Verification/status promotion commit.
 ## Evidence
 
-- Test Suite Execution:
-- Logs:
-- Screenshots/Exports:
-- Build Artifacts:
-- User Sign-off:
+- Test Suite Execution: PASSING (pnpm lint, pnpm test, pnpm build, cargo test --manifest-path src-tauri/Cargo.toml)
+- Logs: command output captured in Codex session run on 2026-03-05
+- Screenshots/Exports: N/A (CLI-driven validation)
+- Build Artifacts: .product/Worktrees/wt_main/dist
+- User Sign-off: Pending

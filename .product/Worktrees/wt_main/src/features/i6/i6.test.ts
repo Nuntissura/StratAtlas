@@ -20,6 +20,15 @@ describe('I6 ai gateway and mcp', () => {
     })
     expect(result.label).toBe('AI-Derived Interpretation')
     expect(result.refs[0].bundle_id).toBe('b1')
+
+    expect(() =>
+      submitAiAnalysis({
+        role: 'viewer',
+        allowed: true,
+        refs: [{ bundle_id: 'b1', asset_id: 'a1', sha256: 'hash' }],
+        prompt: 'blocked',
+      }),
+    ).toThrow()
   })
 
   it('defines required mcp minimum tool surface', () => {

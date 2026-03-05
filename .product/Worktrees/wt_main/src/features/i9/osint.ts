@@ -22,7 +22,9 @@ export interface AlertSummary {
 }
 
 export const validateCuratedSource = (source: string): boolean =>
-  CURATED_OSINT_SOURCES.includes(source as (typeof CURATED_OSINT_SOURCES)[number])
+  CURATED_OSINT_SOURCES.includes(
+    source.toUpperCase() as (typeof CURATED_OSINT_SOURCES)[number],
+  )
 
 export const aggregateAlerts = (events: OsintEvent[], aoi: string): AlertSummary => {
   const scoped = events.filter((event) => event.aoi === aoi)

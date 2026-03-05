@@ -4,6 +4,7 @@ import { aggregateAlerts, validateCuratedSource } from './osint'
 describe('I9 osint and aggregate alerts', () => {
   it('accepts curated sources and enforces aggregate-only alerts', () => {
     expect(validateCuratedSource('ACLED')).toBe(true)
+    expect(validateCuratedSource('acled')).toBe(true)
     expect(validateCuratedSource('UnknownFeed')).toBe(false)
 
     const summary = aggregateAlerts(

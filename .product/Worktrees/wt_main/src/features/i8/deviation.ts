@@ -22,7 +22,8 @@ export const detectDeviation = (
   const observedAvg =
     observed.reduce((sum, point) => sum + point.value, 0) / Math.max(observed.length, 1)
   const delta = observedAvg - baselineAvg
-  const score = baselineAvg === 0 ? 0 : Math.abs(delta / baselineAvg)
+  const score =
+    baselineAvg === 0 ? Math.abs(observedAvg) : Math.abs(delta / baselineAvg)
   if (score < threshold) {
     return null
   }
