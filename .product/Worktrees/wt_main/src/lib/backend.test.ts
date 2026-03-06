@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { backend } from './backend'
-import type { CreateBundleRequest } from '../contracts/i0'
+import type { CreateBundleRequest, QueryStateSnapshot } from '../contracts/i0'
 import {
   DEFAULT_COLLABORATION_ARTIFACT_ID,
   createCollaborationSnapshot,
@@ -15,6 +15,11 @@ import {
   setScenarioExportArtifact,
   setConstraint,
 } from '../features/i4/scenarios'
+import {
+  buildQueryRenderLayer,
+  buildSavedQueryArtifact,
+  type VersionedQuery,
+} from '../features/i5/queryBuilder'
 
 const buildStoredCollaborationSnapshot = (sharedNote: string, viewState: string) => {
   let snapshot = createCollaborationSnapshot('collab-main', 'analyst-1')
@@ -83,6 +88,57 @@ const buildStoredScenarioSnapshot = () => {
   )
 }
 
+const buildStoredQueryState = (): QueryStateSnapshot => {
+  const definition: VersionedQuery = {
+    queryId: 'query-main',
+    title: 'Saved port watch',
+    version: 3,
+    aoi: 'aoi-1',
+    timeWindow: {
+      startHour: 8,
+      endHour: 18,
+    },
+    contextDomainIds: ['ctx-1'],
+    provenanceSource: 'Backend snapshot',
+    conditions: [
+      {
+        conditionId: 'condition-1',
+        scope: 'geospatial',
+        field: 'speed',
+        operator: 'greater_than',
+        value: 20,
+      },
+    ],
+  }
+  const rows = [
+    { id: 1, speed: 14, region: 'aoi-1', hour: 7, context_domains: ['ctx-1'] },
+    { id: 2, speed: 37, region: 'aoi-1', hour: 10, context_domains: ['ctx-1'] },
+    { id: 3, speed: 48, region: 'aoi-2', hour: 11, context_domains: ['ctx-1', 'ctx-2'] },
+    { id: 4, speed: 61, region: 'aoi-3', hour: 15, context_domains: ['ctx-2'] },
+  ]
+  const matchedRows = rows.filter(
+    (row) =>
+      row.region === definition.aoi &&
+      row.hour >= definition.timeWindow.startHour &&
+      row.hour <= definition.timeWindow.endHour &&
+      row.speed > 20 &&
+      definition.contextDomainIds.every((domainId) => row.context_domains.includes(domainId)),
+  )
+  const renderLayer = buildQueryRenderLayer(definition, matchedRows)
+
+  return {
+    definition,
+    resultCount: matchedRows.length,
+    sourceRowCount: rows.length,
+    matchedRowIds: matchedRows.map((row) => row.id),
+    savedVersions: [definition],
+    renderLayer,
+    savedArtifact: buildSavedQueryArtifact(definition, renderLayer, {
+      savedAt: '2026-03-06T00:00:00.000Z',
+    }),
+  }
+}
+
 const request: CreateBundleRequest = {
   role: 'analyst',
   marking: 'INTERNAL',
@@ -96,16 +152,7 @@ const request: CreateBundleRequest = {
       forcedOffline: true,
       uiVersion: 'i0-recorder-hardening',
     },
-    query: {
-      definition: {
-        queryId: 'query-main',
-        version: 3,
-        conditions: [{ field: 'speed', operator: 'greater_than', value: 20 }],
-      },
-      resultCount: 2,
-      sourceRowCount: 4,
-      matchedRowIds: [2, 4],
-    },
+    query: buildStoredQueryState(),
     context: {
       domains: [
         {
@@ -199,7 +246,7 @@ describe('backend fallback', () => {
 
     const restored = await backend.loadRecorderState()
     expect(restored.state?.workspace.workflowMode).toBe('replay')
-    expect(restored.state?.query.matchedRowIds).toEqual([2, 4])
+    expect(restored.state?.query.matchedRowIds).toEqual([2])
     expect(restored.state?.context.correlationAoi).toBe('aoi-1')
     expect(restored.state?.compare?.eventWindow.end).toBe('2026-02-28')
     expect(restored.state?.collaboration?.ephemeralViewState).toBe('zoom-8')

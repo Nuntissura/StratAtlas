@@ -15,26 +15,26 @@ Concrete extraction of requirement and primitive obligations this WP must satisf
 
 | Requirement | Level | Section | Description | Target | Status |
 |-------------|-------|---------|-------------|--------|--------|
-| REQ-0011 | MUST | Ãƒâ€šÃ‚Â§11.4 | Every layer/chart/annotation/export labeled as Observed Evidence, Curated Context, Modeled Output, or AI-Derived Interpretation | All | IN-PROGRESS |
-| REQ-0012 | MUST | Ãƒâ€šÃ‚Â§11.4 | Modeled outputs MUST include uncertainty representation and MUST NOT be presented as observed | All | IN-PROGRESS |
-| REQ-0014 | MUST | Ãƒâ€šÃ‚Â§11.5 | Desktop app startup (cold launch) MUST be <= 8.0 s to interactive shell on reference workstation | All | IN-PROGRESS |
-| REQ-0015 | MUST | Ãƒâ€šÃ‚Â§11.5 | Desktop app startup (warm relaunch) MUST be <= 3.0 s to interactive shell on reference workstation | All | IN-PROGRESS |
-| REQ-0016 | MUST | Ãƒâ€šÃ‚Â§11.5 | Analyst state-change actions (layer/filter/apply) MUST provide feedback <= 300 ms P95; if exceeded, UI MUST show non-blocking progress | All | IN-PROGRESS |
-| REQ-0200 | MUST | Ãƒâ€šÃ‚Â§11.1 | UI stable regions: header, left panel, right panel, bottom panel, main canvas | I1 | IN-PROGRESS |
-| REQ-0201 | MUST | Ãƒâ€šÃ‚Â§11.2 | UI modes: Live/Recent, Replay, Compare, Scenario, Collaboration, Offline | I1 | IN-PROGRESS |
-| REQ-0202 | MUST | Ãƒâ€šÃ‚Â§12.1 | Every layer declares: source, license, cadence, geometry type, sensitivity class, caching policy | I1 | IN-PROGRESS |
-| REQ-0203 | MUST | Ãƒâ€šÃ‚Â§12.1 | System surfaces licensing constraints and prevents violating exports | I1 | IN-PROGRESS |
-| REQ-0204 | MUST | Ãƒâ€šÃ‚Â§12.2 | Plugins MUST NOT run arbitrary code in main process without sandboxing | I1 | IN-PROGRESS |
-| REQ-0205 | MUST | Ãƒâ€šÃ‚Â§12.2 | Plugin network egress controllable | I1 | IN-PROGRESS |
-| REQ-0206 | MUST | Ãƒâ€šÃ‚Â§11.5 | 2D pan/zoom: ÃƒÂ¢Ã¢â‚¬Â°Ã‚Â¤50ms frame time with aggregated rendering | I1 | IN-PROGRESS |
-| REQ-0207 | MUST | Ãƒâ€šÃ‚Â§11.5 | Time scrub (warm cache): ÃƒÂ¢Ã¢â‚¬Â°Ã‚Â¤250ms end-to-end | I1 | IN-PROGRESS |
-| REQ-0208 | MUST | Ãƒâ€šÃ‚Â§11.5 | Time scrub (cold cache): ÃƒÂ¢Ã¢â‚¬Â°Ã‚Â¤2.0s end-to-end | I1 | IN-PROGRESS |
-| REQ-0209 | MUST | Ãƒâ€šÃ‚Â§11.5 | 4K image export: ÃƒÂ¢Ã¢â‚¬Â°Ã‚Â¤3.0s | I1 | IN-PROGRESS |
-| REQ-0210 | MUST | Ãƒâ€šÃ‚Â§11.5 | Briefing bundle export: ÃƒÂ¢Ã¢â‚¬Â°Ã‚Â¤15s | I1 | IN-PROGRESS |
-| REQ-0211 | MUST | Ãƒâ€šÃ‚Â§11.5 | Graceful degradation via aggregation when budget cannot be met; UI indicates aggregation | I1 | IN-PROGRESS |
-| REQ-0212 | SHOULD | Ãƒâ€šÃ‚Â§11.6 | WCAG/508 accessibility (keyboard, non-color-only semantics) | I1 | IN-PROGRESS |
-| REQ-0804 | MUST | Ãƒâ€šÃ‚Â§7.4.5 | sidebar_timeseries and dashboard_widget types MUST NOT render as map points | I7 | IN-PROGRESS |
-| REQ-0805 | MUST | Ãƒâ€šÃ‚Â§7.4.5 | All context presentations display source, cadence, and confidence | I7 | IN-PROGRESS |
+| REQ-0011 | MUST | ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§11.4 | Every layer/chart/annotation/export labeled as Observed Evidence, Curated Context, Modeled Output, or AI-Derived Interpretation | All | IN-PROGRESS |
+| REQ-0012 | MUST | ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§11.4 | Modeled outputs MUST include uncertainty representation and MUST NOT be presented as observed | All | IN-PROGRESS |
+| REQ-0014 | MUST | ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§11.5 | Desktop app startup (cold launch) MUST be <= 8.0 s to interactive shell on reference workstation | All | IN-PROGRESS |
+| REQ-0015 | MUST | ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§11.5 | Desktop app startup (warm relaunch) MUST be <= 3.0 s to interactive shell on reference workstation | All | IN-PROGRESS |
+| REQ-0016 | MUST | ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§11.5 | Analyst state-change actions (layer/filter/apply) MUST provide feedback <= 300 ms P95; if exceeded, UI MUST show non-blocking progress | All | IN-PROGRESS |
+| REQ-0200 | MUST | ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§11.1 | UI stable regions: header, left panel, right panel, bottom panel, main canvas | I1 | IN-PROGRESS |
+| REQ-0201 | MUST | ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§11.2 | UI modes: Live/Recent, Replay, Compare, Scenario, Collaboration, Offline | I1 | IN-PROGRESS |
+| REQ-0202 | MUST | ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§12.1 | Every layer declares: source, license, cadence, geometry type, sensitivity class, caching policy | I1 | IN-PROGRESS |
+| REQ-0203 | MUST | ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§12.1 | System surfaces licensing constraints and prevents violating exports | I1 | IN-PROGRESS |
+| REQ-0204 | MUST | ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§12.2 | Plugins MUST NOT run arbitrary code in main process without sandboxing | I1 | IN-PROGRESS |
+| REQ-0205 | MUST | ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§12.2 | Plugin network egress controllable | I1 | IN-PROGRESS |
+| REQ-0206 | MUST | ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§11.5 | 2D pan/zoom: ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°Ãƒâ€šÃ‚Â¤50ms frame time with aggregated rendering | I1 | IN-PROGRESS |
+| REQ-0207 | MUST | ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§11.5 | Time scrub (warm cache): ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°Ãƒâ€šÃ‚Â¤250ms end-to-end | I1 | IN-PROGRESS |
+| REQ-0208 | MUST | ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§11.5 | Time scrub (cold cache): ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°Ãƒâ€šÃ‚Â¤2.0s end-to-end | I1 | IN-PROGRESS |
+| REQ-0209 | MUST | ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§11.5 | 4K image export: ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°Ãƒâ€šÃ‚Â¤3.0s | I1 | IN-PROGRESS |
+| REQ-0210 | MUST | ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§11.5 | Briefing bundle export: ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°Ãƒâ€šÃ‚Â¤15s | I1 | IN-PROGRESS |
+| REQ-0211 | MUST | ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§11.5 | Graceful degradation via aggregation when budget cannot be met; UI indicates aggregation | I1 | IN-PROGRESS |
+| REQ-0212 | SHOULD | ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§11.6 | WCAG/508 accessibility (keyboard, non-color-only semantics) | I1 | IN-PROGRESS |
+| REQ-0804 | MUST | ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§7.4.5 | sidebar_timeseries and dashboard_widget types MUST NOT render as map points | I7 | IN-PROGRESS |
+| REQ-0805 | MUST | ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§7.4.5 | All context presentations display source, cadence, and confidence | I7 | IN-PROGRESS |
 
 ## Primitive Extraction
 

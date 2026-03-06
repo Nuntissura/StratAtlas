@@ -134,11 +134,11 @@ REQ-NNNN | LEVEL | Ã‚Â§Section | Description | Iteration Target | Status
 
 | ID | Level | Section | Description | Target | Status |
 |----|-------|---------|-------------|--------|--------|
-| REQ-0600 | MUST | Ã‚Â§13.2 | Composable spatio-temporal query builder | I5 | IN-PROGRESS |
-| REQ-0601 | MUST | Ã‚Â§13.2 | Query results render as ephemeral layers | I5 | IN-PROGRESS |
-| REQ-0602 | MUST | Ã‚Â§13.2 | Saved queries version-controlled | I5 | IN-PROGRESS |
-| REQ-0603 | SHOULD | Ã‚Â§13.2 | Context-aware queries combining geospatial + context domain conditions | I5 | IN-PROGRESS |
-| REQ-0604 | MUST | Ã‚Â§11.3 | Golden flow: Query Builder Ã¢â€ â€™ Run Ã¢â€ â€™ Render Ã¢â€ â€™ Save/version | I5 | IN-PROGRESS |
+| REQ-0600 | MUST | Ã‚Â§13.2 | Composable spatio-temporal query builder | I5 | E2E-VERIFIED |
+| REQ-0601 | MUST | Ã‚Â§13.2 | Query results render as ephemeral layers | I5 | E2E-VERIFIED |
+| REQ-0602 | MUST | Ã‚Â§13.2 | Saved queries version-controlled | I5 | E2E-VERIFIED |
+| REQ-0603 | SHOULD | Ã‚Â§13.2 | Context-aware queries combining geospatial + context domain conditions | I5 | E2E-VERIFIED |
+| REQ-0604 | MUST | Ã‚Â§11.3 | Golden flow: Query Builder Ã¢â€ â€™ Run Ã¢â€ â€™ Render Ã¢â€ â€™ Save/version | I5 | E2E-VERIFIED |
 
 ---
 
@@ -245,4 +245,3 @@ REQ-NNNN | LEVEL | Ã‚Â§Section | Description | Iteration Target | Status
 | **Total** | **117** |
 
 *Note: This index captures the primary normative requirements. Sub-specs will decompose these into finer-grained implementation requirements with IDs in the REQ-NNxx range (e.g., REQ-0101a, REQ-0101b).*
-

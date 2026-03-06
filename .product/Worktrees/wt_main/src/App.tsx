@@ -61,8 +61,20 @@ import {
   type HypotheticalEntityType,
   type ScenarioStateSnapshot,
 } from './features/i4/scenarios'
-import { runQuery, bumpQueryVersion, type VersionedQuery } from './features/i5/queryBuilder'
-import type { QueryCondition, QueryOperator } from './features/i5/queryBuilder'
+import {
+  addQueryCondition,
+  buildQueryRenderLayer,
+  buildSavedQueryArtifact,
+  bumpQueryVersion,
+  removeQueryCondition,
+  runQuery,
+  type QueryCondition,
+  type QueryConditionScope,
+  type QueryOperator,
+  type QueryRenderLayer,
+  type SavedQueryArtifact,
+  type VersionedQuery,
+} from './features/i5/queryBuilder'
 import { submitAiAnalysis } from './features/i6/aiGateway'
 import { validateDomainRegistration, type ContextDomain } from './features/i7/contextIntake'
 import { detectDeviation, type DeviationEvent } from './features/i8/deviation'
@@ -82,8 +94,24 @@ const WORKSPACE_LAYERS = ['base-map', 'context-panel', 'audit-overlay', 'bundle-
 const WORKSPACE_LAYER_SET = new Set<string>(WORKSPACE_LAYERS)
 const DEFAULT_QUERY: VersionedQuery = {
   queryId: 'query-main',
+  title: 'Port surge watch',
   version: 1,
-  conditions: [{ field: 'speed', operator: 'greater_than', value: 20 }],
+  aoi: 'aoi-1',
+  timeWindow: {
+    startHour: 8,
+    endHour: 18,
+  },
+  contextDomainIds: [],
+  provenanceSource: 'Analyst composed query',
+  conditions: [
+    {
+      conditionId: 'condition-1',
+      scope: 'geospatial',
+      field: 'speed',
+      operator: 'greater_than',
+      value: 20,
+    },
+  ],
 }
 const DEFAULT_BASELINE_WINDOW_LABEL = '2026-Q1 baseline'
 const DEFAULT_EVENT_WINDOW_LABEL = '2026-Q2 event'
@@ -107,6 +135,10 @@ const DEFAULT_HYPOTHETICAL_ENTITY_TYPE: HypotheticalEntityType = 'asset'
 const DEFAULT_HYPOTHETICAL_ENTITY_CHANGE = 'Adds temporary storage and surge routing slack.'
 const DEFAULT_HYPOTHETICAL_ENTITY_SOURCE = 'Curated analyst scenario note'
 const DEFAULT_HYPOTHETICAL_ENTITY_CONFIDENCE: EntityConfidence = 'B'
+const DEFAULT_QUERY_SCOPE: QueryConditionScope = 'geospatial'
+const DEFAULT_QUERY_FIELD = 'speed'
+const DEFAULT_QUERY_OPERATOR: QueryOperator = 'greater_than'
+const DEFAULT_QUERY_VALUE = '20'
 const QUERY_OPERATORS: QueryOperator[] = ['equals', 'greater_than', 'less_than', 'contains']
 
 const modeLabel = (forcedOffline: boolean): string =>
@@ -177,9 +209,18 @@ const normalizeQueryConditions = (value: unknown): QueryCondition[] => {
   }
   const conditions = value
     .filter((entry): entry is Record<string, unknown> => isRecord(entry))
-    .map((entry) => {
+    .map((entry, index) => {
       const operator = entry.operator
+      const scope = entry.scope
       return {
+        conditionId:
+          typeof entry.conditionId === 'string' && entry.conditionId.trim().length > 0
+            ? entry.conditionId
+            : `condition-${index + 1}`,
+        scope:
+          scope === 'geospatial' || scope === 'temporal' || scope === 'context'
+            ? (scope as QueryConditionScope)
+            : DEFAULT_QUERY_SCOPE,
         field: typeof entry.field === 'string' ? entry.field : 'speed',
         operator:
           typeof operator === 'string' && QUERY_OPERATORS.includes(operator as QueryOperator)
@@ -198,8 +239,75 @@ const normalizeVersionedQuery = (value: unknown): VersionedQuery => {
   }
   return {
     queryId: typeof value.queryId === 'string' ? value.queryId : DEFAULT_QUERY.queryId,
+    title: typeof value.title === 'string' ? value.title : DEFAULT_QUERY.title,
     version: normalizeNumber(value.version, DEFAULT_QUERY.version),
+    aoi: typeof value.aoi === 'string' ? value.aoi : DEFAULT_QUERY.aoi,
+    timeWindow: isRecord(value.timeWindow)
+      ? {
+          startHour: normalizeNumber(value.timeWindow.startHour, DEFAULT_QUERY.timeWindow.startHour),
+          endHour: normalizeNumber(value.timeWindow.endHour, DEFAULT_QUERY.timeWindow.endHour),
+        }
+      : DEFAULT_QUERY.timeWindow,
+    contextDomainIds: normalizeStringArray(value.contextDomainIds),
+    provenanceSource:
+      typeof value.provenanceSource === 'string'
+        ? value.provenanceSource
+        : DEFAULT_QUERY.provenanceSource,
     conditions: normalizeQueryConditions(value.conditions),
+  }
+}
+
+const normalizeSavedQueryVersions = (value: unknown): VersionedQuery[] => {
+  if (!Array.isArray(value)) {
+    return []
+  }
+  return value
+    .filter((entry): entry is Record<string, unknown> => isRecord(entry))
+    .map((entry) => normalizeVersionedQuery(entry))
+}
+
+const normalizeQueryRenderLayer = (value: unknown): QueryRenderLayer | undefined => {
+  if (!isRecord(value)) {
+    return undefined
+  }
+  if (typeof value.layerId !== 'string') {
+    return undefined
+  }
+  return {
+    layerId: value.layerId,
+    label: value.label === 'Observed Evidence' ? 'Observed Evidence' : 'Observed Evidence',
+    summary: typeof value.summary === 'string' ? value.summary : '',
+    resultCount: normalizeNumber(value.resultCount, 0),
+    matchedRowIds: normalizeNumberArray(value.matchedRowIds),
+    aoi: typeof value.aoi === 'string' ? value.aoi : DEFAULT_QUERY.aoi,
+    contextDomainIds: normalizeStringArray(value.contextDomainIds),
+    ephemeral: true,
+  }
+}
+
+const normalizeSavedQueryArtifact = (value: unknown): SavedQueryArtifact | undefined => {
+  if (!isRecord(value)) {
+    return undefined
+  }
+  if (typeof value.artifactId !== 'string' || typeof value.queryId !== 'string') {
+    return undefined
+  }
+  return {
+    artifactId: value.artifactId,
+    queryId: value.queryId,
+    version: normalizeNumber(value.version, 1),
+    title: typeof value.title === 'string' ? value.title : DEFAULT_QUERY.title,
+    summary: typeof value.summary === 'string' ? value.summary : '',
+    resultLayerId:
+      typeof value.resultLayerId === 'string' ? value.resultLayerId : 'query-layer-missing',
+    matchedRowIds: normalizeNumberArray(value.matchedRowIds),
+    savedAt: typeof value.savedAt === 'string' ? value.savedAt : '1970-01-01T00:00:00.000Z',
+    provenanceSource:
+      typeof value.provenanceSource === 'string'
+        ? value.provenanceSource
+        : DEFAULT_QUERY.provenanceSource,
+    exportFingerprint:
+      typeof value.exportFingerprint === 'string' ? value.exportFingerprint : 'query-missing',
   }
 }
 
@@ -276,10 +384,16 @@ const buildQueryStateSnapshot = ({
   definition,
   queryResult,
   sourceRowCount,
+  savedVersions,
+  renderLayer,
+  savedArtifact,
 }: {
   definition: VersionedQuery
   queryResult: Record<string, unknown>[]
   sourceRowCount: number
+  savedVersions: VersionedQuery[]
+  renderLayer?: QueryRenderLayer
+  savedArtifact?: SavedQueryArtifact
 }): QueryStateSnapshot => ({
   definition,
   resultCount: queryResult.length,
@@ -287,6 +401,9 @@ const buildQueryStateSnapshot = ({
   matchedRowIds: queryResult
     .map((row) => row.id)
     .filter((value): value is number => typeof value === 'number'),
+  savedVersions,
+  renderLayer,
+  savedArtifact,
 })
 
 const buildContextSnapshot = ({
@@ -344,6 +461,16 @@ function App() {
   const [baselineInput, setBaselineInput] = useState<string>(DEFAULT_BASELINE_INPUT)
   const [eventInput, setEventInput] = useState<string>(DEFAULT_EVENT_INPUT)
   const [versionedQuery, setVersionedQuery] = useState<VersionedQuery>(DEFAULT_QUERY)
+  const [queryConditionScopeInput, setQueryConditionScopeInput] =
+    useState<QueryConditionScope>(DEFAULT_QUERY_SCOPE)
+  const [queryFieldInput, setQueryFieldInput] = useState<string>(DEFAULT_QUERY_FIELD)
+  const [queryOperatorInput, setQueryOperatorInput] = useState<QueryOperator>(DEFAULT_QUERY_OPERATOR)
+  const [queryValueInput, setQueryValueInput] = useState<string>(DEFAULT_QUERY_VALUE)
+  const [savedQueryVersions, setSavedQueryVersions] = useState<VersionedQuery[]>([])
+  const [queryRenderLayer, setQueryRenderLayer] = useState<QueryRenderLayer | undefined>(undefined)
+  const [savedQueryArtifact, setSavedQueryArtifact] = useState<SavedQueryArtifact | undefined>(
+    undefined,
+  )
   const [aiPrompt, setAiPrompt] = useState<string>('Summarize this selected bundle.')
   const [aiSummary, setAiSummary] = useState<string>('')
   const [domains, setDomains] = useState<ContextDomain[]>([])
@@ -424,26 +551,33 @@ function App() {
 
   const queryRows = useMemo(
     () => [
-      { id: 1, speed: 14, type: 'vessel', region: 'aoi-1' },
-      { id: 2, speed: 37, type: 'vessel', region: 'aoi-1' },
-      { id: 3, speed: 48, type: 'aircraft', region: 'aoi-2' },
-      { id: 4, speed: 61, type: 'vessel', region: 'aoi-3' },
+      { id: 1, speed: 14, type: 'vessel', region: 'aoi-1', hour: 7, context_domains: ['ctx-1'] },
+      { id: 2, speed: 37, type: 'vessel', region: 'aoi-1', hour: 10, context_domains: ['ctx-1'] },
+      {
+        id: 3,
+        speed: 48,
+        type: 'aircraft',
+        region: 'aoi-2',
+        hour: 11,
+        context_domains: ['ctx-1', 'ctx-2'],
+      },
+      { id: 4, speed: 61, type: 'vessel', region: 'aoi-3', hour: 15, context_domains: ['ctx-2'] },
     ],
     [],
   )
 
-  const queryResult = useMemo(
-    () => runQuery(versionedQuery.conditions, queryRows),
-    [queryRows, versionedQuery.conditions],
-  )
+  const queryResult = useMemo(() => runQuery(versionedQuery, queryRows), [queryRows, versionedQuery])
   const querySnapshot = useMemo(
     () =>
       buildQueryStateSnapshot({
         definition: versionedQuery,
         queryResult,
         sourceRowCount: queryRows.length,
+        savedVersions: savedQueryVersions,
+        renderLayer: queryRenderLayer,
+        savedArtifact: savedQueryArtifact,
       }),
-    [queryResult, queryRows.length, versionedQuery],
+    [queryRenderLayer, queryResult, queryRows.length, savedQueryArtifact, savedQueryVersions, versionedQuery],
   )
 
   const contextSnapshot = useMemo(
@@ -707,6 +841,7 @@ function App() {
       DEFAULT_LOCAL_COLLABORATION_ACTOR,
     )
     const scenarioState = normalizeScenarioState(state.scenario)
+    const restoredQueryDefinition = normalizeVersionedQuery(query.definition)
     const restoredDomains = normalizeDomains(context.domains)
     const restoredActiveDomainIds = normalizeStringArray(context.activeDomainIds).filter((domainId) =>
       restoredDomains.some((domain) => domain.domain_id === domainId),
@@ -755,7 +890,14 @@ function App() {
       setScenarioEntityChangeInput(DEFAULT_HYPOTHETICAL_ENTITY_CHANGE)
       setScenarioEntitySourceInput(DEFAULT_HYPOTHETICAL_ENTITY_SOURCE)
       setScenarioEntityConfidenceInput(DEFAULT_HYPOTHETICAL_ENTITY_CONFIDENCE)
-      setVersionedQuery(normalizeVersionedQuery(query.definition))
+      setVersionedQuery(restoredQueryDefinition)
+      setQueryConditionScopeInput(DEFAULT_QUERY_SCOPE)
+      setQueryFieldInput(DEFAULT_QUERY_FIELD)
+      setQueryOperatorInput(DEFAULT_QUERY_OPERATOR)
+      setQueryValueInput(DEFAULT_QUERY_VALUE)
+      setSavedQueryVersions(normalizeSavedQueryVersions(query.savedVersions))
+      setQueryRenderLayer(normalizeQueryRenderLayer(query.renderLayer))
+      setSavedQueryArtifact(normalizeSavedQueryArtifact(query.savedArtifact))
       setDomains(restoredDomains)
       setActiveDomainIds(restoredActiveDomainIds)
       setCorrelationAoi(
@@ -1030,37 +1172,123 @@ function App() {
     }
   }
 
-  const onSaveQueryVersion = () => {
-    const startedAt = beginMeasuredAction('Query version save')
-    const next = bumpQueryVersion(versionedQuery)
-    setVersionedQuery(next)
+  const updateQueryDefinition = (
+    updater: (previous: VersionedQuery) => VersionedQuery,
+  ): void => {
+    setVersionedQuery((previous) => updater(previous))
+    setQueryRenderLayer(undefined)
+    setSavedQueryArtifact(undefined)
+  }
+
+  const appendQueryAudit = (eventType: string, payload: Record<string, unknown>): void => {
     void backend
       .appendAudit({
         role,
-        event_type: 'query.version_saved',
-        payload: {
-          query_id: next.queryId,
-          version: next.version,
-          conditions_count: next.conditions.length,
-        },
+        event_type: eventType,
+        payload,
       })
       .then(() => refresh())
-      .then(() => {
-        completeMeasuredAction('Query version save', startedAt)
-      })
       .catch(() => {
-        setStatus('Query version saved locally; audit append unavailable.')
-        completeMeasuredAction('Query version save', startedAt)
+        // Query workflow remains usable even if audit persistence is unavailable.
       })
   }
 
-  const onUpdateQueryThreshold = (threshold: number) => {
-    const startedAt = beginMeasuredAction('Query threshold update')
-    setVersionedQuery((previous) => ({
+  const parseQueryValue = (field: string, value: string): string | number => {
+    if (field === 'speed' || field === 'hour') {
+      const numeric = Number(value)
+      return Number.isFinite(numeric) ? numeric : 0
+    }
+    return value
+  }
+
+  const onAddQueryCondition = () => {
+    const startedAt = beginMeasuredAction('Query condition add')
+    const next = addQueryCondition(versionedQuery, {
+      scope: queryConditionScopeInput,
+      field: queryFieldInput,
+      operator: queryOperatorInput,
+      value: parseQueryValue(queryFieldInput, queryValueInput),
+    })
+    updateQueryDefinition(() => next)
+    setStatus(`Added ${queryFieldInput} ${queryOperatorInput} condition to query graph.`)
+    appendQueryAudit('query.condition_added', {
+      query_id: next.queryId,
+      version: next.version,
+      field: queryFieldInput,
+      operator: queryOperatorInput,
+      scope: queryConditionScopeInput,
+      value: parseQueryValue(queryFieldInput, queryValueInput),
+    })
+    completeMeasuredAction('Query condition add', startedAt)
+  }
+
+  const onRemoveQueryCondition = (conditionId: string) => {
+    const startedAt = beginMeasuredAction('Query condition remove')
+    const next = removeQueryCondition(versionedQuery, conditionId)
+    updateQueryDefinition(() => next)
+    setStatus(`Removed condition ${conditionId} from query graph.`)
+    appendQueryAudit('query.condition_removed', {
+      query_id: next.queryId,
+      version: next.version,
+      condition_id: conditionId,
+    })
+    completeMeasuredAction('Query condition remove', startedAt)
+  }
+
+  const onApplyActiveContextToQuery = () => {
+    const startedAt = beginMeasuredAction('Query context link update')
+    updateQueryDefinition((previous) => ({
       ...previous,
-      conditions: [{ field: 'speed', operator: 'greater_than', value: threshold }],
+      contextDomainIds: [...activeDomainIds],
     }))
-    completeMeasuredAction('Query threshold update', startedAt)
+    setStatus(
+      activeDomainIds.length > 0
+        ? `Query linked to ${activeDomainIds.length} active context domain(s).`
+        : 'Query context links cleared.',
+    )
+    appendQueryAudit('query.context_linked', {
+      query_id: versionedQuery.queryId,
+      active_domain_ids: activeDomainIds,
+      correlation_aoi: correlationAoi,
+    })
+    completeMeasuredAction('Query context link update', startedAt)
+  }
+
+  const onRunVersionedQuery = () => {
+    const startedAt = beginMeasuredAction('Query run and render')
+    const renderLayer = buildQueryRenderLayer(versionedQuery, queryResult)
+    setQueryRenderLayer(renderLayer)
+    setSavedQueryArtifact(undefined)
+    setStatus(renderLayer.summary)
+    appendQueryAudit('query.run', {
+      query_id: versionedQuery.queryId,
+      version: versionedQuery.version,
+      result_count: renderLayer.resultCount,
+      matched_row_ids: renderLayer.matchedRowIds,
+      context_domain_ids: versionedQuery.contextDomainIds,
+    })
+    completeMeasuredAction('Query run and render', startedAt)
+  }
+
+  const onSaveQueryVersion = () => {
+    const startedAt = beginMeasuredAction('Query version save')
+    const savedAt = new Date().toISOString()
+    const next = bumpQueryVersion(versionedQuery, { savedAt })
+    const renderLayer = buildQueryRenderLayer(next, queryResult)
+    const artifact = buildSavedQueryArtifact(next, renderLayer, { savedAt })
+    setVersionedQuery(next)
+    setSavedQueryVersions((previous) => [next, ...previous])
+    setQueryRenderLayer(renderLayer)
+    setSavedQueryArtifact(artifact)
+    setStatus(`Saved query version ${next.version} with deterministic artifact ${artifact.artifactId}`)
+    appendQueryAudit('query.version_saved', {
+      query_id: next.queryId,
+      version: next.version,
+      conditions_count: next.conditions.length,
+      artifact_id: artifact.artifactId,
+      result_layer_id: renderLayer.layerId,
+    })
+    completeMeasuredAction('Query version save', startedAt)
   }
 
   const onPrepareBriefingArtifact = () => {
@@ -1662,17 +1890,167 @@ function App() {
 
           <h3>Query Builder (I5)</h3>
           <label className="field">
-            Minimum Speed
+            Query Title
             <input
-              type="number"
-              value={Number(versionedQuery.conditions[0]?.value ?? 20)}
-              onChange={(event) => onUpdateQueryThreshold(Number(event.target.value))}
+              type="text"
+              value={versionedQuery.title}
+              onChange={(event) =>
+                updateQueryDefinition((previous) => ({
+                  ...previous,
+                  title: event.target.value,
+                }))
+              }
             />
           </label>
+          <label className="field">
+            Query AOI
+            <input
+              type="text"
+              value={versionedQuery.aoi}
+              onChange={(event) =>
+                updateQueryDefinition((previous) => ({
+                  ...previous,
+                  aoi: event.target.value,
+                }))
+              }
+            />
+          </label>
+          <div className="compare-form-grid">
+            <label className="field">
+              Start Hour
+              <input
+                type="number"
+                min={0}
+                max={23}
+                value={versionedQuery.timeWindow.startHour}
+                onChange={(event) =>
+                  updateQueryDefinition((previous) => ({
+                    ...previous,
+                    timeWindow: {
+                      ...previous.timeWindow,
+                      startHour: Number(event.target.value),
+                    },
+                  }))
+                }
+              />
+            </label>
+            <label className="field">
+              End Hour
+              <input
+                type="number"
+                min={0}
+                max={23}
+                value={versionedQuery.timeWindow.endHour}
+                onChange={(event) =>
+                  updateQueryDefinition((previous) => ({
+                    ...previous,
+                    timeWindow: {
+                      ...previous.timeWindow,
+                      endHour: Number(event.target.value),
+                    },
+                  }))
+                }
+              />
+            </label>
+            <label className="field">
+              Condition Scope
+              <select
+                value={queryConditionScopeInput}
+                onChange={(event) =>
+                  setQueryConditionScopeInput(event.target.value as QueryConditionScope)
+                }
+              >
+                <option value="geospatial">geospatial</option>
+                <option value="temporal">temporal</option>
+                <option value="context">context</option>
+              </select>
+            </label>
+            <label className="field">
+              Condition Field
+              <select
+                value={queryFieldInput}
+                onChange={(event) => setQueryFieldInput(event.target.value)}
+              >
+                <option value="speed">speed</option>
+                <option value="type">type</option>
+                <option value="hour">hour</option>
+                <option value="context_domains">context_domains</option>
+              </select>
+            </label>
+            <label className="field">
+              Condition Operator
+              <select
+                value={queryOperatorInput}
+                onChange={(event) => setQueryOperatorInput(event.target.value as QueryOperator)}
+              >
+                {QUERY_OPERATORS.map((operator) => (
+                  <option key={operator} value={operator}>
+                    {operator}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="field">
+              Condition Value
+              <input
+                type={queryFieldInput === 'speed' || queryFieldInput === 'hour' ? 'number' : 'text'}
+                value={queryValueInput}
+                onChange={(event) => setQueryValueInput(event.target.value)}
+              />
+            </label>
+          </div>
           <div className="controls">
+            <button onClick={onAddQueryCondition}>Add Condition</button>
+            <button onClick={onRunVersionedQuery}>Run Query</button>
+            <button onClick={onApplyActiveContextToQuery}>Use Active Context Domains</button>
             <button onClick={onSaveQueryVersion}>Save Query Version</button>
           </div>
-          <p className="status-line">Query matches: {queryResult.length}</p>
+          <p className="status-line">
+            Query matches: {queryResult.length} | Active saved versions: {savedQueryVersions.length}
+          </p>
+          <p className="status-line">
+            Context-linked domains: {versionedQuery.contextDomainIds.length} | Render layer:{' '}
+            {queryRenderLayer?.layerId ?? 'pending run'}
+          </p>
+          <div className="overlay-grid">
+            {versionedQuery.conditions.map((condition) => (
+              <article key={condition.conditionId} className="surface-card compact">
+                <div className="card-header compact">
+                  <strong>{condition.conditionId}</strong>
+                  <span>{condition.scope}</span>
+                </div>
+                <p>
+                  {condition.field} {condition.operator} {String(condition.value)}
+                </p>
+                <div className="controls compact">
+                  <button onClick={() => onRemoveQueryCondition(condition.conditionId)}>
+                    Remove
+                  </button>
+                </div>
+              </article>
+            ))}
+          </div>
+          <div className="overlay-grid">
+            {savedQueryVersions.length === 0 && (
+              <article className="surface-card compact">
+                <strong>No saved query versions</strong>
+                <p>Run and save a query to create deterministic version history.</p>
+              </article>
+            )}
+            {savedQueryVersions.map((queryVersion) => (
+              <article
+                key={`${queryVersion.queryId}-v${queryVersion.version}`}
+                className="surface-card compact"
+              >
+                <strong>{queryVersion.title}</strong>
+                <p>
+                  v{queryVersion.version} | AOI {queryVersion.aoi} | Context links{' '}
+                  {queryVersion.contextDomainIds.length}
+                </p>
+                <small>{queryVersion.provenanceSource}</small>
+              </article>
+            ))}
+          </div>
 
           <h3>AI Gateway (I6)</h3>
           <label className="field">
@@ -1869,6 +2247,45 @@ function App() {
               </p>
               <p>Compare delta cells: [{densityDelta.delta.join(', ')}]</p>
               <small>Uncertainty: {modeledOutputEntry.uncertaintyText}</small>
+            </article>
+          )}
+
+          {queryRenderLayer && (
+            <article
+              className={`artifact-callout ${artifactTone(queryRenderLayer.label)}`}
+              data-testid="query-render-card"
+            >
+              <div className="card-header compact">
+                <span className={`artifact-chip ${artifactTone(queryRenderLayer.label)}`}>
+                  {queryRenderLayer.label}
+                </span>
+                <span>{queryRenderLayer.layerId}</span>
+              </div>
+              <p>{queryRenderLayer.summary}</p>
+              <small>
+                Matched rows: [{queryRenderLayer.matchedRowIds.join(', ')}] | AOI:{' '}
+                {queryRenderLayer.aoi} | Context domains:{' '}
+                {queryRenderLayer.contextDomainIds.length}
+              </small>
+            </article>
+          )}
+
+          {savedQueryArtifact && (
+            <article
+              className={`artifact-callout ${artifactTone('Observed Evidence')}`}
+              data-testid="saved-query-artifact-card"
+            >
+              <div className="card-header compact">
+                <span className={`artifact-chip ${artifactTone('Observed Evidence')}`}>
+                  Observed Evidence
+                </span>
+                <span>{savedQueryArtifact.artifactId}</span>
+              </div>
+              <p>{savedQueryArtifact.summary}</p>
+              <small>
+                Version {savedQueryArtifact.version} | Fingerprint{' '}
+                {savedQueryArtifact.exportFingerprint} | Saved {savedQueryArtifact.savedAt}
+              </small>
             </article>
           )}
 

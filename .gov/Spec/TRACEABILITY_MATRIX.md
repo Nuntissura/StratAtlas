@@ -1,4 +1,4 @@
-﻿# StratAtlas - Traceability Matrix
+# StratAtlas - Traceability Matrix
 
 **Spec Version:** v1.2.3  
 **Last Updated:** 2026-03-06  
@@ -143,11 +143,11 @@ REQ-ID | Component(s) | Test(s) | Iteration | Verified
 
 | REQ | Component(s) | Test(s) | Iter | Verified |
 |-----|-------------|---------|------|----------|
-| REQ-0600 | .product/Worktrees/wt_main/src/features/i5/queryBuilder.ts | .product/Worktrees/wt_main/src/features/i5/i5.test.ts | I5 | 2026-03-05 |
-| REQ-0601 | .product/Worktrees/wt_main/src/features/i5/queryBuilder.ts | .product/Worktrees/wt_main/src/features/i5/i5.test.ts | I5 | 2026-03-05 |
-| REQ-0602 | .product/Worktrees/wt_main/src/features/i5/queryBuilder.ts | .product/Worktrees/wt_main/src/features/i5/i5.test.ts | I5 | 2026-03-05 |
-| REQ-0603 | .product/Worktrees/wt_main/src/features/i5/queryBuilder.ts | .product/Worktrees/wt_main/src/features/i5/i5.test.ts | I5 | 2026-03-05 |
-| REQ-0604 | .product/Worktrees/wt_main/src/features/i5/queryBuilder.ts | .product/Worktrees/wt_main/src/features/i5/i5.test.ts | I5 | 2026-03-05 |
+| REQ-0600 | .product/Worktrees/wt_main/src/features/i5/queryBuilder.ts; .product/Worktrees/wt_main/src/App.tsx | .product/Worktrees/wt_main/src/features/i5/i5.test.ts; .product/Worktrees/wt_main/src/App.test.tsx | I5 | 2026-03-06 |
+| REQ-0601 | .product/Worktrees/wt_main/src/features/i5/queryBuilder.ts; .product/Worktrees/wt_main/src/App.tsx | .product/Worktrees/wt_main/src/features/i5/i5.test.ts; .product/Worktrees/wt_main/src/App.test.tsx | I5 | 2026-03-06 |
+| REQ-0602 | .product/Worktrees/wt_main/src/features/i5/queryBuilder.ts; .product/Worktrees/wt_main/src/App.tsx; .product/Worktrees/wt_main/src/contracts/i0.ts; .product/Worktrees/wt_main/src/lib/backend.ts; .product/Worktrees/wt_main/src-tauri/src/lib.rs | .product/Worktrees/wt_main/src/features/i5/i5.test.ts; .product/Worktrees/wt_main/src/App.test.tsx; .product/Worktrees/wt_main/src/lib/backend.test.ts | I5 | 2026-03-06 |
+| REQ-0603 | .product/Worktrees/wt_main/src/features/i5/queryBuilder.ts; .product/Worktrees/wt_main/src/App.tsx | .product/Worktrees/wt_main/src/features/i5/i5.test.ts; .product/Worktrees/wt_main/src/App.test.tsx | I5 | 2026-03-06 |
+| REQ-0604 | .product/Worktrees/wt_main/src/features/i5/queryBuilder.ts; .product/Worktrees/wt_main/src/App.tsx; .product/Worktrees/wt_main/src/contracts/i0.ts; .product/Worktrees/wt_main/src/lib/backend.ts; .product/Worktrees/wt_main/src-tauri/src/lib.rs | .product/Worktrees/wt_main/src/features/i5/i5.test.ts; .product/Worktrees/wt_main/src/App.test.tsx; .product/Worktrees/wt_main/src/lib/backend.test.ts | I5 | 2026-03-06 |
 
 ---
 
@@ -242,12 +242,12 @@ REQ-ID | Component(s) | Test(s) | Iteration | Verified
 | WP-I2-002 | I2 | REQ-0300, REQ-0301, REQ-0302 | PRIM-0038, PRIM-0039, PRIM-0040 | .gov/workflow/wp_test_suites/TS-WP-I2-002.md | E2E-VERIFIED | proof: .product/build_target/tool_artifacts/wp_runs/WP-I2-002/20260306_050212/; spec extraction: .gov/workflow/wp_spec_extractions/SX-WP-I2-002.md; user sign-off approved via 2026-03-06 autonomous completion instruction |
 | WP-I3-001 | I3 | REQ-0400..REQ-0403 | PRIM-0012 | .gov/workflow/wp_test_suites/TS-WP-I3-001.md | E2E-VERIFIED | proof: .product/build_target/tool_artifacts/wp_runs/WP-I3-001/20260306_052546/; spec extraction: .gov/workflow/wp_spec_extractions/SX-WP-I3-001.md; user sign-off approved via 2026-03-06 autonomous completion instruction |
 | WP-I4-001 | I4 | REQ-0500..REQ-0504 | PRIM-0013 | .gov/workflow/wp_test_suites/TS-WP-I4-001.md | E2E-VERIFIED | proof: .product/build_target/tool_artifacts/wp_runs/WP-I4-001/20260306_055241/; spec extraction: .gov/workflow/wp_spec_extractions/SX-WP-I4-001.md; user sign-off approved via 2026-03-06 autonomous completion instruction |
-| WP-I5-001 | I5 | REQ-0600..REQ-0604 | PRIM-0014 | .gov/workflow/wp_test_suites/TS-WP-I5-001.md | IN-PROGRESS | activation shell exists; reactivated as the current blocking packet after WP-I4-001 proof |
-| WP-I6-001 | I6 | REQ-0700..REQ-0708 | PRIM-0015 | .gov/workflow/wp_test_suites/TS-WP-I6-001.md | BLOCKED | activation shell exists; roadmap order queues delivery behind WP-I5-001 |
-| WP-I7-001 | I7 | REQ-0800..REQ-0810 | PRIM-0016 | .gov/workflow/wp_test_suites/TS-WP-I7-001.md | BLOCKED | activation shell exists; roadmap order queues delivery behind WP-I5-001 |
-| WP-I8-001 | I8 | REQ-0900..REQ-0904 | PRIM-0017 | .gov/workflow/wp_test_suites/TS-WP-I8-001.md | BLOCKED | activation shell exists; roadmap order queues delivery behind WP-I5-001 |
-| WP-I9-001 | I9 | REQ-1000..REQ-1003 | PRIM-0018 | .gov/workflow/wp_test_suites/TS-WP-I9-001.md | BLOCKED | activation shell exists; roadmap order queues delivery behind WP-I5-001 |
-| WP-I10-001 | I10 | REQ-1100..REQ-1113 | PRIM-0019 | .gov/workflow/wp_test_suites/TS-WP-I10-001.md | BLOCKED | activation shell exists; roadmap order queues delivery behind WP-I5-001 |
+| WP-I5-001 | I5 | REQ-0600..REQ-0604 | PRIM-0014 | .gov/workflow/wp_test_suites/TS-WP-I5-001.md | E2E-VERIFIED | proof: .product/build_target/tool_artifacts/wp_runs/WP-I5-001/20260306_061249/; spec extraction: .gov/workflow/wp_spec_extractions/SX-WP-I5-001.md; user sign-off approved via 2026-03-06 autonomous completion instruction |
+| WP-I6-001 | I6 | REQ-0700..REQ-0708 | PRIM-0015 | .gov/workflow/wp_test_suites/TS-WP-I6-001.md | IN-PROGRESS | activation shell exists; reactivated as the current blocking packet after WP-I5-001 proof; prior 2026-03-05 shell evidence remains baseline only |
+| WP-I7-001 | I7 | REQ-0800..REQ-0810 | PRIM-0016 | .gov/workflow/wp_test_suites/TS-WP-I7-001.md | BLOCKED | activation shell exists; roadmap order queues delivery behind WP-I6-001 |
+| WP-I8-001 | I8 | REQ-0900..REQ-0904 | PRIM-0017 | .gov/workflow/wp_test_suites/TS-WP-I8-001.md | BLOCKED | activation shell exists; roadmap order queues delivery behind WP-I6-001 |
+| WP-I9-001 | I9 | REQ-1000..REQ-1003 | PRIM-0018 | .gov/workflow/wp_test_suites/TS-WP-I9-001.md | BLOCKED | activation shell exists; roadmap order queues delivery behind WP-I6-001 |
+| WP-I10-001 | I10 | REQ-1100..REQ-1113 | PRIM-0019 | .gov/workflow/wp_test_suites/TS-WP-I10-001.md | BLOCKED | activation shell exists; roadmap order queues delivery behind WP-I6-001 |
 | WP-GOV-LOOP-001 | All | REQ-0019..REQ-0022 | PRIM-0020, PRIM-0021, PRIM-0022, PRIM-0023 | .gov/workflow/wp_test_suites/TS-WP-GOV-LOOP-001.md | IMPLEMENTED | .gov/workflow/wp_spec_extractions/SX-WP-GOV-LOOP-001.md; .product/build_target/tool_artifacts/wp_runs/WP-GOV-LOOP-001/20260306_002544 |
 | WP-GOV-INSTALLER-001 | All | REQ-0023, REQ-0024, REQ-0025, REQ-0026, REQ-0027, REQ-0028, REQ-0029, REQ-0030, REQ-0031 | PRIM-0024, PRIM-0025, PRIM-0026, PRIM-0027, PRIM-0028 | .gov/workflow/wp_test_suites/TS-WP-GOV-INSTALLER-001.md | IMPLEMENTED | .gov/workflow/wp_spec_extractions/SX-WP-GOV-INSTALLER-001.md; .product/build_target/tool_artifacts/wp_runs/WP-GOV-INSTALLER-001/20260306_023348; .product/build_target/Current/InstallerKit/20260306_023104 |
 

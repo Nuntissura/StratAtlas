@@ -1,7 +1,7 @@
 # WP-I6-001 - AI Gateway MCP Interface
 
 Date Opened: 2026-03-04
-Status: IMPLEMENTED
+Status: IN-PROGRESS
 Iteration: I6
 Workflow Version: 2.0
 Linked Test Suite: .gov/workflow/wp_test_suites/TS-WP-I6-001.md
@@ -43,10 +43,11 @@ Deliver policy-gated AI access and MCP interface with full auditability.
 
 
 - 2026-03-05: Implementation completed and verified via lint/test/build evidence.
+- 2026-03-06: Reactivated as the current blocking I6 packet after WP-I5-001 proof; prior 2026-03-05 evidence is treated as activation-shell baseline only pending normative I6 delivery.
 
 ## Linked Primitives
 
-- PRIM-0015 | <name> | linked contract for this iteration
+- PRIM-0015 | AI Gateway Request Contract | hash-addressed policy-gated AI requests, MCP tool contracts, and audit parity
 
 ## Primitive Matrix Impact
 
@@ -106,14 +107,14 @@ Deliver policy-gated AI access and MCP interface with full auditability.
 3. Verification/status promotion commit.
 ## Evidence
 
-- Test Suite Execution: PASSING (pnpm lint, pnpm test, pnpm build, cargo test --manifest-path src-tauri/Cargo.toml)
-- Logs: command output captured in Codex session run on 2026-03-05
-- Screenshots/Exports: N/A (CLI-driven validation)
-- Build Artifacts: .product/Worktrees/wt_main/dist
+- Test Suite Execution: activation-shell baseline only from 2026-03-05; normative I6 verification pending current packet delivery
+- Logs: baseline shell evidence references legacy 2026-03-05 session output only
+- Screenshots/Exports: pending current packet delivery
+- Build Artifacts: pending current packet delivery
 - User Sign-off: Pending
-- Proof Artifact: .product/build_target/tool_artifacts/wp_runs/WP-I6-001/
+- Proof Artifact: `.product/build_target/tool_artifacts/wp_runs/WP-I6-001/`
 ## Proof of Implementation
 
 - Command Runs: reference linked check script output.
-- Proof Artifact: .product/build_target/tool_artifacts/wp_runs/WP-I6-001/
+- Proof Artifact: `.product/build_target/tool_artifacts/wp_runs/WP-I6-001/`
 - Claim Standard: do not claim completion without linked command evidence and artifact paths.

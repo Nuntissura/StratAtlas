@@ -15,17 +15,17 @@ Concrete extraction of requirement and primitive obligations this WP must satisf
 
 | Requirement | Level | Section | Description | Target | Status |
 |-------------|-------|---------|-------------|--------|--------|
-| REQ-0800 | MUST | Ãƒâ€šÃ‚Â§7.4.1 | System functions fully without contextual domains enabled | I7 | IN-PROGRESS |
-| REQ-0801 | MUST | Ãƒâ€šÃ‚Â§7.4.2 | Every context domain registered in control plane with all required metadata fields | I7 | IN-PROGRESS |
-| REQ-0802 | MUST | Ãƒâ€šÃ‚Â§7.4.3 | Correlation links explicit and auditable, stored in control plane | I7 | IN-PROGRESS |
-| REQ-0803 | MUST | Ãƒâ€šÃ‚Â§7.4.3 | Correlation MUST NOT imply causation; UI labels as "correlated context" | I7 | IN-PROGRESS |
-| REQ-0804 | MUST | Ãƒâ€šÃ‚Â§7.4.5 | sidebar_timeseries and dashboard_widget types MUST NOT render as map points | I7 | IN-PROGRESS |
-| REQ-0805 | MUST | Ãƒâ€šÃ‚Â§7.4.5 | All context presentations display source, cadence, and confidence | I7 | IN-PROGRESS |
-| REQ-0806 | MUST | Ãƒâ€šÃ‚Â§7.4.8 | pre_cacheable domains available offline | I7 | IN-PROGRESS |
-| REQ-0807 | MUST | Ãƒâ€šÃ‚Â§7.4.8 | online_only domains degrade gracefully with staleness indicator | I7 | IN-PROGRESS |
-| REQ-0808 | MUST | Ãƒâ€šÃ‚Â§7.4.8 | Snapshot bundles include context values at capture time | I7 | IN-PROGRESS |
-| REQ-0809 | MUST | Ãƒâ€šÃ‚Â§11.3 | Golden flow: Context Correlation ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ Enable ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ Observe ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ Capture in bundle | I7 | IN-PROGRESS |
-| REQ-0810 | MUST | Ãƒâ€šÃ‚Â§6.3 | Context Store supports efficient time-range queries | I7 | IN-PROGRESS |
+| REQ-0800 | MUST | ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§7.4.1 | System functions fully without contextual domains enabled | I7 | IN-PROGRESS |
+| REQ-0801 | MUST | ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§7.4.2 | Every context domain registered in control plane with all required metadata fields | I7 | IN-PROGRESS |
+| REQ-0802 | MUST | ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§7.4.3 | Correlation links explicit and auditable, stored in control plane | I7 | IN-PROGRESS |
+| REQ-0803 | MUST | ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§7.4.3 | Correlation MUST NOT imply causation; UI labels as "correlated context" | I7 | IN-PROGRESS |
+| REQ-0804 | MUST | ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§7.4.5 | sidebar_timeseries and dashboard_widget types MUST NOT render as map points | I7 | IN-PROGRESS |
+| REQ-0805 | MUST | ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§7.4.5 | All context presentations display source, cadence, and confidence | I7 | IN-PROGRESS |
+| REQ-0806 | MUST | ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§7.4.8 | pre_cacheable domains available offline | I7 | IN-PROGRESS |
+| REQ-0807 | MUST | ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§7.4.8 | online_only domains degrade gracefully with staleness indicator | I7 | IN-PROGRESS |
+| REQ-0808 | MUST | ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§7.4.8 | Snapshot bundles include context values at capture time | I7 | IN-PROGRESS |
+| REQ-0809 | MUST | ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§11.3 | Golden flow: Context Correlation ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ Enable ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ Observe ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ Capture in bundle | I7 | IN-PROGRESS |
+| REQ-0810 | MUST | ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§6.3 | Context Store supports efficient time-range queries | I7 | IN-PROGRESS |
 
 ## Primitive Extraction
 

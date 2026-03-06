@@ -2,6 +2,7 @@ import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it } from 'vitest'
 import App from './App'
+import type { QueryStateSnapshot } from './contracts/i0'
 import {
   DEFAULT_COLLABORATION_ARTIFACT_ID,
   createCollaborationSnapshot,
@@ -16,6 +17,11 @@ import {
   setConstraint,
   setScenarioExportArtifact,
 } from './features/i4/scenarios'
+import {
+  buildQueryRenderLayer,
+  buildSavedQueryArtifact,
+  type VersionedQuery,
+} from './features/i5/queryBuilder'
 import { backend } from './lib/backend'
 
 const buildStoredCollaborationSnapshot = (sharedNote: string, viewState: string) => {
@@ -85,6 +91,66 @@ const buildStoredScenarioSnapshot = () => {
   )
 }
 
+const buildStoredQueryState = ({
+  version,
+  speedThreshold,
+  activeContextDomainIds = [],
+}: {
+  version: number
+  speedThreshold: number
+  activeContextDomainIds?: string[]
+}): QueryStateSnapshot => {
+  const definition: VersionedQuery = {
+    queryId: 'query-main',
+    title: `Query v${version}`,
+    version,
+    aoi: 'aoi-1',
+    timeWindow: {
+      startHour: 8,
+      endHour: 18,
+    },
+    contextDomainIds: activeContextDomainIds,
+    provenanceSource: 'Hydrated query snapshot',
+    conditions: [
+      {
+        conditionId: 'condition-1',
+        scope: 'geospatial',
+        field: 'speed',
+        operator: 'greater_than',
+        value: speedThreshold,
+      },
+    ],
+  }
+  const rows = [
+    { id: 1, speed: 14, type: 'vessel', region: 'aoi-1', hour: 7, context_domains: ['ctx-1'] },
+    { id: 2, speed: 37, type: 'vessel', region: 'aoi-1', hour: 10, context_domains: ['ctx-1'] },
+    { id: 3, speed: 48, type: 'aircraft', region: 'aoi-2', hour: 11, context_domains: ['ctx-1', 'ctx-2'] },
+    { id: 4, speed: 61, type: 'vessel', region: 'aoi-3', hour: 15, context_domains: ['ctx-2'] },
+  ]
+  const matchedRows = rows.filter(
+    (row) =>
+      row.region === definition.aoi &&
+      row.hour >= definition.timeWindow.startHour &&
+      row.hour <= definition.timeWindow.endHour &&
+      row.speed > speedThreshold &&
+      definition.contextDomainIds.every((domainId) => row.context_domains.includes(domainId)),
+  )
+  const renderLayer = buildQueryRenderLayer(definition, matchedRows)
+  const savedArtifact = buildSavedQueryArtifact(definition, renderLayer, {
+    savedAt: '2026-03-06T00:00:00.000Z',
+  })
+
+  return {
+    definition,
+    resultCount: matchedRows.length,
+    sourceRowCount: rows.length,
+    matchedRowIds: matchedRows.map((row) => row.id),
+    savedVersions: [definition],
+    renderLayer,
+    savedArtifact,
+  }
+}
+
 describe('App', () => {
   beforeEach(() => {
     localStorage.clear()
@@ -114,16 +180,11 @@ describe('App', () => {
           forcedOffline: true,
           uiVersion: 'i0-recorder-hardening',
         },
-        query: {
-          definition: {
-            queryId: 'query-main',
-            version: 4,
-            conditions: [{ field: 'speed', operator: 'greater_than', value: 28 }],
-          },
-          resultCount: 2,
-          sourceRowCount: 4,
-          matchedRowIds: [2, 4],
-        },
+        query: buildStoredQueryState({
+          version: 4,
+          speedThreshold: 28,
+          activeContextDomainIds: ['ctx-1'],
+        }),
         context: {
           domains: [
             {
@@ -170,7 +231,7 @@ describe('App', () => {
     render(<App />)
 
     expect(await screen.findByDisplayValue('Hydrated note')).toBeInTheDocument()
-    expect(screen.getByText('Query v4')).toBeInTheDocument()
+    expect(within(screen.getByTestId('region-header')).getByText('Query v4')).toBeInTheDocument()
     expect(screen.getByText('Active context domains: 1 | Correlation AOI: aoi-7')).toBeInTheDocument()
     expect(screen.getByText('OFFLINE')).toBeInTheDocument()
 
@@ -213,6 +274,33 @@ describe('App', () => {
     await user.type(eventInput, '2,4,6')
 
     expect(await screen.findByText('Delta: [1, 2, 3]')).toBeInTheDocument()
+  })
+
+  it('runs the query builder, render, and save-version workflow', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.clear(screen.getByLabelText('Query Title'))
+    await user.type(screen.getByLabelText('Query Title'), 'Port surge watch v1')
+    await user.selectOptions(screen.getByLabelText('Condition Scope'), 'context')
+    await user.selectOptions(screen.getByLabelText('Condition Field'), 'context_domains')
+    await user.selectOptions(screen.getByLabelText('Condition Operator'), 'contains')
+    await user.clear(screen.getByLabelText('Condition Value'))
+    await user.type(screen.getByLabelText('Condition Value'), 'ctx-1')
+    await user.click(screen.getByRole('button', { name: 'Add Condition' }))
+    await user.click(screen.getByRole('button', { name: 'Run Query' }))
+
+    const renderCard = await screen.findByTestId('query-render-card')
+    const renderScope = within(renderCard)
+    expect(renderScope.getByText(/query-layer-query-main-v1/)).toBeInTheDocument()
+    expect(renderScope.getByText(/Matched rows: \[2\]/)).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Save Query Version' }))
+    const artifactCard = await screen.findByTestId('saved-query-artifact-card')
+    const artifactScope = within(artifactCard)
+    expect(artifactScope.getByText(/saved-query-query-/)).toBeInTheDocument()
+    expect(within(screen.getByTestId('region-header')).getByText('Query v2')).toBeInTheDocument()
+    expect(artifactScope.getByText(/Port surge watch v1/)).toBeInTheDocument()
   })
 
   it('prepares a briefing artifact from compare mode with bundle and context overlays', async () => {
@@ -336,16 +424,11 @@ describe('App', () => {
           forcedOffline: false,
           uiVersion: 'i0-recorder-hardening',
         },
-        query: {
-          definition: {
-            queryId: 'query-main',
-            version: 1,
-            conditions: [{ field: 'speed', operator: 'greater_than', value: 20 }],
-          },
-          resultCount: 2,
-          sourceRowCount: 4,
-          matchedRowIds: [2, 4],
-        },
+        query: buildStoredQueryState({
+          version: 1,
+          speedThreshold: 20,
+          activeContextDomainIds: ['ctx-2'],
+        }),
         context: {
           domains: [
             {
@@ -424,8 +507,15 @@ describe('App', () => {
       await user.clear(screen.getByLabelText('Correlation AOI'))
       await user.type(screen.getByLabelText('Correlation AOI'), 'aoi-9')
       await user.click(screen.getByRole('button', { name: 'Save Correlation Selection' }))
-      await user.clear(screen.getByLabelText('Minimum Speed'))
-      await user.type(screen.getByLabelText('Minimum Speed'), '30')
+      await user.clear(screen.getByLabelText('Query Title'))
+      await user.type(screen.getByLabelText('Query Title'), 'Saved port watch')
+      await user.selectOptions(screen.getByLabelText('Condition Scope'), 'context')
+      await user.selectOptions(screen.getByLabelText('Condition Field'), 'context_domains')
+      await user.selectOptions(screen.getByLabelText('Condition Operator'), 'contains')
+      await user.clear(screen.getByLabelText('Condition Value'))
+      await user.type(screen.getByLabelText('Condition Value'), 'ctx-1')
+      await user.click(screen.getByRole('button', { name: 'Add Condition' }))
+      await user.click(screen.getByRole('button', { name: 'Run Query' }))
       await user.click(screen.getByRole('button', { name: 'Save Query Version' }))
       await user.click(screen.getByRole('button', { name: 'Create Bundle' }))
       expect(await screen.findByText(/Bundle .* created/)).toBeInTheDocument()
@@ -469,6 +559,7 @@ describe('App', () => {
       expect(await screen.findByDisplayValue('Recorder note')).toBeInTheDocument()
       expect(screen.getByText('replay workflow surface')).toBeInTheDocument()
       expect(screen.getByText('Query v2')).toBeInTheDocument()
+      expect(screen.getByText(/saved-query-query-/)).toBeInTheDocument()
       expect(screen.getByText('Active context domains: 1 | Correlation AOI: aoi-9')).toBeInTheDocument()
       expect(screen.getByText('OFFLINE')).toBeInTheDocument()
 

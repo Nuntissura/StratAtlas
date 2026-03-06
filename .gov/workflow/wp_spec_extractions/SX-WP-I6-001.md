@@ -4,7 +4,7 @@ Generated On: 2026-03-06
 Linked Work Packet: WP-I6-001
 Linked Test Suite: .gov/workflow/wp_test_suites/TS-WP-I6-001.md
 Linked WP Check Script: .gov/workflow/wp_checks/check-WP-I6-001.ps1
-WP Status Snapshot: IMPLEMENTED
+WP Status Snapshot: IN-PROGRESS
 Iteration: I6
 
 ## Scope
@@ -15,15 +15,15 @@ Concrete extraction of requirement and primitive obligations this WP must satisf
 
 | Requirement | Level | Section | Description | Target | Status |
 |-------------|-------|---------|-------------|--------|--------|
-| REQ-0700 | MUST | Ãƒâ€šÃ‚Â§15.1 | AI access mediated through gateway: authn/authz, RBAC, marking policy, licensing, audit | I6 | IN-PROGRESS |
-| REQ-0701 | MUST | Ãƒâ€šÃ‚Â§15.2 | AI outputs labeled derived/interpretive, cite evidence by (bundle_id, asset_id, sha256), inherit markings | I6 | IN-PROGRESS |
-| REQ-0702 | SHOULD | Ãƒâ€šÃ‚Â§15.3 | MCP server: policy-gated, audited tools | I6 | IN-PROGRESS |
-| REQ-0703 | MUST | Ãƒâ€šÃ‚Â§15.3 | MCP tools operate on bundle IDs and content hashes, not file paths | I6 | IN-PROGRESS |
-| REQ-0704 | MUST | Ãƒâ€šÃ‚Â§15.3 | MCP minimum tool surface: get_bundle_manifest, get_bundle_slice, get_context_values, submit_analysis, list_layers, get_scenario_delta | I6 | IN-PROGRESS |
-| REQ-0705 | MUST | Ãƒâ€šÃ‚Â§15.3 | Every MCP invocation audit-logged | I6 | IN-PROGRESS |
-| REQ-0706 | MUST | Ãƒâ€šÃ‚Â§15.3 | MCP enforces same RBAC/marking/export policies as UI gateway | I6 | IN-PROGRESS |
-| REQ-0707 | MUST | Ãƒâ€šÃ‚Â§15.3 | MCP MUST NOT expose raw DB queries, file paths, or internal endpoints | I6 | IN-PROGRESS |
-| REQ-0708 | MUST | Ãƒâ€šÃ‚Â§15.3 | MCP disable-able per deployment profile | I6 | IN-PROGRESS |
+| REQ-0700 | MUST | ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§15.1 | AI access mediated through gateway: authn/authz, RBAC, marking policy, licensing, audit | I6 | IN-PROGRESS |
+| REQ-0701 | MUST | ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§15.2 | AI outputs labeled derived/interpretive, cite evidence by (bundle_id, asset_id, sha256), inherit markings | I6 | IN-PROGRESS |
+| REQ-0702 | SHOULD | ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§15.3 | MCP server: policy-gated, audited tools | I6 | IN-PROGRESS |
+| REQ-0703 | MUST | ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§15.3 | MCP tools operate on bundle IDs and content hashes, not file paths | I6 | IN-PROGRESS |
+| REQ-0704 | MUST | ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§15.3 | MCP minimum tool surface: get_bundle_manifest, get_bundle_slice, get_context_values, submit_analysis, list_layers, get_scenario_delta | I6 | IN-PROGRESS |
+| REQ-0705 | MUST | ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§15.3 | Every MCP invocation audit-logged | I6 | IN-PROGRESS |
+| REQ-0706 | MUST | ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§15.3 | MCP enforces same RBAC/marking/export policies as UI gateway | I6 | IN-PROGRESS |
+| REQ-0707 | MUST | ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§15.3 | MCP MUST NOT expose raw DB queries, file paths, or internal endpoints | I6 | IN-PROGRESS |
+| REQ-0708 | MUST | ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§15.3 | MCP disable-able per deployment profile | I6 | IN-PROGRESS |
 
 ## Primitive Extraction
 
