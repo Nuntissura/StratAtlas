@@ -1,7 +1,7 @@
 # TS-WP-I3-001 - Spec vs Code Test Suite
 
 Date Opened: 2026-03-05
-Status: EXECUTED
+Status: IN-PROGRESS
 Linked Work Packet: WP-I3-001
 Iteration: I3
 
@@ -13,18 +13,18 @@ Validate this WP against linked requirements/primitives with dependency, UI, fun
 
 - Linked requirements: REQ-0400..REQ-0403
 - Linked primitives: PRIM-0012
-- Linked components: .product/Worktrees/wt_main/src/App.tsx + src/features + src/lib/backend.ts + src-tauri/src/lib.rs
+- Linked components: .product/Worktrees/wt_main/src/App.tsx; .product/Worktrees/wt_main/src/App.test.tsx; .product/Worktrees/wt_main/src/features/i3/collaboration.ts; .product/Worktrees/wt_main/src/features/i3/i3.test.ts; .product/Worktrees/wt_main/src/lib/backend.ts; .product/Worktrees/wt_main/src/lib/backend.test.ts; .product/Worktrees/wt_main/src-tauri/src/lib.rs
 
 ## Test Case Matrix
 
 | Case ID | Requirement | Primitive | Category | Target | Command/Test | Expected |
 |--------|-------------|-----------|----------|--------|--------------|----------|
-| DEP-001 | mapped in WP | mapped in WP | Dependency | dependency graph | `pnpm install --frozen-lockfile` + `pnpm lint` | dependency/runtime checks pass |
-| UI-001 | mapped in WP | mapped in WP | UI Contract | required UI contract | `src/App.test.tsx` | regions/modes and degraded-state behavior pass |
-| FUNC-001 | mapped in WP | mapped in WP | Functionality | golden flow | `src/lib/backend.test.ts` + feature tests | golden flow/replay/feature flow passes |
-| COR-001 | mapped in WP | mapped in WP | Code Correctness | module contracts | `pnpm test` | module contract invariants/regressions pass |
-| RED-001 | mapped in WP | mapped in WP | Red Team / Abuse | misuse constraints | `src/features/i6/i6.test.ts` + non-goal guards | policy/misuse cases blocked |
-| EXT-001 | mapped in WP | mapped in WP | Additional | perf/offline/reliability | `pnpm build` + `cargo test --manifest-path src-tauri/Cargo.toml` | build/runtime reliability checks pass |
+| DEP-001 | REQ-0400 | PRIM-0012 | Dependency | collaboration workflow runtime | `pnpm install --frozen-lockfile` in `.product/Worktrees/wt_main` | dependencies resolve without lock drift |
+| UI-001 | REQ-0400, REQ-0402, REQ-0403 | PRIM-0012 | UI Contract | collaboration panel and replay/conflict surface | `pnpm exec vitest run src/App.test.tsx` | collaboration mode, conflict indicators, and replay attribution UI render correctly |
+| FUNC-001 | REQ-0400..REQ-0403 | PRIM-0012 | Functionality | merge/reconnect/replay golden flow | `pnpm exec vitest run src/features/i3/i3.test.ts src/App.test.tsx` | merge-safe state, reconnect conflict flow, and session replay attribution pass |
+| COR-001 | REQ-0400..REQ-0403 | PRIM-0012 | Code Correctness | I3 collaboration contracts | full WP runner plus lint | collaboration session state, recorder integration, and audit contracts remain enforced |
+| RED-001 | REQ-0400, REQ-0403 | PRIM-0012 | Red Team / Abuse | attribution loss or conflict bypass attempts | `.gov/repo_scripts/red_team_guardrail_check.ps1` via WP runner | collaboration surfaces preserve attribution and non-goal guardrails |
+| EXT-001 | REQ-0400..REQ-0403 | PRIM-0012 | Additional | build and offline/recovery evidence | `powershell -ExecutionPolicy Bypass -File .gov/workflow/wp_checks/check-WP-I3-001.ps1` | build/tests pass and proof artifacts capture collaboration recovery evidence |
 
 ## Dependency and Environment Tests
 
@@ -66,7 +66,7 @@ Validate this WP against linked requirements/primitives with dependency, UI, fun
 ## Execution Summary
 
 - Last Run Date: 2026-03-05
-- Result: PASSING (lint/test/build/cargo test)
+- Result: PASSING activation-shell baseline only; normative I3 delivery reopened on 2026-03-06
 - Blocking Failures: None
 - Evidence Paths: .product/Worktrees/wt_main (src/, src-tauri/, dist/)
 - Reviewer: Codex

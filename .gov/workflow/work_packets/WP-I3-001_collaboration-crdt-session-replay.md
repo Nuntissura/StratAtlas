@@ -1,7 +1,7 @@
 # WP-I3-001 - Collaboration CRDT Session Replay
 
 Date Opened: 2026-03-04
-Status: IMPLEMENTED
+Status: IN-PROGRESS
 Iteration: I3
 Workflow Version: 2.0
 Linked Test Suite: .gov/workflow/wp_test_suites/TS-WP-I3-001.md
@@ -43,10 +43,11 @@ Deliver merge-safe collaboration and attribution-rich session replay.
 
 
 - 2026-03-05: Implementation completed and verified via lint/test/build evidence.
+- 2026-03-06: Re-activated as the current blocking I3 packet after WP-I2-002 proof; prior 2026-03-05 evidence is treated as activation-shell baseline only pending normative I3 delivery.
 
 ## Linked Primitives
 
-- PRIM-0012 | <name> | linked contract for this iteration
+- PRIM-0012 | Collaboration Session Event | actor-attributed merge-safe collaboration state, reconnect conflict metadata, and replayable session events
 
 ## Primitive Matrix Impact
 
@@ -61,14 +62,21 @@ Deliver merge-safe collaboration and attribution-rich session replay.
 - .gov/workflow/taskboard/TASK_BOARD.md
 - .gov/workflow/work_packets/WP-I3-001_collaboration-crdt-session-replay.md
 - .gov/workflow/wp_test_suites/TS-WP-I3-001.md
-- .product/Worktrees/wt_main/src/<implementation_files>
+- .product/Worktrees/wt_main/src/App.tsx
+- .product/Worktrees/wt_main/src/App.test.tsx
+- .product/Worktrees/wt_main/src/contracts/i0.ts
+- .product/Worktrees/wt_main/src/features/i3/collaboration.ts
+- .product/Worktrees/wt_main/src/features/i3/i3.test.ts
+- .product/Worktrees/wt_main/src/lib/backend.ts
+- .product/Worktrees/wt_main/src/lib/backend.test.ts
+- .product/Worktrees/wt_main/src-tauri/src/lib.rs
 - .gov/workflow/wp_spec_extractions/SX-WP-I3-001.md
 - .gov/workflow/wp_checks/check-WP-I3-001.ps1
 ## Interconnection Plan
 
 | Primitive | Feature/Tool | Technology | Combined Outcome |
 |-----------|--------------|------------|------------------|
-| <primitive> | <feature/tool> | <tech> | <why this combination matters> |
+| PRIM-0012 | Shared collaboration session state + replay timeline + conflict resolution UX | Yjs, React, TypeScript, recorder/bundle contracts | Analysts can merge authored state safely, reconcile reconnect conflicts explicitly, and replay attributed collaboration events deterministically. |
 
 ## Spec-Test Coverage Plan
 
@@ -106,10 +114,10 @@ Deliver merge-safe collaboration and attribution-rich session replay.
 3. Verification/status promotion commit.
 ## Evidence
 
-- Test Suite Execution: PASSING (pnpm lint, pnpm test, pnpm build, cargo test --manifest-path src-tauri/Cargo.toml)
-- Logs: command output captured in Codex session run on 2026-03-05
-- Screenshots/Exports: N/A (CLI-driven validation)
-- Build Artifacts: .product/Worktrees/wt_main/dist
+- Test Suite Execution: activation-shell baseline only from 2026-03-05; normative I3 verification pending current packet delivery
+- Logs: baseline shell evidence references legacy 2026-03-05 session output only
+- Screenshots/Exports: pending current packet delivery
+- Build Artifacts: pending current packet delivery
 - User Sign-off: Pending
 - Proof Artifact: .product/build_target/tool_artifacts/wp_runs/WP-I3-001/
 ## Proof of Implementation

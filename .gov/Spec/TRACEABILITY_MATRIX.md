@@ -241,13 +241,13 @@ REQ-ID | Component(s) | Test(s) | Iteration | Verified
 | WP-I2-001 | I2 | REQ-0300..REQ-0302 | PRIM-0010, PRIM-0011 | .gov/workflow/wp_test_suites/TS-WP-I2-001.md | IMPLEMENTED | proof: .product/build_target/tool_artifacts/wp_runs/WP-I2-001/20260306_003742/; follow-on packet WP-I2-002 active |
 | WP-I2-002 | I2 | REQ-0300, REQ-0301, REQ-0302 | PRIM-0038, PRIM-0039, PRIM-0040 | .gov/workflow/wp_test_suites/TS-WP-I2-002.md | IMPLEMENTED | proof: .product/build_target/tool_artifacts/wp_runs/WP-I2-002/20260306_050212/; spec extraction: .gov/workflow/wp_spec_extractions/SX-WP-I2-002.md; user sign-off pending for E2E-VERIFIED |
 | WP-I3-001 | I3 | REQ-0400..REQ-0403 | PRIM-0012 | .gov/workflow/wp_test_suites/TS-WP-I3-001.md | IN-PROGRESS | activation-shell baseline exists; now current blocking packet after WP-I2-002 proof |
-| WP-I4-001 | I4 | REQ-0500..REQ-0504 | PRIM-0013 | .gov/workflow/wp_test_suites/TS-WP-I4-001.md | BLOCKED | activation shell exists; roadmap order queues delivery behind WP-I2-002 |
-| WP-I5-001 | I5 | REQ-0600..REQ-0604 | PRIM-0014 | .gov/workflow/wp_test_suites/TS-WP-I5-001.md | BLOCKED | activation shell exists; roadmap order queues delivery behind WP-I2-002 |
-| WP-I6-001 | I6 | REQ-0700..REQ-0708 | PRIM-0015 | .gov/workflow/wp_test_suites/TS-WP-I6-001.md | BLOCKED | activation shell exists; roadmap order queues delivery behind WP-I2-002 |
-| WP-I7-001 | I7 | REQ-0800..REQ-0810 | PRIM-0016 | .gov/workflow/wp_test_suites/TS-WP-I7-001.md | BLOCKED | activation shell exists; roadmap order queues delivery behind WP-I2-002 |
-| WP-I8-001 | I8 | REQ-0900..REQ-0904 | PRIM-0017 | .gov/workflow/wp_test_suites/TS-WP-I8-001.md | BLOCKED | activation shell exists; roadmap order queues delivery behind WP-I2-002 |
-| WP-I9-001 | I9 | REQ-1000..REQ-1003 | PRIM-0018 | .gov/workflow/wp_test_suites/TS-WP-I9-001.md | BLOCKED | activation shell exists; roadmap order queues delivery behind WP-I2-002 |
-| WP-I10-001 | I10 | REQ-1100..REQ-1113 | PRIM-0019 | .gov/workflow/wp_test_suites/TS-WP-I10-001.md | BLOCKED | activation shell exists; roadmap order queues delivery behind WP-I2-002 |
+| WP-I4-001 | I4 | REQ-0500..REQ-0504 | PRIM-0013 | .gov/workflow/wp_test_suites/TS-WP-I4-001.md | BLOCKED | activation shell exists; roadmap order queues delivery behind WP-I3-001 |
+| WP-I5-001 | I5 | REQ-0600..REQ-0604 | PRIM-0014 | .gov/workflow/wp_test_suites/TS-WP-I5-001.md | BLOCKED | activation shell exists; roadmap order queues delivery behind WP-I3-001 |
+| WP-I6-001 | I6 | REQ-0700..REQ-0708 | PRIM-0015 | .gov/workflow/wp_test_suites/TS-WP-I6-001.md | BLOCKED | activation shell exists; roadmap order queues delivery behind WP-I3-001 |
+| WP-I7-001 | I7 | REQ-0800..REQ-0810 | PRIM-0016 | .gov/workflow/wp_test_suites/TS-WP-I7-001.md | BLOCKED | activation shell exists; roadmap order queues delivery behind WP-I3-001 |
+| WP-I8-001 | I8 | REQ-0900..REQ-0904 | PRIM-0017 | .gov/workflow/wp_test_suites/TS-WP-I8-001.md | BLOCKED | activation shell exists; roadmap order queues delivery behind WP-I3-001 |
+| WP-I9-001 | I9 | REQ-1000..REQ-1003 | PRIM-0018 | .gov/workflow/wp_test_suites/TS-WP-I9-001.md | BLOCKED | activation shell exists; roadmap order queues delivery behind WP-I3-001 |
+| WP-I10-001 | I10 | REQ-1100..REQ-1113 | PRIM-0019 | .gov/workflow/wp_test_suites/TS-WP-I10-001.md | BLOCKED | activation shell exists; roadmap order queues delivery behind WP-I3-001 |
 | WP-GOV-LOOP-001 | All | REQ-0019..REQ-0022 | PRIM-0020, PRIM-0021, PRIM-0022, PRIM-0023 | .gov/workflow/wp_test_suites/TS-WP-GOV-LOOP-001.md | IMPLEMENTED | .gov/workflow/wp_spec_extractions/SX-WP-GOV-LOOP-001.md; .product/build_target/tool_artifacts/wp_runs/WP-GOV-LOOP-001/20260306_002544 |
 | WP-GOV-INSTALLER-001 | All | REQ-0023, REQ-0024, REQ-0025, REQ-0026, REQ-0027, REQ-0028, REQ-0029, REQ-0030, REQ-0031 | PRIM-0024, PRIM-0025, PRIM-0026, PRIM-0027, PRIM-0028 | .gov/workflow/wp_test_suites/TS-WP-GOV-INSTALLER-001.md | IMPLEMENTED | .gov/workflow/wp_spec_extractions/SX-WP-GOV-INSTALLER-001.md; .product/build_target/tool_artifacts/wp_runs/WP-GOV-INSTALLER-001/20260306_023348; .product/build_target/Current/InstallerKit/20260306_023104 |
 
