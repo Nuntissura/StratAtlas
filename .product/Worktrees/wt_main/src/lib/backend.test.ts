@@ -21,6 +21,12 @@ import {
   type VersionedQuery,
 } from '../features/i5/queryBuilder'
 import type { AiGatewaySnapshot } from '../features/i6/aiGateway'
+import {
+  buildContextTimeRange,
+  buildCorrelationLinks,
+  buildSampleContextRecords,
+  type ContextDomain,
+} from '../features/i7/contextIntake'
 
 const buildStoredCollaborationSnapshot = (sharedNote: string, viewState: string) => {
   let snapshot = createCollaborationSnapshot('collab-main', 'analyst-1')
@@ -182,6 +188,45 @@ const buildStoredAiSnapshot = (): AiGatewaySnapshot => ({
   },
 })
 
+const buildStoredContextSnapshot = ({
+  domains,
+  activeDomainIds,
+  correlationAoi,
+  startHour = 8,
+  endHour = 18,
+}: {
+  domains: ContextDomain[]
+  activeDomainIds: string[]
+  correlationAoi: string
+  startHour?: number
+  endHour?: number
+}) => {
+  const queryRange = buildContextTimeRange({
+    startHour,
+    endHour,
+  })
+
+  return {
+    domains,
+    activeDomainIds,
+    correlationAoi,
+    correlationLinks: buildCorrelationLinks({
+      domains,
+      activeDomainIds,
+      correlationAoi,
+      timeRange: queryRange,
+    }),
+    records: domains.flatMap((domain) =>
+      buildSampleContextRecords({
+        domain,
+        targetId: correlationAoi,
+        timeRange: queryRange,
+      }),
+    ),
+    queryRange,
+  }
+}
+
 const request: CreateBundleRequest = {
   role: 'analyst',
   marking: 'INTERNAL',
@@ -196,7 +241,7 @@ const request: CreateBundleRequest = {
       uiVersion: 'i0-recorder-hardening',
     },
     query: buildStoredQueryState(),
-    context: {
+    context: buildStoredContextSnapshot({
       domains: [
         {
           domain_id: 'ctx-1',
@@ -206,18 +251,19 @@ const request: CreateBundleRequest = {
           source_url: 'https://example.test/context',
           license: 'public',
           update_cadence: 'monthly',
-          spatial_binding: 'point',
+          spatial_binding: 'aoi_correlated',
           temporal_resolution: 'monthly',
           sensitivity_class: 'PUBLIC',
           confidence_baseline: 'A',
           methodology_notes: 'Official aggregation',
           offline_behavior: 'pre_cacheable',
           presentation_type: 'map_overlay',
+          prohibited_uses: ['MUST NOT be used for individual entity tracking'],
         },
       ],
       activeDomainIds: ['ctx-1'],
       correlationAoi: 'aoi-1',
-    },
+    }),
     compare: {
       baselineWindow: {
         start: '2026-01-01',
@@ -272,6 +318,10 @@ describe('backend fallback', () => {
     expect(reopen.state.workspace.replayCursor).toBe(42)
     expect(reopen.state.query.definition.version).toBe(3)
     expect(reopen.state.context.activeDomainIds).toEqual(['ctx-1'])
+    expect(reopen.state.context.correlationLinks).toHaveLength(1)
+    expect(reopen.state.context.correlationLinks?.[0].target_id).toBe('aoi-1')
+    expect(reopen.state.context.records).toHaveLength(4)
+    expect(reopen.state.context.queryRange?.start).toBe('2026-03-06T08:00:00.000Z')
     expect(reopen.state.compare?.baselineSeries).toEqual([10, 12, 16])
     expect(
       reopen.state.collaboration?.sharedArtifacts.find(
@@ -295,6 +345,8 @@ describe('backend fallback', () => {
     expect(restored.state?.workspace.workflowMode).toBe('replay')
     expect(restored.state?.query.matchedRowIds).toEqual([2])
     expect(restored.state?.context.correlationAoi).toBe('aoi-1')
+    expect(restored.state?.context.records?.[0].domain_id).toBe('ctx-1')
+    expect(restored.state?.context.queryRange?.end).toBe('2026-03-06T18:00:00.000Z')
     expect(restored.state?.compare?.eventWindow.end).toBe('2026-02-28')
     expect(restored.state?.collaboration?.ephemeralViewState).toBe('zoom-8')
     expect(restored.state?.scenario?.selectedScenarioId).toBe('scenario-2')

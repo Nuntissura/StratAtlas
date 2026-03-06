@@ -1,7 +1,7 @@
 # WP-I7-001 - Context Intake First Domains
 
 Date Opened: 2026-03-04
-Status: IN-PROGRESS
+Status: E2E-VERIFIED
 Iteration: I7
 Workflow Version: 2.0
 Linked Test Suite: .gov/workflow/wp_test_suites/TS-WP-I7-001.md
@@ -44,6 +44,7 @@ Deliver context intake framework foundations and first approved domains.
 
 - 2026-03-05: Implementation completed and verified via lint/test/build evidence.
 - 2026-03-06: Reactivated as the current blocking I7 packet after WP-I6-001 proof; prior 2026-03-05 evidence is treated as activation-shell baseline only pending normative I7 delivery.
+- 2026-03-06: Delivered normative I7 workflow with explicit correlation links, time-range context querying, offline staleness handling, and bundle-captured context records backed by proof artifact `WP-I7-001/20260306_070435`.
 
 ## Linked Primitives
 
@@ -107,14 +108,14 @@ Deliver context intake framework foundations and first approved domains.
 3. Verification/status promotion commit.
 ## Evidence
 
-- Test Suite Execution: activation-shell baseline only from 2026-03-05; normative I7 verification pending current packet delivery
-- Logs: baseline shell evidence references legacy 2026-03-05 session output only
-- Screenshots/Exports: pending current packet delivery
-- Build Artifacts: pending current packet delivery
-- User Sign-off: Pending
-- Proof Artifact: .product/build_target/tool_artifacts/wp_runs/WP-I7-001/
+- Test Suite Execution: 2026-03-06 - passed via `.gov/workflow/wp_checks/check-WP-I7-001.ps1`
+- Logs: `.product/build_target/tool_artifacts/wp_runs/WP-I7-001/20260306_070435/DEP-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I7-001/20260306_070435/UI-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I7-001/20260306_070435/FUNC-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I7-001/20260306_070435/COR-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I7-001/20260306_070435/RED-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I7-001/20260306_070435/EXT-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I7-001/20260306_070435/EXT-002.log`
+- Screenshots/Exports: N/A (proof captured as command logs and bundle-linked state artifacts)
+- Build Artifacts: `.product/build_target/tool_artifacts/wp_runs/WP-I7-001/20260306_070435/result.json`; `.product/build_target/tool_artifacts/wp_runs/WP-I7-001/20260306_070435/summary.md`
+- User Sign-off: Approved via 2026-03-06 autonomous completion instruction
+- Proof Artifact: `.product/build_target/tool_artifacts/wp_runs/WP-I7-001/20260306_070435/`
 ## Proof of Implementation
 
 - Command Runs: reference linked check script output.
-- Proof Artifact: .product/build_target/tool_artifacts/wp_runs/WP-I7-001/
+- Proof Artifact: `.product/build_target/tool_artifacts/wp_runs/WP-I7-001/20260306_070435/`
 - Claim Standard: do not claim completion without linked command evidence and artifact paths.

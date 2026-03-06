@@ -94,7 +94,19 @@ import {
   type McpInvocationRecord,
   type McpToolName,
 } from './features/i6/aiGateway'
-import { validateDomainRegistration, type ContextDomain } from './features/i7/contextIntake'
+import {
+  buildContextTimeRange,
+  buildCorrelationLinks,
+  buildSampleContextRecords,
+  collectDomainRegistrationErrors,
+  queryContextRecords,
+  summarizeContextAvailability,
+  validateDomainRegistration,
+  type ContextCorrelationLink,
+  type ContextDomain,
+  type ContextRecord,
+  type ContextTimeRange,
+} from './features/i7/contextIntake'
 import { detectDeviation, type DeviationEvent } from './features/i8/deviation'
 import {
   CURATED_OSINT_SOURCES,
@@ -141,6 +153,8 @@ const DEFAULT_REMOTE_COLLABORATION_ACTOR = 'analyst-2'
 const DEFAULT_REMOTE_COLLABORATION_NOTE = 'Remote counterpoint'
 const DEFAULT_REMOTE_COLLABORATION_VIEW = 'zoom-8'
 const DEFAULT_CORRELATION_AOI = 'aoi-1'
+const DEFAULT_CONTEXT_ANCHOR_DAY = '2026-03-06'
+const DEFAULT_CONTEXT_PROHIBITED_USES = ['MUST NOT be used for individual entity tracking']
 const DEFAULT_SCENARIO_TITLE = 'Scenario 1'
 const DEFAULT_SCENARIO_CONSTRAINT_ID = 'port_capacity'
 const DEFAULT_SCENARIO_CONSTRAINT_LABEL = 'Port Capacity'
@@ -185,6 +199,7 @@ const createDomainDraft = (): ContextDomain => ({
   methodology_notes: 'Official aggregation',
   offline_behavior: 'pre_cacheable',
   presentation_type: 'map_overlay',
+  prohibited_uses: DEFAULT_CONTEXT_PROHIBITED_USES,
 })
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -343,6 +358,107 @@ const normalizeDomains = (value: unknown): ContextDomain[] => {
     .map((entry) => entry as unknown as ContextDomain)
 }
 
+const normalizeContextTimeRange = (value: unknown): ContextTimeRange =>
+  isRecord(value) &&
+  typeof value.start === 'string' &&
+  typeof value.end === 'string'
+    ? {
+        start: value.start,
+        end: value.end,
+      }
+    : buildContextTimeRange({
+        startHour: DEFAULT_QUERY.timeWindow.startHour,
+        endHour: DEFAULT_QUERY.timeWindow.endHour,
+        anchorDay: DEFAULT_CONTEXT_ANCHOR_DAY,
+      })
+
+const normalizeContextRecords = (value: unknown): ContextRecord[] => {
+  if (!Array.isArray(value)) {
+    return []
+  }
+  return value
+    .filter((entry): entry is Record<string, unknown> => isRecord(entry))
+    .filter(
+      (entry) =>
+        typeof entry.record_id === 'string' &&
+        typeof entry.domain_id === 'string' &&
+        typeof entry.target_id === 'string' &&
+        typeof entry.observed_at === 'string' &&
+        typeof entry.value_label === 'string' &&
+        typeof entry.numeric_value === 'number' &&
+        typeof entry.unit === 'string' &&
+        typeof entry.source_name === 'string' &&
+        typeof entry.source_url === 'string' &&
+        typeof entry.license === 'string' &&
+        typeof entry.update_cadence === 'string' &&
+        typeof entry.confidence === 'string' &&
+        typeof entry.cached_at === 'string' &&
+        Array.isArray(entry.lineage),
+    )
+    .map((entry) => ({
+      record_id: entry.record_id as string,
+      domain_id: entry.domain_id as string,
+      correlation_type:
+        entry.correlation_type === 'aoi_bound' ||
+        entry.correlation_type === 'entity_class_bound' ||
+        entry.correlation_type === 'infrastructure_node_bound' ||
+        entry.correlation_type === 'region_bound'
+          ? entry.correlation_type
+          : 'region_bound',
+      target_id: entry.target_id as string,
+      observed_at: entry.observed_at as string,
+      value_label: entry.value_label as string,
+      numeric_value: entry.numeric_value as number,
+      unit: entry.unit as string,
+      source_name: entry.source_name as string,
+      source_url: entry.source_url as string,
+      license: entry.license as string,
+      update_cadence: entry.update_cadence as string,
+      confidence: entry.confidence as string,
+      cached_at: entry.cached_at as string,
+      lineage: (entry.lineage as unknown[]).filter(
+        (lineageEntry): lineageEntry is string => typeof lineageEntry === 'string',
+      ),
+      verification_level:
+        entry.verification_level === 'confirmed' ||
+        entry.verification_level === 'reported' ||
+        entry.verification_level === 'alleged'
+          ? entry.verification_level
+          : undefined,
+    }))
+}
+
+const normalizeCorrelationLinks = (value: unknown): ContextCorrelationLink[] => {
+  if (!Array.isArray(value)) {
+    return []
+  }
+  return value
+    .filter((entry): entry is Record<string, unknown> => isRecord(entry))
+    .filter(
+      (entry) =>
+        typeof entry.link_id === 'string' &&
+        typeof entry.domain_id === 'string' &&
+        typeof entry.target_id === 'string' &&
+        typeof entry.label === 'string' &&
+        typeof entry.enabled === 'boolean',
+    )
+    .map((entry) => ({
+      link_id: entry.link_id as string,
+      domain_id: entry.domain_id as string,
+      correlation_type:
+        entry.correlation_type === 'aoi_bound' ||
+        entry.correlation_type === 'entity_class_bound' ||
+        entry.correlation_type === 'infrastructure_node_bound' ||
+        entry.correlation_type === 'region_bound'
+          ? entry.correlation_type
+          : 'region_bound',
+      target_id: entry.target_id as string,
+      label: 'Correlated Context',
+      enabled: Boolean(entry.enabled),
+      time_range: normalizeContextTimeRange(entry.time_range),
+    }))
+}
+
 const normalizeComparisonWindow = (
   value: unknown,
   kind: 'Baseline' | 'Event',
@@ -430,14 +546,23 @@ const buildContextSnapshot = ({
   domains,
   activeDomainIds,
   correlationAoi,
+  correlationLinks,
+  records,
+  queryRange,
 }: {
   domains: ContextDomain[]
   activeDomainIds: string[]
   correlationAoi: string
+  correlationLinks: ContextCorrelationLink[]
+  records: ContextRecord[]
+  queryRange: ContextTimeRange
 }): ContextSnapshot => ({
   domains,
   activeDomainIds,
   correlationAoi,
+  correlationLinks,
+  records,
+  queryRange,
 })
 
 const buildAiSnapshot = ({
@@ -519,6 +644,7 @@ function App() {
   const [domains, setDomains] = useState<ContextDomain[]>([])
   const [activeDomainIds, setActiveDomainIds] = useState<string[]>([])
   const [correlationAoi, setCorrelationAoi] = useState<string>(DEFAULT_CORRELATION_AOI)
+  const [contextRecords, setContextRecords] = useState<ContextRecord[]>([])
   const [domainDraft, setDomainDraft] = useState<ContextDomain>(createDomainDraft)
   const [deviationBaselineInput, setDeviationBaselineInput] = useState<string>('100,98,102,99')
   const [deviationObservedInput, setDeviationObservedInput] = useState<string>('120,124,119,130')
@@ -622,6 +748,52 @@ function App() {
       }),
     [queryRenderLayer, queryResult, queryRows.length, savedQueryArtifact, savedQueryVersions, versionedQuery],
   )
+  const contextQueryRange = useMemo(
+    () =>
+      buildContextTimeRange({
+        startHour: versionedQuery.timeWindow.startHour,
+        endHour: versionedQuery.timeWindow.endHour,
+        anchorDay: DEFAULT_CONTEXT_ANCHOR_DAY,
+      }),
+    [versionedQuery.timeWindow.endHour, versionedQuery.timeWindow.startHour],
+  )
+  const correlationLinks = useMemo(
+    () =>
+      buildCorrelationLinks({
+        domains,
+        activeDomainIds,
+        correlationAoi,
+        timeRange: contextQueryRange,
+      }),
+    [activeDomainIds, contextQueryRange, correlationAoi, domains],
+  )
+  const visibleContextRecords = useMemo(
+    () =>
+      correlationLinks.flatMap((link) =>
+        queryContextRecords({
+          records: contextRecords,
+          domainId: link.domain_id,
+          targetId: link.target_id,
+          timeRange: link.time_range,
+        }),
+      ),
+    [contextRecords, correlationLinks],
+  )
+  const contextAvailabilitySummaries = useMemo(
+    () =>
+      domains
+        .filter((domain) => activeDomainIds.includes(domain.domain_id))
+        .map((domain) =>
+          summarizeContextAvailability({
+            domain,
+            visibleRecords: visibleContextRecords.filter(
+              (record) => record.domain_id === domain.domain_id,
+            ),
+            offline,
+          }),
+        ),
+    [activeDomainIds, domains, offline, visibleContextRecords],
+  )
 
   const contextSnapshot = useMemo(
     () =>
@@ -629,8 +801,11 @@ function App() {
         domains,
         activeDomainIds,
         correlationAoi,
+        correlationLinks,
+        records: visibleContextRecords,
+        queryRange: contextQueryRange,
       }),
-    [activeDomainIds, correlationAoi, domains],
+    [activeDomainIds, contextQueryRange, correlationAoi, correlationLinks, domains, visibleContextRecords],
   )
 
   const baselineSeries = useMemo(() => parseNumericSeries(baselineInput), [baselineInput])
@@ -927,6 +1102,12 @@ function App() {
     const restoredActiveDomainIds = normalizeStringArray(context.activeDomainIds).filter((domainId) =>
       restoredDomains.some((domain) => domain.domain_id === domainId),
     )
+    const restoredContextRecords = normalizeContextRecords(context.records)
+    const restoredCorrelationLinks = normalizeCorrelationLinks(context.correlationLinks)
+    const restoredCorrelationAoi =
+      typeof context.correlationAoi === 'string'
+        ? context.correlationAoi
+        : restoredCorrelationLinks[0]?.target_id ?? DEFAULT_CORRELATION_AOI
 
     startTransition(() => {
       setAnalystNote(
@@ -986,11 +1167,8 @@ function App() {
       setSelectedMcpTool(DEFAULT_MCP_TOOL)
       setDomains(restoredDomains)
       setActiveDomainIds(restoredActiveDomainIds)
-      setCorrelationAoi(
-        typeof context.correlationAoi === 'string'
-          ? context.correlationAoi
-          : DEFAULT_CORRELATION_AOI,
-      )
+      setCorrelationAoi(restoredCorrelationAoi)
+      setContextRecords(restoredContextRecords)
       setBriefingArtifact(null)
       setSelectedBundleId(
         openedBundleId ??
@@ -1928,16 +2106,35 @@ function App() {
   }
 
   const onRegisterDomain = () => {
+    const registrationIssues = collectDomainRegistrationErrors(domainDraft)
     if (!validateDomainRegistration(domainDraft)) {
-      setStatus('Context domain registration rejected: missing required metadata.')
+      setStatus(`Context domain registration rejected: ${registrationIssues.join('; ')}`)
       return
     }
     const startedAt = beginMeasuredAction('Context domain registration')
     const domain = domainDraft
-    setDomains((previous) => [domain, ...previous])
-    setActiveDomainIds((previous) =>
-      previous.includes(domain.domain_id) ? previous : [domain.domain_id, ...previous],
-    )
+    const seededRecords = buildSampleContextRecords({
+      domain,
+      targetId: correlationAoi,
+      timeRange: contextQueryRange,
+    })
+    const nextActiveDomainIds = activeDomainIds.includes(domain.domain_id)
+      ? activeDomainIds
+      : [domain.domain_id, ...activeDomainIds]
+    const nextDomains = [domain, ...domains]
+    const nextLinks = buildCorrelationLinks({
+      domains: nextDomains,
+      activeDomainIds: nextActiveDomainIds,
+      correlationAoi,
+      timeRange: contextQueryRange,
+    })
+
+    setDomains(nextDomains)
+    setActiveDomainIds(nextActiveDomainIds)
+    setContextRecords((previous) => [
+      ...previous.filter((record) => record.domain_id !== domain.domain_id),
+      ...seededRecords,
+    ])
     setDomainDraft(createDomainDraft())
     void backend
       .appendAudit({
@@ -1948,6 +2145,8 @@ function App() {
           domain_name: domain.domain_name,
           source_url: domain.source_url,
           sensitivity_class: domain.sensitivity_class,
+          correlation_links: nextLinks,
+          record_count: seededRecords.length,
         },
       })
       .then(() => refresh())
@@ -1965,6 +2164,12 @@ function App() {
     const nextActiveDomainIds = activeDomainIds.includes(domainId)
       ? activeDomainIds.filter((existingId) => existingId !== domainId)
       : [...activeDomainIds, domainId]
+    const nextLinks = buildCorrelationLinks({
+      domains,
+      activeDomainIds: nextActiveDomainIds,
+      correlationAoi,
+      timeRange: contextQueryRange,
+    })
     setActiveDomainIds(nextActiveDomainIds)
     void backend
       .appendAudit({
@@ -1973,6 +2178,7 @@ function App() {
         payload: {
           active_domain_ids: nextActiveDomainIds,
           correlation_aoi: correlationAoi,
+          correlation_links: nextLinks,
         },
       })
       .then(() => refresh())
@@ -1987,6 +2193,30 @@ function App() {
 
   const onPersistCorrelationSelection = () => {
     const startedAt = beginMeasuredAction('Correlation selection save')
+    const nextLinks = buildCorrelationLinks({
+      domains,
+      activeDomainIds,
+      correlationAoi,
+      timeRange: contextQueryRange,
+    })
+    const missingRecords = domains
+      .filter((domain) => activeDomainIds.includes(domain.domain_id))
+      .filter(
+        (domain) =>
+          !contextRecords.some(
+            (record) => record.domain_id === domain.domain_id && record.target_id === correlationAoi,
+          ),
+      )
+      .flatMap((domain) =>
+        buildSampleContextRecords({
+          domain,
+          targetId: correlationAoi,
+          timeRange: contextQueryRange,
+        }),
+      )
+    if (missingRecords.length > 0) {
+      setContextRecords((previous) => [...previous, ...missingRecords])
+    }
     void backend
       .appendAudit({
         role,
@@ -1994,6 +2224,8 @@ function App() {
         payload: {
           active_domain_ids: activeDomainIds,
           correlation_aoi: correlationAoi,
+          correlation_links: nextLinks,
+          record_count: visibleContextRecords.length + missingRecords.length,
         },
       })
       .then(() => refresh())
@@ -3504,6 +3736,14 @@ function App() {
           )}
 
           <h3>Context Intake (I7)</h3>
+          <p className="status-line">Correlated context only; not causal explanation.</p>
+          <p className="status-line">
+            Active links: {correlationLinks.length} | Query window: {contextQueryRange.start} {'->'}{' '}
+            {contextQueryRange.end}
+          </p>
+          {activeDomainIds.length === 0 && (
+            <p className="status-line">Context unavailable; geospatial workspace remains active.</p>
+          )}
           <label className="field">
             Domain Name
             <input
@@ -3531,6 +3771,38 @@ function App() {
             />
           </label>
           <label className="field">
+            Presentation Type
+            <select
+              value={domainDraft.presentation_type}
+              onChange={(event) =>
+                setDomainDraft((previous) => ({
+                  ...previous,
+                  presentation_type: event.target.value as ContextDomain['presentation_type'],
+                }))
+              }
+            >
+              <option value="map_overlay">map_overlay</option>
+              <option value="sidebar_timeseries">sidebar_timeseries</option>
+              <option value="dashboard_widget">dashboard_widget</option>
+              <option value="constraint_node">constraint_node</option>
+            </select>
+          </label>
+          <label className="field">
+            Offline Behavior
+            <select
+              value={domainDraft.offline_behavior}
+              onChange={(event) =>
+                setDomainDraft((previous) => ({
+                  ...previous,
+                  offline_behavior: event.target.value as ContextDomain['offline_behavior'],
+                }))
+              }
+            >
+              <option value="pre_cacheable">pre_cacheable</option>
+              <option value="online_only">online_only</option>
+            </select>
+          </label>
+          <label className="field">
             Correlation AOI
             <input
               type="text"
@@ -3552,8 +3824,15 @@ function App() {
               const catalogEntry = contextDomainCatalog.find(
                 (entry) => entry.layerId === `context-${domain.domain_id}`,
               )
+              const availability = contextAvailabilitySummaries.find(
+                (summary) => summary.domain_id === domain.domain_id,
+              )
               return (
-                <article key={domain.domain_id} className="context-card">
+                <article
+                  key={domain.domain_id}
+                  className="context-card"
+                  data-testid={`context-card-${domain.domain_id}`}
+                >
                   <div className="card-header">
                     <label className="context-selector">
                       <input
@@ -3573,6 +3852,10 @@ function App() {
                   </div>
                   <p className="status-line">
                     {domain.domain_class} | Presentation: {domain.presentation_type}
+                  </p>
+                  <p className="status-line">Correlated context only.</p>
+                  <p className="status-line">
+                    Offline policy: {domain.offline_behavior} | Correlation target: {correlationAoi}
                   </p>
                   <dl className="meta-grid">
                     <div>
@@ -3600,6 +3883,18 @@ function App() {
                       <dd>{catalogEntry?.exportAllowed ? 'allowed' : 'blocked'}</dd>
                     </div>
                   </dl>
+                  {availability?.latest_record && (
+                    <p className="status-line">
+                      Latest value: {availability.latest_record.value_label} @{' '}
+                      {availability.latest_record.observed_at}
+                    </p>
+                  )}
+                  <p className="status-line">
+                    {availability?.status_line ?? 'Context unavailable for the active AOI/time window.'}
+                  </p>
+                  <p className="status-line">
+                    {availability?.staleness_line ?? `Expected cadence: ${domain.update_cadence}`}
+                  </p>
                   <small>{domain.methodology_notes}</small>
                 </article>
               )

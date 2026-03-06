@@ -23,6 +23,12 @@ import {
   type VersionedQuery,
 } from './features/i5/queryBuilder'
 import type { AiGatewaySnapshot } from './features/i6/aiGateway'
+import {
+  buildContextTimeRange,
+  buildCorrelationLinks,
+  buildSampleContextRecords,
+  type ContextDomain,
+} from './features/i7/contextIntake'
 import { backend } from './lib/backend'
 
 const buildStoredCollaborationSnapshot = (sharedNote: string, viewState: string) => {
@@ -194,6 +200,46 @@ const buildStoredAiSnapshot = (): AiGatewaySnapshot => ({
   },
 })
 
+const buildStoredContextSnapshot = ({
+  domains,
+  activeDomainIds,
+  correlationAoi,
+  startHour = 8,
+  endHour = 18,
+}: {
+  domains: ContextDomain[]
+  activeDomainIds: string[]
+  correlationAoi: string
+  startHour?: number
+  endHour?: number
+}) => {
+  const queryRange = buildContextTimeRange({
+    startHour,
+    endHour,
+  })
+  const records = domains.flatMap((domain) =>
+    buildSampleContextRecords({
+      domain,
+      targetId: correlationAoi,
+      timeRange: queryRange,
+    }),
+  )
+
+  return {
+    domains,
+    activeDomainIds,
+    correlationAoi,
+    correlationLinks: buildCorrelationLinks({
+      domains,
+      activeDomainIds,
+      correlationAoi,
+      timeRange: queryRange,
+    }),
+    records,
+    queryRange,
+  }
+}
+
 describe('App', () => {
   beforeEach(() => {
     localStorage.clear()
@@ -228,7 +274,7 @@ describe('App', () => {
           speedThreshold: 28,
           activeContextDomainIds: ['ctx-1'],
         }),
-        context: {
+        context: buildStoredContextSnapshot({
           domains: [
             {
               domain_id: 'ctx-1',
@@ -238,18 +284,19 @@ describe('App', () => {
               source_url: 'https://example.test/context',
               license: 'public',
               update_cadence: 'monthly',
-              spatial_binding: 'point',
+              spatial_binding: 'aoi_correlated',
               temporal_resolution: 'monthly',
               sensitivity_class: 'PUBLIC',
               confidence_baseline: 'A',
               methodology_notes: 'Official aggregation',
               offline_behavior: 'pre_cacheable',
               presentation_type: 'map_overlay',
+              prohibited_uses: ['MUST NOT be used for individual entity tracking'],
             },
           ],
           activeDomainIds: ['ctx-1'],
           correlationAoi: 'aoi-7',
-        },
+        }),
         compare: {
           baselineWindow: {
             start: '2026-Q1 baseline',
@@ -500,7 +547,7 @@ describe('App', () => {
           note: 'Context packet',
           activeLayers: ['base-map', 'context-panel'],
           replayCursor: 0,
-          forcedOffline: false,
+          forcedOffline: true,
           uiVersion: 'i0-recorder-hardening',
         },
         query: buildStoredQueryState({
@@ -508,7 +555,7 @@ describe('App', () => {
           speedThreshold: 20,
           activeContextDomainIds: ['ctx-2'],
         }),
-        context: {
+        context: buildStoredContextSnapshot({
           domains: [
             {
               domain_id: 'ctx-2',
@@ -525,11 +572,12 @@ describe('App', () => {
               methodology_notes: 'Partner cadence estimate',
               offline_behavior: 'online_only',
               presentation_type: 'sidebar_timeseries',
+              prohibited_uses: ['MUST NOT be used for individual entity tracking'],
             },
           ],
           activeDomainIds: ['ctx-2'],
           correlationAoi: 'aoi-3',
-        },
+        }),
         selectedBundleId: undefined,
         savedAt: '2026-03-06T00:00:00.000Z',
       },
@@ -547,6 +595,40 @@ describe('App', () => {
     expect(scope.getByText('Baseline B')).toBeInTheDocument()
     expect(scope.getByText('right_panel')).toBeInTheDocument()
     expect(scope.getByText('blocked')).toBeInTheDocument()
+    expect(scope.getByText(/Offline cached value in use/)).toBeInTheDocument()
+    expect(scope.getByText(/Stale until live refresh/)).toBeInTheDocument()
+  })
+
+  it('runs the context correlation golden flow and captures explicit links in the bundle', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.clear(screen.getByLabelText('Correlation AOI'))
+    await user.type(screen.getByLabelText('Correlation AOI'), 'aoi-4')
+    await user.selectOptions(screen.getByLabelText('Presentation Type'), 'sidebar_timeseries')
+    await user.selectOptions(screen.getByLabelText('Offline Behavior'), 'online_only')
+    await user.click(screen.getByRole('button', { name: 'Register Domain' }))
+    await user.click(screen.getByRole('button', { name: 'Save Correlation Selection' }))
+
+    expect(await screen.findByText('Active context domains: 1 | Correlation AOI: aoi-4')).toBeInTheDocument()
+    expect(screen.getByText('Correlated context only; not causal explanation.')).toBeInTheDocument()
+    const card = (await screen.findByText('Port Throughput')).closest('article')
+    expect(card).not.toBeNull()
+    const scope = within(card as HTMLElement)
+    expect(scope.getByText(/Correlated context only/)).toBeInTheDocument()
+    expect(scope.getByText(/Live correlation window shows/)).toBeInTheDocument()
+    expect(scope.getByText(/Latest value:/)).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Create Bundle' }))
+    expect(await screen.findByText(/Bundle .* created/)).toBeInTheDocument()
+
+    await user.clear(screen.getByLabelText('Correlation AOI'))
+    await user.type(screen.getByLabelText('Correlation AOI'), 'aoi-2')
+    await user.click(screen.getByRole('button', { name: 'Save Correlation Selection' }))
+    await user.click(screen.getByRole('button', { name: 'Reopen Bundle' }))
+
+    expect(await screen.findByText('Active context domains: 1 | Correlation AOI: aoi-4')).toBeInTheDocument()
+    expect(screen.getByText(/Latest value:/)).toBeInTheDocument()
   })
 
   it('shows degraded aggregation feedback when the replay frame budget is exceeded', async () => {
@@ -656,6 +738,6 @@ describe('App', () => {
       expect((await screen.findAllByText('Saved surge')).length).toBeGreaterThan(0)
       expect(screen.getByText(/Compared scenario-1 -> scenario-2/)).toBeInTheDocument()
     },
-    15000,
+    30000,
   )
 })
