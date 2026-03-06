@@ -1,4 +1,4 @@
-# StratAtlas - Primitives Index
+﻿# StratAtlas - Primitives Index
 
 **Spec Version:** v1.2.3  
 **Last Updated:** 2026-03-06  
@@ -37,7 +37,7 @@ PRIM-ID | Name | Type | Contract | Spec Anchor | REQs | First Iter | Status | Ow
 | PRIM-0009 | Performance Budget Contract | performance | Startup/state-change/interaction budget values | Section 11.5 | REQ-0014..REQ-0016, REQ-0206..REQ-0211 | I1 | IMPLEMENTED | Codex |
 | PRIM-0010 | Baseline-Delta Cell Grid | analytics | Deterministic baseline/event delta outputs | Section 13.1 | REQ-0300, REQ-0301 | I2 | IMPLEMENTED | Codex |
 | PRIM-0011 | Briefing Bundle Artifact | export | Briefing bundle payload and summary contract | Section 11.3 | REQ-0302 | I2 | IMPLEMENTED | Codex |
-| PRIM-0012 | Collaboration Session Event | collaboration | Actor-attributed merge-safe session events | Section 10.2 | REQ-0400..REQ-0403 | I3 | IMPLEMENTED | Codex |
+| PRIM-0012 | Collaboration Session Event | collaboration | Actor-attributed merge-safe session events | Section 10.2 | REQ-0400..REQ-0403 | I3 | E2E-VERIFIED | Codex |
 | PRIM-0013 | Scenario Fork Contract | modeling | Parent-linked scenario constraints/entities | Section 14 | REQ-0500..REQ-0504 | I4 | IMPLEMENTED | Codex |
 | PRIM-0014 | Versioned Query Contract | analytics | Query conditions, execution, and versioning | Section 13.2 | REQ-0600..REQ-0604 | I5 | IMPLEMENTED | Codex |
 | PRIM-0015 | AI Gateway Request Contract | ai | Hash-addressed policy-gated AI requests | Section 15.1..15.3 | REQ-0700..REQ-0708 | I6 | IMPLEMENTED | Codex |
@@ -67,6 +67,7 @@ PRIM-ID | Name | Type | Contract | Spec Anchor | REQs | First Iter | Status | Ow
 | PRIM-0036 | Artifact Label Contract | policy | Visible Evidence/Context/Model/AI labels with uncertainty text preserved in the workbench surface | Section 11.4 | REQ-0011, REQ-0012, REQ-0804, REQ-0805 | I1 | IMPLEMENTED | Codex |
 | PRIM-0037 | Layer Catalog and Budget Telemetry | performance | Layer metadata presentation and explicit degraded/progress feedback for state changes and budgets | Section 11.5, Section 12.1 | REQ-0014..REQ-0016, REQ-0202..REQ-0212 | I1 | IMPLEMENTED | Codex |
 
-| PRIM-0038 | Comparative Delta Window Contract | analytics | Deterministic baseline/event window state, aligned delta cells, and severity summaries for compare workflows | Section 13.1, Section 11.3 | REQ-0300, REQ-0302 | I2 | IMPLEMENTED | Codex | Verified in WP-I2-002 with compare-state persistence and reopen integrity proof |
-| PRIM-0039 | Context Overlay Comparison Surface | ui | Governed compare dashboard that aligns curated context series with delta outputs for the same analysis window | Section 13.1, Section 11.4 | REQ-0300, REQ-0301 | I2 | IMPLEMENTED | Codex | Verified in WP-I2-002 with curated overlay corroboration cards and briefing composition |
-| PRIM-0040 | Briefing Artifact Export Contract | export | Briefing artifact payload that carries bundle reference, labeled delta findings, and export-ready summary fields | Section 11.3, Section 11.4 | REQ-0302 | I2 | IMPLEMENTED | Codex | Verified in WP-I2-002 with bundle-linked briefing preparation and audit proof |
+| PRIM-0038 | Comparative Delta Window Contract | analytics | Deterministic baseline/event window state, aligned delta cells, and severity summaries for compare workflows | Section 13.1, Section 11.3 | REQ-0300, REQ-0302 | I2 | E2E-VERIFIED | Codex | Verified in WP-I2-002 with compare-state persistence and reopen integrity proof |
+| PRIM-0039 | Context Overlay Comparison Surface | ui | Governed compare dashboard that aligns curated context series with delta outputs for the same analysis window | Section 13.1, Section 11.4 | REQ-0300, REQ-0301 | I2 | E2E-VERIFIED | Codex | Verified in WP-I2-002 with curated overlay corroboration cards and briefing composition |
+| PRIM-0040 | Briefing Artifact Export Contract | export | Briefing artifact payload that carries bundle reference, labeled delta findings, and export-ready summary fields | Section 11.3, Section 11.4 | REQ-0302 | I2 | E2E-VERIFIED | Codex | Verified in WP-I2-002 with bundle-linked briefing preparation and audit proof |
+

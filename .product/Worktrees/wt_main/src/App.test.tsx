@@ -2,7 +2,27 @@ import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it } from 'vitest'
 import App from './App'
+import {
+  DEFAULT_COLLABORATION_ARTIFACT_ID,
+  createCollaborationSnapshot,
+  setEphemeralViewState,
+  upsertSharedArtifact,
+} from './features/i3/collaboration'
 import { backend } from './lib/backend'
+
+const buildStoredCollaborationSnapshot = (sharedNote: string, viewState: string) => {
+  let snapshot = createCollaborationSnapshot('collab-main', 'analyst-1')
+  snapshot = upsertSharedArtifact(snapshot, {
+    actorId: 'analyst-1',
+    artifactId: DEFAULT_COLLABORATION_ARTIFACT_ID,
+    content: sharedNote,
+  })
+  snapshot = setEphemeralViewState(snapshot, {
+    actorId: 'analyst-1',
+    viewState,
+  })
+  return snapshot
+}
 
 describe('App', () => {
   beforeEach(() => {
@@ -79,6 +99,7 @@ describe('App', () => {
           baselineSeries: [4, 5, 6],
           eventSeries: [6, 7, 9],
         },
+        collaboration: buildStoredCollaborationSnapshot('Hydrated shared note', 'zoom-6'),
         selectedBundleId: undefined,
         savedAt: '2026-03-06T00:00:00.000Z',
       },
@@ -96,6 +117,10 @@ describe('App', () => {
     expect(screen.getByDisplayValue('2026-Q2 event')).toBeInTheDocument()
     expect(screen.getByDisplayValue('4,5,6')).toBeInTheDocument()
     expect(screen.getByDisplayValue('6,7,9')).toBeInTheDocument()
+
+    await user.selectOptions(screen.getByLabelText('Mode'), 'collaboration')
+    expect(screen.getByDisplayValue('Hydrated shared note')).toBeInTheDocument()
+    expect(screen.getByDisplayValue('zoom-6')).toBeInTheDocument()
   })
 
   it('renders required I1 UI regions', async () => {
@@ -147,12 +172,40 @@ describe('App', () => {
     expect(scope.getByText(/Port Throughput/)).toBeInTheDocument()
   })
 
+  it('handles collaboration reconnect conflicts and replay attribution', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.selectOptions(screen.getByLabelText('Mode'), 'collaboration')
+    await user.clear(screen.getByLabelText('Shared Note'))
+    await user.type(screen.getByLabelText('Shared Note'), 'Alpha local')
+    await user.click(screen.getByRole('button', { name: 'Apply Local Shared Update' }))
+    await user.clear(screen.getByLabelText('Queued Remote Note'))
+    await user.type(screen.getByLabelText('Queued Remote Note'), 'Bravo remote')
+    await user.clear(screen.getByLabelText('Queued Remote View State'))
+    await user.type(screen.getByLabelText('Queued Remote View State'), 'zoom-8')
+    await user.click(screen.getByRole('button', { name: 'Queue Remote Shared Update' }))
+    await user.click(screen.getByRole('button', { name: 'Queue Remote View State' }))
+    await user.click(screen.getByRole('button', { name: 'Reconnect Session' }))
+
+    expect(await screen.findByText(/Local: Alpha local \| Remote: Bravo remote/)).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Merge Resolution' }))
+
+    expect(await screen.findByText('No open conflicts')).toBeInTheDocument()
+    const replay = screen.getByTestId('collaboration-replay-list')
+    const scope = within(replay)
+    expect(scope.getByText(/analyst-1 \| artifact\.upsert/)).toBeInTheDocument()
+    expect(scope.getByText(/analyst-2 \| artifact\.upsert/)).toBeInTheDocument()
+    expect(scope.getByText(/analyst-2 \| view\.ephemeral/)).toBeInTheDocument()
+    expect(scope.getByText(/analyst-1 \| conflict\.resolved/)).toBeInTheDocument()
+  })
+
   it('renders governed layer metadata, labels, and model uncertainty', async () => {
     render(<App />)
 
     expect(await screen.findByLabelText('Artifact label legend')).toBeInTheDocument()
     expect(screen.getAllByText('Observed Basemap').length).toBeGreaterThan(0)
-    expect(screen.getAllByText('Recorder workspace').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Observed Evidence').length).toBeGreaterThan(0)
     expect(screen.getAllByText('Modeled Output').length).toBeGreaterThan(0)
     expect(screen.getAllByText('AI-Derived Interpretation').length).toBeGreaterThan(0)
     expect(screen.getAllByText('Uncertainty: Payoff range [85, 115]').length).toBeGreaterThan(0)
@@ -262,6 +315,14 @@ describe('App', () => {
       await user.clear(screen.getByLabelText('Minimum Speed'))
       await user.type(screen.getByLabelText('Minimum Speed'), '30')
       await user.click(screen.getByRole('button', { name: 'Save Query Version' }))
+      await user.selectOptions(screen.getByLabelText('Mode'), 'collaboration')
+      await user.clear(screen.getByLabelText('Shared Note'))
+      await user.type(screen.getByLabelText('Shared Note'), 'Collab saved note')
+      await user.click(screen.getByRole('button', { name: 'Apply Local Shared Update' }))
+      await user.clear(screen.getByLabelText('Local View State'))
+      await user.type(screen.getByLabelText('Local View State'), 'zoom-5')
+      await user.click(screen.getByRole('button', { name: 'Apply Local View State' }))
+      await user.selectOptions(screen.getByLabelText('Mode'), 'replay')
       await user.click(screen.getByRole('button', { name: 'Create Bundle' }))
       expect(await screen.findByText(/Bundle .* created/)).toBeInTheDocument()
 
@@ -286,6 +347,10 @@ describe('App', () => {
       expect(screen.getByDisplayValue('Recovered event')).toBeInTheDocument()
       expect(screen.getByDisplayValue('5,7,9')).toBeInTheDocument()
       expect(screen.getByDisplayValue('8,12,15')).toBeInTheDocument()
+
+      await user.selectOptions(screen.getByLabelText('Mode'), 'collaboration')
+      expect(screen.getByDisplayValue('Collab saved note')).toBeInTheDocument()
+      expect(screen.getByDisplayValue('zoom-5')).toBeInTheDocument()
     },
     15000,
   )

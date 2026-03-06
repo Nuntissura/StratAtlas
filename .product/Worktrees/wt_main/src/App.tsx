@@ -33,6 +33,19 @@ import {
   type BriefingArtifactPreview,
   type CompareStateSnapshot,
 } from './features/i2/baselineDelta'
+import {
+  DEFAULT_COLLABORATION_ARTIFACT_ID,
+  buildCollaborationReplayFrame,
+  createCollaborationSnapshot,
+  normalizeCollaborationSnapshot,
+  resolveReconnectConflict,
+  setCollaborationReplayCursor,
+  setEphemeralViewState,
+  simulateReconnectMerge,
+  upsertSharedArtifact,
+  type CollaborationConflictResolution,
+  type CollaborationStateSnapshot,
+} from './features/i3/collaboration'
 import { runQuery, bumpQueryVersion, type VersionedQuery } from './features/i5/queryBuilder'
 import type { QueryCondition, QueryOperator } from './features/i5/queryBuilder'
 import { submitAiAnalysis } from './features/i6/aiGateway'
@@ -61,6 +74,11 @@ const DEFAULT_BASELINE_WINDOW_LABEL = '2026-Q1 baseline'
 const DEFAULT_EVENT_WINDOW_LABEL = '2026-Q2 event'
 const DEFAULT_BASELINE_INPUT = '10,12,16,21,30'
 const DEFAULT_EVENT_INPUT = '8,18,20,26,31'
+const DEFAULT_COLLABORATION_SESSION_ID = 'collab-main'
+const DEFAULT_LOCAL_COLLABORATION_ACTOR = 'analyst-1'
+const DEFAULT_REMOTE_COLLABORATION_ACTOR = 'analyst-2'
+const DEFAULT_REMOTE_COLLABORATION_NOTE = 'Remote counterpoint'
+const DEFAULT_REMOTE_COLLABORATION_VIEW = 'zoom-8'
 const DEFAULT_CORRELATION_AOI = 'aoi-1'
 const QUERY_OPERATORS: QueryOperator[] = ['equals', 'greater_than', 'less_than', 'contains']
 
@@ -258,6 +276,20 @@ const buildContextSnapshot = ({
   correlationAoi,
 })
 
+const createDefaultCollaborationSnapshot = (): CollaborationStateSnapshot =>
+  createCollaborationSnapshot(
+    DEFAULT_COLLABORATION_SESSION_ID,
+    DEFAULT_LOCAL_COLLABORATION_ACTOR,
+  )
+
+interface QueuedRemoteCollaborationChange {
+  changeId: string
+  kind: 'shared' | 'ephemeral'
+  actorId: string
+  value: string
+  queuedAt: string
+}
+
 function App() {
   const [role, setRole] = useState<UserRole>('analyst')
   const [marking, setMarking] = useState<SensitivityMarking>('INTERNAL')
@@ -299,6 +331,23 @@ function App() {
   const [osintAoi, setOsintAoi] = useState<string>('aoi-1')
   const [osintEvents, setOsintEvents] = useState<OsintEvent[]>([])
   const [gameAssumption, setGameAssumption] = useState<string>('Supply remains constrained')
+  const [collaboration, setCollaboration] = useState<CollaborationStateSnapshot>(() =>
+    createDefaultCollaborationSnapshot(),
+  )
+  const [collaborationNoteInput, setCollaborationNoteInput] = useState<string>('')
+  const [collaborationViewStateInput, setCollaborationViewStateInput] =
+    useState<string>('zoom-3')
+  const [remoteCollaborationActorInput, setRemoteCollaborationActorInput] = useState<string>(
+    DEFAULT_REMOTE_COLLABORATION_ACTOR,
+  )
+  const [remoteCollaborationNoteInput, setRemoteCollaborationNoteInput] = useState<string>(
+    DEFAULT_REMOTE_COLLABORATION_NOTE,
+  )
+  const [remoteCollaborationViewInput, setRemoteCollaborationViewInput] = useState<string>(
+    DEFAULT_REMOTE_COLLABORATION_VIEW,
+  )
+  const [remoteSharedQueuedAt, setRemoteSharedQueuedAt] = useState<string | null>(null)
+  const [remoteViewQueuedAt, setRemoteViewQueuedAt] = useState<string | null>(null)
   const [briefingArtifact, setBriefingArtifact] = useState<BriefingArtifactPreview | null>(null)
   const [hydrated, setHydrated] = useState<boolean>(false)
   const [stateFeedback, setStateFeedback] = useState<StateChangeFeedback>(() =>
@@ -389,6 +438,49 @@ function App() {
     () => buildContextOverlaySummaries(domains, activeDomainIds, compareDashboard.totalDelta),
     [activeDomainIds, compareDashboard.totalDelta, domains],
   )
+  const collaborationArtifact = useMemo(
+    () =>
+      collaboration.sharedArtifacts.find(
+        (artifact) => artifact.artifactId === DEFAULT_COLLABORATION_ARTIFACT_ID,
+      ),
+    [collaboration],
+  )
+  const collaborationReplayFrame = useMemo(
+    () => buildCollaborationReplayFrame(collaboration),
+    [collaboration],
+  )
+  const queuedRemoteChanges = useMemo<QueuedRemoteCollaborationChange[]>(() => {
+    const actorId = remoteCollaborationActorInput.trim() || DEFAULT_REMOTE_COLLABORATION_ACTOR
+    const changes: QueuedRemoteCollaborationChange[] = []
+
+    if (remoteSharedQueuedAt) {
+      changes.push({
+        changeId: `${actorId}-shared`,
+        kind: 'shared',
+        actorId,
+        value: remoteCollaborationNoteInput,
+        queuedAt: remoteSharedQueuedAt,
+      })
+    }
+
+    if (remoteViewQueuedAt) {
+      changes.push({
+        changeId: `${actorId}-ephemeral`,
+        kind: 'ephemeral',
+        actorId,
+        value: remoteCollaborationViewInput,
+        queuedAt: remoteViewQueuedAt,
+      })
+    }
+
+    return changes
+  }, [
+    remoteCollaborationActorInput,
+    remoteCollaborationNoteInput,
+    remoteCollaborationViewInput,
+    remoteSharedQueuedAt,
+    remoteViewQueuedAt,
+  ])
 
   const deviationEvent = useMemo(
     () =>
@@ -507,9 +599,17 @@ function App() {
       query: querySnapshot,
       context: contextSnapshot,
       compare: compareSnapshot,
+      collaboration,
       selectedBundleId: selectedBundleId || undefined,
     }),
-    [compareSnapshot, contextSnapshot, querySnapshot, selectedBundleId, workspaceSnapshot],
+    [
+      collaboration,
+      compareSnapshot,
+      contextSnapshot,
+      querySnapshot,
+      selectedBundleId,
+      workspaceSnapshot,
+    ],
   )
 
   const applyRecorderState = (state: RecorderState, openedBundleId?: string): void => {
@@ -519,6 +619,10 @@ function App() {
     const query = isRecord(state.query) ? state.query : ({} as Record<string, unknown>)
     const context = isRecord(state.context) ? state.context : ({} as Record<string, unknown>)
     const compare = normalizeCompareSnapshot(state.compare)
+    const collaborationState = normalizeCollaborationSnapshot(
+      state.collaboration,
+      DEFAULT_LOCAL_COLLABORATION_ACTOR,
+    )
     const restoredDomains = normalizeDomains(context.domains)
     const restoredActiveDomainIds = normalizeStringArray(context.activeDomainIds).filter((domainId) =>
       restoredDomains.some((domain) => domain.domain_id === domainId),
@@ -538,6 +642,18 @@ function App() {
         compare ? serializeNumberArray(compare.baselineSeries) : DEFAULT_BASELINE_INPUT,
       )
       setEventInput(compare ? serializeNumberArray(compare.eventSeries) : DEFAULT_EVENT_INPUT)
+      setCollaboration(collaborationState)
+      setCollaborationNoteInput(
+        collaborationState.sharedArtifacts.find(
+          (artifact) => artifact.artifactId === DEFAULT_COLLABORATION_ARTIFACT_ID,
+        )?.content ?? '',
+      )
+      setCollaborationViewStateInput(collaborationState.ephemeralViewState)
+      setRemoteCollaborationActorInput(DEFAULT_REMOTE_COLLABORATION_ACTOR)
+      setRemoteCollaborationNoteInput(DEFAULT_REMOTE_COLLABORATION_NOTE)
+      setRemoteCollaborationViewInput(DEFAULT_REMOTE_COLLABORATION_VIEW)
+      setRemoteSharedQueuedAt(null)
+      setRemoteViewQueuedAt(null)
       setVersionedQuery(normalizeVersionedQuery(query.definition))
       setDomains(restoredDomains)
       setActiveDomainIds(restoredActiveDomainIds)
@@ -595,6 +711,7 @@ function App() {
             query: persisted.state.query,
             context: persisted.state.context,
             compare: persisted.state.compare,
+            collaboration: persisted.state.collaboration,
             selectedBundleId: persisted.state.selectedBundleId,
           })
           setStatus('Recorder state restored')
@@ -646,6 +763,7 @@ function App() {
             query: savedState.query,
             context: savedState.context,
             compare: savedState.compare,
+            collaboration: savedState.collaboration,
             selectedBundleId: savedState.selectedBundleId,
           })
         }
@@ -748,6 +866,7 @@ function App() {
         query: result.state.query,
         context: result.state.context,
         compare: result.state.compare,
+        collaboration: result.state.collaboration,
         selectedBundleId: result.manifest.bundle_id,
       })
       await refresh()
@@ -876,6 +995,158 @@ function App() {
         setStatus('Briefing artifact prepared locally; audit append unavailable.')
         completeMeasuredAction('Briefing artifact preparation', startedAt)
       })
+  }
+
+  const syncCollaborationSnapshot = (snapshot: CollaborationStateSnapshot): void => {
+    const sharedNote =
+      snapshot.sharedArtifacts.find(
+        (artifact) => artifact.artifactId === DEFAULT_COLLABORATION_ARTIFACT_ID,
+      )?.content ?? ''
+    setCollaboration(snapshot)
+    setCollaborationNoteInput(sharedNote)
+    setCollaborationViewStateInput(snapshot.ephemeralViewState)
+  }
+
+  const appendCollaborationAudit = (
+    eventType: string,
+    payload: Record<string, unknown>,
+  ): void => {
+    void backend
+      .appendAudit({
+        role,
+        event_type: eventType,
+        payload,
+      })
+      .then(() => refresh())
+      .catch(() => {
+        // Keep collaboration actions functional even when audit persistence is unavailable.
+      })
+  }
+
+  const onApplyLocalCollaborationNote = () => {
+    const startedAt = beginMeasuredAction('Collaboration shared update')
+    const actorId = collaboration.actorId.trim() || DEFAULT_LOCAL_COLLABORATION_ACTOR
+    const next = upsertSharedArtifact(collaboration, {
+      actorId,
+      artifactId: DEFAULT_COLLABORATION_ARTIFACT_ID,
+      content: collaborationNoteInput,
+    })
+    syncCollaborationSnapshot(next)
+    setStatus(`Shared note updated by ${actorId}`)
+    appendCollaborationAudit('collaboration.shared_update', {
+      session_id: next.sessionId,
+      actor: actorId,
+      artifact_id: DEFAULT_COLLABORATION_ARTIFACT_ID,
+      value: collaborationNoteInput,
+    })
+    completeMeasuredAction('Collaboration shared update', startedAt)
+  }
+
+  const onApplyLocalCollaborationViewState = () => {
+    const startedAt = beginMeasuredAction('Collaboration view update')
+    const actorId = collaboration.actorId.trim() || DEFAULT_LOCAL_COLLABORATION_ACTOR
+    const next = setEphemeralViewState(collaboration, {
+      actorId,
+      viewState: collaborationViewStateInput,
+    })
+    syncCollaborationSnapshot(next)
+    setStatus(`Ephemeral view state updated by ${actorId}`)
+    appendCollaborationAudit('collaboration.ephemeral_update', {
+      session_id: next.sessionId,
+      actor: actorId,
+      value: collaborationViewStateInput,
+    })
+    completeMeasuredAction('Collaboration view update', startedAt)
+  }
+
+  const onQueueRemoteCollaborationNote = () => {
+    const startedAt = beginMeasuredAction('Queue remote collaboration update')
+    const actorId = remoteCollaborationActorInput.trim() || DEFAULT_REMOTE_COLLABORATION_ACTOR
+    const queuedAt = new Date().toISOString()
+    setRemoteCollaborationActorInput(actorId)
+    setRemoteSharedQueuedAt(queuedAt)
+    setStatus(`Remote shared update queued for ${actorId}`)
+    appendCollaborationAudit('collaboration.remote_update_staged', {
+      session_id: collaboration.sessionId,
+      actor: actorId,
+      kind: 'shared',
+      value: remoteCollaborationNoteInput,
+      queued_at: queuedAt,
+    })
+    completeMeasuredAction('Queue remote collaboration update', startedAt)
+  }
+
+  const onQueueRemoteCollaborationView = () => {
+    const startedAt = beginMeasuredAction('Queue remote view update')
+    const actorId = remoteCollaborationActorInput.trim() || DEFAULT_REMOTE_COLLABORATION_ACTOR
+    const queuedAt = new Date().toISOString()
+    setRemoteCollaborationActorInput(actorId)
+    setRemoteViewQueuedAt(queuedAt)
+    setStatus(`Remote view update queued for ${actorId}`)
+    appendCollaborationAudit('collaboration.remote_update_staged', {
+      session_id: collaboration.sessionId,
+      actor: actorId,
+      kind: 'ephemeral',
+      value: remoteCollaborationViewInput,
+      queued_at: queuedAt,
+    })
+    completeMeasuredAction('Queue remote view update', startedAt)
+  }
+
+  const onReconnectCollaboration = () => {
+    const startedAt = beginMeasuredAction('Collaboration reconnect')
+    if (queuedRemoteChanges.length === 0) {
+      setStatus('Queue a remote shared or view update before reconnect.')
+      completeMeasuredAction('Collaboration reconnect', startedAt)
+      return
+    }
+
+    const actorId = collaboration.actorId.trim() || DEFAULT_LOCAL_COLLABORATION_ACTOR
+    const remoteActorId = remoteCollaborationActorInput.trim() || DEFAULT_REMOTE_COLLABORATION_ACTOR
+    const next = simulateReconnectMerge(collaboration, {
+      artifactId: DEFAULT_COLLABORATION_ARTIFACT_ID,
+      remoteActorId,
+      remoteContent: remoteSharedQueuedAt ? remoteCollaborationNoteInput : undefined,
+      remoteViewState: remoteViewQueuedAt ? remoteCollaborationViewInput : undefined,
+    })
+    syncCollaborationSnapshot(next)
+    setRemoteSharedQueuedAt(null)
+    setRemoteViewQueuedAt(null)
+    setStatus(
+      next.conflicts.length > 0
+        ? `Reconnect detected ${next.conflicts.length} pending conflict(s).`
+        : 'Reconnect applied queued collaboration updates without shared-state conflicts.',
+    )
+    appendCollaborationAudit('collaboration.reconnect', {
+      session_id: next.sessionId,
+      actor: actorId,
+      remote_actor: remoteActorId,
+      conflicts_detected: next.conflicts.length,
+      staged_updates: queuedRemoteChanges.map((change) => change.kind),
+    })
+    completeMeasuredAction('Collaboration reconnect', startedAt)
+  }
+
+  const onResolveCollaborationConflict = (
+    resolution: CollaborationConflictResolution,
+    artifactId: string,
+  ) => {
+    const startedAt = beginMeasuredAction('Collaboration conflict resolution')
+    const actorId = collaboration.actorId.trim() || DEFAULT_LOCAL_COLLABORATION_ACTOR
+    const next = resolveReconnectConflict(collaboration, {
+      actorId,
+      artifactId,
+      resolution,
+    })
+    syncCollaborationSnapshot(next)
+    setStatus(`Conflict resolved via ${resolution.replaceAll('_', ' ')}`)
+    appendCollaborationAudit('collaboration.conflict_resolved', {
+      session_id: next.sessionId,
+      actor: actorId,
+      artifact_id: artifactId,
+      resolution,
+    })
+    completeMeasuredAction('Collaboration conflict resolution', startedAt)
   }
 
   const onSubmitAiSummary = () => {
@@ -1345,6 +1616,254 @@ function App() {
                   onChange={(event) => onReplayFrameChange(Number(event.target.value))}
                 />
               </label>
+            </div>
+          )}
+
+          {mode === 'collaboration' && (
+            <div className="sub-panel" data-testid="collaboration-panel">
+              <h3>Collaboration / Reconnect / Replay (I3)</h3>
+              <div className="compare-stack">
+                <div className="compare-form-grid">
+                  <label className="field">
+                    Local Actor
+                    <input
+                      type="text"
+                      value={collaboration.actorId}
+                      onChange={(event) =>
+                        setCollaboration((previous) => ({
+                          ...previous,
+                          actorId: event.target.value,
+                        }))
+                      }
+                    />
+                  </label>
+                  <label className="field">
+                    Remote Actor
+                    <input
+                      type="text"
+                      value={remoteCollaborationActorInput}
+                      onChange={(event) => setRemoteCollaborationActorInput(event.target.value)}
+                    />
+                  </label>
+                  <label className="field">
+                    Shared Note
+                    <textarea
+                      rows={3}
+                      value={collaborationNoteInput}
+                      onChange={(event) => setCollaborationNoteInput(event.target.value)}
+                    />
+                  </label>
+                  <label className="field">
+                    Local View State
+                    <input
+                      type="text"
+                      value={collaborationViewStateInput}
+                      onChange={(event) => setCollaborationViewStateInput(event.target.value)}
+                    />
+                  </label>
+                  <label className="field">
+                    Queued Remote Note
+                    <textarea
+                      rows={3}
+                      value={remoteCollaborationNoteInput}
+                      onChange={(event) => setRemoteCollaborationNoteInput(event.target.value)}
+                    />
+                  </label>
+                  <label className="field">
+                    Queued Remote View State
+                    <input
+                      type="text"
+                      value={remoteCollaborationViewInput}
+                      onChange={(event) => setRemoteCollaborationViewInput(event.target.value)}
+                    />
+                  </label>
+                </div>
+
+                <div className="delta-summary-grid">
+                  <article className="telemetry-card">
+                    <span className="metric-label">Shared note</span>
+                    <strong>{collaborationArtifact?.content || 'none'}</strong>
+                    <p>Last authored by {collaborationArtifact?.modifiedBy ?? 'n/a'}.</p>
+                  </article>
+                  <article className="telemetry-card">
+                    <span className="metric-label">Ephemeral view state</span>
+                    <strong>{collaboration.ephemeralViewState || 'none'}</strong>
+                    <p>Reconnect status: {collaboration.reconnectStatus}.</p>
+                  </article>
+                  <article className="telemetry-card">
+                    <span className="metric-label">Queued remote updates</span>
+                    <strong>{queuedRemoteChanges.length}</strong>
+                    <p>Remote edits stage explicitly before reconnect.</p>
+                  </article>
+                  <article className="telemetry-card">
+                    <span className="metric-label">Replay cursor</span>
+                    <strong>
+                      {collaborationReplayFrame.totalEvents === 0
+                        ? '0 / 0'
+                        : `${collaborationReplayFrame.cursor + 1} / ${collaborationReplayFrame.totalEvents}`}
+                    </strong>
+                    <p>{collaboration.conflicts.length} open conflicts requiring analyst action.</p>
+                  </article>
+                </div>
+
+                <div className="controls">
+                  <button onClick={onApplyLocalCollaborationNote}>Apply Local Shared Update</button>
+                  <button onClick={onApplyLocalCollaborationViewState}>
+                    Apply Local View State
+                  </button>
+                  <button onClick={onQueueRemoteCollaborationNote}>Queue Remote Shared Update</button>
+                  <button onClick={onQueueRemoteCollaborationView}>Queue Remote View State</button>
+                  <button onClick={onReconnectCollaboration}>Reconnect Session</button>
+                </div>
+
+                <div className="overlay-grid">
+                  {queuedRemoteChanges.length === 0 && (
+                    <article className="surface-card compact">
+                      <strong>No queued remote updates</strong>
+                      <p>Queue remote edits to exercise reconnect and conflict handling.</p>
+                    </article>
+                  )}
+                  {queuedRemoteChanges.map((change) => (
+                    <article key={change.changeId} className="surface-card compact">
+                      <div className="card-header compact">
+                        <span className={`artifact-chip ${artifactTone('Curated Context')}`}>
+                          Pending Remote
+                        </span>
+                        <span>{change.kind}</span>
+                      </div>
+                      <strong>{change.actorId}</strong>
+                      <p>
+                        {change.kind}: {change.value || 'empty'}
+                      </p>
+                      <small>Queued at {change.queuedAt}</small>
+                    </article>
+                  ))}
+                </div>
+
+                <div className="overlay-grid">
+                  {collaboration.conflicts.length === 0 && (
+                    <article className="surface-card compact">
+                      <strong>No open conflicts</strong>
+                      <p>
+                        Reconnect highlights authored artifact divergence; ephemeral view state
+                        remains last-write-wins.
+                      </p>
+                    </article>
+                  )}
+                  {collaboration.conflicts.map((conflict) => (
+                    <article key={conflict.artifactId} className="surface-card compact">
+                      <div className="card-header compact">
+                        <span className={`artifact-chip ${artifactTone('Modeled Output')}`}>
+                          Conflict
+                        </span>
+                        <span>{conflict.artifactId}</span>
+                      </div>
+                      <strong>{conflict.remoteActorId}</strong>
+                      <p>
+                        Local: {conflict.localContent || 'empty'} | Remote:{' '}
+                        {conflict.remoteContent || 'empty'}
+                      </p>
+                      <div className="controls compact">
+                        <button
+                          onClick={() =>
+                            onResolveCollaborationConflict('keep_local', conflict.artifactId)
+                          }
+                        >
+                          Keep Local
+                        </button>
+                        <button
+                          onClick={() =>
+                            onResolveCollaborationConflict('keep_remote', conflict.artifactId)
+                          }
+                        >
+                          Keep Remote
+                        </button>
+                        <button
+                          onClick={() =>
+                            onResolveCollaborationConflict('keep_merged', conflict.artifactId)
+                          }
+                        >
+                          Merge Resolution
+                        </button>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+
+                <article className="artifact-callout context">
+                  <div className="card-header compact">
+                    <span className={`artifact-chip ${artifactTone('Observed Evidence')}`}>
+                      Observed Evidence
+                    </span>
+                    <span>Bundle-safe collaboration snapshot</span>
+                  </div>
+                  <p>
+                    Session {collaboration.sessionId} | Bundle reference:{' '}
+                    {selectedBundleId || 'none selected'} | Status {collaboration.reconnectStatus}
+                  </p>
+                  <div className="controls compact">
+                    <button
+                      disabled={
+                        collaborationReplayFrame.totalEvents === 0 || collaborationReplayFrame.cursor === 0
+                      }
+                      onClick={() =>
+                        setCollaboration((previous) =>
+                          setCollaborationReplayCursor(previous, previous.replayCursor - 1),
+                        )
+                      }
+                    >
+                      Previous Event
+                    </button>
+                    <button
+                      disabled={
+                        collaborationReplayFrame.totalEvents === 0 ||
+                        collaborationReplayFrame.cursor >= collaborationReplayFrame.totalEvents - 1
+                      }
+                      onClick={() =>
+                        setCollaboration((previous) =>
+                          setCollaborationReplayCursor(previous, previous.replayCursor + 1),
+                        )
+                      }
+                    >
+                      Next Event
+                    </button>
+                  </div>
+                  {collaborationReplayFrame.totalEvents > 0 && (
+                    <label className="field">
+                      Replay Event
+                      <input
+                        type="range"
+                        min={0}
+                        max={Math.max(collaborationReplayFrame.totalEvents - 1, 0)}
+                        value={collaborationReplayFrame.cursor}
+                        onChange={(event) =>
+                          setCollaboration((previous) =>
+                            setCollaborationReplayCursor(previous, Number(event.target.value)),
+                          )
+                        }
+                      />
+                    </label>
+                  )}
+                  <p className="status-line">{collaborationReplayFrame.summary}</p>
+                  {collaborationReplayFrame.event && (
+                    <p className="status-line">
+                      Event {collaborationReplayFrame.event.eventId} | Type{' '}
+                      {collaborationReplayFrame.event.eventType} | Artifact{' '}
+                      {collaborationReplayFrame.event.artifactId ?? 'n/a'}
+                    </p>
+                  )}
+                  <ul className="finding-list" data-testid="collaboration-replay-list">
+                    {collaboration.eventLog.length === 0 && (
+                      <li>No collaboration events captured yet.</li>
+                    )}
+                    {collaboration.eventLog.map((event) => (
+                      <li key={event.eventId}>
+                        {event.actorId} | {event.eventType}
+                      </li>
+                    ))}
+                  </ul>
+                </article>
+              </div>
             </div>
           )}
 

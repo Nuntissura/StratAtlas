@@ -1,5 +1,6 @@
 import type { UiMode } from '../features/i1/modes'
 import type { CompareStateSnapshot } from '../features/i2/baselineDelta'
+import type { CollaborationStateSnapshot } from '../features/i3/collaboration'
 import type { VersionedQuery } from '../features/i5/queryBuilder'
 import type { ContextDomain } from '../features/i7/contextIntake'
 
@@ -65,6 +66,7 @@ export interface RecorderState {
   query: QueryStateSnapshot
   context: ContextSnapshot
   compare?: CompareStateSnapshot
+  collaboration?: CollaborationStateSnapshot
   selectedBundleId?: string
   savedAt: string
 }

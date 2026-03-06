@@ -15,9 +15,9 @@ Concrete extraction of requirement and primitive obligations this WP must satisf
 
 | Requirement | Level | Section | Description | Target | Status |
 |-------------|-------|---------|-------------|--------|--------|
-| REQ-0300 | MUST | Ãƒâ€šÃ‚Â§13.1 | Baseline vs event delta analysis: at minimum density delta grids | I2 | IMPLEMENTED |
-| REQ-0301 | SHOULD | Ãƒâ€šÃ‚Â§13.1 | Comparative dashboard with context domain time-series overlay | I2 | IMPLEMENTED |
-| REQ-0302 | MUST | Ãƒâ€šÃ‚Â§11.3 | Golden flow: Baseline ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ Delta ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ Snapshot Bundle ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ Briefing Export | I2 | IMPLEMENTED |
+| REQ-0300 | MUST | Ãƒâ€šÃ‚Â§13.1 | Baseline vs event delta analysis: at minimum density delta grids | I2 | E2E-VERIFIED |
+| REQ-0301 | SHOULD | Ãƒâ€šÃ‚Â§13.1 | Comparative dashboard with context domain time-series overlay | I2 | E2E-VERIFIED |
+| REQ-0302 | MUST | Ãƒâ€šÃ‚Â§11.3 | Golden flow: Baseline ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ Delta ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ Snapshot Bundle ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ Briefing Export | I2 | E2E-VERIFIED |
 
 ## Primitive Extraction
 

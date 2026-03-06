@@ -80,6 +80,7 @@ const BUNDLE_ASSET_PATHS = {
   'query-state': 'assets/query_state.json',
   'context-snapshot': 'assets/context_snapshot.json',
   'compare-state': 'assets/compare_state.json',
+  'collaboration-state': 'assets/collaboration_state.json',
   'recorder-state': 'assets/recorder_state.json',
 } as const
 
@@ -144,6 +145,13 @@ const buildBundleAssets = async (
     buildBundleAsset({
       assetId: 'compare-state',
       value: request.state.compare ?? null,
+      marking: request.marking,
+      provenanceRefs: request.provenance_refs,
+      capturedAt,
+    }),
+    buildBundleAsset({
+      assetId: 'collaboration-state',
+      value: request.state.collaboration ?? null,
       marking: request.marking,
       provenanceRefs: request.provenance_refs,
       capturedAt,
@@ -249,6 +257,7 @@ const fallbackOpenBundle = async (bundleId: string, role: string): Promise<OpenB
   const queryState = selected.assets['query-state']
   const contextSnapshot = selected.assets['context-snapshot']
   const compareSnapshot = selected.assets['compare-state']
+  const collaborationSnapshot = selected.assets['collaboration-state']
   const recorderState = selected.assets['recorder-state']
 
   if (!isRecord(recorderState)) {
@@ -267,6 +276,13 @@ const fallbackOpenBundle = async (bundleId: string, role: string): Promise<OpenB
       canonicalize(typeof compareSnapshot === 'undefined' ? null : compareSnapshot)
   ) {
     throw new Error('Recorder state asset does not match compare-state asset')
+  }
+  if (
+    selected.manifest.assets.some((asset) => asset.asset_id === 'collaboration-state') &&
+    canonicalize((recorderState as Record<string, unknown>).collaboration ?? null) !==
+      canonicalize(typeof collaborationSnapshot === 'undefined' ? null : collaborationSnapshot)
+  ) {
+    throw new Error('Recorder state asset does not match collaboration-state asset')
   }
 
   await fallbackAppendAudit({

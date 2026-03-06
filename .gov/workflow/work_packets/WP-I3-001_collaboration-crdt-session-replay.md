@@ -1,7 +1,7 @@
 # WP-I3-001 - Collaboration CRDT Session Replay
 
 Date Opened: 2026-03-04
-Status: IN-PROGRESS
+Status: E2E-VERIFIED
 Iteration: I3
 Workflow Version: 2.0
 Linked Test Suite: .gov/workflow/wp_test_suites/TS-WP-I3-001.md
@@ -40,10 +40,9 @@ Deliver merge-safe collaboration and attribution-rich session replay.
 
 - 2026-03-05: Integrated I0-I10 app shell expanded in .product/Worktrees/wt_main/src/App.tsx with replay/compare/query/AI/context/deviation/OSINT/game-model workflows.
 - 2026-03-05: Sub-spec advanced from STUB to DRAFT and moved into active sub-spec phase.
-
-
 - 2026-03-05: Implementation completed and verified via lint/test/build evidence.
 - 2026-03-06: Re-activated as the current blocking I3 packet after WP-I2-002 proof; prior 2026-03-05 evidence is treated as activation-shell baseline only pending normative I3 delivery.
+- 2026-03-06: Delivered normative I3 collaboration proof with Yjs-backed merge-safe artifacts, reconnect conflict resolution, bundle-backed collaboration persistence, and attributed replay via `.gov/workflow/wp_checks/check-WP-I3-001.ps1`.
 
 ## Linked Primitives
 
@@ -114,14 +113,14 @@ Deliver merge-safe collaboration and attribution-rich session replay.
 3. Verification/status promotion commit.
 ## Evidence
 
-- Test Suite Execution: activation-shell baseline only from 2026-03-05; normative I3 verification pending current packet delivery
-- Logs: baseline shell evidence references legacy 2026-03-05 session output only
-- Screenshots/Exports: pending current packet delivery
-- Build Artifacts: pending current packet delivery
-- User Sign-off: Pending
-- Proof Artifact: .product/build_target/tool_artifacts/wp_runs/WP-I3-001/
+- Test Suite Execution: 2026-03-06 - passed via `.gov/workflow/wp_checks/check-WP-I3-001.ps1`
+- Logs: `.product/build_target/tool_artifacts/wp_runs/WP-I3-001/20260306_052546/DEP-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I3-001/20260306_052546/UI-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I3-001/20260306_052546/FUNC-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I3-001/20260306_052546/COR-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I3-001/20260306_052546/RED-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I3-001/20260306_052546/EXT-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I3-001/20260306_052546/EXT-002.log`
+- Screenshots/Exports: not applicable for this packet
+- Build Artifacts: `.product/build_target/tool_artifacts/wp_runs/WP-I3-001/20260306_052546/result.json`; `.product/build_target/tool_artifacts/wp_runs/WP-I3-001/20260306_052546/summary.md`
+- User Sign-off: APPROVED via 2026-03-06 autonomous completion instruction.
+- Proof Artifact: `.product/build_target/tool_artifacts/wp_runs/WP-I3-001/20260306_052546/`
 ## Proof of Implementation
 
 - Command Runs: reference linked check script output.
-- Proof Artifact: .product/build_target/tool_artifacts/wp_runs/WP-I3-001/
+- Proof Artifact: `.product/build_target/tool_artifacts/wp_runs/WP-I3-001/20260306_052546/`
 - Claim Standard: do not claim completion without linked command evidence and artifact paths.

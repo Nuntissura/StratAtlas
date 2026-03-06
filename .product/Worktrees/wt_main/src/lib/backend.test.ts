@@ -1,6 +1,26 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { backend } from './backend'
 import type { CreateBundleRequest } from '../contracts/i0'
+import {
+  DEFAULT_COLLABORATION_ARTIFACT_ID,
+  createCollaborationSnapshot,
+  setEphemeralViewState,
+  upsertSharedArtifact,
+} from '../features/i3/collaboration'
+
+const buildStoredCollaborationSnapshot = (sharedNote: string, viewState: string) => {
+  let snapshot = createCollaborationSnapshot('collab-main', 'analyst-1')
+  snapshot = upsertSharedArtifact(snapshot, {
+    actorId: 'analyst-1',
+    artifactId: DEFAULT_COLLABORATION_ARTIFACT_ID,
+    content: sharedNote,
+  })
+  snapshot = setEphemeralViewState(snapshot, {
+    actorId: 'analyst-1',
+    viewState,
+  })
+  return snapshot
+}
 
 const request: CreateBundleRequest = {
   role: 'analyst',
@@ -61,6 +81,7 @@ const request: CreateBundleRequest = {
       baselineSeries: [10, 12, 16],
       eventSeries: [8, 18, 20],
     },
+    collaboration: buildStoredCollaborationSnapshot('alpha / bravo', 'zoom-8'),
     selectedBundleId: undefined,
     savedAt: '2026-03-06T00:00:00.000Z',
   },
@@ -89,6 +110,7 @@ describe('backend fallback', () => {
       'query-state',
       'context-snapshot',
       'compare-state',
+      'collaboration-state',
       'recorder-state',
     ])
     expect(reopen.state.workspace.note).toBe('seed state')
@@ -96,6 +118,11 @@ describe('backend fallback', () => {
     expect(reopen.state.query.definition.version).toBe(3)
     expect(reopen.state.context.activeDomainIds).toEqual(['ctx-1'])
     expect(reopen.state.compare?.baselineSeries).toEqual([10, 12, 16])
+    expect(
+      reopen.state.collaboration?.sharedArtifacts.find(
+        (artifact) => artifact.artifactId === DEFAULT_COLLABORATION_ARTIFACT_ID,
+      )?.content,
+    ).toBe('alpha / bravo')
   })
 
   it('loads and saves authoritative recorder state outside bundle reopen', async () => {
@@ -109,6 +136,7 @@ describe('backend fallback', () => {
     expect(restored.state?.query.matchedRowIds).toEqual([2, 4])
     expect(restored.state?.context.correlationAoi).toBe('aoi-1')
     expect(restored.state?.compare?.eventWindow.end).toBe('2026-02-28')
+    expect(restored.state?.collaboration?.ephemeralViewState).toBe('zoom-8')
   })
 
   it('maintains an append-only hash chain in audit events', async () => {

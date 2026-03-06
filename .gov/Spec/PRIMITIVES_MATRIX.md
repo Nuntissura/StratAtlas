@@ -1,4 +1,4 @@
-# StratAtlas - Primitives Matrix
+﻿# StratAtlas - Primitives Matrix
 
 **Spec Version:** v1.2.3  
 **Last Updated:** 2026-03-06  
@@ -29,7 +29,7 @@ PRIM-ID | WP | REQs | Components | Tests | Tech/Tools | Combined With | Verifica
 | PRIM-0009 | WP-I1-001 | REQ-0014..REQ-0016, REQ-0206..REQ-0211 | src/features/i1/performance.ts | src/features/i1/i1.test.ts | TypeScript, Vitest | PRIM-0006 | IMPLEMENTED | 2026-03-05 |
 | PRIM-0010 | WP-I2-001 | REQ-0300, REQ-0301 | src/features/i2/baselineDelta.ts | src/features/i2/i2.test.ts | TypeScript | PRIM-0011 | IMPLEMENTED | 2026-03-05 |
 | PRIM-0011 | WP-I2-001 | REQ-0302 | src/features/i2/baselineDelta.ts | src/features/i2/i2.test.ts | TypeScript | PRIM-0010 | IMPLEMENTED | 2026-03-05 |
-| PRIM-0012 | WP-I3-001 | REQ-0400..REQ-0403 | src/features/i3/collaboration.ts | src/features/i3/i3.test.ts | Yjs, TypeScript | PRIM-0002 | IMPLEMENTED | 2026-03-05 |
+| PRIM-0012 | WP-I3-001 | REQ-0400..REQ-0403 | src/features/i3/collaboration.ts; src/App.tsx; src/lib/backend.ts; src-tauri/src/lib.rs | src/features/i3/i3.test.ts; src/App.test.tsx; src/lib/backend.test.ts | Yjs, React, TypeScript, Rust persistence | PRIM-0002, PRIM-0032, PRIM-0033 | E2E-VERIFIED | 2026-03-06 |
 | PRIM-0013 | WP-I4-001 | REQ-0500..REQ-0504 | src/features/i4/scenarios.ts | src/features/i4/i4.test.ts | TypeScript | PRIM-0019 | IMPLEMENTED | 2026-03-05 |
 | PRIM-0014 | WP-I5-001 | REQ-0600..REQ-0604 | src/features/i5/queryBuilder.ts | src/features/i5/i5.test.ts | TypeScript | PRIM-0016 | IMPLEMENTED | 2026-03-05 |
 | PRIM-0015 | WP-I6-001 | REQ-0700..REQ-0708 | src/features/i6/aiGateway.ts | src/features/i6/i6.test.ts | TypeScript | PRIM-0001, PRIM-0014 | IMPLEMENTED | 2026-03-05 |
@@ -68,6 +68,7 @@ PRIM-ID | WP | REQs | Components | Tests | Tech/Tools | Combined With | Verifica
 | PRIM-0036 | WP-I1-002 | REQ-0011, REQ-0012, REQ-0804, REQ-0805 | src/App.tsx; src/features/i1/layers.ts | src/App.test.tsx; src/features/i1/i1.test.ts | React labels, policy metadata | PRIM-0035, PRIM-0037 | IMPLEMENTED | 2026-03-06 |
 | PRIM-0037 | WP-I1-002 | REQ-0014..REQ-0016, REQ-0202..REQ-0212 | src/features/i1/layers.ts; src/features/i1/performance.ts; src/App.tsx | src/features/i1/i1.test.ts; src/App.test.tsx | Layer registry contracts, performance telemetry, React feedback states | PRIM-0035, PRIM-0036 | IMPLEMENTED | 2026-03-06 |
 
-| PRIM-0038 | WP-I2-002 | REQ-0300, REQ-0302 | src/features/i2/baselineDelta.ts; src/App.tsx; src/lib/backend.ts; src-tauri/src/lib.rs | src/features/i2/i2.test.ts; src/App.test.tsx; src/lib/backend.test.ts | TypeScript analytics, React compare workflow, bundle integrity persistence | PRIM-0039, PRIM-0040 | IMPLEMENTED | 2026-03-06 |
-| PRIM-0039 | WP-I2-002 | REQ-0300, REQ-0301 | src/App.tsx; src/App.css; src/features/i2/baselineDelta.ts | src/App.test.tsx; src/features/i2/i2.test.ts | React compare dashboard, governed context overlay cards | PRIM-0038, PRIM-0040 | IMPLEMENTED | 2026-03-06 |
-| PRIM-0040 | WP-I2-002 | REQ-0302 | src/features/i2/baselineDelta.ts; src/App.tsx; src/lib/backend.ts; src-tauri/src/lib.rs | src/features/i2/i2.test.ts; src/App.test.tsx; src/lib/backend.test.ts | TypeScript briefing artifact builder, React export surface, bundle-linked compare state capture | PRIM-0038, PRIM-0039 | IMPLEMENTED | 2026-03-06 |
+| PRIM-0038 | WP-I2-002 | REQ-0300, REQ-0302 | src/features/i2/baselineDelta.ts; src/App.tsx; src/lib/backend.ts; src-tauri/src/lib.rs | src/features/i2/i2.test.ts; src/App.test.tsx; src/lib/backend.test.ts | TypeScript analytics, React compare workflow, bundle integrity persistence | PRIM-0039, PRIM-0040 | E2E-VERIFIED | 2026-03-06 |
+| PRIM-0039 | WP-I2-002 | REQ-0300, REQ-0301 | src/App.tsx; src/App.css; src/features/i2/baselineDelta.ts | src/App.test.tsx; src/features/i2/i2.test.ts | React compare dashboard, governed context overlay cards | PRIM-0038, PRIM-0040 | E2E-VERIFIED | 2026-03-06 |
+| PRIM-0040 | WP-I2-002 | REQ-0302 | src/features/i2/baselineDelta.ts; src/App.tsx; src/lib/backend.ts; src-tauri/src/lib.rs | src/features/i2/i2.test.ts; src/App.test.tsx; src/lib/backend.test.ts | TypeScript briefing artifact builder, React export surface, bundle-linked compare state capture | PRIM-0038, PRIM-0039 | E2E-VERIFIED | 2026-03-06 |
+
