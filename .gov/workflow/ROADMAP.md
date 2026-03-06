@@ -38,8 +38,8 @@ This file is the execution order for capability slices. It is the scheduling bri
 
 - `WP-GOV-REALIGN-001` is the active governance packet for implementation-reality correction and multi-packet iteration recovery.
 - `WP-I0-002` implemented authoritative recorder/context snapshot hardening on 2026-03-06; proof: `.product/build_target/tool_artifacts/wp_runs/WP-I0-002/20260306_041144/`.
-- `WP-I1-002` is now the current blocking product packet and should close the visible workspace/layer/policy-label gaps before additional normative iteration claims are advanced.
-- Existing I2-I10 activation-shell scaffolds remain useful references, but later-iteration normative delivery is paused until the I0/I1 recovery packets complete.
+- `WP-I1-002` implemented governed workspace surfaces, artifact labeling, and budget/degradation telemetry on 2026-03-06; proof: `.product/build_target/tool_artifacts/wp_runs/WP-I1-002/20260306_044051/`.
+- I0/I1 recovery proof is now in place; later-iteration follow-on packets resume starting with I2 after the next governance checkpoint packet is opened.
 
 ---
 

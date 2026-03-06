@@ -4,7 +4,7 @@ Generated On: 2026-03-06
 Linked Work Packet: WP-I1-002
 Linked Test Suite: .gov/workflow/wp_test_suites/TS-WP-I1-002.md
 Linked WP Check Script: .gov/workflow/wp_checks/check-WP-I1-002.ps1
-WP Status Snapshot: IN-PROGRESS
+WP Status Snapshot: IMPLEMENTED
 Iteration: I1
 
 ## Scope
@@ -40,9 +40,9 @@ Concrete extraction of requirement and primitive obligations this WP must satisf
 
 | Primitive | Name | Contract | REQs | First Iter | Status |
 |-----------|------|----------|------|------------|--------|
-| PRIM-0035 | Workspace Region Surface | Region-oriented shell backed by live persisted workspace data instead of placeholder text | REQ-0200, REQ-0201, REQ-0202 | I1 | SPEC-MAPPED |
-| PRIM-0036 | Artifact Label Contract | Visible Evidence/Context/Model/AI labels with uncertainty text preserved in the workbench surface | REQ-0011, REQ-0012, REQ-0804, REQ-0805 | I1 | SPEC-MAPPED |
-| PRIM-0037 | Layer Catalog and Budget Telemetry | Layer metadata presentation and explicit degraded/progress feedback for state changes and budgets | REQ-0014..REQ-0016, REQ-0202..REQ-0212 | I1 | SPEC-MAPPED |
+| PRIM-0035 | Workspace Region Surface | Region-oriented shell backed by live persisted workspace data instead of placeholder text | REQ-0200, REQ-0201, REQ-0202 | I1 | IMPLEMENTED |
+| PRIM-0036 | Artifact Label Contract | Visible Evidence/Context/Model/AI labels with uncertainty text preserved in the workbench surface | REQ-0011, REQ-0012, REQ-0804, REQ-0805 | I1 | IMPLEMENTED |
+| PRIM-0037 | Layer Catalog and Budget Telemetry | Layer metadata presentation and explicit degraded/progress feedback for state changes and budgets | REQ-0014..REQ-0016, REQ-0202..REQ-0212 | I1 | IMPLEMENTED |
 
 ## Traceability Hooks
 

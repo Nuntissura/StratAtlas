@@ -1,7 +1,7 @@
 # WP-I1-002 - Workspace Surface Layer Catalog and Policy Labeling
 
 Date Opened: 2026-03-06
-Status: IN-PROGRESS
+Status: IMPLEMENTED
 Iteration: I1
 Workflow Version: 3.0
 Linked Test Suite: .gov/workflow/wp_test_suites/TS-WP-I1-002.md
@@ -82,31 +82,31 @@ This packet makes the I1 UI contract tangible enough to support later analytics,
 ## Spec-Test Coverage Plan
 
 ### Dependency and Environment Tests
-- [ ] Dependency graph/lock integrity tests
-- [ ] Runtime compatibility checks
+- [x] Dependency graph/lock integrity tests
+- [x] Runtime compatibility checks
 
 ### UI Contract Tests
-- [ ] Required regions/modes/states
-- [ ] Error/degraded-state UX
+- [x] Required regions/modes/states
+- [x] Error/degraded-state UX
 
 ### Functional Flow Tests
-- [ ] Golden flow and edge cases
-- [ ] Persistence/replay/export flows
+- [x] Golden flow and edge cases
+- [x] Persistence/replay/export flows
 
 ### Code Correctness Tests
-- [ ] Unit tests
-- [ ] Integration tests
-- [ ] Static analysis (lint/type/schema)
+- [x] Unit tests
+- [x] Integration tests
+- [x] Static analysis (lint/type/schema)
 
 ### Red-Team and Abuse Tests
-- [ ] Non-goal enforcement (spec section 3.2)
-- [ ] Policy bypass scenarios
-- [ ] Adversarial/invalid input cases
+- [x] Non-goal enforcement (spec section 3.2)
+- [x] Policy bypass scenarios
+- [x] Adversarial/invalid input cases
 
 ### Additional Tests
-- [ ] Performance budgets
-- [ ] Offline behavior
-- [ ] Reliability/recovery
+- [x] Performance budgets
+- [x] Offline behavior
+- [x] Reliability/recovery
 
 ## Checkpoint Commit Plan
 
@@ -130,14 +130,16 @@ This packet makes the I1 UI contract tangible enough to support later analytics,
 
 ## Evidence
 
-- Test Suite Execution:
-- Logs:
-- Screenshots/Exports:
-- Build Artifacts:
-- Proof Artifact: .product/build_target/tool_artifacts/wp_runs/WP-I1-002/
-- User Sign-off:
+- Test Suite Execution: 2026-03-06 - passed via `.gov/workflow/wp_checks/check-WP-I1-002.ps1`
+- Logs: .product/build_target/tool_artifacts/wp_runs/WP-I1-002/20260306_044051/DEP-001.log; UI-001.log; FUNC-001.log; COR-001.log; RED-001.log; EXT-001.log; EXT-002.log
+- Screenshots/Exports: not applicable for this packet
+- Build Artifacts: .product/build_target/tool_artifacts/wp_runs/WP-I1-002/20260306_044051/result.json; summary.md
+- Proof Artifact: .product/build_target/tool_artifacts/wp_runs/WP-I1-002/20260306_044051/
+- User Sign-off: PENDING
 
 ## Progress Log
 
 - 2026-03-06: WP scaffold created via .gov/repo_scripts/new_work_packet.ps1.
 - 2026-03-06: Packet activated behind `WP-I0-002` as the next I1 recovery step.
+- 2026-03-06: Implemented governed workspace surfaces, layer metadata cards, visible artifact labels, uncertainty callouts, and budget/degradation telemetry in the React shell.
+- 2026-03-06: Verification passed via `.gov/workflow/wp_checks/check-WP-I1-002.ps1`; proof captured under `.product/build_target/tool_artifacts/wp_runs/WP-I1-002/20260306_044051/`.

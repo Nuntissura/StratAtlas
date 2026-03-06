@@ -15,7 +15,14 @@ import type {
 } from './contracts/i0'
 import type { UiMode } from './features/i1/modes'
 import { REQUIRED_UI_MODES } from './features/i1/modes'
-import { I1_BUDGETS, shouldDegradeRendering } from './features/i1/performance'
+import { ARTIFACT_LABELS, artifactTone, buildWorkspaceLayerCatalog } from './features/i1/layers'
+import {
+  I1_BUDGETS,
+  buildBudgetTelemetry,
+  describeStateChangeFeedback,
+  shouldDegradeRendering,
+  type StateChangeFeedback,
+} from './features/i1/performance'
 import { buildBriefingBundle, computeDensityDelta } from './features/i2/baselineDelta'
 import { runQuery, bumpQueryVersion, type VersionedQuery } from './features/i5/queryBuilder'
 import type { QueryCondition, QueryOperator } from './features/i5/queryBuilder'
@@ -35,6 +42,7 @@ import { backend } from './lib/backend'
 const ROLES: UserRole[] = ['viewer', 'analyst', 'administrator', 'auditor']
 const MARKINGS: SensitivityMarking[] = ['PUBLIC', 'INTERNAL', 'RESTRICTED']
 const WORKSPACE_LAYERS = ['base-map', 'context-panel', 'audit-overlay', 'bundle-metadata'] as const
+const WORKSPACE_LAYER_SET = new Set<string>(WORKSPACE_LAYERS)
 const DEFAULT_QUERY: VersionedQuery = {
   queryId: 'query-main',
   version: 1,
@@ -161,7 +169,7 @@ const buildWorkspaceStateSnapshot = ({
   activeLayers,
   replayCursor,
   forcedOffline,
-  uiVersion: 'i0-recorder-hardening',
+  uiVersion: 'i1-workspace-surface',
 })
 
 const buildQueryStateSnapshot = ({
@@ -234,6 +242,9 @@ function App() {
   const [osintEvents, setOsintEvents] = useState<OsintEvent[]>([])
   const [gameAssumption, setGameAssumption] = useState<string>('Supply remains constrained')
   const [hydrated, setHydrated] = useState<boolean>(false)
+  const [stateFeedback, setStateFeedback] = useState<StateChangeFeedback>(() =>
+    describeStateChangeFeedback('Shell ready', 0),
+  )
   const lastSavedFingerprint = useRef<string>('')
 
   const offline = forcedOffline || !navigator.onLine
@@ -264,7 +275,6 @@ function App() {
     () => runQuery(versionedQuery.conditions, queryRows),
     [queryRows, versionedQuery.conditions],
   )
-
   const querySnapshot = useMemo(
     () =>
       buildQueryStateSnapshot({
@@ -335,6 +345,78 @@ function App() {
     [],
   )
 
+  const degradeRendering = shouldDegradeRendering(replayFrameMs)
+  const layerCatalog = useMemo(
+    () =>
+      buildWorkspaceLayerCatalog({
+        activeLayerIds: activeLayers,
+        activeDomainIds,
+        domains,
+        allowRestrictedExport: false,
+        allowedLicenses: ['internal', 'public'],
+        aiSummaryAvailable: Boolean(aiSummary),
+        degradeRendering,
+        modelUncertaintyText: `Payoff range [${payoffProxy.uncertainty[0]}, ${payoffProxy.uncertainty[1]}]`,
+      }),
+    [activeDomainIds, activeLayers, aiSummary, degradeRendering, domains, payoffProxy.uncertainty],
+  )
+  const visibleLayerCatalog = useMemo(
+    () => layerCatalog.filter((entry) => entry.visible),
+    [layerCatalog],
+  )
+  const toggleableLayerCatalog = useMemo(
+    () => layerCatalog.filter((entry) => WORKSPACE_LAYER_SET.has(entry.layerId)),
+    [layerCatalog],
+  )
+  const mainCanvasCatalog = useMemo(
+    () => visibleLayerCatalog.filter((entry) => entry.renderSurface === 'main_canvas'),
+    [visibleLayerCatalog],
+  )
+  const rightPanelCatalog = useMemo(
+    () => visibleLayerCatalog.filter((entry) => entry.renderSurface === 'right_panel'),
+    [visibleLayerCatalog],
+  )
+  const dashboardCatalog = useMemo(
+    () => visibleLayerCatalog.filter((entry) => entry.renderSurface === 'dashboard_widget'),
+    [visibleLayerCatalog],
+  )
+  const contextDomainCatalog = useMemo(
+    () => layerCatalog.filter((entry) => entry.layerId.startsWith('context-')),
+    [layerCatalog],
+  )
+  const contextPanelEntry = useMemo(
+    () => layerCatalog.find((entry) => entry.layerId === 'context-panel'),
+    [layerCatalog],
+  )
+  const modeledOutputEntry = useMemo(
+    () => layerCatalog.find((entry) => entry.layerId === 'modeled-output'),
+    [layerCatalog],
+  )
+  const aiInterpretationEntry = useMemo(
+    () => layerCatalog.find((entry) => entry.layerId === 'ai-interpretation'),
+    [layerCatalog],
+  )
+  const budgetTelemetry = useMemo(
+    () =>
+      buildBudgetTelemetry([
+        {
+          label: 'Pan / zoom frame',
+          measuredMs: replayFrameMs,
+          budgetMs: I1_BUDGETS.panZoomFrameMs,
+        },
+        {
+          label: 'State change feedback',
+          measuredMs: stateFeedback.measuredMs,
+          budgetMs: I1_BUDGETS.stateChangeFeedbackP95Ms,
+        },
+      ]),
+    [replayFrameMs, stateFeedback.measuredMs],
+  )
+  const degradedBudgetCount = useMemo(
+    () => budgetTelemetry.filter((probe) => probe.degraded).length,
+    [budgetTelemetry],
+  )
+
   const recorderStateCore = useMemo(
     () => ({
       workspace: workspaceSnapshot,
@@ -379,6 +461,15 @@ function App() {
     })
   }
 
+  const beginMeasuredAction = (action: string): number => {
+    setStateFeedback(describeStateChangeFeedback(action, 0, true))
+    return performance.now()
+  }
+
+  const completeMeasuredAction = (action: string, startedAt: number): void => {
+    setStateFeedback(describeStateChangeFeedback(action, Math.round(performance.now() - startedAt)))
+  }
+
   const refresh = async (): Promise<void> => {
     const [bundleList, events, head] = await Promise.all([
       backend.listBundles(),
@@ -393,6 +484,7 @@ function App() {
   useEffect(() => {
     let cancelled = false
     const load = async (): Promise<void> => {
+      const startedAt = beginMeasuredAction('Recorder hydration')
       try {
         const [bundleList, events, head, persisted] = await Promise.all([
           backend.listBundles(),
@@ -416,9 +508,11 @@ function App() {
         setBundles(bundleList)
         setAuditEvents(events)
         setAuditHead(head.event_hash ?? '')
+        completeMeasuredAction('Recorder hydration', startedAt)
       } catch (error: unknown) {
         if (!cancelled) {
           setStatus(`Failed to load state: ${String(error)}`)
+          completeMeasuredAction('Recorder hydration', startedAt)
         }
       } finally {
         if (!cancelled) {
@@ -498,6 +592,7 @@ function App() {
   }, [forcedOffline, role])
 
   const onCreateBundle = async () => {
+    const startedAt = beginMeasuredAction('Create bundle')
     setBusy(true)
     setStatus('Creating bundle...')
     try {
@@ -521,8 +616,10 @@ function App() {
       await refresh()
       setStatus(`Bundle ${manifest.bundle_id} created`)
       setIntegrityState('Bundle created; deterministic reopen pending')
+      completeMeasuredAction('Create bundle', startedAt)
     } catch (error) {
       setStatus(`Create failed: ${String(error)}`)
+      completeMeasuredAction('Create bundle', startedAt)
     } finally {
       setBusy(false)
     }
@@ -533,6 +630,7 @@ function App() {
       setStatus('Select a bundle to open')
       return
     }
+    const startedAt = beginMeasuredAction('Open bundle')
     setBusy(true)
     setStatus('Opening bundle...')
     try {
@@ -547,21 +645,44 @@ function App() {
       await refresh()
       setStatus(`Bundle ${result.manifest.bundle_id} reopened`)
       setIntegrityState('Determinism check passed during reopen')
+      completeMeasuredAction('Open bundle', startedAt)
     } catch (error) {
       setStatus(`Open failed: ${String(error)}`)
       setIntegrityState('Determinism check failed')
+      completeMeasuredAction('Open bundle', startedAt)
     } finally {
       setBusy(false)
     }
   }
 
   const toggleLayer = (layer: string) => {
+    const startedAt = beginMeasuredAction('Layer visibility update')
     setActiveLayers((prev) =>
       prev.includes(layer) ? prev.filter((existing) => existing !== layer) : [...prev, layer],
     )
+    completeMeasuredAction('Layer visibility update', startedAt)
+  }
+
+  const onModeChange = (nextMode: UiMode) => {
+    const startedAt = beginMeasuredAction('Workflow mode change')
+    setMode(nextMode)
+    completeMeasuredAction('Workflow mode change', startedAt)
+  }
+
+  const onReplayCursorChange = (nextCursor: number) => {
+    const startedAt = beginMeasuredAction('Replay cursor update')
+    setReplayCursor(nextCursor)
+    completeMeasuredAction('Replay cursor update', startedAt)
+  }
+
+  const onReplayFrameChange = (nextFrameMs: number) => {
+    const startedAt = beginMeasuredAction('Replay budget probe update')
+    setReplayFrameMs(nextFrameMs)
+    completeMeasuredAction('Replay budget probe update', startedAt)
   }
 
   const onToggleForcedOffline = async () => {
+    const startedAt = beginMeasuredAction('Offline mode change')
     const next = !forcedOffline
     setForcedOffline(next)
     try {
@@ -569,14 +690,17 @@ function App() {
         role,
         event_type: 'offline.mode_change',
         payload: { forced_offline: next, navigator_online: navigator.onLine },
-      })
+        })
       await refresh()
+      completeMeasuredAction('Offline mode change', startedAt)
     } catch {
       // No-op in environments without backend persistence.
+      completeMeasuredAction('Offline mode change', startedAt)
     }
   }
 
   const onSaveQueryVersion = () => {
+    const startedAt = beginMeasuredAction('Query version save')
     const next = bumpQueryVersion(versionedQuery)
     setVersionedQuery(next)
     void backend
@@ -590,22 +714,30 @@ function App() {
         },
       })
       .then(() => refresh())
+      .then(() => {
+        completeMeasuredAction('Query version save', startedAt)
+      })
       .catch(() => {
         setStatus('Query version saved locally; audit append unavailable.')
+        completeMeasuredAction('Query version save', startedAt)
       })
   }
 
   const onUpdateQueryThreshold = (threshold: number) => {
+    const startedAt = beginMeasuredAction('Query threshold update')
     setVersionedQuery((previous) => ({
       ...previous,
       conditions: [{ field: 'speed', operator: 'greater_than', value: threshold }],
     }))
+    completeMeasuredAction('Query threshold update', startedAt)
   }
 
   const onSubmitAiSummary = () => {
+    const startedAt = beginMeasuredAction('AI interpretation update')
     const selectedBundle = bundles.find((bundle) => bundle.bundle_id === selectedBundleId)
     if (!selectedBundle) {
       setAiSummary('Select a bundle before AI analysis.')
+      completeMeasuredAction('AI interpretation update', startedAt)
       return
     }
     try {
@@ -623,8 +755,10 @@ function App() {
         ],
       })
       setAiSummary(result.content)
+      completeMeasuredAction('AI interpretation update', startedAt)
     } catch (error) {
       setAiSummary(String(error))
+      completeMeasuredAction('AI interpretation update', startedAt)
     }
   }
 
@@ -633,6 +767,7 @@ function App() {
       setStatus('Context domain registration rejected: missing required metadata.')
       return
     }
+    const startedAt = beginMeasuredAction('Context domain registration')
     const domain = domainDraft
     setDomains((previous) => [domain, ...previous])
     setActiveDomainIds((previous) =>
@@ -651,12 +786,17 @@ function App() {
         },
       })
       .then(() => refresh())
+      .then(() => {
+        completeMeasuredAction('Context domain registration', startedAt)
+      })
       .catch(() => {
         setStatus('Domain registered locally; audit append unavailable.')
+        completeMeasuredAction('Context domain registration', startedAt)
       })
   }
 
   const onToggleDomainSelection = (domainId: string) => {
+    const startedAt = beginMeasuredAction('Context selection change')
     const nextActiveDomainIds = activeDomainIds.includes(domainId)
       ? activeDomainIds.filter((existingId) => existingId !== domainId)
       : [...activeDomainIds, domainId]
@@ -671,12 +811,17 @@ function App() {
         },
       })
       .then(() => refresh())
+      .then(() => {
+        completeMeasuredAction('Context selection change', startedAt)
+      })
       .catch(() => {
         setStatus('Context selection updated locally; audit append unavailable.')
+        completeMeasuredAction('Context selection change', startedAt)
       })
   }
 
   const onPersistCorrelationSelection = () => {
+    const startedAt = beginMeasuredAction('Correlation selection save')
     void backend
       .appendAudit({
         role,
@@ -687,8 +832,12 @@ function App() {
         },
       })
       .then(() => refresh())
+      .then(() => {
+        completeMeasuredAction('Correlation selection save', startedAt)
+      })
       .catch(() => {
         setStatus('Correlation selection updated locally; audit append unavailable.')
+        completeMeasuredAction('Correlation selection save', startedAt)
       })
   }
 
@@ -729,7 +878,7 @@ function App() {
 
       <main className="layout">
         <section className="panel workspace" data-testid="region-left-panel">
-          <h2>Workspace</h2>
+          <h2>Workspace Controls</h2>
           <label className="field">
             Role
             <select value={role} onChange={(event) => setRole(event.target.value as UserRole)}>
@@ -755,7 +904,7 @@ function App() {
           </label>
           <label className="field">
             Mode
-            <select value={mode} onChange={(event) => setMode(event.target.value as UiMode)}>
+            <select value={mode} onChange={(event) => onModeChange(event.target.value as UiMode)}>
               {REQUIRED_UI_MODES.map((currentMode) => (
                 <option key={currentMode} value={currentMode}>
                   {currentMode}
@@ -773,16 +922,28 @@ function App() {
           </label>
 
           <div className="field">
-            Active Layers
-            <div className="checkbox-group">
-              {WORKSPACE_LAYERS.map((layer) => (
-                <label key={layer}>
+            Layer Controls
+            <div className="layer-toggle-grid">
+              {toggleableLayerCatalog.map((entry) => (
+                <label key={entry.layerId} className="toggle-card">
                   <input
                     type="checkbox"
-                    checked={activeLayers.includes(layer)}
-                    onChange={() => toggleLayer(layer)}
+                    aria-label={`Toggle ${entry.title}`}
+                    checked={activeLayers.includes(entry.layerId)}
+                    onChange={() => toggleLayer(entry.layerId)}
                   />
-                  {layer}
+                  <div>
+                    <div className="card-header compact">
+                      <strong>{entry.title}</strong>
+                      <span className={`artifact-chip ${artifactTone(entry.artifactLabel)}`}>
+                        {entry.artifactLabel}
+                      </span>
+                    </div>
+                    <small>
+                      Source: {entry.source} | Cadence: {entry.cadence} | Geometry:{' '}
+                      {entry.geometryType} | Export: {entry.exportAllowed ? 'allowed' : 'blocked'}
+                    </small>
+                  </div>
                 </label>
               ))}
             </div>
@@ -827,20 +988,195 @@ function App() {
           <div className="controls">
             <button onClick={onSubmitAiSummary}>Submit AI Analysis</button>
           </div>
-          <p className="status-line">{aiSummary || 'No AI analysis yet.'}</p>
+          <article className={`artifact-callout ${artifactTone('AI-Derived Interpretation')}`}>
+            <div className="card-header compact">
+              <span className={`artifact-chip ${artifactTone('AI-Derived Interpretation')}`}>
+                {aiInterpretationEntry?.artifactLabel ?? 'AI-Derived Interpretation'}
+              </span>
+              <span>{aiInterpretationEntry?.confidenceText ?? 'Analyst acceptance required'}</span>
+            </div>
+            <p>{aiSummary || 'No AI analysis yet.'}</p>
+            <small>
+              Uncertainty:{' '}
+              {aiInterpretationEntry?.uncertaintyText ?? 'Do not treat as observed evidence.'}
+            </small>
+          </article>
         </section>
 
         <section className="panel map-panel" data-testid="region-main-canvas">
           <h2>Main Canvas and Workflow Surface</h2>
-          <div className="map-placeholder">
-            <p>Current mode: {mode}</p>
-            <p>Layer count: {activeLayers.length}</p>
-            <p>
-              Replay budget {I1_BUDGETS.panZoomFrameMs}ms:
-              {' '}
-              {shouldDegradeRendering(replayFrameMs) ? 'degrade rendering' : 'within budget'}
-            </p>
+          <div className="workspace-surface">
+            <article className="surface-hero" data-testid="workspace-surface-summary">
+              <p className="eyebrow">Persisted workspace surface</p>
+              <div className="card-header">
+                <div>
+                  <h3>{mode} workflow surface</h3>
+                  <p className="status-line">
+                    {visibleLayerCatalog.length} visible governed artifacts across{' '}
+                    {mainCanvasCatalog.length} main-canvas surfaces and {rightPanelCatalog.length}{' '}
+                    right-panel surfaces.
+                  </p>
+                </div>
+                <span
+                  className={`policy-pill ${degradedBudgetCount > 0 ? 'blocked' : 'allowed'}`}
+                >
+                  {degradedBudgetCount > 0 ? 'Aggregation mode active' : 'Within I1 budgets'}
+                </span>
+              </div>
+              <div className="summary-grid">
+                <article>
+                  <span className="metric-label">Replay cursor</span>
+                  <strong>{replayCursor}</strong>
+                </article>
+                <article>
+                  <span className="metric-label">Active layers</span>
+                  <strong>{activeLayers.length}</strong>
+                </article>
+                <article>
+                  <span className="metric-label">Context links</span>
+                  <strong>{activeDomainIds.length}</strong>
+                </article>
+                <article>
+                  <span className="metric-label">Selected bundle</span>
+                  <strong>{selectedBundleId || 'none'}</strong>
+                </article>
+              </div>
+            </article>
+
+            <div className="legend-row" aria-label="Artifact label legend">
+              {ARTIFACT_LABELS.map((label) => (
+                <span key={label} className={`artifact-chip ${artifactTone(label)}`}>
+                  {label}
+                </span>
+              ))}
+            </div>
+
+            <div className="telemetry-grid">
+              {budgetTelemetry.map((probe) => (
+                <article
+                  key={probe.label}
+                  className={`telemetry-card ${probe.degraded ? 'degraded' : ''}`}
+                >
+                  <span className="metric-label">{probe.label}</span>
+                  <strong>
+                    {probe.measuredMs} ms / {probe.budgetMs} ms budget
+                  </strong>
+                  <p>{probe.degraded ? 'Degraded aggregation in effect.' : 'Within budget.'}</p>
+                </article>
+              ))}
+              <article
+                className={`telemetry-card ${stateFeedback.degraded ? 'degraded' : ''}`}
+                data-testid="state-feedback-card"
+              >
+                <span className="metric-label">State feedback</span>
+                <strong>{stateFeedback.action}</strong>
+                <p>{stateFeedback.message}</p>
+                <small>
+                  {stateFeedback.showProgress
+                    ? 'Non-blocking progress visible.'
+                    : 'No blocking progress required.'}
+                </small>
+              </article>
+            </div>
+
+            <div className="surface-grid">
+              {mainCanvasCatalog.length === 0 && (
+                <article className="surface-card">
+                  <strong>No visible main-canvas layers</strong>
+                  <p>Enable a governed layer to populate the workspace surface.</p>
+                </article>
+              )}
+              {mainCanvasCatalog.map((entry) => (
+                <article
+                  key={entry.layerId}
+                  className={`surface-card ${entry.degraded ? 'degraded' : ''}`}
+                >
+                  <div className="card-header">
+                    <div>
+                      <span className={`artifact-chip ${artifactTone(entry.artifactLabel)}`}>
+                        {entry.artifactLabel}
+                      </span>
+                      <h3>{entry.title}</h3>
+                    </div>
+                    <span className={`policy-pill ${entry.exportAllowed ? 'allowed' : 'blocked'}`}>
+                      Export: {entry.exportAllowed ? 'allowed' : 'blocked'}
+                    </span>
+                  </div>
+                  <p>{entry.confidenceText}</p>
+                  {entry.uncertaintyText && (
+                    <p className="uncertainty-line">Uncertainty: {entry.uncertaintyText}</p>
+                  )}
+                  <dl className="meta-grid">
+                    <div>
+                      <dt>Source</dt>
+                      <dd>{entry.source}</dd>
+                    </div>
+                    <div>
+                      <dt>Cadence</dt>
+                      <dd>{entry.cadence}</dd>
+                    </div>
+                    <div>
+                      <dt>Geometry</dt>
+                      <dd>{entry.geometryType}</dd>
+                    </div>
+                    <div>
+                      <dt>Sensitivity</dt>
+                      <dd>{entry.sensitivityClass}</dd>
+                    </div>
+                    <div>
+                      <dt>Cache</dt>
+                      <dd>{entry.cachingPolicy}</dd>
+                    </div>
+                    <div>
+                      <dt>Render surface</dt>
+                      <dd>{entry.renderSurface}</dd>
+                    </div>
+                  </dl>
+                  {entry.degraded && (
+                    <p className="status-line warning">
+                      Aggregation mode active to stay within the {I1_BUDGETS.panZoomFrameMs} ms
+                      frame budget.
+                    </p>
+                  )}
+                </article>
+              ))}
+            </div>
+
+            {dashboardCatalog.length > 0 && (
+              <div className="sub-panel">
+                <h3>Dashboard Widgets</h3>
+                <div className="mini-grid">
+                  {dashboardCatalog.map((entry) => (
+                    <article key={entry.layerId} className="surface-card compact">
+                      <span className={`artifact-chip ${artifactTone(entry.artifactLabel)}`}>
+                        {entry.artifactLabel}
+                      </span>
+                      <strong>{entry.title}</strong>
+                      <small>
+                        Source: {entry.source} | Cadence: {entry.cadence}
+                      </small>
+                    </article>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
+
+          {modeledOutputEntry && (
+            <article className={`artifact-callout ${artifactTone(modeledOutputEntry.artifactLabel)}`}>
+              <div className="card-header compact">
+                <span className={`artifact-chip ${artifactTone(modeledOutputEntry.artifactLabel)}`}>
+                  {modeledOutputEntry.artifactLabel}
+                </span>
+                <span>{modeledOutputEntry.title}</span>
+              </div>
+              <p>
+                Payoff proxy: {payoffProxy.metric} {payoffProxy.value}
+              </p>
+              <p>Compare delta cells: [{densityDelta.delta.join(', ')}]</p>
+              <small>Uncertainty: {modeledOutputEntry.uncertaintyText}</small>
+            </article>
+          )}
 
           {mode === 'replay' && (
             <div className="sub-panel">
@@ -852,7 +1188,7 @@ function App() {
                   min={0}
                   max={100}
                   value={replayCursor}
-                  onChange={(event) => setReplayCursor(Number(event.target.value))}
+                  onChange={(event) => onReplayCursorChange(Number(event.target.value))}
                 />
               </label>
               <label className="field">
@@ -860,7 +1196,7 @@ function App() {
                 <input
                   type="number"
                   value={replayFrameMs}
-                  onChange={(event) => setReplayFrameMs(Number(event.target.value))}
+                  onChange={(event) => onReplayFrameChange(Number(event.target.value))}
                 />
               </label>
             </div>
@@ -963,6 +1299,21 @@ function App() {
         <section className="panel audit-panel" data-testid="region-right-panel">
           <h2>Governance, Context, and Audit</h2>
           <p>Current head hash: {auditHead || 'n/a'}</p>
+          {contextPanelEntry && (
+            <article className={`artifact-callout ${artifactTone(contextPanelEntry.artifactLabel)}`}>
+              <div className="card-header compact">
+                <span className={`artifact-chip ${artifactTone(contextPanelEntry.artifactLabel)}`}>
+                  {contextPanelEntry.artifactLabel}
+                </span>
+                <span>{contextPanelEntry.title}</span>
+              </div>
+              <p>{contextPanelEntry.confidenceText}</p>
+              <small>
+                Render surface: {contextPanelEntry.renderSurface} | Export:{' '}
+                {contextPanelEntry.exportAllowed ? 'allowed' : 'blocked'}
+              </small>
+            </article>
+          )}
 
           <h3>Context Intake (I7)</h3>
           <label className="field">
@@ -1007,19 +1358,64 @@ function App() {
           <p className="status-line">
             Active context domains: {activeDomainIds.length} | Correlation AOI: {correlationAoi}
           </p>
-          <div className="bundle-list">
+          <div className="context-card-list">
             {domains.length === 0 && <p>No context domains registered.</p>}
-            {domains.map((domain) => (
-              <label key={domain.domain_id} className="bundle-item">
-                <input
-                  type="checkbox"
-                  checked={activeDomainIds.includes(domain.domain_id)}
-                  onChange={() => onToggleDomainSelection(domain.domain_id)}
-                />
-                <span>{domain.domain_name}</span>
-                <small>{domain.domain_class}</small>
-              </label>
-            ))}
+            {domains.map((domain) => {
+              const catalogEntry = contextDomainCatalog.find(
+                (entry) => entry.layerId === `context-${domain.domain_id}`,
+              )
+              return (
+                <article key={domain.domain_id} className="context-card">
+                  <div className="card-header">
+                    <label className="context-selector">
+                      <input
+                        type="checkbox"
+                        checked={activeDomainIds.includes(domain.domain_id)}
+                        onChange={() => onToggleDomainSelection(domain.domain_id)}
+                      />
+                      <strong>{domain.domain_name}</strong>
+                    </label>
+                    <span
+                      className={`artifact-chip ${artifactTone(
+                        catalogEntry?.artifactLabel ?? 'Curated Context',
+                      )}`}
+                    >
+                      {catalogEntry?.artifactLabel ?? 'Curated Context'}
+                    </span>
+                  </div>
+                  <p className="status-line">
+                    {domain.domain_class} | Presentation: {domain.presentation_type}
+                  </p>
+                  <dl className="meta-grid">
+                    <div>
+                      <dt>Source</dt>
+                      <dd>{domain.source_name}</dd>
+                    </div>
+                    <div>
+                      <dt>Cadence</dt>
+                      <dd>{domain.update_cadence}</dd>
+                    </div>
+                    <div>
+                      <dt>Confidence</dt>
+                      <dd>{domain.confidence_baseline}</dd>
+                    </div>
+                    <div>
+                      <dt>Render surface</dt>
+                      <dd>{catalogEntry?.renderSurface ?? 'main_canvas'}</dd>
+                    </div>
+                    <div>
+                      <dt>License</dt>
+                      <dd>{domain.license}</dd>
+                    </div>
+                    <div>
+                      <dt>Export</dt>
+                      <dd>{catalogEntry?.exportAllowed ? 'allowed' : 'blocked'}</dd>
+                    </div>
+                  </dl>
+                  <small>{domain.methodology_notes}</small>
+                </article>
+              )
+            })}
           </div>
 
           <h3>OSINT Aggregation (I9)</h3>
@@ -1098,7 +1494,7 @@ function App() {
       <footer className="panel footer-panel" data-testid="region-bottom-panel">
         <strong>Bottom Panel</strong>
         <span>
-          {`Mode=${mode} | Connectivity=${offline ? 'offline' : 'online'} | Audit events=${auditEvents.length} | Query matches=${queryResult.length}`}
+          {`Mode=${mode} | Connectivity=${offline ? 'offline' : 'online'} | Audit events=${auditEvents.length} | Query matches=${queryResult.length} | Degraded budgets=${degradedBudgetCount}`}
         </span>
       </footer>
     </div>
