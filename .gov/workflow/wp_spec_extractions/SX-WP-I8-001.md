@@ -15,11 +15,11 @@ Concrete extraction of requirement and primitive obligations this WP must satisf
 
 | Requirement | Level | Section | Description | Target | Status |
 |-------------|-------|---------|-------------|--------|--------|
-| REQ-0900 | SHOULD | ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§13.5 | Trade flow deviation detection vs historical baseline | I8 | IN-PROGRESS |
-| REQ-0901 | SHOULD | ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§13.5 | Infrastructure status deviation detection | I8 | IN-PROGRESS |
-| REQ-0902 | SHOULD | ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§13.5 | Regulatory regime change detection for active AOIs | I8 | IN-PROGRESS |
-| REQ-0903 | MUST | ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§13.5 | Deviation events emitted through standard Event model with context.deviation taxonomy | I8 | IN-PROGRESS |
-| REQ-0904 | MUST | ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§7.4.7 | constraint_node domains available in Scenario Workspace | I8 | IN-PROGRESS |
+| REQ-0900 | SHOULD | Ãƒâ€šÃ‚Â§13.5 | Trade flow deviation detection vs historical baseline | I8 | IN-PROGRESS |
+| REQ-0901 | SHOULD | Ãƒâ€šÃ‚Â§13.5 | Infrastructure status deviation detection | I8 | IN-PROGRESS |
+| REQ-0902 | SHOULD | Ãƒâ€šÃ‚Â§13.5 | Regulatory regime change detection for active AOIs | I8 | IN-PROGRESS |
+| REQ-0903 | MUST | Ãƒâ€šÃ‚Â§13.5 | Deviation events emitted through standard Event model with context.deviation taxonomy | I8 | IN-PROGRESS |
+| REQ-0904 | MUST | Ãƒâ€šÃ‚Â§7.4.7 | constraint_node domains available in Scenario Workspace | I8 | IN-PROGRESS |
 
 ## Primitive Extraction
 

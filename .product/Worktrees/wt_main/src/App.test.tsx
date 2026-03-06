@@ -22,6 +22,7 @@ import {
   buildSavedQueryArtifact,
   type VersionedQuery,
 } from './features/i5/queryBuilder'
+import type { AiGatewaySnapshot } from './features/i6/aiGateway'
 import { backend } from './lib/backend'
 
 const buildStoredCollaborationSnapshot = (sharedNote: string, viewState: string) => {
@@ -151,6 +152,48 @@ const buildStoredQueryState = ({
   }
 }
 
+const buildStoredAiSnapshot = (): AiGatewaySnapshot => ({
+  deploymentProfile: 'restricted',
+  latestAnalysis: {
+    artifactId: 'ai-interpretation-hydrated',
+    bundleId: 'bundle-hydrated',
+    label: 'AI-Derived Interpretation' as const,
+    marking: 'INTERNAL' as const,
+    refs: [
+      {
+        bundle_id: 'bundle-hydrated',
+        asset_id: 'workspace-state',
+        sha256: 'hash-workspace',
+        marking: 'INTERNAL' as const,
+        licenses: ['internal'],
+        sourceSummary: 'workspace.session',
+      },
+    ],
+    citations: ['bundle-hydrated / workspace-state / hash-workspace'],
+    prompt: 'Hydrated AI prompt',
+    content: 'Hydrated AI summary',
+    generatedAt: '2026-03-06T00:25:00.000Z',
+    confidenceText: 'Derived interpretation; analyst validation required',
+    uncertaintyText: 'Inference only; do not treat as observed evidence.',
+    lineage: ['gateway:restricted', 'refs:1'],
+  },
+  latestMcpInvocation: {
+    invocationId: 'mcp-hydrated',
+    toolName: 'get_bundle_manifest' as const,
+    status: 'allowed' as const,
+    summary: 'Hydrated MCP summary',
+    bundleRefs: [
+      {
+        bundle_id: 'bundle-hydrated',
+        asset_id: 'workspace-state',
+        sha256: 'hash-workspace',
+      },
+    ],
+    invokedAt: '2026-03-06T00:26:00.000Z',
+    resultPreview: 'Hydrated MCP summary',
+  },
+})
+
 describe('App', () => {
   beforeEach(() => {
     localStorage.clear()
@@ -223,6 +266,7 @@ describe('App', () => {
         },
         collaboration: buildStoredCollaborationSnapshot('Hydrated shared note', 'zoom-6'),
         scenario: buildStoredScenarioSnapshot(),
+        ai: buildStoredAiSnapshot(),
         selectedBundleId: undefined,
         savedAt: '2026-03-06T00:00:00.000Z',
       },
@@ -234,6 +278,11 @@ describe('App', () => {
     expect(within(screen.getByTestId('region-header')).getByText('Query v4')).toBeInTheDocument()
     expect(screen.getByText('Active context domains: 1 | Correlation AOI: aoi-7')).toBeInTheDocument()
     expect(screen.getByText('OFFLINE')).toBeInTheDocument()
+    expect(screen.getByLabelText('Deployment Profile')).toHaveValue('restricted')
+    expect(within(screen.getByTestId('ai-analysis-card')).getByText('Hydrated AI summary')).toBeInTheDocument()
+    expect(
+      within(screen.getByTestId('mcp-result-card')).getAllByText('Hydrated MCP summary').length,
+    ).toBeGreaterThan(0)
 
     await user.selectOptions(screen.getByLabelText('Mode'), 'compare')
     expect(await screen.findByDisplayValue('2026-Q1 baseline')).toBeInTheDocument()
@@ -301,6 +350,36 @@ describe('App', () => {
     expect(artifactScope.getByText(/saved-query-query-/)).toBeInTheDocument()
     expect(within(screen.getByTestId('region-header')).getByText('Query v2')).toBeInTheDocument()
     expect(artifactScope.getByText(/Port surge watch v1/)).toBeInTheDocument()
+  })
+
+  it('runs governed AI analysis and MCP tool workflow with audited refs', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.click(screen.getByRole('button', { name: 'Create Bundle' }))
+    expect(await screen.findByText(/Bundle .* created/)).toBeInTheDocument()
+
+    await user.selectOptions(screen.getByLabelText('Deployment Profile'), 'connected')
+    await user.clear(screen.getByLabelText('Prompt'))
+    await user.type(screen.getByLabelText('Prompt'), 'Summarize governed evidence only.')
+    await user.click(screen.getByRole('button', { name: 'Submit AI Analysis' }))
+
+    const aiCard = await screen.findByTestId('ai-analysis-card')
+    const aiScope = within(aiCard)
+    expect(aiScope.getByText(/ai-interpretation-/)).toBeInTheDocument()
+    expect(aiScope.getByText(/workspace-state/)).toBeInTheDocument()
+
+    await user.selectOptions(screen.getByLabelText('MCP Tool'), 'get_bundle_manifest')
+    await user.click(screen.getByRole('button', { name: 'Run MCP Tool' }))
+
+    const mcpCard = await screen.findByTestId('mcp-result-card')
+    const mcpScope = within(mcpCard)
+    expect(mcpScope.getByText('get_bundle_manifest')).toBeInTheDocument()
+    expect(mcpScope.getAllByText(/governed manifest/).length).toBeGreaterThan(0)
+    expect(mcpScope.queryByText(/assets\/workspace_state\.json/)).not.toBeInTheDocument()
+
+    expect(await screen.findByText('ai.gateway.submit')).toBeInTheDocument()
+    expect(await screen.findByText('mcp.tool_invoked')).toBeInTheDocument()
   })
 
   it('prepares a briefing artifact from compare mode with bundle and context overlays', async () => {

@@ -15,10 +15,10 @@ Concrete extraction of requirement and primitive obligations this WP must satisf
 
 | Requirement | Level | Section | Description | Target | Status |
 |-------------|-------|---------|-------------|--------|--------|
-| REQ-0400 | MUST | ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§10.2 | Analyst-authored artifacts use merge-safe semantics (CRDT or equivalent) | I3 | E2E-VERIFIED |
-| REQ-0401 | MAY | ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§10.2 | Last-write-wins only for ephemeral view state | I3 | E2E-VERIFIED |
-| REQ-0402 | MUST | ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§10.2 | Session replay derived from event log; attribution mandatory | I3 | E2E-VERIFIED |
-| REQ-0403 | MUST | ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§10.3 | On reconnection: conflict highlighting, reconcile actions, full history with attribution | I3 | E2E-VERIFIED |
+| REQ-0400 | MUST | Ãƒâ€šÃ‚Â§10.2 | Analyst-authored artifacts use merge-safe semantics (CRDT or equivalent) | I3 | E2E-VERIFIED |
+| REQ-0401 | MAY | Ãƒâ€šÃ‚Â§10.2 | Last-write-wins only for ephemeral view state | I3 | E2E-VERIFIED |
+| REQ-0402 | MUST | Ãƒâ€šÃ‚Â§10.2 | Session replay derived from event log; attribution mandatory | I3 | E2E-VERIFIED |
+| REQ-0403 | MUST | Ãƒâ€šÃ‚Â§10.3 | On reconnection: conflict highlighting, reconcile actions, full history with attribution | I3 | E2E-VERIFIED |
 
 ## Primitive Extraction
 

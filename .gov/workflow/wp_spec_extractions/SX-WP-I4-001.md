@@ -15,11 +15,11 @@ Concrete extraction of requirement and primitive obligations this WP must satisf
 
 | Requirement | Level | Section | Description | Target | Status |
 |-------------|-------|---------|-------------|--------|--------|
-| REQ-0500 | MUST | ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§14 | Scenario forks linked to parent snapshots | I4 | E2E-VERIFIED |
-| REQ-0501 | MUST | ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§14 | Constraint manipulation in scenario forks | I4 | E2E-VERIFIED |
-| REQ-0502 | MUST | ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§14 | Hypothetical entities in scenario forks | I4 | E2E-VERIFIED |
-| REQ-0503 | MUST | ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§14 | Scenario comparison and export | I4 | E2E-VERIFIED |
-| REQ-0504 | MUST | ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§11.3 | Golden flow: Fork ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ Modify Constraints ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ Compare ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ Export Scenario Bundle | I4 | E2E-VERIFIED |
+| REQ-0500 | MUST | Ãƒâ€šÃ‚Â§14 | Scenario forks linked to parent snapshots | I4 | E2E-VERIFIED |
+| REQ-0501 | MUST | Ãƒâ€šÃ‚Â§14 | Constraint manipulation in scenario forks | I4 | E2E-VERIFIED |
+| REQ-0502 | MUST | Ãƒâ€šÃ‚Â§14 | Hypothetical entities in scenario forks | I4 | E2E-VERIFIED |
+| REQ-0503 | MUST | Ãƒâ€šÃ‚Â§14 | Scenario comparison and export | I4 | E2E-VERIFIED |
+| REQ-0504 | MUST | Ãƒâ€šÃ‚Â§11.3 | Golden flow: Fork ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ Modify Constraints ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ Compare ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ Export Scenario Bundle | I4 | E2E-VERIFIED |
 
 ## Primitive Extraction
 

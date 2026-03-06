@@ -15,11 +15,11 @@ Concrete extraction of requirement and primitive obligations this WP must satisf
 
 | Requirement | Level | Section | Description | Target | Status |
 |-------------|-------|---------|-------------|--------|--------|
-| REQ-0600 | MUST | ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§13.2 | Composable spatio-temporal query builder | I5 | E2E-VERIFIED |
-| REQ-0601 | MUST | ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§13.2 | Query results render as ephemeral layers | I5 | E2E-VERIFIED |
-| REQ-0602 | MUST | ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§13.2 | Saved queries version-controlled | I5 | E2E-VERIFIED |
-| REQ-0603 | SHOULD | ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§13.2 | Context-aware queries combining geospatial + context domain conditions | I5 | E2E-VERIFIED |
-| REQ-0604 | MUST | ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§11.3 | Golden flow: Query Builder ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ Run ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ Render ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ Save/version | I5 | E2E-VERIFIED |
+| REQ-0600 | MUST | Ãƒâ€šÃ‚Â§13.2 | Composable spatio-temporal query builder | I5 | E2E-VERIFIED |
+| REQ-0601 | MUST | Ãƒâ€šÃ‚Â§13.2 | Query results render as ephemeral layers | I5 | E2E-VERIFIED |
+| REQ-0602 | MUST | Ãƒâ€šÃ‚Â§13.2 | Saved queries version-controlled | I5 | E2E-VERIFIED |
+| REQ-0603 | SHOULD | Ãƒâ€šÃ‚Â§13.2 | Context-aware queries combining geospatial + context domain conditions | I5 | E2E-VERIFIED |
+| REQ-0604 | MUST | Ãƒâ€šÃ‚Â§11.3 | Golden flow: Query Builder ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ Run ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ Render ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ Save/version | I5 | E2E-VERIFIED |
 
 ## Primitive Extraction
 

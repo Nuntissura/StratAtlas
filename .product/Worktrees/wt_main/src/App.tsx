@@ -15,7 +15,12 @@ import type {
 } from './contracts/i0'
 import type { UiMode } from './features/i1/modes'
 import { REQUIRED_UI_MODES } from './features/i1/modes'
-import { ARTIFACT_LABELS, artifactTone, buildWorkspaceLayerCatalog } from './features/i1/layers'
+import {
+  ARTIFACT_LABELS,
+  artifactTone,
+  buildWorkspaceLayerCatalog,
+  type LayerCatalogEntry,
+} from './features/i1/layers'
 import {
   I1_BUDGETS,
   buildBudgetTelemetry,
@@ -75,7 +80,20 @@ import {
   type SavedQueryArtifact,
   type VersionedQuery,
 } from './features/i5/queryBuilder'
-import { submitAiAnalysis } from './features/i6/aiGateway'
+import {
+  DEPLOYMENT_PROFILES,
+  MCP_MINIMUM_TOOLS,
+  collectEvidenceRefs,
+  evaluateAiGatewayPolicy,
+  executeMcpTool,
+  normalizeAiGatewaySnapshot,
+  submitAiAnalysis,
+  type AiGatewayArtifact,
+  type AiGatewaySnapshot,
+  type DeploymentProfileId,
+  type McpInvocationRecord,
+  type McpToolName,
+} from './features/i6/aiGateway'
 import { validateDomainRegistration, type ContextDomain } from './features/i7/contextIntake'
 import { detectDeviation, type DeviationEvent } from './features/i8/deviation'
 import {
@@ -139,6 +157,8 @@ const DEFAULT_QUERY_SCOPE: QueryConditionScope = 'geospatial'
 const DEFAULT_QUERY_FIELD = 'speed'
 const DEFAULT_QUERY_OPERATOR: QueryOperator = 'greater_than'
 const DEFAULT_QUERY_VALUE = '20'
+const DEFAULT_DEPLOYMENT_PROFILE: DeploymentProfileId = 'connected'
+const DEFAULT_MCP_TOOL: McpToolName = 'get_bundle_manifest'
 const QUERY_OPERATORS: QueryOperator[] = ['equals', 'greater_than', 'less_than', 'contains']
 
 const modeLabel = (forcedOffline: boolean): string =>
@@ -420,6 +440,20 @@ const buildContextSnapshot = ({
   correlationAoi,
 })
 
+const buildAiSnapshot = ({
+  deploymentProfile,
+  latestAnalysis,
+  latestMcpInvocation,
+}: {
+  deploymentProfile: DeploymentProfileId
+  latestAnalysis?: AiGatewayArtifact
+  latestMcpInvocation?: McpInvocationRecord
+}): AiGatewaySnapshot => ({
+  deploymentProfile,
+  latestAnalysis,
+  latestMcpInvocation,
+})
+
 const createDefaultCollaborationSnapshot = (): CollaborationStateSnapshot =>
   createCollaborationSnapshot(
     DEFAULT_COLLABORATION_SESSION_ID,
@@ -469,6 +503,15 @@ function App() {
   const [savedQueryVersions, setSavedQueryVersions] = useState<VersionedQuery[]>([])
   const [queryRenderLayer, setQueryRenderLayer] = useState<QueryRenderLayer | undefined>(undefined)
   const [savedQueryArtifact, setSavedQueryArtifact] = useState<SavedQueryArtifact | undefined>(
+    undefined,
+  )
+  const [deploymentProfileId, setDeploymentProfileId] =
+    useState<DeploymentProfileId>(DEFAULT_DEPLOYMENT_PROFILE)
+  const [selectedMcpTool, setSelectedMcpTool] = useState<McpToolName>(DEFAULT_MCP_TOOL)
+  const [latestAiArtifact, setLatestAiArtifact] = useState<AiGatewayArtifact | undefined>(
+    undefined,
+  )
+  const [latestMcpInvocation, setLatestMcpInvocation] = useState<McpInvocationRecord | undefined>(
     undefined,
   )
   const [aiPrompt, setAiPrompt] = useState<string>('Summarize this selected bundle.')
@@ -745,11 +788,18 @@ function App() {
         domains,
         allowRestrictedExport: false,
         allowedLicenses: ['internal', 'public'],
-        aiSummaryAvailable: Boolean(aiSummary),
+        aiSummaryAvailable: Boolean(latestAiArtifact),
         degradeRendering,
         modelUncertaintyText: `Payoff range [${payoffProxy.uncertainty[0]}, ${payoffProxy.uncertainty[1]}]`,
       }),
-    [activeDomainIds, activeLayers, aiSummary, degradeRendering, domains, payoffProxy.uncertainty],
+    [
+      activeDomainIds,
+      activeLayers,
+      degradeRendering,
+      domains,
+      latestAiArtifact,
+      payoffProxy.uncertainty,
+    ],
   )
   const visibleLayerCatalog = useMemo(
     () => layerCatalog.filter((entry) => entry.visible),
@@ -787,6 +837,34 @@ function App() {
     () => layerCatalog.find((entry) => entry.layerId === 'ai-interpretation'),
     [layerCatalog],
   )
+  const selectedBundle = useMemo(
+    () => bundles.find((bundle) => bundle.bundle_id === selectedBundleId),
+    [bundles, selectedBundleId],
+  )
+  const aiEvidenceRefs = useMemo(
+    () => (selectedBundle ? collectEvidenceRefs(selectedBundle) : []),
+    [selectedBundle],
+  )
+  const aiPolicy = useMemo(
+    () =>
+      evaluateAiGatewayPolicy({
+        role,
+        marking,
+        offline,
+        deploymentProfile: deploymentProfileId,
+        refs: aiEvidenceRefs,
+      }),
+    [aiEvidenceRefs, deploymentProfileId, marking, offline, role],
+  )
+  const aiSnapshot = useMemo(
+    () =>
+      buildAiSnapshot({
+        deploymentProfile: deploymentProfileId,
+        latestAnalysis: latestAiArtifact,
+        latestMcpInvocation,
+      }),
+    [deploymentProfileId, latestAiArtifact, latestMcpInvocation],
+  )
   const budgetTelemetry = useMemo(
     () =>
       buildBudgetTelemetry([
@@ -816,9 +894,11 @@ function App() {
       compare: compareSnapshot,
       collaboration,
       scenario,
+      ai: aiSnapshot,
       selectedBundleId: selectedBundleId || undefined,
     }),
     [
+      aiSnapshot,
       collaboration,
       compareSnapshot,
       contextSnapshot,
@@ -841,6 +921,7 @@ function App() {
       DEFAULT_LOCAL_COLLABORATION_ACTOR,
     )
     const scenarioState = normalizeScenarioState(state.scenario)
+    const aiState = normalizeAiGatewaySnapshot(state.ai)
     const restoredQueryDefinition = normalizeVersionedQuery(query.definition)
     const restoredDomains = normalizeDomains(context.domains)
     const restoredActiveDomainIds = normalizeStringArray(context.activeDomainIds).filter((domainId) =>
@@ -898,6 +979,11 @@ function App() {
       setSavedQueryVersions(normalizeSavedQueryVersions(query.savedVersions))
       setQueryRenderLayer(normalizeQueryRenderLayer(query.renderLayer))
       setSavedQueryArtifact(normalizeSavedQueryArtifact(query.savedArtifact))
+      setDeploymentProfileId(aiState.deploymentProfile)
+      setLatestAiArtifact(aiState.latestAnalysis)
+      setLatestMcpInvocation(aiState.latestMcpInvocation)
+      setAiSummary(aiState.latestAnalysis?.content ?? '')
+      setSelectedMcpTool(DEFAULT_MCP_TOOL)
       setDomains(restoredDomains)
       setActiveDomainIds(restoredActiveDomainIds)
       setCorrelationAoi(
@@ -956,6 +1042,7 @@ function App() {
             compare: persisted.state.compare,
             collaboration: persisted.state.collaboration,
             scenario: persisted.state.scenario,
+            ai: persisted.state.ai,
             selectedBundleId: persisted.state.selectedBundleId,
           })
           setStatus('Recorder state restored')
@@ -1009,6 +1096,7 @@ function App() {
             compare: savedState.compare,
             collaboration: savedState.collaboration,
             scenario: savedState.scenario,
+            ai: savedState.ai,
             selectedBundleId: savedState.selectedBundleId,
           })
         }
@@ -1113,6 +1201,7 @@ function App() {
         compare: result.state.compare,
         collaboration: result.state.collaboration,
         scenario: result.state.scenario,
+        ai: result.state.ai,
         selectedBundleId: result.manifest.bundle_id,
       })
       await refresh()
@@ -1654,33 +1743,187 @@ function App() {
     completeMeasuredAction('Scenario export', startedAt)
   }
 
+  const appendAiAudit = (
+    eventType: string,
+    payload: Record<string, unknown>,
+  ): void => {
+    void backend
+      .appendAudit({
+        role,
+        event_type: eventType,
+        payload,
+      })
+      .then(() => refresh())
+      .catch(() => {
+        // Keep AI gateway actions locally usable when audit persistence is unavailable.
+      })
+  }
+
   const onSubmitAiSummary = () => {
     const startedAt = beginMeasuredAction('AI interpretation update')
-    const selectedBundle = bundles.find((bundle) => bundle.bundle_id === selectedBundleId)
     if (!selectedBundle) {
-      setAiSummary('Select a bundle before AI analysis.')
+      const message = 'Select a bundle before AI analysis.'
+      setAiSummary(message)
+      setStatus(message)
+      appendAiAudit('ai.gateway.submit', {
+        status: 'denied',
+        reason: 'missing_bundle',
+        deployment_profile: deploymentProfileId,
+      })
       completeMeasuredAction('AI interpretation update', startedAt)
       return
     }
+
     try {
-      const firstAsset = selectedBundle.assets[0]
       const result = submitAiAnalysis({
         role,
-        allowed: !offline,
+        marking,
+        deploymentProfile: deploymentProfileId,
+        allowed: aiPolicy.analysisAllowed,
         prompt: aiPrompt,
-        refs: [
-          {
-            bundle_id: selectedBundle.bundle_id,
-            asset_id: firstAsset?.asset_id ?? 'workspace-state',
-            sha256: firstAsset?.sha256 ?? selectedBundle.ui_state_hash,
-          },
-        ],
+        refs: aiEvidenceRefs,
       })
+      setLatestAiArtifact(result)
       setAiSummary(result.content)
+      setStatus(`AI gateway produced ${result.artifactId}`)
+      appendAiAudit('ai.gateway.submit', {
+        status: 'allowed',
+        bundle_id: selectedBundle.bundle_id,
+        deployment_profile: deploymentProfileId,
+        artifact_id: result.artifactId,
+        marking: result.marking,
+        ref_count: result.refs.length,
+        citations: result.citations,
+      })
       completeMeasuredAction('AI interpretation update', startedAt)
     } catch (error) {
-      setAiSummary(String(error))
+      const message = String(error)
+      setAiSummary(message)
+      setStatus(message)
+      appendAiAudit('ai.gateway.submit', {
+        status: 'denied',
+        bundle_id: selectedBundle.bundle_id,
+        deployment_profile: deploymentProfileId,
+        reason: message,
+        ref_count: aiEvidenceRefs.length,
+      })
       completeMeasuredAction('AI interpretation update', startedAt)
+    }
+  }
+
+  const onRunMcpTool = () => {
+    const startedAt = beginMeasuredAction('MCP tool invocation')
+    if (!selectedBundle) {
+      const message = 'Select a bundle before running MCP tools.'
+      setStatus(message)
+      setLatestMcpInvocation({
+        invocationId: `mcp-denied-${Date.now()}`,
+        toolName: selectedMcpTool,
+        status: 'denied',
+        summary: message,
+        bundleRefs: [],
+        invokedAt: new Date().toISOString(),
+        resultPreview: message,
+      })
+      void backend
+        .appendAudit({
+          role,
+          event_type: 'mcp.tool_invoked',
+          payload: {
+            status: 'denied',
+            tool_name: selectedMcpTool,
+            reason: 'missing_bundle',
+            deployment_profile: deploymentProfileId,
+          },
+        })
+        .then(() => refresh())
+        .catch(() => {
+          // Keep MCP tool execution locally usable when audit persistence is unavailable.
+        })
+      completeMeasuredAction('MCP tool invocation', startedAt)
+      return
+    }
+
+    const bundleRefs = aiEvidenceRefs.map((ref) => ({
+      bundle_id: ref.bundle_id,
+      asset_id: ref.asset_id,
+      sha256: ref.sha256,
+    }))
+    const policy = evaluateAiGatewayPolicy({
+      role,
+      marking,
+      offline,
+      deploymentProfile: deploymentProfileId,
+      refs: aiEvidenceRefs,
+      toolName: selectedMcpTool,
+    })
+
+    try {
+      const result = executeMcpTool({
+        role,
+        marking,
+        deploymentProfile: deploymentProfileId,
+        allowed: policy.mcpAllowed && policy.allowedMcpTools.includes(selectedMcpTool),
+        toolName: selectedMcpTool,
+        manifest: selectedBundle,
+        recorderState: {
+          query: querySnapshot as unknown as Record<string, unknown>,
+          context: contextSnapshot as unknown as Record<string, unknown>,
+          scenario: scenario as unknown as Record<string, unknown>,
+        },
+        visibleLayers: visibleLayerCatalog as LayerCatalogEntry[],
+        latestAnalysis: latestAiArtifact,
+      })
+      setLatestMcpInvocation(result.invocation)
+      setStatus(result.summary)
+      void backend
+        .appendAudit({
+          role,
+          event_type: 'mcp.tool_invoked',
+          payload: {
+            status: 'allowed',
+            tool_name: selectedMcpTool,
+            deployment_profile: deploymentProfileId,
+            bundle_id: selectedBundle.bundle_id,
+            bundle_refs: result.bundleRefs,
+            summary: result.summary,
+          },
+        })
+        .then(() => refresh())
+        .catch(() => {
+          // Keep MCP tool execution locally usable when audit persistence is unavailable.
+        })
+      completeMeasuredAction('MCP tool invocation', startedAt)
+    } catch (error) {
+      const message = String(error)
+      setLatestMcpInvocation({
+        invocationId: `mcp-denied-${Date.now()}`,
+        toolName: selectedMcpTool,
+        status: 'denied',
+        summary: message,
+        bundleRefs,
+        invokedAt: new Date().toISOString(),
+        resultPreview: message,
+      })
+      setStatus(message)
+      void backend
+        .appendAudit({
+          role,
+          event_type: 'mcp.tool_invoked',
+          payload: {
+            status: 'denied',
+            tool_name: selectedMcpTool,
+            deployment_profile: deploymentProfileId,
+            bundle_id: selectedBundle.bundle_id,
+            bundle_refs: bundleRefs,
+            reason: message,
+          },
+        })
+        .then(() => refresh())
+        .catch(() => {
+          // Keep MCP tool execution locally usable when audit persistence is unavailable.
+        })
+      completeMeasuredAction('MCP tool invocation', startedAt)
     }
   }
 
@@ -2054,12 +2297,52 @@ function App() {
 
           <h3>AI Gateway (I6)</h3>
           <label className="field">
+            Deployment Profile
+            <select
+              value={deploymentProfileId}
+              onChange={(event) => setDeploymentProfileId(event.target.value as DeploymentProfileId)}
+            >
+              {DEPLOYMENT_PROFILES.map((profile) => (
+                <option key={profile.id} value={profile.id}>
+                  {profile.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="field">
             Prompt
             <textarea value={aiPrompt} onChange={(event) => setAiPrompt(event.target.value)} rows={3} />
           </label>
+          <label className="field">
+            MCP Tool
+            <select
+              value={selectedMcpTool}
+              onChange={(event) => setSelectedMcpTool(event.target.value as McpToolName)}
+            >
+              {MCP_MINIMUM_TOOLS.map((toolName) => (
+                <option key={toolName} value={toolName}>
+                  {toolName}
+                </option>
+              ))}
+            </select>
+          </label>
           <div className="controls">
             <button onClick={onSubmitAiSummary}>Submit AI Analysis</button>
+            <button onClick={onRunMcpTool}>Run MCP Tool</button>
           </div>
+          <p className="status-line">
+            Profile:{' '}
+            {DEPLOYMENT_PROFILES.find((profile) => profile.id === deploymentProfileId)?.label ??
+              deploymentProfileId}{' '}
+            | AI: {aiPolicy.analysisAllowed ? 'allowed' : 'denied'} | MCP:{' '}
+            {aiPolicy.mcpAllowed ? 'allowed' : 'denied'}
+          </p>
+          <p className="status-line">
+            Policy notes:{' '}
+            {aiPolicy.reasons.length > 0
+              ? aiPolicy.reasons.join(' | ')
+              : 'Gateway ready for governed hash-addressed evidence refs.'}
+          </p>
           <article className={`artifact-callout ${artifactTone('AI-Derived Interpretation')}`}>
             <div className="card-header compact">
               <span className={`artifact-chip ${artifactTone('AI-Derived Interpretation')}`}>
@@ -2073,6 +2356,44 @@ function App() {
               {aiInterpretationEntry?.uncertaintyText ?? 'Do not treat as observed evidence.'}
             </small>
           </article>
+          {latestAiArtifact && (
+            <article
+              className={`artifact-callout ${artifactTone('AI-Derived Interpretation')}`}
+              data-testid="ai-analysis-card"
+            >
+              <div className="card-header compact">
+                <span className={`artifact-chip ${artifactTone('AI-Derived Interpretation')}`}>
+                  {latestAiArtifact.label}
+                </span>
+                <span>{latestAiArtifact.artifactId}</span>
+              </div>
+              <p>{latestAiArtifact.content}</p>
+              <small>
+                Marking {latestAiArtifact.marking} | Refs {latestAiArtifact.refs.length} | Bundle{' '}
+                {latestAiArtifact.bundleId}
+              </small>
+              <small>Citations: {latestAiArtifact.citations.join(' | ')}</small>
+            </article>
+          )}
+          {latestMcpInvocation && (
+            <article
+              className={`artifact-callout ${artifactTone('AI-Derived Interpretation')}`}
+              data-testid="mcp-result-card"
+            >
+              <div className="card-header compact">
+                <span className={`artifact-chip ${artifactTone('AI-Derived Interpretation')}`}>
+                  MCP
+                </span>
+                <span>{latestMcpInvocation.toolName}</span>
+              </div>
+              <p>{latestMcpInvocation.summary}</p>
+              <small>
+                Status {latestMcpInvocation.status} | Bundle refs{' '}
+                {latestMcpInvocation.bundleRefs.length}
+              </small>
+              <small>{latestMcpInvocation.resultPreview}</small>
+            </article>
+          )}
         </section>
 
         <section className="panel map-panel" data-testid="region-main-canvas">

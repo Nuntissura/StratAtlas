@@ -20,6 +20,7 @@ import {
   buildSavedQueryArtifact,
   type VersionedQuery,
 } from '../features/i5/queryBuilder'
+import type { AiGatewaySnapshot } from '../features/i6/aiGateway'
 
 const buildStoredCollaborationSnapshot = (sharedNote: string, viewState: string) => {
   let snapshot = createCollaborationSnapshot('collab-main', 'analyst-1')
@@ -139,6 +140,48 @@ const buildStoredQueryState = (): QueryStateSnapshot => {
   }
 }
 
+const buildStoredAiSnapshot = (): AiGatewaySnapshot => ({
+  deploymentProfile: 'connected',
+  latestAnalysis: {
+    artifactId: 'ai-interpretation-test1234',
+    bundleId: 'bundle-parent',
+    label: 'AI-Derived Interpretation',
+    marking: 'INTERNAL',
+    refs: [
+      {
+        bundle_id: 'bundle-parent',
+        asset_id: 'workspace-state',
+        sha256: 'workspace-hash',
+        marking: 'INTERNAL',
+        licenses: ['internal'],
+        sourceSummary: 'workspace.session',
+      },
+    ],
+    citations: ['bundle-parent / workspace-state / workspace-hash'],
+    prompt: 'Summarize governed evidence only.',
+    content: 'Interpreted governed evidence for bundle-parent.',
+    generatedAt: '2026-03-06T00:20:00.000Z',
+    confidenceText: 'Derived interpretation; analyst validation required',
+    uncertaintyText: 'Inference only; do not treat as observed evidence.',
+    lineage: ['gateway:connected', 'refs:1'],
+  },
+  latestMcpInvocation: {
+    invocationId: 'mcp-test1234',
+    toolName: 'get_bundle_manifest',
+    status: 'allowed',
+    summary: 'Returned governed manifest for bundle bundle-parent with 1 assets.',
+    bundleRefs: [
+      {
+        bundle_id: 'bundle-parent',
+        asset_id: 'workspace-state',
+        sha256: 'workspace-hash',
+      },
+    ],
+    invokedAt: '2026-03-06T00:21:00.000Z',
+    resultPreview: 'Returned governed manifest for bundle bundle-parent with 1 assets.',
+  },
+})
+
 const request: CreateBundleRequest = {
   role: 'analyst',
   marking: 'INTERNAL',
@@ -191,6 +234,7 @@ const request: CreateBundleRequest = {
     },
     collaboration: buildStoredCollaborationSnapshot('alpha / bravo', 'zoom-8'),
     scenario: buildStoredScenarioSnapshot(),
+    ai: buildStoredAiSnapshot(),
     selectedBundleId: undefined,
     savedAt: '2026-03-06T00:00:00.000Z',
   },
@@ -221,6 +265,7 @@ describe('backend fallback', () => {
       'compare-state',
       'collaboration-state',
       'scenario-state',
+      'ai-state',
       'recorder-state',
     ])
     expect(reopen.state.workspace.note).toBe('seed state')
@@ -236,6 +281,8 @@ describe('backend fallback', () => {
     expect(reopen.state.scenario?.parentBundleId).toBe('bundle-parent')
     expect(reopen.state.scenario?.scenarios).toHaveLength(2)
     expect(reopen.state.scenario?.exportArtifact?.artifactId).toContain('scenario-export-')
+    expect(reopen.state.ai?.latestAnalysis?.artifactId).toBe('ai-interpretation-test1234')
+    expect(reopen.state.ai?.latestMcpInvocation?.toolName).toBe('get_bundle_manifest')
   })
 
   it('loads and saves authoritative recorder state outside bundle reopen', async () => {
@@ -251,6 +298,7 @@ describe('backend fallback', () => {
     expect(restored.state?.compare?.eventWindow.end).toBe('2026-02-28')
     expect(restored.state?.collaboration?.ephemeralViewState).toBe('zoom-8')
     expect(restored.state?.scenario?.selectedScenarioId).toBe('scenario-2')
+    expect(restored.state?.ai?.deploymentProfile).toBe('connected')
   })
 
   it('maintains an append-only hash chain in audit events', async () => {

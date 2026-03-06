@@ -82,6 +82,7 @@ const BUNDLE_ASSET_PATHS = {
   'compare-state': 'assets/compare_state.json',
   'collaboration-state': 'assets/collaboration_state.json',
   'scenario-state': 'assets/scenario_state.json',
+  'ai-state': 'assets/ai_state.json',
   'recorder-state': 'assets/recorder_state.json',
 } as const
 
@@ -160,6 +161,13 @@ const buildBundleAssets = async (
     buildBundleAsset({
       assetId: 'scenario-state',
       value: request.state.scenario ?? null,
+      marking: request.marking,
+      provenanceRefs: request.provenance_refs,
+      capturedAt,
+    }),
+    buildBundleAsset({
+      assetId: 'ai-state',
+      value: request.state.ai ?? null,
       marking: request.marking,
       provenanceRefs: request.provenance_refs,
       capturedAt,
@@ -267,6 +275,7 @@ const fallbackOpenBundle = async (bundleId: string, role: string): Promise<OpenB
   const compareSnapshot = selected.assets['compare-state']
   const collaborationSnapshot = selected.assets['collaboration-state']
   const scenarioSnapshot = selected.assets['scenario-state']
+  const aiSnapshot = selected.assets['ai-state']
   const recorderState = selected.assets['recorder-state']
 
   if (!isRecord(recorderState)) {
@@ -299,6 +308,13 @@ const fallbackOpenBundle = async (bundleId: string, role: string): Promise<OpenB
       canonicalize(typeof scenarioSnapshot === 'undefined' ? null : scenarioSnapshot)
   ) {
     throw new Error('Recorder state asset does not match scenario-state asset')
+  }
+  if (
+    selected.manifest.assets.some((asset) => asset.asset_id === 'ai-state') &&
+    canonicalize((recorderState as Record<string, unknown>).ai ?? null) !==
+      canonicalize(typeof aiSnapshot === 'undefined' ? null : aiSnapshot)
+  ) {
+    throw new Error('Recorder state asset does not match ai-state asset')
   }
 
   await fallbackAppendAudit({

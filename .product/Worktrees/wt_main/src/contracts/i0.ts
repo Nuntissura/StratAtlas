@@ -3,6 +3,7 @@ import type { CompareStateSnapshot } from '../features/i2/baselineDelta'
 import type { CollaborationStateSnapshot } from '../features/i3/collaboration'
 import type { ScenarioStateSnapshot } from '../features/i4/scenarios'
 import type { QueryRenderLayer, SavedQueryArtifact, VersionedQuery } from '../features/i5/queryBuilder'
+import type { AiGatewaySnapshot } from '../features/i6/aiGateway'
 import type { ContextDomain } from '../features/i7/contextIntake'
 
 export type UserRole = 'viewer' | 'analyst' | 'administrator' | 'auditor'
@@ -72,6 +73,7 @@ export interface RecorderState {
   compare?: CompareStateSnapshot
   collaboration?: CollaborationStateSnapshot
   scenario?: ScenarioStateSnapshot
+  ai?: AiGatewaySnapshot
   selectedBundleId?: string
   savedAt: string
 }

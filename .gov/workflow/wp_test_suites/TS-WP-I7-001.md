@@ -1,7 +1,7 @@
 # TS-WP-I7-001 - Spec vs Code Test Suite
 
 Date Opened: 2026-03-05
-Status: EXECUTED
+Status: IN-PROGRESS
 Linked Work Packet: WP-I7-001
 Iteration: I7
 
@@ -66,9 +66,9 @@ Validate this WP against linked requirements/primitives with dependency, UI, fun
 ## Execution Summary
 
 - Last Run Date: 2026-03-05
-- Result: PASSING (lint/test/build/cargo test)
+- Result: PASSING activation-shell baseline only; normative I7 delivery reopened on 2026-03-06
 - Blocking Failures: None
-- Evidence Paths: .product/Worktrees/wt_main (src/, src-tauri/, dist/)
+- Evidence Paths: activation-shell baseline only from 2026-03-05; current proof path pending normative I7 delivery
 - Reviewer: Codex
 - User Sign-off: Pending
 
