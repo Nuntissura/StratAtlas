@@ -2,7 +2,7 @@
 
 **Spec Version:** v1.2.4  
 **Last Updated:** 2026-03-06  
-**Status:** Target architecture is implemented in `.product/Worktrees/wt_main`, backed by the verified I0-I10 packet set, and closed out by `WP-GOV-MAINT-002` and `WP-GOV-INSTALLER-002` with reconciled governance and installer release-surface proof.
+**Status:** This document defines the governed target architecture. As of 2026-03-06, `.product/Worktrees/wt_main` is a buildable desktop prototype with many target dependencies installed, but major runtime integrations remain queued under `WP-GOV-REALIGN-002`, `WP-GOV-VERIFY-001`, and the follow-on remediation packets `WP-I0-003`, `WP-I1-003`, `WP-I2-003`, `WP-I5-002`, `WP-I6-002`, `WP-I7-002`, `WP-I8-002`, `WP-I9-002`, and `WP-I10-002`.
 
 ---
 
@@ -314,9 +314,9 @@ Shared viewport state → switching 2D ↔ 3D preserves camera position and laye
 
 ---
 
-## Implementation Baseline Snapshot (2026-03-05)
+## Implementation Baseline Snapshot (2026-03-06)
 
-The following dependency families are installed in .product/Worktrees/wt_main as the active product baseline:
+The following dependency families are installed in `.product/Worktrees/wt_main` as the active prototype baseline. Their presence establishes download and experimentation readiness, not proof that the governed runtime architecture is fully integrated or E2E-VERIFIED against the current spec:
 
 - Runtime: @tauri-apps/api, maplibre-gl, cesium, @deck.gl/*, echarts, echarts-for-react, d3, @observablehq/plot, @turf/turf, h3-js, apache-arrow, @loaders.gl/*, @duckdb/duckdb-wasm, yjs, jspdf, html2canvas.
 - Tooling and tests: @tauri-apps/cli, vitest, @testing-library/*, @playwright/test.

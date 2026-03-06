@@ -1,10 +1,10 @@
-# SX-WP-I9-001 - Spec Extraction Snapshot
+# SX-WP-I9-002 - Spec Extraction Snapshot
 
 Generated On: 2026-03-06
-Linked Work Packet: WP-I9-001
-Linked Test Suite: .gov/workflow/wp_test_suites/TS-WP-I9-001.md
-Linked WP Check Script: .gov/workflow/wp_checks/check-WP-I9-001.ps1
-WP Status Snapshot: E2E-VERIFIED
+Linked Work Packet: WP-I9-002
+Linked Test Suite: .gov/workflow/wp_test_suites/TS-WP-I9-002.md
+Linked WP Check Script: .gov/workflow/wp_checks/check-WP-I9-002.ps1
+WP Status Snapshot: SPEC-MAPPED
 Iteration: I9
 
 ## Scope
@@ -24,7 +24,8 @@ Concrete extraction of requirement and primitive obligations this WP must satisf
 
 | Primitive | Name | Contract | REQs | First Iter | Status |
 |-----------|------|----------|------|------------|--------|
-| PRIM-0018 | Curated OSINT Event Contract | Curated-source and verification-level enforcement | REQ-1000..REQ-1003 | I9 | E2E-VERIFIED |
+| PRIM-0056 | Curated Feed Connector | Connect approved OSINT and economic indicator sources through governed normalization, provenance, and verification-label contracts | REQ-1000, REQ-1001, REQ-1002, REQ-1003 | I9 | SPEC-MAPPED |
+| PRIM-0057 | Aggregate Alert Evaluator | Evaluate threshold and deviation conditions only at aggregate level and emit governed alert artifacts with verification labels and audit trails | REQ-1000, REQ-1001, REQ-1002, REQ-1003 | I9 | SPEC-MAPPED |
 
 ## Traceability Hooks
 
@@ -44,5 +45,5 @@ Concrete extraction of requirement and primitive obligations this WP must satisf
 ## Verification Hooks
 
 - Run preflight: powershell -ExecutionPolicy Bypass -File .gov/repo_scripts/governance_preflight.ps1
-- Run WP checks: powershell -ExecutionPolicy Bypass -File .gov/workflow/wp_checks/check-WP-I9-001.ps1
-- Proof artifacts: .product/build_target/tool_artifacts/wp_runs/WP-I9-001/
+- Run WP checks: powershell -ExecutionPolicy Bypass -File .gov/workflow/wp_checks/check-WP-I9-002.ps1
+- Proof artifacts: .product/build_target/tool_artifacts/wp_runs/WP-I9-002/

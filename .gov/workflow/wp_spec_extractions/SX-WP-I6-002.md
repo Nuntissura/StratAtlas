@@ -1,10 +1,10 @@
-# SX-WP-I6-001 - Spec Extraction Snapshot
+# SX-WP-I6-002 - Spec Extraction Snapshot
 
 Generated On: 2026-03-06
-Linked Work Packet: WP-I6-001
-Linked Test Suite: .gov/workflow/wp_test_suites/TS-WP-I6-001.md
-Linked WP Check Script: .gov/workflow/wp_checks/check-WP-I6-001.ps1
-WP Status Snapshot: E2E-VERIFIED
+Linked Work Packet: WP-I6-002
+Linked Test Suite: .gov/workflow/wp_test_suites/TS-WP-I6-002.md
+Linked WP Check Script: .gov/workflow/wp_checks/check-WP-I6-002.ps1
+WP Status Snapshot: SPEC-MAPPED
 Iteration: I6
 
 ## Scope
@@ -29,7 +29,8 @@ Concrete extraction of requirement and primitive obligations this WP must satisf
 
 | Primitive | Name | Contract | REQs | First Iter | Status |
 |-----------|------|----------|------|------------|--------|
-| PRIM-0015 | AI Gateway Request Contract | Hash-addressed policy-gated AI requests | REQ-0700..REQ-0708 | I6 | E2E-VERIFIED |
+| PRIM-0052 | Governed AI Provider Adapter | Route AI requests through an audited gateway with policy enforcement, evidence references, approved provider settings, and runtime capability gating | REQ-0700, REQ-0701, REQ-0702, REQ-0703, REQ-0704, REQ-0705, REQ-0706, REQ-0707, REQ-0708 | I6 | SPEC-MAPPED |
+| PRIM-0053 | Audited MCP Execution Surface | Expose only governed MCP tools and execution paths with audit capture, refusal handling, and no raw-path or raw-database escape hatches | REQ-0700, REQ-0701, REQ-0702, REQ-0703, REQ-0704, REQ-0705, REQ-0706, REQ-0707, REQ-0708 | I6 | SPEC-MAPPED |
 
 ## Traceability Hooks
 
@@ -54,5 +55,5 @@ Concrete extraction of requirement and primitive obligations this WP must satisf
 ## Verification Hooks
 
 - Run preflight: powershell -ExecutionPolicy Bypass -File .gov/repo_scripts/governance_preflight.ps1
-- Run WP checks: powershell -ExecutionPolicy Bypass -File .gov/workflow/wp_checks/check-WP-I6-001.ps1
-- Proof artifacts: .product/build_target/tool_artifacts/wp_runs/WP-I6-001/
+- Run WP checks: powershell -ExecutionPolicy Bypass -File .gov/workflow/wp_checks/check-WP-I6-002.ps1
+- Proof artifacts: .product/build_target/tool_artifacts/wp_runs/WP-I6-002/

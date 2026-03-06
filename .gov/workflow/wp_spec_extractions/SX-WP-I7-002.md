@@ -1,10 +1,10 @@
-# SX-WP-I7-001 - Spec Extraction Snapshot
+# SX-WP-I7-002 - Spec Extraction Snapshot
 
 Generated On: 2026-03-06
-Linked Work Packet: WP-I7-001
-Linked Test Suite: .gov/workflow/wp_test_suites/TS-WP-I7-001.md
-Linked WP Check Script: .gov/workflow/wp_checks/check-WP-I7-001.ps1
-WP Status Snapshot: E2E-VERIFIED
+Linked Work Packet: WP-I7-002
+Linked Test Suite: .gov/workflow/wp_test_suites/TS-WP-I7-002.md
+Linked WP Check Script: .gov/workflow/wp_checks/check-WP-I7-002.ps1
+WP Status Snapshot: SPEC-MAPPED
 Iteration: I7
 
 ## Scope
@@ -31,7 +31,8 @@ Concrete extraction of requirement and primitive obligations this WP must satisf
 
 | Primitive | Name | Contract | REQs | First Iter | Status |
 |-----------|------|----------|------|------------|--------|
-| PRIM-0016 | Context Domain Registration | Domain registration metadata contract | REQ-0800..REQ-0810 | I7 | E2E-VERIFIED |
+| PRIM-0054 | Context Ingestion Pipeline | Ingest curated contextual domains with domain metadata, cadence, offline policy, and bundle-capture compatibility preserved from source to store | REQ-0800, REQ-0801, REQ-0802, REQ-0803, REQ-0804, REQ-0805, REQ-0806, REQ-0807, REQ-0808, REQ-0809, REQ-0810 | I7 | SPEC-MAPPED |
+| PRIM-0055 | Correlation Registry Store | Persist explicit, auditable correlation links and retrieval indexes without implying causation or violating presentation contracts | REQ-0800, REQ-0801, REQ-0802, REQ-0803, REQ-0804, REQ-0805, REQ-0806, REQ-0807, REQ-0808, REQ-0809, REQ-0810 | I7 | SPEC-MAPPED |
 
 ## Traceability Hooks
 
@@ -58,5 +59,5 @@ Concrete extraction of requirement and primitive obligations this WP must satisf
 ## Verification Hooks
 
 - Run preflight: powershell -ExecutionPolicy Bypass -File .gov/repo_scripts/governance_preflight.ps1
-- Run WP checks: powershell -ExecutionPolicy Bypass -File .gov/workflow/wp_checks/check-WP-I7-001.ps1
-- Proof artifacts: .product/build_target/tool_artifacts/wp_runs/WP-I7-001/
+- Run WP checks: powershell -ExecutionPolicy Bypass -File .gov/workflow/wp_checks/check-WP-I7-002.ps1
+- Proof artifacts: .product/build_target/tool_artifacts/wp_runs/WP-I7-002/

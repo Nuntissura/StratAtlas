@@ -15,21 +15,21 @@ Concrete extraction of requirement and primitive obligations this WP must satisf
 
 | Requirement | Level | Section | Description | Target | Status |
 |-------------|-------|---------|-------------|--------|--------|
-| REQ-0017 | MUST | Ãƒâ€šÃ‚Â§5.1 | Runtime path/process/environment handling MUST remain platform-neutral without hard-coded Windows-only assumptions in core paths | All | IN-PROGRESS |
+| REQ-0017 | MUST | Ãƒâ€šÃ‚Â§5.1 | Runtime path/process/environment handling MUST remain platform-neutral without hard-coded Windows-only assumptions in core paths | All | E2E-VERIFIED |
 | REQ-0018 | SHOULD | Ãƒâ€šÃ‚Â§5.1 | Desktop packaging/runtime SHOULD be smoke-tested on macOS during development to preserve portability | All | IN-PROGRESS |
-| REQ-0100 | MUST | Ãƒâ€šÃ‚Â§4.1 | RBAC: Viewer, Analyst, Administrator, Auditor roles | I0 | IN-PROGRESS |
-| REQ-0101 | MUST | Ãƒâ€šÃ‚Â§9.2 | Snapshot bundle contains: data slice, derived analytics, UI state, evidence manifest, integrity hashes, confidence metadata | I0 | IN-PROGRESS |
-| REQ-0102 | MUST | Ãƒâ€šÃ‚Â§9.2 | Bundle asset registry: each file/object has stable asset_id + sha256 hash | I0 | IN-PROGRESS |
-| REQ-0103 | MUST | Ãƒâ€šÃ‚Â§9.2 | External interfaces reference bundle contents by (bundle_id, asset_id, sha256), not filesystem paths | I0 | IN-PROGRESS |
-| REQ-0104 | MUST | Ãƒâ€šÃ‚Â§9.2 | Bundles immutable once created; corrections append-only via supersedes | I0 | IN-PROGRESS |
-| REQ-0105 | MUST | Ãƒâ€šÃ‚Â§9.3 | Reopening a bundle restores view state and derived artifacts deterministically | I0 | IN-PROGRESS |
-| REQ-0106 | MUST | Ãƒâ€šÃ‚Â§8.1 | Audit trail: immutable, append-only | I0 | IN-PROGRESS |
-| REQ-0107 | SHOULD | Ãƒâ€šÃ‚Â§8.2 | Audit logs tamper-evident (hash chaining), exportable for compliance | I0 | IN-PROGRESS |
-| REQ-0108 | MUST | Ãƒâ€šÃ‚Â§10.1 | Full offline mode for air-gapped environments | I0 | IN-PROGRESS |
-| REQ-0109 | MUST | Ãƒâ€šÃ‚Â§6.3 | Control plane DB is PostgreSQL with PostGIS | I0 | IN-PROGRESS |
+| REQ-0100 | MUST | Ãƒâ€šÃ‚Â§4.1 | RBAC: Viewer, Analyst, Administrator, Auditor roles | I0 | E2E-VERIFIED |
+| REQ-0101 | MUST | Ãƒâ€šÃ‚Â§9.2 | Snapshot bundle contains: data slice, derived analytics, UI state, evidence manifest, integrity hashes, confidence metadata | I0 | E2E-VERIFIED |
+| REQ-0102 | MUST | Ãƒâ€šÃ‚Â§9.2 | Bundle asset registry: each file/object has stable asset_id + sha256 hash | I0 | E2E-VERIFIED |
+| REQ-0103 | MUST | Ãƒâ€šÃ‚Â§9.2 | External interfaces reference bundle contents by (bundle_id, asset_id, sha256), not filesystem paths | I0 | E2E-VERIFIED |
+| REQ-0104 | MUST | Ãƒâ€šÃ‚Â§9.2 | Bundles immutable once created; corrections append-only via supersedes | I0 | E2E-VERIFIED |
+| REQ-0105 | MUST | Ãƒâ€šÃ‚Â§9.3 | Reopening a bundle restores view state and derived artifacts deterministically | I0 | E2E-VERIFIED |
+| REQ-0106 | MUST | Ãƒâ€šÃ‚Â§8.1 | Audit trail: immutable, append-only | I0 | E2E-VERIFIED |
+| REQ-0107 | SHOULD | Ãƒâ€šÃ‚Â§8.2 | Audit logs tamper-evident (hash chaining), exportable for compliance | I0 | E2E-VERIFIED |
+| REQ-0108 | MUST | Ãƒâ€šÃ‚Â§10.1 | Full offline mode for air-gapped environments | I0 | E2E-VERIFIED |
+| REQ-0109 | MUST | Ãƒâ€šÃ‚Â§6.3 | Control plane DB is PostgreSQL with PostGIS | I0 | SPEC-MAPPED |
 | REQ-0110 | MUST | Ãƒâ€šÃ‚Â§6.3 | Artifact store: immutable artifacts with append-only supersedes links | I0 | IN-PROGRESS |
-| REQ-0111 | MUST | Ãƒâ€šÃ‚Â§5 | Deployment profiles each specify: identity, key management, storage, audit retention, AI access | I0 | IN-PROGRESS |
-| REQ-0112 | MUST | Ãƒâ€šÃ‚Â§11.5 | Bundle open (local): ÃƒÂ¢Ã¢â‚¬Â°Ã‚Â¤5.0s to interactive | I0 | IN-PROGRESS |
+| REQ-0111 | MUST | Ãƒâ€šÃ‚Â§5 | Deployment profiles each specify: identity, key management, storage, audit retention, AI access | I0 | SPEC-MAPPED |
+| REQ-0112 | MUST | Ãƒâ€šÃ‚Â§11.5 | Bundle open (local): ÃƒÂ¢Ã¢â‚¬Â°Ã‚Â¤5.0s to interactive | I0 | E2E-VERIFIED |
 
 ## Primitive Extraction
 

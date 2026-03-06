@@ -11,17 +11,17 @@ This file is the execution order for capability slices. It is the scheduling bri
 
 | Order | Iteration | Capability Slice | Primary REQ Range | Sub-Spec File | Linked WP(s) | Minimum Exit Signal |
 |------:|-----------|------------------|-------------------|---------------|--------------|---------------------|
-| 1 | I0 | Walking skeleton (bundle, reopen, audit, markings, offline open) | REQ-0100..REQ-0112 (+ REQ-0017/REQ-0018 guardrails) | `.gov/Spec/sub-specs/I0_walking_skeleton.md` | `WP-I0-001`, `WP-I0-002` | Bundle reopen deterministic + offline open + audit/markings active + portability baseline recorded |
-| 2 | I1 | Layer system + time/replay + deterministic export | REQ-0200..REQ-0212 (+ REQ-0014..REQ-0016 budgets) | `.gov/Spec/sub-specs/I1_layers_time_replay.md` | `WP-I1-001`, `WP-I1-002` | Stable UI regions/modes + layer contract + perf budgets passing + startup/state-change budgets validated |
-| 3 | I2 | Baseline/delta compare + briefing bundle | REQ-0300..REQ-0302 | `.gov/Spec/sub-specs/I2_baseline_delta_briefing.md` | `WP-I2-001`, `WP-I2-002` | Baseline->Delta->Bundle->Briefing golden flow passing |
+| 1 | I0 | Walking skeleton (bundle, reopen, audit, markings, offline open) | REQ-0100..REQ-0112 (+ REQ-0017/REQ-0018 guardrails) | `.gov/Spec/sub-specs/I0_walking_skeleton.md` | `WP-I0-001`, `WP-I0-002`, `WP-I0-003` | Bundle reopen deterministic + offline open + audit/markings active + portability baseline recorded |
+| 2 | I1 | Layer system + time/replay + deterministic export | REQ-0200..REQ-0212 (+ REQ-0014..REQ-0016 budgets) | `.gov/Spec/sub-specs/I1_layers_time_replay.md` | `WP-I1-001`, `WP-I1-002`, `WP-I1-003` | Stable UI regions/modes + layer contract + perf budgets passing + startup/state-change budgets validated |
+| 3 | I2 | Baseline/delta compare + briefing bundle | REQ-0300..REQ-0302 | `.gov/Spec/sub-specs/I2_baseline_delta_briefing.md` | `WP-I2-001`, `WP-I2-002`, `WP-I2-003` | Baseline->Delta->Bundle->Briefing golden flow passing |
 | 4 | I3 | Collaboration + CRDT + session replay | REQ-0400..REQ-0403 | `.gov/Spec/sub-specs/I3_collaboration_crdt_replay.md` | `WP-I3-001` | Merge-safe collaboration + conflict UX + attribution replay |
 | 5 | I4 | Scenario modeling + constraint propagation + export | REQ-0500..REQ-0504 | `.gov/Spec/sub-specs/I4_scenario_modeling_constraints.md` | `WP-I4-001` | Scenario fork/compare/export workflow passing |
-| 6 | I5 | Query builder + saved/versioned queries | REQ-0600..REQ-0604 | `.gov/Spec/sub-specs/I5_query_builder_versioned_queries.md` | `WP-I5-001` | Query compose/run/render/save-version workflow passing |
-| 7 | I6 | AI gateway + MCP interface | REQ-0700..REQ-0708 | `.gov/Spec/sub-specs/I6_ai_gateway_mcp.md` | `WP-I6-001` | Policy-gated AI/MCP with full audit + no raw-path/raw-DB exposure |
-| 8 | I7 | Context intake framework + first domains | REQ-0800..REQ-0810 | `.gov/Spec/sub-specs/I7_context_intake_first_domains.md` | `WP-I7-001` | Context registry/correlation/offline rules operational |
-| 9 | I8 | Context deviation detection + infrastructure propagation | REQ-0900..REQ-0904 | `.gov/Spec/sub-specs/I8_context_deviation_infrastructure.md` | `WP-I8-001` | Deviation events emitted + scenario constraint-node propagation |
-| 10 | I9 | OSINT + economic indicators + context-aware queries | REQ-1000..REQ-1003 | `.gov/Spec/sub-specs/I9_osint_economic_context_queries.md` | `WP-I9-001` | Curated OSINT + verification labels + aggregate-only alerts |
-| 11 | I10 | Strategic game modeling | REQ-1100..REQ-1113 | `.gov/Spec/sub-specs/I10_strategic_game_modeling.md` | `WP-I10-001` | Game model/scenario-tree/experiment workflows with guardrails |
+| 6 | I5 | Query builder + saved/versioned queries | REQ-0600..REQ-0604 | `.gov/Spec/sub-specs/I5_query_builder_versioned_queries.md` | `WP-I5-001`, `WP-I5-002` | Query compose/run/render/save-version workflow passing |
+| 7 | I6 | AI gateway + MCP interface | REQ-0700..REQ-0708 | `.gov/Spec/sub-specs/I6_ai_gateway_mcp.md` | `WP-I6-001`, `WP-I6-002` | Policy-gated AI/MCP with full audit + no raw-path/raw-DB exposure |
+| 8 | I7 | Context intake framework + first domains | REQ-0800..REQ-0810 | `.gov/Spec/sub-specs/I7_context_intake_first_domains.md` | `WP-I7-001`, `WP-I7-002` | Context registry/correlation/offline rules operational |
+| 9 | I8 | Context deviation detection + infrastructure propagation | REQ-0900..REQ-0904 | `.gov/Spec/sub-specs/I8_context_deviation_infrastructure.md` | `WP-I8-001`, `WP-I8-002` | Deviation events emitted + scenario constraint-node propagation |
+| 10 | I9 | OSINT + economic indicators + context-aware queries | REQ-1000..REQ-1003 | `.gov/Spec/sub-specs/I9_osint_economic_context_queries.md` | `WP-I9-001`, `WP-I9-002` | Curated OSINT + verification labels + aggregate-only alerts |
+| 11 | I10 | Strategic game modeling | REQ-1100..REQ-1113 | `.gov/Spec/sub-specs/I10_strategic_game_modeling.md` | `WP-I10-001`, `WP-I10-002` | Game model/scenario-tree/experiment workflows with guardrails |
 
 ---
 
@@ -36,24 +36,31 @@ This file is the execution order for capability slices. It is the scheduling bri
 
 ## 2A) Active Recovery Queue
 
-- `WP-GOV-REALIGN-001` is E2E-VERIFIED for implementation-reality correction and multi-packet iteration recovery; proof: `.product/build_target/tool_artifacts/wp_runs/WP-GOV-REALIGN-001/20260306_034725/`.
-- `WP-GOV-STATUS-001` is E2E-VERIFIED for superseded-packet closure and truthful successor propagation; proof: `.product/build_target/tool_artifacts/wp_runs/WP-GOV-STATUS-001/20260306_084102/`.
-- `WP-I0-001` is SUPERSEDED by `WP-I0-002`; retained proof: `.product/build_target/tool_artifacts/wp_runs/WP-I0-001/20260306_003702/`.
-- `WP-I0-002` is E2E-VERIFIED with authoritative recorder/context snapshot hardening on 2026-03-06; proof: `.product/build_target/tool_artifacts/wp_runs/WP-I0-002/20260306_041144/`.
-- `WP-I1-001` is SUPERSEDED by `WP-I1-002`; retained proof: `.product/build_target/tool_artifacts/wp_runs/WP-I1-001/20260306_003730/`.
-- `WP-I1-002` is E2E-VERIFIED with governed workspace surfaces, artifact labeling, and budget/degradation telemetry on 2026-03-06; proof: `.product/build_target/tool_artifacts/wp_runs/WP-I1-002/20260306_044051/`.
-- `WP-I2-001` is SUPERSEDED by `WP-I2-002`; retained proof: `.product/build_target/tool_artifacts/wp_runs/WP-I2-001/20260306_003742/`.
-- `WP-I2-002` is E2E-VERIFIED with comparative dashboard, compare-state persistence, and briefing artifact proof on 2026-03-06; proof: `.product/build_target/tool_artifacts/wp_runs/WP-I2-002/20260306_050212/`.
-- `WP-I3-001` is E2E-VERIFIED with merge-safe collaboration, reconnect conflict resolution, and attributed replay proof on 2026-03-06; proof: `.product/build_target/tool_artifacts/wp_runs/WP-I3-001/20260306_052546/`.
-- `WP-I4-001` is E2E-VERIFIED with scenario fork, bundle-backed persistence, and deterministic export proof on 2026-03-06; proof: `.product/build_target/tool_artifacts/wp_runs/WP-I4-001/20260306_055241/`.
-- `WP-I5-001` is E2E-VERIFIED with composable query conditions, ephemeral render layers, bundle-backed saved-version persistence, and deterministic saved-query artifacts on 2026-03-06; proof: `.product/build_target/tool_artifacts/wp_runs/WP-I5-001/20260306_061249/`.
-- `WP-I6-001` is E2E-VERIFIED with policy-gated AI access, hash-addressed evidence refs, persisted `ai-state` bundle assets, and audited MCP tool execution on 2026-03-06; proof: `.product/build_target/tool_artifacts/wp_runs/WP-I6-001/20260306_064311/`.
-- `WP-I7-001` is E2E-VERIFIED with explicit correlation links, time-range context querying, offline staleness handling, and bundle-captured context values on 2026-03-06; proof: `.product/build_target/tool_artifacts/wp_runs/WP-I7-001/20260306_070435/`.
-- `WP-I8-001` is E2E-VERIFIED with standard `context.deviation` events, persisted `deviation-state` bundle assets, and scenario constraint-node propagation proof on 2026-03-06; proof: `.product/build_target/tool_artifacts/wp_runs/WP-I8-001/20260306_073044/`.
-- `WP-I9-001` is E2E-VERIFIED with curated-source enforcement, verification-label rendering, persisted `osint-state` bundle assets, and threshold-linked aggregate-alert proof on 2026-03-06; proof: `.product/build_target/tool_artifacts/wp_runs/WP-I9-001/20260306_075309/`.
-- `WP-I10-001` is E2E-VERIFIED with game-model artifact persistence, scenario-tree linkage, solver-run audit capture, and experiment-bundle proof on 2026-03-06; proof: `.product/build_target/tool_artifacts/wp_runs/WP-I10-001/20260306_081821/`.
-- The I0-I10 product recovery queue is complete; no later blocking product packet remains in roadmap order.
-- The post-recovery closeout packet set is complete; `WP-GOV-MAINT-002` and `WP-GOV-INSTALLER-002` are both E2E-VERIFIED.
+- The 2026-03-06 code-versus-spec audit established that `.product/Worktrees/wt_main` is a governed desktop prototype with helper-level and simulator-backed verification, not a complete normative delivery of the I0-I10 runtime slices.
+- `WP-GOV-REALIGN-001` remains the retained proof packet for the initial implementation-reality correction; proof: `.product/build_target/tool_artifacts/wp_runs/WP-GOV-REALIGN-001/20260306_034725/`.
+- `WP-GOV-STATUS-001` remains the retained proof packet for superseded-packet closure and truthful successor propagation; proof: `.product/build_target/tool_artifacts/wp_runs/WP-GOV-STATUS-001/20260306_084102/`.
+- `WP-GOV-REALIGN-002` is now `E2E-VERIFIED`; proof: `.product/build_target/tool_artifacts/wp_runs/WP-GOV-REALIGN-002/20260306_214418/`. It realigned the queue, corrected release-facing requirement and gate overstatements, and handed off to the runtime-proof packet.
+- `WP-GOV-VERIFY-001` is the current blocking governance packet. Initial preparation validation passed with proof at `.product/build_target/tool_artifacts/wp_runs/WP-GOV-VERIFY-001/20260306_214607/`, but the packet remains open until the runtime smoke harness and evidence matrix are fully landed.
+- Active remediation packet set:
+  - `WP-GOV-VERIFY-001`
+  - `WP-I0-003`
+  - `WP-I1-003`
+  - `WP-I2-003`
+  - `WP-I5-002`
+  - `WP-I6-002`
+  - `WP-I7-002`
+  - `WP-I8-002`
+  - `WP-I9-002`
+  - `WP-I10-002`
+- Sequencing constraints:
+  - `WP-I0-003` establishes the governed control-plane, artifact-store, and time-range storage backbone and blocks downstream runtime packets.
+  - `WP-I1-003` depends on `WP-I0-003`.
+  - `WP-I2-003` and `WP-I5-002` depend on `WP-I0-003` and `WP-I1-003`.
+  - `WP-I6-002` depends on `WP-I0-003` and `WP-I5-002`.
+  - `WP-I7-002` depends on `WP-I0-003` and `WP-I1-003`.
+  - `WP-I8-002` and `WP-I9-002` depend on `WP-I7-002`.
+  - `WP-I10-002` depends on `WP-I0-003`, `WP-I1-003`, and `WP-I7-002`.
+- Legacy proof artifacts from `WP-I0-002` through `WP-I10-001` are retained as prototype and simulator evidence only; they do not close the normative runtime gaps identified by the 2026-03-06 audit.
 
 ---
 
@@ -95,7 +102,9 @@ In parallel with iteration delivery, maintain governance control packets:
 - `WP-GOV-MAINT-001`: recurring synchronization sweep.
 - `WP-GOV-MAINT-002`: E2E-VERIFIED closeout packet reconciling requirement, gate, primitive, and workflow ledgers with verified I0/I1 and cross-cutting proof.
 - `WP-GOV-LOOP-001`: E2E-VERIFIED reusable WP loop with linked spec extraction, check scripts, template compliance gates, and proof-first status claims.
+- `WP-GOV-REALIGN-002`: `E2E-VERIFIED` governance packet that realigned roadmap, taskboard, requirement, and primitive ledgers to the audited code-versus-spec reality; proof: `.product/build_target/tool_artifacts/wp_runs/WP-GOV-REALIGN-002/20260306_214418/`.
 - `WP-GOV-STATUS-001`: close superseded packets with retained proof and explicit successor references.
+- `WP-GOV-VERIFY-001`: current blocking governance packet for desktop runtime smoke coverage and expanded proof obligations beyond jsdom-only flows.
 - `WP-GOV-INSTALLER-002`: E2E-VERIFIED follow-on packet for version-parity and release-surface alignment after governance closeout.
 
 Governance control packets are complete only when preflight and template-compliance checks pass with linked artifacts.

@@ -1,10 +1,10 @@
-# SX-WP-I8-001 - Spec Extraction Snapshot
+# SX-WP-I8-002 - Spec Extraction Snapshot
 
 Generated On: 2026-03-06
-Linked Work Packet: WP-I8-001
-Linked Test Suite: .gov/workflow/wp_test_suites/TS-WP-I8-001.md
-Linked WP Check Script: .gov/workflow/wp_checks/check-WP-I8-001.ps1
-WP Status Snapshot: E2E-VERIFIED
+Linked Work Packet: WP-I8-002
+Linked Test Suite: .gov/workflow/wp_test_suites/TS-WP-I8-002.md
+Linked WP Check Script: .gov/workflow/wp_checks/check-WP-I8-002.ps1
+WP Status Snapshot: SPEC-MAPPED
 Iteration: I8
 
 ## Scope
@@ -25,7 +25,7 @@ Concrete extraction of requirement and primitive obligations this WP must satisf
 
 | Primitive | Name | Contract | REQs | First Iter | Status |
 |-----------|------|----------|------|------------|--------|
-| PRIM-0017 | Context Deviation Event | Standardized context deviation event model | REQ-0900..REQ-0904 | I8 | E2E-VERIFIED |
+| PRIM-0062 | Historical Deviation Detector | Detect governed deviations over persisted context series, emit standardized events, and propagate results into downstream scenario and alert workflows | REQ-0900, REQ-0901, REQ-0902, REQ-0903, REQ-0904 | I8 | SPEC-MAPPED |
 
 ## Traceability Hooks
 
@@ -46,5 +46,5 @@ Concrete extraction of requirement and primitive obligations this WP must satisf
 ## Verification Hooks
 
 - Run preflight: powershell -ExecutionPolicy Bypass -File .gov/repo_scripts/governance_preflight.ps1
-- Run WP checks: powershell -ExecutionPolicy Bypass -File .gov/workflow/wp_checks/check-WP-I8-001.ps1
-- Proof artifacts: .product/build_target/tool_artifacts/wp_runs/WP-I8-001/
+- Run WP checks: powershell -ExecutionPolicy Bypass -File .gov/workflow/wp_checks/check-WP-I8-002.ps1
+- Proof artifacts: .product/build_target/tool_artifacts/wp_runs/WP-I8-002/

@@ -28,9 +28,9 @@ Concrete extraction of requirement and primitive obligations this WP must satisf
 | REQ-0011 | MUST | Ãƒâ€šÃ‚Â§11.4 | Every layer/chart/annotation/export labeled as Observed Evidence, Curated Context, Modeled Output, or AI-Derived Interpretation | All | E2E-VERIFIED |
 | REQ-0012 | MUST | Ãƒâ€šÃ‚Â§11.4 | Modeled outputs MUST include uncertainty representation and MUST NOT be presented as observed | All | E2E-VERIFIED |
 | REQ-0013 | MUST | Ãƒâ€šÃ‚Â§17 | No capability is "implemented" until it satisfies the slice definition of done | All | E2E-VERIFIED |
-| REQ-0014 | MUST | Ãƒâ€šÃ‚Â§11.5 | Desktop app startup (cold launch) MUST be <= 8.0 s to interactive shell on reference workstation | All | E2E-VERIFIED |
-| REQ-0015 | MUST | Ãƒâ€šÃ‚Â§11.5 | Desktop app startup (warm relaunch) MUST be <= 3.0 s to interactive shell on reference workstation | All | E2E-VERIFIED |
-| REQ-0016 | MUST | Ãƒâ€šÃ‚Â§11.5 | Analyst state-change actions (layer/filter/apply) MUST provide feedback <= 300 ms P95; if exceeded, UI MUST show non-blocking progress | All | E2E-VERIFIED |
+| REQ-0014 | MUST | Ãƒâ€šÃ‚Â§11.5 | Desktop app startup (cold launch) MUST be <= 8.0 s to interactive shell on reference workstation | All | IN-PROGRESS |
+| REQ-0015 | MUST | Ãƒâ€šÃ‚Â§11.5 | Desktop app startup (warm relaunch) MUST be <= 3.0 s to interactive shell on reference workstation | All | IN-PROGRESS |
+| REQ-0016 | MUST | Ãƒâ€šÃ‚Â§11.5 | Analyst state-change actions (layer/filter/apply) MUST provide feedback <= 300 ms P95; if exceeded, UI MUST show non-blocking progress | All | IN-PROGRESS |
 | REQ-0017 | MUST | Ãƒâ€šÃ‚Â§5.1 | Runtime path/process/environment handling MUST remain platform-neutral without hard-coded Windows-only assumptions in core paths | All | E2E-VERIFIED |
 | REQ-0019 | MUST | Ãƒâ€šÃ‚Â§17 | Every WP MUST maintain linked test suite, spec extraction, and WP check script artifacts | All | E2E-VERIFIED |
 | REQ-0020 | MUST | Ãƒâ€šÃ‚Â§17 | WP status claims MUST include proof artifact paths and command evidence | All | E2E-VERIFIED |
@@ -45,23 +45,23 @@ Concrete extraction of requirement and primitive obligations this WP must satisf
 | REQ-0106 | MUST | Ãƒâ€šÃ‚Â§8.1 | Audit trail: immutable, append-only | I0 | E2E-VERIFIED |
 | REQ-0107 | SHOULD | Ãƒâ€šÃ‚Â§8.2 | Audit logs tamper-evident (hash chaining), exportable for compliance | I0 | E2E-VERIFIED |
 | REQ-0108 | MUST | Ãƒâ€šÃ‚Â§10.1 | Full offline mode for air-gapped environments | I0 | E2E-VERIFIED |
-| REQ-0109 | MUST | Ãƒâ€šÃ‚Â§6.3 | Control plane DB is PostgreSQL with PostGIS | I0 | E2E-VERIFIED |
-| REQ-0110 | MUST | Ãƒâ€šÃ‚Â§6.3 | Artifact store: immutable artifacts with append-only supersedes links | I0 | E2E-VERIFIED |
-| REQ-0111 | MUST | Ãƒâ€šÃ‚Â§5 | Deployment profiles each specify: identity, key management, storage, audit retention, AI access | I0 | E2E-VERIFIED |
+| REQ-0109 | MUST | Ãƒâ€šÃ‚Â§6.3 | Control plane DB is PostgreSQL with PostGIS | I0 | SPEC-MAPPED |
+| REQ-0110 | MUST | Ãƒâ€šÃ‚Â§6.3 | Artifact store: immutable artifacts with append-only supersedes links | I0 | IN-PROGRESS |
+| REQ-0111 | MUST | Ãƒâ€šÃ‚Â§5 | Deployment profiles each specify: identity, key management, storage, audit retention, AI access | I0 | SPEC-MAPPED |
 | REQ-0112 | MUST | Ãƒâ€šÃ‚Â§11.5 | Bundle open (local): ÃƒÂ¢Ã¢â‚¬Â°Ã‚Â¤5.0s to interactive | I0 | E2E-VERIFIED |
 | REQ-0200 | MUST | Ãƒâ€šÃ‚Â§11.1 | UI stable regions: header, left panel, right panel, bottom panel, main canvas | I1 | E2E-VERIFIED |
 | REQ-0201 | MUST | Ãƒâ€šÃ‚Â§11.2 | UI modes: Live/Recent, Replay, Compare, Scenario, Collaboration, Offline | I1 | E2E-VERIFIED |
 | REQ-0202 | MUST | Ãƒâ€šÃ‚Â§12.1 | Every layer declares: source, license, cadence, geometry type, sensitivity class, caching policy | I1 | E2E-VERIFIED |
-| REQ-0203 | MUST | Ãƒâ€šÃ‚Â§12.1 | System surfaces licensing constraints and prevents violating exports | I1 | E2E-VERIFIED |
+| REQ-0203 | MUST | Ãƒâ€šÃ‚Â§12.1 | System surfaces licensing constraints and prevents violating exports | I1 | IN-PROGRESS |
 | REQ-0204 | MUST | Ãƒâ€šÃ‚Â§12.2 | Plugins MUST NOT run arbitrary code in main process without sandboxing | I1 | E2E-VERIFIED |
 | REQ-0205 | MUST | Ãƒâ€šÃ‚Â§12.2 | Plugin network egress controllable | I1 | E2E-VERIFIED |
-| REQ-0206 | MUST | Ãƒâ€šÃ‚Â§11.5 | 2D pan/zoom: ÃƒÂ¢Ã¢â‚¬Â°Ã‚Â¤50ms frame time with aggregated rendering | I1 | E2E-VERIFIED |
-| REQ-0207 | MUST | Ãƒâ€šÃ‚Â§11.5 | Time scrub (warm cache): ÃƒÂ¢Ã¢â‚¬Â°Ã‚Â¤250ms end-to-end | I1 | E2E-VERIFIED |
-| REQ-0208 | MUST | Ãƒâ€šÃ‚Â§11.5 | Time scrub (cold cache): ÃƒÂ¢Ã¢â‚¬Â°Ã‚Â¤2.0s end-to-end | I1 | E2E-VERIFIED |
-| REQ-0209 | MUST | Ãƒâ€šÃ‚Â§11.5 | 4K image export: ÃƒÂ¢Ã¢â‚¬Â°Ã‚Â¤3.0s | I1 | E2E-VERIFIED |
-| REQ-0210 | MUST | Ãƒâ€šÃ‚Â§11.5 | Briefing bundle export: ÃƒÂ¢Ã¢â‚¬Â°Ã‚Â¤15s | I1 | E2E-VERIFIED |
-| REQ-0211 | MUST | Ãƒâ€šÃ‚Â§11.5 | Graceful degradation via aggregation when budget cannot be met; UI indicates aggregation | I1 | E2E-VERIFIED |
-| REQ-0212 | SHOULD | Ãƒâ€šÃ‚Â§11.6 | WCAG/508 accessibility (keyboard, non-color-only semantics) | I1 | E2E-VERIFIED |
+| REQ-0206 | MUST | Ãƒâ€šÃ‚Â§11.5 | 2D pan/zoom: ÃƒÂ¢Ã¢â‚¬Â°Ã‚Â¤50ms frame time with aggregated rendering | I1 | IN-PROGRESS |
+| REQ-0207 | MUST | Ãƒâ€šÃ‚Â§11.5 | Time scrub (warm cache): ÃƒÂ¢Ã¢â‚¬Â°Ã‚Â¤250ms end-to-end | I1 | IN-PROGRESS |
+| REQ-0208 | MUST | Ãƒâ€šÃ‚Â§11.5 | Time scrub (cold cache): ÃƒÂ¢Ã¢â‚¬Â°Ã‚Â¤2.0s end-to-end | I1 | IN-PROGRESS |
+| REQ-0209 | MUST | Ãƒâ€šÃ‚Â§11.5 | 4K image export: ÃƒÂ¢Ã¢â‚¬Â°Ã‚Â¤3.0s | I1 | IN-PROGRESS |
+| REQ-0210 | MUST | Ãƒâ€šÃ‚Â§11.5 | Briefing bundle export: ÃƒÂ¢Ã¢â‚¬Â°Ã‚Â¤15s | I1 | IN-PROGRESS |
+| REQ-0211 | MUST | Ãƒâ€šÃ‚Â§11.5 | Graceful degradation via aggregation when budget cannot be met; UI indicates aggregation | I1 | IN-PROGRESS |
+| REQ-0212 | SHOULD | Ãƒâ€šÃ‚Â§11.6 | WCAG/508 accessibility (keyboard, non-color-only semantics) | I1 | IN-PROGRESS |
 
 ## Primitive Extraction
 

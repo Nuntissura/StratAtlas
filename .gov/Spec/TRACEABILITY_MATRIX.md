@@ -308,3 +308,25 @@ For quick lookup: "What requirements does this component implement?"
 | WP-GOV-INSTALLER-002 | All | REQ-0017, REQ-0029, REQ-0030, REQ-0031 | PRIM-0024, PRIM-0028 | .gov/workflow/wp_test_suites/TS-WP-GOV-INSTALLER-002.md | E2E-VERIFIED | .gov/workflow/wp_spec_extractions/SX-WP-GOV-INSTALLER-002.md; .product/build_target/tool_artifacts/wp_runs/WP-GOV-INSTALLER-002/20260306_112225/; .product/build_target/tool_artifacts/wp_runs/WP-GOV-INSTALLER-002/20260306_112235/; .product/build_target/Current/InstallerKit/20260306_112518/; user sign-off approved via 2026-03-06 autonomous completion instruction |
 
 | WP-GOV-MAINT-002 | All | REQ-0001..REQ-0017, REQ-0019..REQ-0022, REQ-0100..REQ-0112, REQ-0200..REQ-0212 | PRIM-0029, PRIM-0030, PRIM-0031, PRIM-0032, PRIM-0033, PRIM-0034, PRIM-0035, PRIM-0036, PRIM-0037, PRIM-0041 | .gov/workflow/wp_test_suites/TS-WP-GOV-MAINT-002.md | E2E-VERIFIED | .gov/workflow/wp_spec_extractions/SX-WP-GOV-MAINT-002.md; .product/build_target/tool_artifacts/wp_runs/WP-GOV-MAINT-002/20260306_110842/; user sign-off approved via 2026-03-06 autonomous completion instruction |
+
+| WP-GOV-REALIGN-002 | All | REQ-0013, REQ-0019, REQ-0020, REQ-0021, REQ-0022 | PRIM-0029, PRIM-0030, PRIM-0031, PRIM-0041 | .gov/workflow/wp_test_suites/TS-WP-GOV-REALIGN-002.md | E2E-VERIFIED | .gov/workflow/wp_spec_extractions/SX-WP-GOV-REALIGN-002.md; .product/build_target/tool_artifacts/wp_runs/WP-GOV-REALIGN-002/20260306_214418/; user sign-off approved via 2026-03-06 instruction to close this packet and prepare the successor |
+
+| WP-GOV-VERIFY-001 | All | REQ-0013, REQ-0014, REQ-0015, REQ-0016, REQ-0018, REQ-0019, REQ-0020, REQ-0021, REQ-0022 | PRIM-0060, PRIM-0061 | .gov/workflow/wp_test_suites/TS-WP-GOV-VERIFY-001.md | IN-PROGRESS | .gov/workflow/wp_spec_extractions/SX-WP-GOV-VERIFY-001.md; .product/build_target/tool_artifacts/wp_runs/WP-GOV-VERIFY-001/20260306_214607/; current blocking governance packet |
+
+| WP-I0-003 | I0 | REQ-0017, REQ-0018, REQ-0108, REQ-0109, REQ-0110, REQ-0111, REQ-0810 | PRIM-0042, PRIM-0043, PRIM-0044 | .gov/workflow/wp_test_suites/TS-WP-I0-003.md | SPEC-MAPPED | .gov/workflow/wp_spec_extractions/SX-WP-I0-003.md |
+
+| WP-I1-003 | I1 | REQ-0011, REQ-0012, REQ-0014, REQ-0015, REQ-0016, REQ-0200, REQ-0201, REQ-0202, REQ-0203, REQ-0206, REQ-0207, REQ-0208, REQ-0209, REQ-0210, REQ-0211, REQ-0212 | PRIM-0045, PRIM-0046, PRIM-0047 | .gov/workflow/wp_test_suites/TS-WP-I1-003.md | SPEC-MAPPED | .gov/workflow/wp_spec_extractions/SX-WP-I1-003.md |
+
+| WP-I2-003 | I2 | REQ-0209, REQ-0210, REQ-0300, REQ-0301, REQ-0302 | PRIM-0048, PRIM-0049 | .gov/workflow/wp_test_suites/TS-WP-I2-003.md | SPEC-MAPPED | .gov/workflow/wp_spec_extractions/SX-WP-I2-003.md |
+
+| WP-I5-002 | I5 | REQ-0108, REQ-0600, REQ-0601, REQ-0602, REQ-0603, REQ-0604, REQ-0810 | PRIM-0050, PRIM-0051 | .gov/workflow/wp_test_suites/TS-WP-I5-002.md | SPEC-MAPPED | .gov/workflow/wp_spec_extractions/SX-WP-I5-002.md |
+
+| WP-I6-002 | I6 | REQ-0700, REQ-0701, REQ-0702, REQ-0703, REQ-0704, REQ-0705, REQ-0706, REQ-0707, REQ-0708 | PRIM-0052, PRIM-0053 | .gov/workflow/wp_test_suites/TS-WP-I6-002.md | SPEC-MAPPED | .gov/workflow/wp_spec_extractions/SX-WP-I6-002.md |
+
+| WP-I7-002 | I7 | REQ-0800, REQ-0801, REQ-0802, REQ-0803, REQ-0804, REQ-0805, REQ-0806, REQ-0807, REQ-0808, REQ-0809, REQ-0810 | PRIM-0054, PRIM-0055 | .gov/workflow/wp_test_suites/TS-WP-I7-002.md | SPEC-MAPPED | .gov/workflow/wp_spec_extractions/SX-WP-I7-002.md |
+
+| WP-I10-002 | I10 | REQ-1100, REQ-1101, REQ-1102, REQ-1103, REQ-1104, REQ-1105, REQ-1106, REQ-1107, REQ-1108, REQ-1109, REQ-1110, REQ-1111, REQ-1112, REQ-1113 | PRIM-0058, PRIM-0059 | .gov/workflow/wp_test_suites/TS-WP-I10-002.md | SPEC-MAPPED | .gov/workflow/wp_spec_extractions/SX-WP-I10-002.md |
+
+| WP-I8-002 | I8 | REQ-0900, REQ-0901, REQ-0902, REQ-0903, REQ-0904 | PRIM-0062 | .gov/workflow/wp_test_suites/TS-WP-I8-002.md | SPEC-MAPPED | .gov/workflow/wp_spec_extractions/SX-WP-I8-002.md |
+
+| WP-I9-002 | I9 | REQ-1000, REQ-1001, REQ-1002, REQ-1003 | PRIM-0056, PRIM-0057 | .gov/workflow/wp_test_suites/TS-WP-I9-002.md | SPEC-MAPPED | .gov/workflow/wp_spec_extractions/SX-WP-I9-002.md |
