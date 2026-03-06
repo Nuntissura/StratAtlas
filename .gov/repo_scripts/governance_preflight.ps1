@@ -177,6 +177,7 @@ $allowedWpStatuses = @(
     "IN-PROGRESS",
     "IMPLEMENTED",
     "E2E-VERIFIED",
+    "SUPERSEDED",
     "BLOCKED",
     "RECURRING"
 )

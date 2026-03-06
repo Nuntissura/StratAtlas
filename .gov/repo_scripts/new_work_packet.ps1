@@ -95,7 +95,7 @@ if ($WpId -notmatch '^WP-(GOV(?:-[A-Z0-9]+)*|I\d+)-\d{3}$') {
     throw "WpId must match WP-(GOV(-TOKEN)*)-NNN or WP-I<digit+>-NNN. Example: WP-GOV-LOOP-001 or WP-I3-002"
 }
 
-$allowedStatuses = @("SPEC-MAPPED", "IN-PROGRESS", "IMPLEMENTED", "E2E-VERIFIED", "BLOCKED", "RECURRING")
+$allowedStatuses = @("SPEC-MAPPED", "IN-PROGRESS", "IMPLEMENTED", "E2E-VERIFIED", "SUPERSEDED", "BLOCKED", "RECURRING")
 if ($allowedStatuses -notcontains $Status) {
     throw "Status '$Status' is invalid. Allowed: $($allowedStatuses -join ', ')"
 }

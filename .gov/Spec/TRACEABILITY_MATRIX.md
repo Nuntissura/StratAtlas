@@ -1,6 +1,6 @@
 # StratAtlas - Traceability Matrix
 
-**Spec Version:** v1.2.3  
+**Spec Version:** v1.2.4  
 **Last Updated:** 2026-03-06  
 **Governance:** See `SPEC_GOVERNANCE.md` for maintenance rules.
 
@@ -233,12 +233,15 @@ REQ-ID | Component(s) | Test(s) | Iteration | Verified
 
 | WP ID | Iteration | Requirements | Primitives | Test Suite | Status | Evidence |
 |------|-----------|--------------|------------|------------|--------|----------|
-| WP-GOV-REALIGN-001 | All | REQ-0013, REQ-0019, REQ-0020, REQ-0021, REQ-0022 | PRIM-0029, PRIM-0030, PRIM-0031 | .gov/workflow/wp_test_suites/TS-WP-GOV-REALIGN-001.md | IMPLEMENTED | .gov/workflow/wp_spec_extractions/SX-WP-GOV-REALIGN-001.md; .product/build_target/tool_artifacts/wp_runs/WP-GOV-REALIGN-001/20260306_034725 |
-| WP-I0-001 | I0 | REQ-0100..REQ-0112, REQ-0017..REQ-0018 | PRIM-0001, PRIM-0002, PRIM-0003, PRIM-0004 | .gov/workflow/wp_test_suites/TS-WP-I0-001.md | IN-PROGRESS | activation-shell verification pass 2026-03-05; follow-on packet WP-I0-002 active |
+| WP-GOV-BUILDREADY-001 | All | Cross-cutting legacy baseline | N/A (legacy governance baseline) | .gov/workflow/wp_test_suites/TS-WP-GOV-BUILDREADY-001.md | SUPERSEDED | retained proof: .product/build_target/tool_artifacts/wp_runs/WP-GOV-BUILDREADY-001/20260306_003650/; superseded by WP-GOV-LOOP-001 and WP-GOV-STATUS-001 |
+| WP-GOV-PERFPORT-001 | All | REQ-0014..REQ-0018, GATE-H | N/A (legacy governance baseline) | .gov/workflow/wp_test_suites/TS-WP-GOV-PERFPORT-001.md | SUPERSEDED | retained proof: .product/build_target/tool_artifacts/wp_runs/WP-GOV-PERFPORT-001/20260306_003659/; superseded by WP-I1-002 and WP-GOV-STATUS-001 |
+| WP-GOV-ITER-ACTIVE-001 | I0-I10 | REQ-0100..REQ-1113 | PRIM-0030, PRIM-0031 | .gov/workflow/wp_test_suites/TS-WP-GOV-ITER-ACTIVE-001.md | SUPERSEDED | retained proof: .product/build_target/tool_artifacts/wp_runs/WP-GOV-ITER-ACTIVE-001/20260306_003653/; superseded by WP-GOV-REALIGN-001 and verified iteration packets |
+| WP-GOV-REALIGN-001 | All | REQ-0013, REQ-0019, REQ-0020, REQ-0021, REQ-0022 | PRIM-0029, PRIM-0030, PRIM-0031 | .gov/workflow/wp_test_suites/TS-WP-GOV-REALIGN-001.md | E2E-VERIFIED | .gov/workflow/wp_spec_extractions/SX-WP-GOV-REALIGN-001.md; .product/build_target/tool_artifacts/wp_runs/WP-GOV-REALIGN-001/20260306_034725/; user sign-off approved via 2026-03-06 autonomous completion instruction |
+| WP-I0-001 | I0 | REQ-0100..REQ-0112, REQ-0017..REQ-0018 | PRIM-0001, PRIM-0002, PRIM-0003, PRIM-0004 | .gov/workflow/wp_test_suites/TS-WP-I0-001.md | SUPERSEDED | retained proof: .product/build_target/tool_artifacts/wp_runs/WP-I0-001/20260306_003702/; superseded by WP-I0-002 |
 | WP-I0-002 | I0 | REQ-0008, REQ-0009, REQ-0010, REQ-0101..REQ-0112, REQ-0808 | PRIM-0032, PRIM-0033, PRIM-0034 | .gov/workflow/wp_test_suites/TS-WP-I0-002.md | E2E-VERIFIED | proof: .product/build_target/tool_artifacts/wp_runs/WP-I0-002/20260306_041144/; spec extraction: .gov/workflow/wp_spec_extractions/SX-WP-I0-002.md; user sign-off approved via 2026-03-06 autonomous completion instruction |
-| WP-I1-001 | I1 | REQ-0200..REQ-0212, REQ-0014..REQ-0016 | PRIM-0005, PRIM-0006, PRIM-0007, PRIM-0008, PRIM-0009 | .gov/workflow/wp_test_suites/TS-WP-I1-001.md | IN-PROGRESS | activation-shell verification pass 2026-03-05; follow-on packet WP-I1-002 implemented |
+| WP-I1-001 | I1 | REQ-0200..REQ-0212, REQ-0014..REQ-0016 | PRIM-0005, PRIM-0006, PRIM-0007, PRIM-0008, PRIM-0009 | .gov/workflow/wp_test_suites/TS-WP-I1-001.md | SUPERSEDED | retained proof: .product/build_target/tool_artifacts/wp_runs/WP-I1-001/20260306_003730/; superseded by WP-I1-002 |
 | WP-I1-002 | I1 | REQ-0011, REQ-0012, REQ-0014..REQ-0016, REQ-0200..REQ-0212, REQ-0804, REQ-0805 | PRIM-0035, PRIM-0036, PRIM-0037 | .gov/workflow/wp_test_suites/TS-WP-I1-002.md | E2E-VERIFIED | proof: .product/build_target/tool_artifacts/wp_runs/WP-I1-002/20260306_044051/; spec extraction: .gov/workflow/wp_spec_extractions/SX-WP-I1-002.md; user sign-off approved via 2026-03-06 autonomous completion instruction |
-| WP-I2-001 | I2 | REQ-0300..REQ-0302 | PRIM-0010, PRIM-0011 | .gov/workflow/wp_test_suites/TS-WP-I2-001.md | IMPLEMENTED | proof: .product/build_target/tool_artifacts/wp_runs/WP-I2-001/20260306_003742/; follow-on packet WP-I2-002 active |
+| WP-I2-001 | I2 | REQ-0300..REQ-0302 | PRIM-0010, PRIM-0011 | .gov/workflow/wp_test_suites/TS-WP-I2-001.md | SUPERSEDED | retained proof: .product/build_target/tool_artifacts/wp_runs/WP-I2-001/20260306_003742/; superseded by WP-I2-002 |
 | WP-I2-002 | I2 | REQ-0300, REQ-0301, REQ-0302 | PRIM-0038, PRIM-0039, PRIM-0040 | .gov/workflow/wp_test_suites/TS-WP-I2-002.md | E2E-VERIFIED | proof: .product/build_target/tool_artifacts/wp_runs/WP-I2-002/20260306_050212/; spec extraction: .gov/workflow/wp_spec_extractions/SX-WP-I2-002.md; user sign-off approved via 2026-03-06 autonomous completion instruction |
 | WP-I3-001 | I3 | REQ-0400..REQ-0403 | PRIM-0012 | .gov/workflow/wp_test_suites/TS-WP-I3-001.md | E2E-VERIFIED | proof: .product/build_target/tool_artifacts/wp_runs/WP-I3-001/20260306_052546/; spec extraction: .gov/workflow/wp_spec_extractions/SX-WP-I3-001.md; user sign-off approved via 2026-03-06 autonomous completion instruction |
 | WP-I4-001 | I4 | REQ-0500..REQ-0504 | PRIM-0013 | .gov/workflow/wp_test_suites/TS-WP-I4-001.md | E2E-VERIFIED | proof: .product/build_target/tool_artifacts/wp_runs/WP-I4-001/20260306_055241/; spec extraction: .gov/workflow/wp_spec_extractions/SX-WP-I4-001.md; user sign-off approved via 2026-03-06 autonomous completion instruction |
@@ -248,7 +251,7 @@ REQ-ID | Component(s) | Test(s) | Iteration | Verified
 | WP-I8-001 | I8 | REQ-0900..REQ-0904 | PRIM-0017 | .gov/workflow/wp_test_suites/TS-WP-I8-001.md | E2E-VERIFIED | proof: .product/build_target/tool_artifacts/wp_runs/WP-I8-001/20260306_073044/; spec extraction: .gov/workflow/wp_spec_extractions/SX-WP-I8-001.md; user sign-off approved via 2026-03-06 autonomous completion instruction |
 | WP-I9-001 | I9 | REQ-1000..REQ-1003 | PRIM-0018 | .gov/workflow/wp_test_suites/TS-WP-I9-001.md | E2E-VERIFIED | proof: .product/build_target/tool_artifacts/wp_runs/WP-I9-001/20260306_075309/; spec extraction: .gov/workflow/wp_spec_extractions/SX-WP-I9-001.md; user sign-off approved via 2026-03-06 autonomous completion instruction |
 | WP-I10-001 | I10 | REQ-1100..REQ-1113 | PRIM-0019 | .gov/workflow/wp_test_suites/TS-WP-I10-001.md | E2E-VERIFIED | proof: .product/build_target/tool_artifacts/wp_runs/WP-I10-001/20260306_081821/; spec extraction: .gov/workflow/wp_spec_extractions/SX-WP-I10-001.md; user sign-off approved via 2026-03-06 autonomous completion instruction |
-| WP-GOV-LOOP-001 | All | REQ-0019..REQ-0022 | PRIM-0020, PRIM-0021, PRIM-0022, PRIM-0023 | .gov/workflow/wp_test_suites/TS-WP-GOV-LOOP-001.md | IMPLEMENTED | .gov/workflow/wp_spec_extractions/SX-WP-GOV-LOOP-001.md; .product/build_target/tool_artifacts/wp_runs/WP-GOV-LOOP-001/20260306_002544 |
+| WP-GOV-LOOP-001 | All | REQ-0019..REQ-0022 | PRIM-0020, PRIM-0021, PRIM-0022, PRIM-0023 | .gov/workflow/wp_test_suites/TS-WP-GOV-LOOP-001.md | E2E-VERIFIED | .gov/workflow/wp_spec_extractions/SX-WP-GOV-LOOP-001.md; .product/build_target/tool_artifacts/wp_runs/WP-GOV-LOOP-001/20260306_002544/; user sign-off approved via 2026-03-06 autonomous completion instruction |
 | WP-GOV-INSTALLER-001 | All | REQ-0023, REQ-0024, REQ-0025, REQ-0026, REQ-0027, REQ-0028, REQ-0029, REQ-0030, REQ-0031 | PRIM-0024, PRIM-0025, PRIM-0026, PRIM-0027, PRIM-0028 | .gov/workflow/wp_test_suites/TS-WP-GOV-INSTALLER-001.md | IMPLEMENTED | .gov/workflow/wp_spec_extractions/SX-WP-GOV-INSTALLER-001.md; .product/build_target/tool_artifacts/wp_runs/WP-GOV-INSTALLER-001/20260306_023348; .product/build_target/Current/InstallerKit/20260306_023104 |
 
 ---
@@ -297,3 +300,5 @@ For quick lookup: "What requirements does this component implement?"
 | .product/Worktrees/wt_main/docs/INSTALLER_LIFECYCLE.md | REQ-0029 |
 
 
+
+| WP-GOV-STATUS-001 | All | REQ-0013, REQ-0019, REQ-0020, REQ-0021, REQ-0022 | PRIM-0029, PRIM-0030, PRIM-0031, PRIM-0041 | .gov/workflow/wp_test_suites/TS-WP-GOV-STATUS-001.md | E2E-VERIFIED | .gov/workflow/wp_spec_extractions/SX-WP-GOV-STATUS-001.md; .product/build_target/tool_artifacts/wp_runs/WP-GOV-STATUS-001/20260306_084102/; user sign-off approved via 2026-03-06 autonomous completion instruction |

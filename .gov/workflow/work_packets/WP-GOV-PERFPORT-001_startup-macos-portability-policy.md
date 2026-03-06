@@ -1,7 +1,7 @@
 # WP-GOV-PERFPORT-001 - Startup and macOS Portability Policy
 
 Date Opened: 2026-03-05
-Status: IMPLEMENTED
+Status: SUPERSEDED
 Iteration: All
 Workflow Version: 3.0
 
@@ -23,6 +23,7 @@ Add explicit governance and specification controls to prevent slow startup/regre
 - Added Gate H and linked cross-cutting requirements (REQ-0014..REQ-0018).
 - Updated ROADMAP, TASK_BOARD, and I0/I1 WP stubs to include this work.
 - Updated operator guidance docs (`PROJECT_CODEX.md`, `AGENTS.md`, `MODEL_BEHAVIOR.md`).
+- 2026-03-06: Closed as `SUPERSEDED`; runtime proof now resides with `WP-I1-002` and governance closure resides with `WP-GOV-STATUS-001`.
 
 ## Evidence
 
@@ -35,7 +36,7 @@ Linked WP Check Script: .gov/workflow/wp_checks/check-WP-GOV-PERFPORT-001.ps1
 ## Proof of Implementation
 
 - Command Runs: reference linked check script output.
-- Proof Artifact: .product/build_target/tool_artifacts/wp_runs/WP-GOV-PERFPORT-001/
+- Proof Artifact: .product/build_target/tool_artifacts/wp_runs/WP-GOV-PERFPORT-001/20260306_003659/
 - Claim Standard: do not claim completion without linked command evidence and artifact paths.
 
 ## Linked Requirements
@@ -103,3 +104,8 @@ Linked WP Check Script: .gov/workflow/wp_checks/check-WP-GOV-PERFPORT-001.ps1
 1. Governance kickoff commit (spec/wp/taskboard/traceability/primitives/test-suite).
 2. Implementation commit(s).
 3. Verification/status promotion commit.
+
+## Progress Log
+
+- 2026-03-05: Governance policy controls for startup responsiveness and macOS portability were added to the canonical ledgers.
+- 2026-03-06: Closed as `SUPERSEDED`; retained proof path remains linked while successor packets carry the verified runtime and closure claims.

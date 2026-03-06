@@ -1,7 +1,7 @@
 # WP-GOV-ITER-ACTIVE-001 - Iteration Activation and Sub-Spec Expansion
 
 Date Opened: 2026-03-05
-Status: IMPLEMENTED
+Status: SUPERSEDED
 Iteration: I0-I10
 Workflow Version: 3.0
 
@@ -24,6 +24,7 @@ Activate all open iteration work packets into active governance flow and elimina
 - `REQUIREMENTS_INDEX.md` statuses aligned with activation state.
 - `TRACEABILITY_MATRIX.md` expanded for I2-I10 mappings.
 - `TECH_STACK.md` updated to reflect active dependency baseline in `wt_main`.
+- 2026-03-06: Closed as `SUPERSEDED`; successor governance packet `WP-GOV-REALIGN-001` and verified iteration packets now carry the authoritative closure state.
 
 ## Evidence
 
@@ -38,7 +39,7 @@ Linked WP Check Script: .gov/workflow/wp_checks/check-WP-GOV-ITER-ACTIVE-001.ps1
 ## Proof of Implementation
 
 - Command Runs: reference linked check script output.
-- Proof Artifact: .product/build_target/tool_artifacts/wp_runs/WP-GOV-ITER-ACTIVE-001/
+- Proof Artifact: .product/build_target/tool_artifacts/wp_runs/WP-GOV-ITER-ACTIVE-001/20260306_003653/
 - Claim Standard: do not claim completion without linked command evidence and artifact paths.
 
 ## Linked Requirements
@@ -106,3 +107,8 @@ Linked WP Check Script: .gov/workflow/wp_checks/check-WP-GOV-ITER-ACTIVE-001.ps1
 1. Governance kickoff commit (spec/wp/taskboard/traceability/primitives/test-suite).
 2. Implementation commit(s).
 3. Verification/status promotion commit.
+
+## Progress Log
+
+- 2026-03-05: Iteration packets and sub-specs were activated from scaffolding into the governed delivery flow.
+- 2026-03-06: Closed as `SUPERSEDED`; retained proof path remains linked while successor governance packets carry the verified closure claim.

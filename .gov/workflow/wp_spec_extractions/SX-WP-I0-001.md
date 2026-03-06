@@ -4,7 +4,7 @@ Generated On: 2026-03-06
 Linked Work Packet: WP-I0-001
 Linked Test Suite: .gov/workflow/wp_test_suites/TS-WP-I0-001.md
 Linked WP Check Script: .gov/workflow/wp_checks/check-WP-I0-001.ps1
-WP Status Snapshot: IMPLEMENTED
+WP Status Snapshot: SUPERSEDED
 Iteration: I0
 
 ## Scope

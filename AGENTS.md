@@ -48,6 +48,7 @@ If these disagree with implementation, reconcile governance intent first.
 - Generate/update per-WP spec extraction snapshots with `powershell -ExecutionPolicy Bypass -File .gov/repo_scripts/update_wp_spec_extract.ps1 -All`.
 - Before product implementation, create a governance checkpoint commit (for crash/session-reset resilience).
 - Only `E2E-VERIFIED` means done; `IMPLEMENTED` does not.
+- `SUPERSEDED` may be used only when a packet is explicitly replaced by a named successor with retained proof; it is not done.
 - Never claim completion without proof artifacts under `.product/build_target/tool_artifacts/wp_runs/<WP-ID>/` and linked command evidence.
 
 ## 4) Product Worktree and Build Target Policy

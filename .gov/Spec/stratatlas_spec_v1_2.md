@@ -1,5 +1,5 @@
 # STRATATLAS
-## Product Specification v1.2.3
+## Product Specification v1.2.4
 *Interactive Geospatial Analysis Workstation*
 
 **Date:** 2026-03-06  
@@ -729,6 +729,8 @@ A capability slice is "Done" only if it includes:
 
 **Normative addition [NEW in v1.2.3]:** A single iteration MAY be executed through multiple sequenced Work Packets when an activation packet delivers partial scaffolding and one or more follow-on packets are required to close Section 17 obligations. Governance artifacts MUST identify the active packet set, the current blocking packet, and the requirements still in progress.
 
+**Normative addition [NEW in v1.2.4]:** When a follow-on packet fully replaces an earlier activation or governance-baseline packet, governance artifacts MAY mark the earlier packet as `SUPERSEDED`. `SUPERSEDED` preserves proof and successor references for historical traceability, but it is not a done state and MUST NOT be used to claim capability completion.
+
 ---
 
 ## 18. Release Gates (Pilot Eligibility)
@@ -1013,4 +1015,5 @@ This appendix catalogues approved and planned contextual data domains. New domai
 | v1.2 | 2026-03-04 | Added: AI Copilot Integration (Section 15.5) with narration, query suggestion, SAT pre-population, briefing draft, and continuous monitoring. Added: Visualization Technology Contract (Section 6.4) defining rendering, charting, spatial analysis, and offline analytics engine requirements. Added Gate G (AI Safety). |
 | v1.2.1 | 2026-03-05 | Added desktop startup budgets and state-change feedback budget (Section 11.5). Added desktop portability contract for Windows→macOS path (Section 5.1). Added Gate H (Desktop Portability & Startup). |
 | v1.2.2 | 2026-03-06 | Added installer lifecycle contract for Windows distribution (Section 5.2): uninstall, repair, full-repair, update, downgrade. Extended Gate H to require installer lifecycle validation. |
+| v1.2.4 | 2026-03-06 | Added the `SUPERSEDED` governance status so replaced activation and governance-baseline Work Packets can close truthfully with retained evidence and explicit successor references. |
 | v1.2.3 | 2026-03-06 | Clarified that iterations may use multiple sequenced Work Packets when activation scaffolding does not yet satisfy the capability-slice definition of done. Added governance-realignment language for follow-on recovery packets and requirement-status correction. |

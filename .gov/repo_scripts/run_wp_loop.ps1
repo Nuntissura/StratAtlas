@@ -28,7 +28,7 @@ function Get-ActiveWpIdsFromTaskBoard {
 
         $currentId = $parts[0]
         $status = $parts[4]
-        if ($status -in @("E2E-VERIFIED", "BLOCKED")) {
+        if ($status -in @("E2E-VERIFIED", "SUPERSEDED", "BLOCKED")) {
             continue
         }
         $ids.Add($currentId) | Out-Null
@@ -104,4 +104,3 @@ if ($failed.Count -gt 0) {
 }
 
 exit 0
-

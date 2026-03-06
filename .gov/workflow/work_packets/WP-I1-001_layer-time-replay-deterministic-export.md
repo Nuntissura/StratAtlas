@@ -1,7 +1,7 @@
 # WP-I1-001 - Layer/Time Replay Deterministic Export
 
 Date Opened: 2026-03-04
-Status: IMPLEMENTED
+Status: SUPERSEDED
 Iteration: I1
 Workflow Version: 2.0
 Linked Test Suite: .gov/workflow/wp_test_suites/TS-WP-I1-001.md
@@ -45,6 +45,7 @@ Deliver the I1 slice for layer system, time/replay behavior, and deterministic e
 
 
 - 2026-03-05: Implementation completed and verified via lint/test/build evidence.
+- 2026-03-06: Activation-shell baseline closed as `SUPERSEDED`; retained proof remains linked while successor packet `WP-I1-002` carries the normative completion claim.
 
 ## Linked Primitives
 
@@ -112,12 +113,12 @@ Deliver the I1 slice for layer system, time/replay behavior, and deterministic e
 3. Verification/status promotion commit.
 ## Evidence
 
-- Test Suite Execution: PASSING (pnpm lint, pnpm test, pnpm build, cargo test --manifest-path src-tauri/Cargo.toml)
-- Logs: command output captured in Codex session run on 2026-03-05
+- Test Suite Execution: retained activation-shell proof from `.gov/workflow/wp_checks/check-WP-I1-001.ps1`
+- Logs: `.product/build_target/tool_artifacts/wp_runs/WP-I1-001/20260306_003730/UI-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-001/20260306_003730/FUNC-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-001/20260306_003730/COR-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-001/20260306_003730/RED-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-001/20260306_003730/EXT-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-001/20260306_003730/EXT-002.log`
 - Screenshots/Exports: N/A (CLI-driven validation)
-- Build Artifacts: .product/Worktrees/wt_main/dist
-- User Sign-off: Pending
-- Proof Artifact: .product/build_target/tool_artifacts/wp_runs/WP-I1-001/
+- Build Artifacts: `.product/build_target/tool_artifacts/wp_runs/WP-I1-001/20260306_003730/result.json`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-001/20260306_003730/summary.md`
+- User Sign-off: N/A (`SUPERSEDED` by `WP-I1-002`)
+- Proof Artifact: `.product/build_target/tool_artifacts/wp_runs/WP-I1-001/20260306_003730/`
 ## Proof of Implementation
 
 - Command Runs: reference linked check script output.

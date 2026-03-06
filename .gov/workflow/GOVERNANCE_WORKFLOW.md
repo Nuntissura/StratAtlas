@@ -37,6 +37,7 @@ Only one state means "done":
 - `E2E-VERIFIED`: Runtime behavior is proven end-to-end against spec with linked evidence and user sign-off.
 
 `IMPLEMENTED` means code and lower-level tests exist, but it is not done.
+`SUPERSEDED` means a WP was replaced by a linked successor and is closed historically without making an independent done claim.
 
 ---
 
@@ -48,6 +49,7 @@ Use these statuses in WPs, task board rows, and requirement tracking:
 - `IN-PROGRESS`
 - `IMPLEMENTED`
 - `E2E-VERIFIED`
+- `SUPERSEDED`
 - `BLOCKED`
 - `RECURRING` (governance maintenance only)
 
@@ -103,6 +105,15 @@ Before promoting any item to `E2E-VERIFIED`:
 3. Red-team and non-goal checks must be executed.
 4. User sign-off must be documented in the WP and test-suite file.
 
+### Trigger E: Supersession closure
+
+When a WP is replaced by a successor packet:
+
+1. Confirm the successor packet is named explicitly in the superseded WP, task board, roadmap, and traceability row.
+2. Preserve the original proof artifact path in the superseded WP and linked test suite.
+3. Mark the replaced packet `SUPERSEDED` instead of promoting it to `E2E-VERIFIED`.
+4. Do not treat `SUPERSEDED` as done; only the successor may carry the completion claim.
+
 ---
 
 ## 5) Required WP Skeleton Fields
@@ -133,6 +144,7 @@ Every WP must include these sections:
 - The task board must make the current blocking packet explicit.
 - Requirement status must reflect real implementation state, not historical intent or scaffold existence.
 - Follow-on packets must link the same iteration sub-spec unless governance introduces a replacement sub-spec in the same PR.
+- When a follow-on packet fully replaces the earlier packet, the earlier packet may be marked `SUPERSEDED` with retained proof and a named successor reference.
 
 ---
 

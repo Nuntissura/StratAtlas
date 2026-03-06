@@ -1,6 +1,6 @@
 # StratAtlas - Requirements Index
 
-**Spec Version:** v1.2.3  
+**Spec Version:** v1.2.4  
 **Last Updated:** 2026-03-06  
 **Governance:** See `SPEC_GOVERNANCE.md` for maintenance rules.
 
@@ -35,16 +35,16 @@ REQ-NNNN | LEVEL | Ã‚Â§Section | Description | Iteration Target | Status
 | REQ-0010 | MUST | Ã‚Â§8.1 | Immutable append-only audit trail of all analyst actions, exports, queries, alerts, collaboration, AI access | All | IN-PROGRESS |
 | REQ-0011 | MUST | Ã‚Â§11.4 | Every layer/chart/annotation/export labeled as Observed Evidence, Curated Context, Modeled Output, or AI-Derived Interpretation | All | IN-PROGRESS |
 | REQ-0012 | MUST | Ã‚Â§11.4 | Modeled outputs MUST include uncertainty representation and MUST NOT be presented as observed | All | IN-PROGRESS |
-| REQ-0013 | MUST | Ã‚Â§17 | No capability is "implemented" until it satisfies the slice definition of done | All | IN-PROGRESS |
+| REQ-0013 | MUST | Ã‚Â§17 | No capability is "implemented" until it satisfies the slice definition of done | All | E2E-VERIFIED |
 | REQ-0014 | MUST | Ã‚Â§11.5 | Desktop app startup (cold launch) MUST be <= 8.0 s to interactive shell on reference workstation | All | IN-PROGRESS |
 | REQ-0015 | MUST | Ã‚Â§11.5 | Desktop app startup (warm relaunch) MUST be <= 3.0 s to interactive shell on reference workstation | All | IN-PROGRESS |
 | REQ-0016 | MUST | Ã‚Â§11.5 | Analyst state-change actions (layer/filter/apply) MUST provide feedback <= 300 ms P95; if exceeded, UI MUST show non-blocking progress | All | IN-PROGRESS |
 | REQ-0017 | MUST | Ã‚Â§5.1 | Runtime path/process/environment handling MUST remain platform-neutral without hard-coded Windows-only assumptions in core paths | All | IN-PROGRESS |
 | REQ-0018 | SHOULD | Ã‚Â§5.1 | Desktop packaging/runtime SHOULD be smoke-tested on macOS during development to preserve portability | All | IN-PROGRESS |
-| REQ-0019 | MUST | Ã‚Â§17 | Every WP MUST maintain linked test suite, spec extraction, and WP check script artifacts | All | IMPLEMENTED |
-| REQ-0020 | MUST | Ã‚Â§17 | WP status claims MUST include proof artifact paths and command evidence | All | IMPLEMENTED |
-| REQ-0021 | MUST | Ã‚Â§18 | Governance preflight MUST enforce WP template compliance to prevent shortcut execution | All | IMPLEMENTED |
-| REQ-0022 | SHOULD | Ã‚Â§17 | Teams SHOULD run WP loop automation (`run_wp_loop.ps1`) before status-promotion sweeps | All | IMPLEMENTED |
+| REQ-0019 | MUST | Ã‚Â§17 | Every WP MUST maintain linked test suite, spec extraction, and WP check script artifacts | All | E2E-VERIFIED |
+| REQ-0020 | MUST | Ã‚Â§17 | WP status claims MUST include proof artifact paths and command evidence | All | E2E-VERIFIED |
+| REQ-0021 | MUST | Ã‚Â§18 | Governance preflight MUST enforce WP template compliance to prevent shortcut execution | All | E2E-VERIFIED |
+| REQ-0022 | SHOULD | Ã‚Â§17 | Teams SHOULD run WP loop automation (`run_wp_loop.ps1`) before status-promotion sweeps | All | E2E-VERIFIED |
 | REQ-0023 | MUST | Ã‚Â§5.2 | Windows distribution MUST provide uninstall, repair, full-repair, update, and downgrade lifecycle operations | All | IMPLEMENTED |
 | REQ-0024 | MUST | Ã‚Â§5.2 | Installer pathway MUST support standard uninstall via Windows installer controls | All | IMPLEMENTED |
 | REQ-0025 | MUST | Ã‚Â§5.2 | Repair MUST preserve user presets/data under AppData paths | All | IMPLEMENTED |

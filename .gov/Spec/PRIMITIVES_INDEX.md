@@ -1,6 +1,6 @@
 # StratAtlas - Primitives Index
 
-**Spec Version:** v1.2.3  
+**Spec Version:** v1.2.4  
 **Last Updated:** 2026-03-06  
 **Purpose:** Canonical registry of reusable product primitives used across work packets.
 
@@ -47,19 +47,19 @@ PRIM-ID | Name | Type | Contract | Spec Anchor | REQs | First Iter | Status | Ow
 | PRIM-0019 | Strategic Game Model Contract | modeling | Strategic actor/action/payoff contract | Section 20.2..20.10 | REQ-1100..REQ-1113 | I10 | E2E-VERIFIED | Codex |
 
 
-| PRIM-0020 | WP Spec Extraction Artifact | governance | Per-WP extracted requirement + primitive snapshot | Section 17 governance loop | REQ-0019, REQ-0022 | All | IMPLEMENTED | Codex |
-| PRIM-0021 | WP Check Script Contract | governance | Per-WP script delegating to standardized check runner | Section 17 governance loop | REQ-0019, REQ-0020 | All | IMPLEMENTED | Codex |
-| PRIM-0022 | WP Proof Artifact Ledger | governance | Standard artifact path + command evidence references | Section 17 governance loop | REQ-0020 | All | IMPLEMENTED | Codex |
-| PRIM-0023 | Template Compliance Gate | governance | No-shortcut enforcement for required WP/suite structure | Section 18 governance enforcement | REQ-0021 | All | IMPLEMENTED | Codex |
+| PRIM-0020 | WP Spec Extraction Artifact | governance | Per-WP extracted requirement + primitive snapshot | Section 17 governance loop | REQ-0019, REQ-0022 | All | E2E-VERIFIED | Codex |
+| PRIM-0021 | WP Check Script Contract | governance | Per-WP script delegating to standardized check runner | Section 17 governance loop | REQ-0019, REQ-0020 | All | E2E-VERIFIED | Codex |
+| PRIM-0022 | WP Proof Artifact Ledger | governance | Standard artifact path + command evidence references | Section 17 governance loop | REQ-0020 | All | E2E-VERIFIED | Codex |
+| PRIM-0023 | Template Compliance Gate | governance | No-shortcut enforcement for required WP/suite structure | Section 18 governance enforcement | REQ-0021 | All | E2E-VERIFIED | Codex |
 
 | PRIM-0024 | Installer Bundle Policy | deployment | Bundle configuration enforces MSI and NSIS targets, upgrade code, and downgrade-capable lifecycle constraints | Section 5.2, Section 18 Gate H | REQ-0023, REQ-0024, REQ-0028, REQ-0031 | All | IMPLEMENTED | Codex |
 | PRIM-0025 | Maintenance Action Router | operations | Single maintenance command surface for uninstall/repair/full-repair/update/downgrade actions | Section 5.2 | REQ-0023, REQ-0024, REQ-0025, REQ-0026, REQ-0027, REQ-0028 | All | IMPLEMENTED | Codex |
 | PRIM-0026 | User Data Backup-Restore Guard | data | Full-repair workflow backs up and restores user presets/data by default with explicit data-drop option | Section 5.2 | REQ-0025, REQ-0026 | All | IMPLEMENTED | Codex |
 | PRIM-0027 | Version Direction Guard | policy | Update requires newer package and downgrade requires explicit older package with auditable invocation | Section 5.2 | REQ-0027, REQ-0028 | All | IMPLEMENTED | Codex |
 | PRIM-0028 | Installer Kit Manifest Pipeline | build | Build script stages installers + lifecycle docs and generates checksum manifest for repeatable release kits | Section 5.2, Section 18 Gate H | REQ-0023, REQ-0029, REQ-0030, REQ-0031 | All | IMPLEMENTED | Codex |
-| PRIM-0029 | Delivery Reality Audit | governance | Compare implementation evidence against governance claims and force status correction before further delivery | Section 17, Section 19 | REQ-0013, REQ-0020, REQ-0021, REQ-0022 | All | IMPLEMENTED | Codex |
-| PRIM-0030 | Multi-Packet Iteration Workflow | governance | Allow activation and follow-on recovery packets within one iteration while keeping a single active blocking packet | Section 17, Section 19 | REQ-0013, REQ-0019, REQ-0021 | All | IMPLEMENTED | Codex |
-| PRIM-0031 | Recovery Queue Traceability | governance | Keep recovery packets synchronized across roadmap, task board, traceability, and project operating instructions | Section 17, Section 19 | REQ-0019, REQ-0020, REQ-0022 | All | IMPLEMENTED | Codex |
+| PRIM-0029 | Delivery Reality Audit | governance | Compare implementation evidence against governance claims and force status correction before further delivery | Section 17, Section 19 | REQ-0013, REQ-0020, REQ-0021, REQ-0022 | All | E2E-VERIFIED | Codex |
+| PRIM-0030 | Multi-Packet Iteration Workflow | governance | Allow activation and follow-on recovery packets within one iteration while keeping a single active blocking packet | Section 17, Section 19 | REQ-0013, REQ-0019, REQ-0021 | All | E2E-VERIFIED | Codex |
+| PRIM-0031 | Recovery Queue Traceability | governance | Keep recovery packets synchronized across roadmap, task board, traceability, and project operating instructions | Section 17, Section 19 | REQ-0019, REQ-0020, REQ-0022 | All | E2E-VERIFIED | Codex |
 | PRIM-0032 | Recorder State Store | data | Persist workspace, query, layer, and context state through the backend instead of only in React component memory | Section 8.1, Section 9.2 | REQ-0008, REQ-0009, REQ-0010, REQ-0101..REQ-0112, REQ-0808 | I0 | IMPLEMENTED | Codex |
 | PRIM-0033 | Bundle Asset Snapshot Registry | data | Capture multiple typed bundle assets with stable `asset_id` and `sha256` references | Section 9.2, Section 15.3 | REQ-0008, REQ-0009, REQ-0010, REQ-0101..REQ-0112 | I0 | IMPLEMENTED | Codex |
 | PRIM-0034 | Context Snapshot Artifact | context | Bundle capture of active context domains, correlation selections, and related query/config state | Section 7.4.3, Section 9.2 | REQ-0101..REQ-0112, REQ-0808 | I0 | IMPLEMENTED | Codex |
@@ -71,3 +71,5 @@ PRIM-ID | Name | Type | Contract | Spec Anchor | REQs | First Iter | Status | Ow
 | PRIM-0039 | Context Overlay Comparison Surface | ui | Governed compare dashboard that aligns curated context series with delta outputs for the same analysis window | Section 13.1, Section 11.4 | REQ-0300, REQ-0301 | I2 | E2E-VERIFIED | Codex | Verified in WP-I2-002 with curated overlay corroboration cards and briefing composition |
 | PRIM-0040 | Briefing Artifact Export Contract | export | Briefing artifact payload that carries bundle reference, labeled delta findings, and export-ready summary fields | Section 11.3, Section 11.4 | REQ-0302 | I2 | E2E-VERIFIED | Codex | Verified in WP-I2-002 with bundle-linked briefing preparation and audit proof |
 
+
+| PRIM-0041 | WP Supersession Ledger | governance | Closure status and successor-reference ledger for replaced packets with retained proof | Section 17, Section 19 | REQ-0013, REQ-0019, REQ-0020, REQ-0021, REQ-0022 | All | E2E-VERIFIED | Codex |

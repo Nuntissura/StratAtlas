@@ -1,7 +1,7 @@
 # TS-WP-GOV-PERFPORT-001 - Spec vs Code Test Suite
 
 Date Opened: 2026-03-06
-Status: PLANNED
+Status: SUPERSEDED
 Linked Work Packet: WP-GOV-PERFPORT-001
 Iteration: All
 
@@ -70,9 +70,9 @@ Iteration: All
 
 ## Execution Summary
 
-- Last Run Date:
-- Result:
+- Last Run Date: 2026-03-06
+- Result: RETAINED LEGACY BASELINE PROOF; packet superseded by `WP-I1-002` and `WP-GOV-STATUS-001`
 - Blocking Failures:
-- Evidence Paths:
+- Evidence Paths: `.product/build_target/tool_artifacts/wp_runs/WP-GOV-PERFPORT-001/20260306_003659/result.json`; `.product/build_target/tool_artifacts/wp_runs/WP-GOV-PERFPORT-001/20260306_003659/summary.md`
 - Reviewer:
-- User Sign-off:
+- User Sign-off: N/A (`SUPERSEDED`)

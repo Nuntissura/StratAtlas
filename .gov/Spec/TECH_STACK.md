@@ -1,6 +1,6 @@
 # StratAtlas - Technology Stack
 
-**Spec Version:** v1.2.3  
+**Spec Version:** v1.2.4  
 **Last Updated:** 2026-03-06  
 **Status:** Target architecture in `.product/Worktrees/wt_main`; recovery packets `WP-I0-002` and `WP-I1-002` are wiring the declared stack into the runtime shell.
 

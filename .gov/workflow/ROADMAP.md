@@ -36,10 +36,13 @@ This file is the execution order for capability slices. It is the scheduling bri
 
 ## 2A) Active Recovery Queue
 
-- `WP-GOV-REALIGN-001` is the active governance packet for implementation-reality correction and multi-packet iteration recovery.
+- `WP-GOV-REALIGN-001` is E2E-VERIFIED for implementation-reality correction and multi-packet iteration recovery; proof: `.product/build_target/tool_artifacts/wp_runs/WP-GOV-REALIGN-001/20260306_034725/`.
+- `WP-GOV-STATUS-001` is E2E-VERIFIED for superseded-packet closure and truthful successor propagation; proof: `.product/build_target/tool_artifacts/wp_runs/WP-GOV-STATUS-001/20260306_084102/`.
+- `WP-I0-001` is SUPERSEDED by `WP-I0-002`; retained proof: `.product/build_target/tool_artifacts/wp_runs/WP-I0-001/20260306_003702/`.
 - `WP-I0-002` is E2E-VERIFIED with authoritative recorder/context snapshot hardening on 2026-03-06; proof: `.product/build_target/tool_artifacts/wp_runs/WP-I0-002/20260306_041144/`.
+- `WP-I1-001` is SUPERSEDED by `WP-I1-002`; retained proof: `.product/build_target/tool_artifacts/wp_runs/WP-I1-001/20260306_003730/`.
 - `WP-I1-002` is E2E-VERIFIED with governed workspace surfaces, artifact labeling, and budget/degradation telemetry on 2026-03-06; proof: `.product/build_target/tool_artifacts/wp_runs/WP-I1-002/20260306_044051/`.
-- `WP-I2-001` remains the activation-shell baseline with proof at `.product/build_target/tool_artifacts/wp_runs/WP-I2-001/20260306_003742/`.
+- `WP-I2-001` is SUPERSEDED by `WP-I2-002`; retained proof: `.product/build_target/tool_artifacts/wp_runs/WP-I2-001/20260306_003742/`.
 - `WP-I2-002` is E2E-VERIFIED with comparative dashboard, compare-state persistence, and briefing artifact proof on 2026-03-06; proof: `.product/build_target/tool_artifacts/wp_runs/WP-I2-002/20260306_050212/`.
 - `WP-I3-001` is E2E-VERIFIED with merge-safe collaboration, reconnect conflict resolution, and attributed replay proof on 2026-03-06; proof: `.product/build_target/tool_artifacts/wp_runs/WP-I3-001/20260306_052546/`.
 - `WP-I4-001` is E2E-VERIFIED with scenario fork, bundle-backed persistence, and deterministic export proof on 2026-03-06; proof: `.product/build_target/tool_artifacts/wp_runs/WP-I4-001/20260306_055241/`.
@@ -89,6 +92,7 @@ Any roadmap update must also update:
 In parallel with iteration delivery, maintain governance control packets:
 
 - `WP-GOV-MAINT-001`: recurring synchronization sweep.
-- `WP-GOV-LOOP-001`: enforce reusable WP loop with linked spec extraction, check scripts, template compliance gates, and proof-first status claims.
+- `WP-GOV-LOOP-001`: E2E-VERIFIED reusable WP loop with linked spec extraction, check scripts, template compliance gates, and proof-first status claims.
+- `WP-GOV-STATUS-001`: close superseded packets with retained proof and explicit successor references.
 
 Governance control packets are complete only when preflight and template-compliance checks pass with linked artifacts.

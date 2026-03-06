@@ -1,7 +1,7 @@
 # WP-I0-001 - Walking Skeleton Activation
 
 Date Opened: 2026-03-04
-Status: IMPLEMENTED
+Status: SUPERSEDED
 Iteration: I0
 Workflow Version: 2.0
 Linked Test Suite: .gov/workflow/wp_test_suites/TS-WP-I0-001.md
@@ -28,6 +28,7 @@ Activate the first implementation slice for the I0 walking skeleton.
 - 2026-03-05: Integrated I0-I10 app shell expanded in .product/Worktrees/wt_main/src/App.tsx with replay/compare/query/AI/context/deviation/OSINT/game-model workflows.
 - 2026-03-05: Sub-spec expanded from STUB to DRAFT contract for implementation.
 - 2026-03-05: Product implementation scaffold started in `.product/Worktrees/wt_main`.
+- 2026-03-06: Activation-shell baseline closed as `SUPERSEDED`; retained proof remains linked while successor packet `WP-I0-002` carries the normative completion claim.
 
 ## Initial Scope
 
@@ -110,12 +111,12 @@ Activate the first implementation slice for the I0 walking skeleton.
 3. Verification/status promotion commit.
 ## Evidence
 
-- Test Suite Execution: PASSING (pnpm lint, pnpm test, pnpm build, cargo test --manifest-path src-tauri/Cargo.toml)
-- Logs: command output captured in Codex session run on 2026-03-05
+- Test Suite Execution: retained activation-shell proof from `.gov/workflow/wp_checks/check-WP-I0-001.ps1`
+- Logs: `.product/build_target/tool_artifacts/wp_runs/WP-I0-001/20260306_003702/DEP-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I0-001/20260306_003702/UI-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I0-001/20260306_003702/FUNC-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I0-001/20260306_003702/COR-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I0-001/20260306_003702/RED-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I0-001/20260306_003702/EXT-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I0-001/20260306_003702/EXT-002.log`
 - Screenshots/Exports: N/A (CLI-driven validation)
-- Build Artifacts: .product/Worktrees/wt_main/dist
-- User Sign-off: Pending
-- Proof Artifact: .product/build_target/tool_artifacts/wp_runs/WP-I0-001/
+- Build Artifacts: `.product/build_target/tool_artifacts/wp_runs/WP-I0-001/20260306_003702/result.json`; `.product/build_target/tool_artifacts/wp_runs/WP-I0-001/20260306_003702/summary.md`
+- User Sign-off: N/A (`SUPERSEDED` by `WP-I0-002`)
+- Proof Artifact: `.product/build_target/tool_artifacts/wp_runs/WP-I0-001/20260306_003702/`
 ## Proof of Implementation
 
 - Command Runs: reference linked check script output.

@@ -82,5 +82,6 @@ If a requested change is ambiguous, high-risk, or conflicts with governance cons
 
 - `E2E-VERIFIED` is the only done state.
 - `IMPLEMENTED` is not done.
+- `SUPERSEDED` is a historical closure state for replaced packets and is not done.
 - The agent must not promote a WP/REQ to `E2E-VERIFIED` without linked runtime evidence and explicit user sign-off recorded in the WP and linked test-suite file.
 - The agent must not claim completion without proof artifact paths under `.product/build_target/tool_artifacts/wp_runs/<WP-ID>/`.

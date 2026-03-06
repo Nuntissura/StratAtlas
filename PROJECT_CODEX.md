@@ -146,5 +146,6 @@ The following must stay synchronized at all times:
 
 - `E2E-VERIFIED` is the only done state.
 - `IMPLEMENTED` means code and lower-level checks exist, but not done.
+- `SUPERSEDED` closes a replaced packet historically and must cite the successor packet; it is not a done state.
 - No WP may be promoted to `E2E-VERIFIED` without linked evidence and explicit user sign-off in WP + test-suite artifacts.
 - Never overstate implementation state: every claim must cite proof artifacts and command evidence.

@@ -86,12 +86,15 @@ The matrix is updated at these events:
 | Contract tests pass | Promote to `IMPLEMENTED` |
 | E2E runtime verification + sign-off | Promote to `E2E-VERIFIED` |
 
+When a WP is replaced by a follow-on packet before it satisfies the definition of done, the earlier WP MAY be marked `SUPERSEDED` in roadmap/taskboard/WP coverage records as long as the successor WP and retained proof path are recorded explicitly.
+
 ### 4.2 Reverse Index
 The "Component -> Requirements" reverse index at the bottom of the matrix MUST be updated whenever a new requirement-to-component mapping is added.
 
 ### 4.3 Work Packet Coverage
 The "Work Packet Coverage and Primitive Links" section in `TRACEABILITY_MATRIX.md` MUST be updated whenever a WP is created or re-scoped.
 An iteration may map to multiple sequenced WPs when the roadmap and task board explicitly identify the active packet set and the current blocking packet.
+If a prior packet is closed as `SUPERSEDED`, the traceability row MUST cite the successor packet and retained evidence path.
 
 ---
 

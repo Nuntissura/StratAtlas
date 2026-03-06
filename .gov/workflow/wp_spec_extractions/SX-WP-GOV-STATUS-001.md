@@ -1,9 +1,9 @@
-# SX-WP-GOV-REALIGN-001 - Spec Extraction Snapshot
+# SX-WP-GOV-STATUS-001 - Spec Extraction Snapshot
 
 Generated On: 2026-03-06
-Linked Work Packet: WP-GOV-REALIGN-001
-Linked Test Suite: .gov/workflow/wp_test_suites/TS-WP-GOV-REALIGN-001.md
-Linked WP Check Script: .gov/workflow/wp_checks/check-WP-GOV-REALIGN-001.ps1
+Linked Work Packet: WP-GOV-STATUS-001
+Linked Test Suite: .gov/workflow/wp_test_suites/TS-WP-GOV-STATUS-001.md
+Linked WP Check Script: .gov/workflow/wp_checks/check-WP-GOV-STATUS-001.ps1
 WP Status Snapshot: E2E-VERIFIED
 Iteration: All
 
@@ -28,6 +28,7 @@ Concrete extraction of requirement and primitive obligations this WP must satisf
 | PRIM-0029 | Delivery Reality Audit | Compare implementation evidence against governance claims and force status correction before further delivery | REQ-0013, REQ-0020, REQ-0021, REQ-0022 | All | E2E-VERIFIED |
 | PRIM-0030 | Multi-Packet Iteration Workflow | Allow activation and follow-on recovery packets within one iteration while keeping a single active blocking packet | REQ-0013, REQ-0019, REQ-0021 | All | E2E-VERIFIED |
 | PRIM-0031 | Recovery Queue Traceability | Keep recovery packets synchronized across roadmap, task board, traceability, and project operating instructions | REQ-0019, REQ-0020, REQ-0022 | All | E2E-VERIFIED |
+| PRIM-0041 | WP Supersession Ledger | Closure status and successor-reference ledger for replaced packets with retained proof | REQ-0013, REQ-0019, REQ-0020, REQ-0021, REQ-0022 | All | E2E-VERIFIED |
 
 ## Traceability Hooks
 
@@ -48,5 +49,5 @@ Concrete extraction of requirement and primitive obligations this WP must satisf
 ## Verification Hooks
 
 - Run preflight: powershell -ExecutionPolicy Bypass -File .gov/repo_scripts/governance_preflight.ps1
-- Run WP checks: powershell -ExecutionPolicy Bypass -File .gov/workflow/wp_checks/check-WP-GOV-REALIGN-001.ps1
-- Proof artifacts: .product/build_target/tool_artifacts/wp_runs/WP-GOV-REALIGN-001/
+- Run WP checks: powershell -ExecutionPolicy Bypass -File .gov/workflow/wp_checks/check-WP-GOV-STATUS-001.ps1
+- Proof artifacts: .product/build_target/tool_artifacts/wp_runs/WP-GOV-STATUS-001/

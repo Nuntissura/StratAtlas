@@ -1,7 +1,7 @@
 # WP-GOV-BUILDREADY-001 - Repo Build Readiness Foundation
 
 Date Opened: 2026-03-04
-Status: IMPLEMENTED
+Status: SUPERSEDED
 Iteration: All
 Workflow Version: 3.0
 
@@ -22,6 +22,7 @@ Establish baseline structures, templates, sub-spec stubs, and preflight automati
 - Added `.gov/repo_scripts/governance_preflight.ps1` and validated it passes.
 - Added `.gov/Spec/sub-specs/` stubs for I0..I10.
 - Added `.product/build_target/Current`, `Old versions`, and `logs` placeholders.
+- 2026-03-06: Closed as `SUPERSEDED`; later governance packets (`WP-GOV-LOOP-001`, `WP-GOV-REALIGN-001`, `WP-GOV-STATUS-001`) absorb the normative governance closure claims.
 
 ## Evidence
 
@@ -34,7 +35,7 @@ Linked WP Check Script: .gov/workflow/wp_checks/check-WP-GOV-BUILDREADY-001.ps1
 ## Proof of Implementation
 
 - Command Runs: reference linked check script output.
-- Proof Artifact: .product/build_target/tool_artifacts/wp_runs/WP-GOV-BUILDREADY-001/
+- Proof Artifact: .product/build_target/tool_artifacts/wp_runs/WP-GOV-BUILDREADY-001/20260306_003650/
 - Claim Standard: do not claim completion without linked command evidence and artifact paths.
 
 ## Linked Requirements
@@ -102,3 +103,8 @@ Linked WP Check Script: .gov/workflow/wp_checks/check-WP-GOV-BUILDREADY-001.ps1
 1. Governance kickoff commit (spec/wp/taskboard/traceability/primitives/test-suite).
 2. Implementation commit(s).
 3. Verification/status promotion commit.
+
+## Progress Log
+
+- 2026-03-04: Build-readiness foundation established with baseline governance scaffolding and preflight automation.
+- 2026-03-06: Closed as `SUPERSEDED`; retained proof path remains linked while successor governance packets carry the completion claim.

@@ -1,7 +1,7 @@
 # TS-WP-I0-001 - Spec vs Code Test Suite
 
 Date Opened: 2026-03-05
-Status: EXECUTED
+Status: SUPERSEDED
 Linked Work Packet: WP-I0-001
 Iteration: I0
 
@@ -65,12 +65,12 @@ Validate this WP against linked requirements/primitives with dependency, UI, fun
 
 ## Execution Summary
 
-- Last Run Date: 2026-03-05
-- Result: PASSING (lint/test/build/cargo test)
+- Last Run Date: 2026-03-06
+- Result: RETAINED BASELINE PROOF; packet superseded by `WP-I0-002`
 - Blocking Failures: None
-- Evidence Paths: .product/Worktrees/wt_main (src/, src-tauri/, dist/)
+- Evidence Paths: `.product/build_target/tool_artifacts/wp_runs/WP-I0-001/20260306_003702/result.json`; `.product/build_target/tool_artifacts/wp_runs/WP-I0-001/20260306_003702/summary.md`
 - Reviewer: Codex
-- User Sign-off: Pending
+- User Sign-off: N/A (`SUPERSEDED` by `WP-I0-002`)
 
 ## Automation Hook
 
