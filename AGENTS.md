@@ -39,6 +39,7 @@ If these disagree with implementation, reconcile governance intent first.
 - Status belongs on `.gov/workflow/taskboard/TASK_BOARD.md`.
 - Scope changes require governance updates before product implementation.
 - Iteration sequencing must follow `.gov/workflow/ROADMAP.md` unless governance explicitly changes it.
+- A single iteration may use multiple sequenced WPs when roadmap/taskboard identify the active packet set and current blocking packet.
 - Apply the checklist in `.gov/workflow/GOVERNANCE_WORKFLOW.md` on every relevant PR.
 - Before implementation/build work, run `powershell -ExecutionPolicy Bypass -File .gov/repo_scripts/governance_preflight.ps1`.
 - Enforce template contract before status promotion: `powershell -ExecutionPolicy Bypass -File .gov/repo_scripts/enforce_wp_template_compliance.ps1`.

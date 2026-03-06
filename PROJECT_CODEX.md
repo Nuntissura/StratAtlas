@@ -1,6 +1,6 @@
 # StratAtlas - Project Codex (How to Operate This Repo)
 
-Date: 2026-03-05
+Date: 2026-03-06
 
 This repository is intentionally split into two independent domains:
 
@@ -37,7 +37,7 @@ Keep this split explicit in every change.
 Execution loop:
 
 1. Confirm sequence and scope against `.gov/workflow/ROADMAP.md`.
-2. Choose or create a Work Packet and confirm linked sub-spec (prefer `.gov/repo_scripts/new_work_packet.ps1`).
+2. Choose or create the active Work Packet for the current iteration stage and confirm linked sub-spec (prefer `.gov/repo_scripts/new_work_packet.ps1`).
 3. Update the Task Board row for that WP (status/owner/requirements/sub-spec).
 4. Create/update the linked WP test suite (`.gov/workflow/wp_test_suites/`).
 5. Create/update the linked WP spec extraction (`.gov/workflow/wp_spec_extractions/`) via `.gov/repo_scripts/update_wp_spec_extract.ps1`.
@@ -49,6 +49,13 @@ Execution loop:
 11. Enforce WP template compliance: `powershell -ExecutionPolicy Bypass -File .gov/repo_scripts/enforce_wp_template_compliance.ps1`.
 12. Run the governance-sync checklist in `.gov/workflow/GOVERNANCE_WORKFLOW.md`.
 13. Update WP/test suite/taskboard with outcome + proof artifact path (`.product/build_target/tool_artifacts/wp_runs/<WP-ID>/`).
+14. For installer-impacting WPs, run `powershell -ExecutionPolicy Bypass -File .gov/repo_scripts/build_windows_installer.ps1` and record installer kit path + manifest in WP evidence.
+
+If an iteration has multiple sequenced WPs:
+
+- Keep the active packet set explicit in `ROADMAP.md` and `TASK_BOARD.md`.
+- Treat the current blocking packet as the only packet eligible to drive requirement promotion.
+- Downgrade requirement status when earlier packets only delivered scaffolding or prototype behavior.
 
 ## 3) Canonical Decision Files
 
@@ -95,7 +102,25 @@ For desktop/build outputs:
 
 Every build should be attributable to a Work Packet and reflected on the Task Board.
 
-## 8) Always-Maintained File Set
+## 8) Installer Lifecycle Contract (Windows)
+
+When Windows installer behavior changes, governance and product must stay aligned to spec Section 5.2:
+
+- Supported operations: `uninstall`, `repair`, `full-repair`, `update`, `downgrade`
+- `repair` preserves user presets/data
+- `full-repair` performs clean reinstall with backup/restore by default and explicit data-drop option
+- `update` rejects non-newer packages
+- `downgrade` is explicit and auditable
+- Installer and EXE version must match for the same build; `build_windows_installer.ps1` is the canonical version-bump path.
+
+Implementation anchors:
+
+- `.product/Worktrees/wt_main/src-tauri/tauri.conf.json`
+- `.product/Worktrees/wt_main/scripts/windows-installer-maintenance.ps1`
+- `.gov/repo_scripts/build_windows_installer.ps1`
+- `.product/Worktrees/wt_main/docs/INSTALLER_LIFECYCLE.md`
+
+## 9) Always-Maintained File Set
 
 The following must stay synchronized at all times:
 
@@ -117,7 +142,7 @@ The following must stay synchronized at all times:
 - `AGENTS.md`
 - `MODEL_BEHAVIOR.md`
 
-## 9) Done Standard
+## 10) Done Standard
 
 - `E2E-VERIFIED` is the only done state.
 - `IMPLEMENTED` means code and lower-level checks exist, but not done.

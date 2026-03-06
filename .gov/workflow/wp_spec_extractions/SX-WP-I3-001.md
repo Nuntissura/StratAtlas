@@ -15,10 +15,10 @@ Concrete extraction of requirement and primitive obligations this WP must satisf
 
 | Requirement | Level | Section | Description | Target | Status |
 |-------------|-------|---------|-------------|--------|--------|
-| REQ-0400 | MUST | Ã‚Â§10.2 | Analyst-authored artifacts use merge-safe semantics (CRDT or equivalent) | I3 | IMPLEMENTED |
-| REQ-0401 | MAY | Ã‚Â§10.2 | Last-write-wins only for ephemeral view state | I3 | IMPLEMENTED |
-| REQ-0402 | MUST | Ã‚Â§10.2 | Session replay derived from event log; attribution mandatory | I3 | IMPLEMENTED |
-| REQ-0403 | MUST | Ã‚Â§10.3 | On reconnection: conflict highlighting, reconcile actions, full history with attribution | I3 | IMPLEMENTED |
+| REQ-0400 | MUST | Ãƒâ€šÃ‚Â§10.2 | Analyst-authored artifacts use merge-safe semantics (CRDT or equivalent) | I3 | IN-PROGRESS |
+| REQ-0401 | MAY | Ãƒâ€šÃ‚Â§10.2 | Last-write-wins only for ephemeral view state | I3 | IN-PROGRESS |
+| REQ-0402 | MUST | Ãƒâ€šÃ‚Â§10.2 | Session replay derived from event log; attribution mandatory | I3 | IN-PROGRESS |
+| REQ-0403 | MUST | Ãƒâ€šÃ‚Â§10.3 | On reconnection: conflict highlighting, reconcile actions, full history with attribution | I3 | IN-PROGRESS |
 
 ## Primitive Extraction
 

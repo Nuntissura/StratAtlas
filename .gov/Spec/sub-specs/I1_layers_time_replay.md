@@ -4,8 +4,10 @@ Date: 2026-03-05
 Status: APPROVED
 Iteration: I1
 Parent Spec: .gov/Spec/stratatlas_spec_v1_2.md
-Linked Work Packet(s): WP-I1-001
-Linked Requirements: REQ-0200..REQ-0212, REQ-0014..REQ-0016
+Linked Work Packet(s): WP-I1-001, WP-I1-002
+Linked Requirements: REQ-0011, REQ-0012, REQ-0014..REQ-0016, REQ-0200..REQ-0212, REQ-0804, REQ-0805
+
+Recovery Note (2026-03-06): `WP-I1-002` is the queued follow-on packet for real workspace surfaces, visible artifact labels, layer metadata presentation, and budget/degradation feedback.
 
 ## 1) UX Contract
 

@@ -1,10 +1,10 @@
-# SX-WP-I0-001 - Spec Extraction Snapshot
+# SX-WP-I0-002 - Spec Extraction Snapshot
 
 Generated On: 2026-03-06
-Linked Work Packet: WP-I0-001
-Linked Test Suite: .gov/workflow/wp_test_suites/TS-WP-I0-001.md
-Linked WP Check Script: .gov/workflow/wp_checks/check-WP-I0-001.ps1
-WP Status Snapshot: IMPLEMENTED
+Linked Work Packet: WP-I0-002
+Linked Test Suite: .gov/workflow/wp_test_suites/TS-WP-I0-002.md
+Linked WP Check Script: .gov/workflow/wp_checks/check-WP-I0-002.ps1
+WP Status Snapshot: IN-PROGRESS
 Iteration: I0
 
 ## Scope
@@ -15,9 +15,9 @@ Concrete extraction of requirement and primitive obligations this WP must satisf
 
 | Requirement | Level | Section | Description | Target | Status |
 |-------------|-------|---------|-------------|--------|--------|
-| REQ-0017 | MUST | Ãƒâ€šÃ‚Â§5.1 | Runtime path/process/environment handling MUST remain platform-neutral without hard-coded Windows-only assumptions in core paths | All | IN-PROGRESS |
-| REQ-0018 | SHOULD | Ãƒâ€šÃ‚Â§5.1 | Desktop packaging/runtime SHOULD be smoke-tested on macOS during development to preserve portability | All | IN-PROGRESS |
-| REQ-0100 | MUST | Ãƒâ€šÃ‚Â§4.1 | RBAC: Viewer, Analyst, Administrator, Auditor roles | I0 | IN-PROGRESS |
+| REQ-0008 | MUST | Ãƒâ€šÃ‚Â§7.2 | Every artifact MUST carry sensitivity marking; markings propagate through composition and exports | All | IN-PROGRESS |
+| REQ-0009 | MUST | Ãƒâ€šÃ‚Â§7.3 | Every layer and derived artifact MUST carry provenance (source, license, timestamp, cadence, lineage) | All | IN-PROGRESS |
+| REQ-0010 | MUST | Ãƒâ€šÃ‚Â§8.1 | Immutable append-only audit trail of all analyst actions, exports, queries, alerts, collaboration, AI access | All | IN-PROGRESS |
 | REQ-0101 | MUST | Ãƒâ€šÃ‚Â§9.2 | Snapshot bundle contains: data slice, derived analytics, UI state, evidence manifest, integrity hashes, confidence metadata | I0 | IN-PROGRESS |
 | REQ-0102 | MUST | Ãƒâ€šÃ‚Â§9.2 | Bundle asset registry: each file/object has stable asset_id + sha256 hash | I0 | IN-PROGRESS |
 | REQ-0103 | MUST | Ãƒâ€šÃ‚Â§9.2 | External interfaces reference bundle contents by (bundle_id, asset_id, sha256), not filesystem paths | I0 | IN-PROGRESS |
@@ -30,21 +30,21 @@ Concrete extraction of requirement and primitive obligations this WP must satisf
 | REQ-0110 | MUST | Ãƒâ€šÃ‚Â§6.3 | Artifact store: immutable artifacts with append-only supersedes links | I0 | IN-PROGRESS |
 | REQ-0111 | MUST | Ãƒâ€šÃ‚Â§5 | Deployment profiles each specify: identity, key management, storage, audit retention, AI access | I0 | IN-PROGRESS |
 | REQ-0112 | MUST | Ãƒâ€šÃ‚Â§11.5 | Bundle open (local): ÃƒÂ¢Ã¢â‚¬Â°Ã‚Â¤5.0s to interactive | I0 | IN-PROGRESS |
+| REQ-0808 | MUST | Ãƒâ€šÃ‚Â§7.4.8 | Snapshot bundles include context values at capture time | I7 | IN-PROGRESS |
 
 ## Primitive Extraction
 
 | Primitive | Name | Contract | REQs | First Iter | Status |
 |-----------|------|----------|------|------------|--------|
-| PRIM-0001 | Bundle Manifest Contract | Immutable bundle manifest with hash-addressed assets | REQ-0101..REQ-0105 | I0 | IMPLEMENTED |
-| PRIM-0002 | Audit Event Hash Chain | Append-only hash-chained audit events | REQ-0010, REQ-0106, REQ-0107 | I0 | IMPLEMENTED |
-| PRIM-0003 | Sensitivity Marking Model | Sensitivity propagation across artifacts | REQ-0008, REQ-0011 | I0 | IMPLEMENTED |
-| PRIM-0004 | Provenance Reference Model | Source/license/time/lineage references | REQ-0009 | I0 | IMPLEMENTED |
+| PRIM-0032 | Recorder State Store | Persist workspace, query, layer, and context state through the backend instead of only in React component memory | REQ-0008, REQ-0009, REQ-0010, REQ-0101..REQ-0112, REQ-0808 | I0 | SPEC-MAPPED |
+| PRIM-0033 | Bundle Asset Snapshot Registry | Capture multiple typed bundle assets with stable `asset_id` and `sha256` references | REQ-0008, REQ-0009, REQ-0010, REQ-0101..REQ-0112 | I0 | SPEC-MAPPED |
+| PRIM-0034 | Context Snapshot Artifact | Bundle capture of active context domains, correlation selections, and related query/config state | REQ-0101..REQ-0112, REQ-0808 | I0 | SPEC-MAPPED |
 
 ## Traceability Hooks
 
-- REQ-0017: Mapped in TRACEABILITY_MATRIX.md
-- REQ-0018: Mapped in TRACEABILITY_MATRIX.md
-- REQ-0100: Mapped in TRACEABILITY_MATRIX.md
+- REQ-0008: Mapped in TRACEABILITY_MATRIX.md
+- REQ-0009: Mapped in TRACEABILITY_MATRIX.md
+- REQ-0010: Mapped in TRACEABILITY_MATRIX.md
 - REQ-0101: Mapped in TRACEABILITY_MATRIX.md
 - REQ-0102: Mapped in TRACEABILITY_MATRIX.md
 - REQ-0103: Mapped in TRACEABILITY_MATRIX.md
@@ -57,6 +57,7 @@ Concrete extraction of requirement and primitive obligations this WP must satisf
 - REQ-0110: Mapped in TRACEABILITY_MATRIX.md
 - REQ-0111: Mapped in TRACEABILITY_MATRIX.md
 - REQ-0112: Mapped in TRACEABILITY_MATRIX.md
+- REQ-0808: Mapped in TRACEABILITY_MATRIX.md
 
 ## Non-Goal / Red-Team Guardrails
 
@@ -69,5 +70,5 @@ Concrete extraction of requirement and primitive obligations this WP must satisf
 ## Verification Hooks
 
 - Run preflight: powershell -ExecutionPolicy Bypass -File .gov/repo_scripts/governance_preflight.ps1
-- Run WP checks: powershell -ExecutionPolicy Bypass -File .gov/workflow/wp_checks/check-WP-I0-001.ps1
-- Proof artifacts: .product/build_target/tool_artifacts/wp_runs/WP-I0-001/
+- Run WP checks: powershell -ExecutionPolicy Bypass -File .gov/workflow/wp_checks/check-WP-I0-002.ps1
+- Proof artifacts: .product/build_target/tool_artifacts/wp_runs/WP-I0-002/

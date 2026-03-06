@@ -4,8 +4,10 @@ Date: 2026-03-05
 Status: APPROVED
 Iteration: I0
 Parent Spec: `.gov/Spec/stratatlas_spec_v1_2.md`
-Linked Work Packet(s): `WP-I0-001`
-Linked Requirements: `REQ-0100..REQ-0112`, `REQ-0017`, `REQ-0018`
+Linked Work Packet(s): `WP-I0-001`, `WP-I0-002`
+Linked Requirements: `REQ-0008`, `REQ-0009`, `REQ-0010`, `REQ-0100..REQ-0112`, `REQ-0017`, `REQ-0018`, `REQ-0808`
+
+Recovery Note (2026-03-06): `WP-I0-002` is the active follow-on packet for recorder state-store hardening, multi-asset bundle capture, and context snapshot persistence.
 
 ## 1) UX Contract
 

@@ -79,6 +79,11 @@ When a WP is created or activated:
 7. Update primitives index and primitives matrix.
 8. Create a governance checkpoint commit before product implementation (automatic when using `new_work_packet.ps1` unless `-SkipCheckpointCommit` is passed).
 
+If multiple sequenced WPs exist for one iteration:
+
+9. Update `ROADMAP.md` and `TASK_BOARD.md` to identify the active packet set and the current blocking packet.
+10. Downgrade requirement status when a prior packet only delivered scaffolding, demo logic, or prototype behavior.
+
 ### Trigger C: Implementation progress
 
 When product work progresses:
@@ -121,6 +126,13 @@ Every WP must include these sections:
 - `Checkpoint Commit Plan`
 - `Proof of Implementation`
 - `Evidence`
+
+## 5A) Multi-Packet Iteration Rule
+
+- A single iteration may use multiple sequenced WPs when the earlier packet does not yet satisfy the capability-slice definition of done.
+- The task board must make the current blocking packet explicit.
+- Requirement status must reflect real implementation state, not historical intent or scaffold existence.
+- Follow-on packets must link the same iteration sub-spec unless governance introduces a replacement sub-spec in the same PR.
 
 ---
 

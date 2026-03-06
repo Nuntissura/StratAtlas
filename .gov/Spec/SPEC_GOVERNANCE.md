@@ -91,6 +91,7 @@ The "Component -> Requirements" reverse index at the bottom of the matrix MUST b
 
 ### 4.3 Work Packet Coverage
 The "Work Packet Coverage and Primitive Links" section in `TRACEABILITY_MATRIX.md` MUST be updated whenever a WP is created or re-scoped.
+An iteration may map to multiple sequenced WPs when the roadmap and task board explicitly identify the active packet set and the current blocking packet.
 
 ---
 
@@ -204,6 +205,7 @@ No work packet may be considered complete if roadmap/taskboard/requirements/trac
 ### 8.4 Representation Completeness Rule
 Each iteration in `ROADMAP.md` MUST have:
 
-- exactly one corresponding Task Board row (`WP-I*`) with matching iteration ID,
-- exactly one corresponding work packet file in `.gov/workflow/work_packets/`,
-- a matching linked sub-spec path in roadmap and task board entries.
+- at least one corresponding Task Board row (`WP-I*`) with matching iteration ID,
+- at least one corresponding work packet file in `.gov/workflow/work_packets/`,
+- a matching linked sub-spec path in roadmap and task board entries for the active packet set,
+- explicit identification of the current blocking WP when multiple sequenced packets exist for the same iteration.

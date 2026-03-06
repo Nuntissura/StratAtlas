@@ -1,6 +1,6 @@
 # StratAtlas - Roadmap and Build Order
 
-Date: 2026-03-05
+Date: 2026-03-06
 Source anchors: `.gov/Spec/stratatlas_spec_v1_2.md` section 19 and `.gov/Spec/REQUIREMENTS_INDEX.md`
 
 This file is the execution order for capability slices. It is the scheduling bridge between the spec and day-to-day work packets.
@@ -9,10 +9,10 @@ This file is the execution order for capability slices. It is the scheduling bri
 
 ## 1) Build Order (Canonical Baseline)
 
-| Order | Iteration | Capability Slice | Primary REQ Range | Sub-Spec File | Linked WP | Minimum Exit Signal |
-|------:|-----------|------------------|-------------------|---------------|-----------|---------------------|
-| 1 | I0 | Walking skeleton (bundle, reopen, audit, markings, offline open) | REQ-0100..REQ-0112 (+ REQ-0017/REQ-0018 guardrails) | `.gov/Spec/sub-specs/I0_walking_skeleton.md` | `WP-I0-001` | Bundle reopen deterministic + offline open + audit/markings active + portability baseline recorded |
-| 2 | I1 | Layer system + time/replay + deterministic export | REQ-0200..REQ-0212 (+ REQ-0014..REQ-0016 budgets) | `.gov/Spec/sub-specs/I1_layers_time_replay.md` | `WP-I1-001` | Stable UI regions/modes + layer contract + perf budgets passing + startup/state-change budgets validated |
+| Order | Iteration | Capability Slice | Primary REQ Range | Sub-Spec File | Linked WP(s) | Minimum Exit Signal |
+|------:|-----------|------------------|-------------------|---------------|--------------|---------------------|
+| 1 | I0 | Walking skeleton (bundle, reopen, audit, markings, offline open) | REQ-0100..REQ-0112 (+ REQ-0017/REQ-0018 guardrails) | `.gov/Spec/sub-specs/I0_walking_skeleton.md` | `WP-I0-001`, `WP-I0-002` | Bundle reopen deterministic + offline open + audit/markings active + portability baseline recorded |
+| 2 | I1 | Layer system + time/replay + deterministic export | REQ-0200..REQ-0212 (+ REQ-0014..REQ-0016 budgets) | `.gov/Spec/sub-specs/I1_layers_time_replay.md` | `WP-I1-001`, `WP-I1-002` | Stable UI regions/modes + layer contract + perf budgets passing + startup/state-change budgets validated |
 | 3 | I2 | Baseline/delta compare + briefing bundle | REQ-0300..REQ-0302 | `.gov/Spec/sub-specs/I2_baseline_delta_briefing.md` | `WP-I2-001` | Baseline->Delta->Bundle->Briefing golden flow passing |
 | 4 | I3 | Collaboration + CRDT + session replay | REQ-0400..REQ-0403 | `.gov/Spec/sub-specs/I3_collaboration_crdt_replay.md` | `WP-I3-001` | Merge-safe collaboration + conflict UX + attribution replay |
 | 5 | I4 | Scenario modeling + constraint propagation + export | REQ-0500..REQ-0504 | `.gov/Spec/sub-specs/I4_scenario_modeling_constraints.md` | `WP-I4-001` | Scenario fork/compare/export workflow passing |
@@ -33,6 +33,13 @@ This file is the execution order for capability slices. It is the scheduling bri
   - an active linked Work Packet,
   - Task Board status that is current and aligned to roadmap/WP links.
 - "Done" for each iteration follows `.gov/Spec/stratatlas_spec_v1_2.md` section 17 (capability slice definition of done).
+
+## 2A) Active Recovery Queue
+
+- `WP-GOV-REALIGN-001` is the active governance packet for implementation-reality correction and multi-packet iteration recovery.
+- `WP-I0-002` is the current blocking product packet and must land before additional normative iteration claims are advanced.
+- `WP-I1-002` starts after `WP-I0-002` closes recorder/artifact snapshot gaps and restores a truthful I1 shell surface.
+- Existing I2-I10 activation-shell scaffolds remain useful references, but later-iteration normative delivery is paused until the I0/I1 recovery packets complete.
 
 ---
 

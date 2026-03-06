@@ -1,8 +1,8 @@
 # STRATATLAS
-## Product Specification v1.2
+## Product Specification v1.2.3
 *Interactive Geospatial Analysis Workstation*
 
-**Date:** 2026-03-05  
+**Date:** 2026-03-06  
 **Status:** Draft  
 **Audience:** Engineering, Product, Security/Compliance, Stakeholders  
 **Supersedes:** `stratatlas_spec_v1_1.md`, `stratatlas_spec_v1_0.md`, `stratatlas_spec_v0_4.md`, `stratatlas_spec_v1_0_reset.md`
@@ -16,7 +16,7 @@ This document uses requirement keywords:
 - **SHOULD / SHOULD NOT:** strong recommendation; exceptions require written justification
 - **MAY:** optional capability
 
-Items marked **[NEW in v1.2]** denote additions relative to spec v1.1. Items marked **[NEW in v1.1]** denote additions relative to spec v1.0.
+Items marked **[NEW in v1.2.2]** denote additions relative to spec v1.2.1. Items marked **[NEW in v1.2]** denote additions relative to spec v1.1. Items marked **[NEW in v1.1]** denote additions relative to spec v1.0.
 
 ---
 
@@ -117,6 +117,27 @@ Normative rules:
 - Filesystem, paths, process invocation, and environment handling MUST use platform-neutral abstractions (no hard-coded drive letters or path separators in core paths).
 - Desktop packaging and runtime behavior MUST be tested on Windows and SHOULD be smoke-tested on macOS throughout development.
 - New external dependencies SHOULD be selected only if they support Windows and macOS for the required feature scope.
+
+### 5.2 Installer Lifecycle Contract [NEW in v1.2.2]
+
+Windows desktop distribution MUST provide lifecycle operations for:
+
+- uninstall
+- repair (preserve user presets/data)
+- full-repair (clean reinstall with backup/restore of user presets/data by default)
+- update (install newer approved build)
+- downgrade (install older approved build when explicitly requested)
+
+Normative rules:
+
+- Installers MUST support standard uninstall from Windows Apps/Programs.
+- A maintenance pathway (installer UX and/or bundled maintenance tool) MUST expose repair, full-repair, update, and downgrade operations.
+- Repair MUST NOT delete user presets/data under application data directories.
+- Full-repair MUST perform clean binary reinstall and MUST provide an explicit option to drop user data.
+- Update MUST reject non-newer packages.
+- Downgrade MUST be explicit (no silent version rollback) and auditable.
+- Installer build outputs MUST increase version monotonically when release artifacts are rebuilt from changed code.
+- EXE and installer artifacts produced by the same build MUST carry the same version.
 
 ---
 
@@ -706,6 +727,8 @@ A capability slice is "Done" only if it includes:
 
 **Normative addition:** Each iteration (Section 19) MUST reference a **detailed capability sub-spec** that contains the full requirements for that slice (UX wireframes, data schemas, API contracts, query examples, edge cases). The top-level spec defines the contract; sub-specs define the implementation requirements. **[NEW in v1.1]** Sub-specs MUST also include schema deltas and API/interface deltas for any affected artifact types.
 
+**Normative addition [NEW in v1.2.3]:** A single iteration MAY be executed through multiple sequenced Work Packets when an activation packet delivers partial scaffolding and one or more follow-on packets are required to close Section 17 obligations. Governance artifacts MUST identify the active packet set, the current blocking packet, and the requirements still in progress.
+
 ---
 
 ## 18. Release Gates (Pilot Eligibility)
@@ -740,12 +763,18 @@ If AI integration is enabled (I6+):
 - Desktop startup budgets from Section 11.5 MUST be met on reference hardware.
 - Build/runtime path handling MUST remain platform-neutral (Windows + macOS portability preserved).
 - No new Windows-only dependency may be introduced in core runtime paths without approved platform abstraction and roadmap impact note.
+- Windows installer lifecycle operations from Section 5.2 (uninstall, repair, full-repair, update, downgrade) MUST be available and validated.
 
 
 ---
 
 ## 19. Iteration Plan (Non-MVP)
 Iterations are defined as **capability slices** that satisfy Section 17. Each iteration MUST produce a detailed sub-spec before implementation begins.
+
+Execution note [NEW in v1.2.3]:
+- An iteration may have a primary activation packet plus one or more follow-on recovery packets.
+- Follow-on packets do not change the build order by default; they complete the iteration already in sequence.
+- If governance determines that a prior packet only delivered prototype or activation-shell behavior, requirement status MUST be downgraded until the follow-on packet closes the remaining normative gaps.
 
 Example ordering (modifiable):
 - I0: Walking skeleton (bundle creation + reopen + audit + markings + offline open + startup instrumentation + portability baseline)
@@ -983,3 +1012,5 @@ This appendix catalogues approved and planned contextual data domains. New domai
 | v1.1 | 2026-03-04 | Added: Strategic Game Modeling Framework (Section 20); tightened bundle asset addressing (asset_id + sha256); added Evidence/Context/Model/AI labeling; added explicit performance budgets; strengthened schema requirements. |
 | v1.2 | 2026-03-04 | Added: AI Copilot Integration (Section 15.5) with narration, query suggestion, SAT pre-population, briefing draft, and continuous monitoring. Added: Visualization Technology Contract (Section 6.4) defining rendering, charting, spatial analysis, and offline analytics engine requirements. Added Gate G (AI Safety). |
 | v1.2.1 | 2026-03-05 | Added desktop startup budgets and state-change feedback budget (Section 11.5). Added desktop portability contract for Windows→macOS path (Section 5.1). Added Gate H (Desktop Portability & Startup). |
+| v1.2.2 | 2026-03-06 | Added installer lifecycle contract for Windows distribution (Section 5.2): uninstall, repair, full-repair, update, downgrade. Extended Gate H to require installer lifecycle validation. |
+| v1.2.3 | 2026-03-06 | Clarified that iterations may use multiple sequenced Work Packets when activation scaffolding does not yet satisfy the capability-slice definition of done. Added governance-realignment language for follow-on recovery packets and requirement-status correction. |

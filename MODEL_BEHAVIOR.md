@@ -34,9 +34,11 @@ If implementation and governance diverge, pause and reconcile governance first.
 - Anchor meaningful work to an active Work Packet.
 - Anchor meaningful work to an active Work Packet and linked WP test suite.
 - Anchor meaningful work to linked `wp_spec_extractions` and `wp_checks` artifacts.
+- When an iteration has multiple sequenced WPs, work only against the current blocking packet and keep roadmap/taskboard state explicit.
 - Keep diffs small, scoped, and reviewable.
 - Update governance docs when requirement scope changes.
 - Update traceability and primitive matrices when new implementation obligations are introduced.
+- Downgrade overstated requirement or WP status before continuing if code reality no longer matches governance claims.
 - Ensure each WP includes expected touched files and an interconnection plan (primitives/tools/features/technologies).
 - Create a governance checkpoint commit before implementation work to prevent loss on session failures (default behavior when using `.gov/repo_scripts/new_work_packet.ps1`).
 - Run `.gov/repo_scripts/enforce_wp_template_compliance.ps1` before status promotion to prevent shortcuts.

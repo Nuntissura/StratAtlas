@@ -15,10 +15,10 @@ Concrete extraction of requirement and primitive obligations this WP must satisf
 
 | Requirement | Level | Section | Description | Target | Status |
 |-------------|-------|---------|-------------|--------|--------|
-| REQ-1000 | MUST | Ã‚Â§7.4.4 | OSINT feeds from approved curated aggregators only | I9 | IMPLEMENTED |
-| REQ-1001 | MUST | Ã‚Â§7.4.6 | OSINT events carry verification level (confirmed/reported/alleged); alleged visually distinct | I9 | IMPLEMENTED |
-| REQ-1002 | MUST | Ã‚Â§13.4 | Alerts aggregate/statistical, scoped to AOIs, never entity-pursuit | I9 | IMPLEMENTED |
-| REQ-1003 | MAY | Ã‚Â§13.4 | Alerts reference context domain thresholds | I9 | IMPLEMENTED |
+| REQ-1000 | MUST | Ãƒâ€šÃ‚Â§7.4.4 | OSINT feeds from approved curated aggregators only | I9 | IN-PROGRESS |
+| REQ-1001 | MUST | Ãƒâ€šÃ‚Â§7.4.6 | OSINT events carry verification level (confirmed/reported/alleged); alleged visually distinct | I9 | IN-PROGRESS |
+| REQ-1002 | MUST | Ãƒâ€šÃ‚Â§13.4 | Alerts aggregate/statistical, scoped to AOIs, never entity-pursuit | I9 | IN-PROGRESS |
+| REQ-1003 | MAY | Ãƒâ€šÃ‚Â§13.4 | Alerts reference context domain thresholds | I9 | IN-PROGRESS |
 
 ## Primitive Extraction
 

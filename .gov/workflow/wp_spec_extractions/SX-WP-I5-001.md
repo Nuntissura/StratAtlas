@@ -15,11 +15,11 @@ Concrete extraction of requirement and primitive obligations this WP must satisf
 
 | Requirement | Level | Section | Description | Target | Status |
 |-------------|-------|---------|-------------|--------|--------|
-| REQ-0600 | MUST | Ã‚Â§13.2 | Composable spatio-temporal query builder | I5 | IMPLEMENTED |
-| REQ-0601 | MUST | Ã‚Â§13.2 | Query results render as ephemeral layers | I5 | IMPLEMENTED |
-| REQ-0602 | MUST | Ã‚Â§13.2 | Saved queries version-controlled | I5 | IMPLEMENTED |
-| REQ-0603 | SHOULD | Ã‚Â§13.2 | Context-aware queries combining geospatial + context domain conditions | I5 | IMPLEMENTED |
-| REQ-0604 | MUST | Ã‚Â§11.3 | Golden flow: Query Builder Ã¢â€ â€™ Run Ã¢â€ â€™ Render Ã¢â€ â€™ Save/version | I5 | IMPLEMENTED |
+| REQ-0600 | MUST | Ãƒâ€šÃ‚Â§13.2 | Composable spatio-temporal query builder | I5 | IN-PROGRESS |
+| REQ-0601 | MUST | Ãƒâ€šÃ‚Â§13.2 | Query results render as ephemeral layers | I5 | IN-PROGRESS |
+| REQ-0602 | MUST | Ãƒâ€šÃ‚Â§13.2 | Saved queries version-controlled | I5 | IN-PROGRESS |
+| REQ-0603 | SHOULD | Ãƒâ€šÃ‚Â§13.2 | Context-aware queries combining geospatial + context domain conditions | I5 | IN-PROGRESS |
+| REQ-0604 | MUST | Ãƒâ€šÃ‚Â§11.3 | Golden flow: Query Builder ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ Run ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ Render ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ Save/version | I5 | IN-PROGRESS |
 
 ## Primitive Extraction
 

@@ -1,8 +1,8 @@
 # StratAtlas - Technology Stack
 
-**Spec Version:** v1.2.1  
+**Spec Version:** v1.2.3  
 **Last Updated:** 2026-03-06  
-**Status:** Active baseline in `.product/Worktrees/wt_main` (I0-I10 contract implementation + verified test coverage)
+**Status:** Target architecture in `.product/Worktrees/wt_main`; recovery packets `WP-I0-002` and `WP-I1-002` are wiring the declared stack into the runtime shell.
 
 ---
 
@@ -234,6 +234,15 @@ Shared viewport state → switching 2D ↔ 3D preserves camera position and laye
 - Keep OS-specific behavior behind Rust/TypeScript adapters instead of scattering platform conditionals.
 - Use path-safe abstractions (`PathBuf`/platform-aware path utilities) and avoid hard-coded separators/drive assumptions.
 - Track and enforce cold/warm startup and state-change feedback budgets in performance validation.
+
+### Windows Installer Lifecycle Tooling [NEW in v1.2.2]
+
+| Attribute | Value |
+|-----------|-------|
+| Role | Installer lifecycle operations (uninstall, repair, full-repair, update, downgrade) and reproducible installer kit assembly |
+| Components | `src-tauri/tauri.conf.json` (WiX + NSIS bundle policy), `scripts/windows-installer-maintenance.ps1`, `.gov/repo_scripts/build_windows_installer.ps1` |
+| Why chosen | Uses native Windows installer channels (MSI/WiX + NSIS) while adding explicit lifecycle controls and audited maintenance operations |
+| Spec alignment | Â§5.2 installer lifecycle contract, Â§18 Gate H lifecycle validation |
 
 ---
 

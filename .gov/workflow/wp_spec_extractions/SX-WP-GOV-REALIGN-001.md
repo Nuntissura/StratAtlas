@@ -1,9 +1,9 @@
-# SX-WP-GOV-LOOP-001 - Spec Extraction Snapshot
+# SX-WP-GOV-REALIGN-001 - Spec Extraction Snapshot
 
 Generated On: 2026-03-06
-Linked Work Packet: WP-GOV-LOOP-001
-Linked Test Suite: .gov/workflow/wp_test_suites/TS-WP-GOV-LOOP-001.md
-Linked WP Check Script: .gov/workflow/wp_checks/check-WP-GOV-LOOP-001.ps1
+Linked Work Packet: WP-GOV-REALIGN-001
+Linked Test Suite: .gov/workflow/wp_test_suites/TS-WP-GOV-REALIGN-001.md
+Linked WP Check Script: .gov/workflow/wp_checks/check-WP-GOV-REALIGN-001.ps1
 WP Status Snapshot: IMPLEMENTED
 Iteration: All
 
@@ -15,6 +15,7 @@ Concrete extraction of requirement and primitive obligations this WP must satisf
 
 | Requirement | Level | Section | Description | Target | Status |
 |-------------|-------|---------|-------------|--------|--------|
+| REQ-0013 | MUST | Ãƒâ€šÃ‚Â§17 | No capability is "implemented" until it satisfies the slice definition of done | All | IN-PROGRESS |
 | REQ-0019 | MUST | Ãƒâ€šÃ‚Â§17 | Every WP MUST maintain linked test suite, spec extraction, and WP check script artifacts | All | IMPLEMENTED |
 | REQ-0020 | MUST | Ãƒâ€šÃ‚Â§17 | WP status claims MUST include proof artifact paths and command evidence | All | IMPLEMENTED |
 | REQ-0021 | MUST | Ãƒâ€šÃ‚Â§18 | Governance preflight MUST enforce WP template compliance to prevent shortcut execution | All | IMPLEMENTED |
@@ -24,13 +25,13 @@ Concrete extraction of requirement and primitive obligations this WP must satisf
 
 | Primitive | Name | Contract | REQs | First Iter | Status |
 |-----------|------|----------|------|------------|--------|
-| PRIM-0020 | WP Spec Extraction Artifact | Per-WP extracted requirement + primitive snapshot | REQ-0019, REQ-0022 | All | IMPLEMENTED |
-| PRIM-0021 | WP Check Script Contract | Per-WP script delegating to standardized check runner | REQ-0019, REQ-0020 | All | IMPLEMENTED |
-| PRIM-0022 | WP Proof Artifact Ledger | Standard artifact path + command evidence references | REQ-0020 | All | IMPLEMENTED |
-| PRIM-0023 | Template Compliance Gate | No-shortcut enforcement for required WP/suite structure | REQ-0021 | All | IMPLEMENTED |
+| PRIM-0029 | Delivery Reality Audit | Compare implementation evidence against governance claims and force status correction before further delivery | REQ-0013, REQ-0020, REQ-0021, REQ-0022 | All | IMPLEMENTED |
+| PRIM-0030 | Multi-Packet Iteration Workflow | Allow activation and follow-on recovery packets within one iteration while keeping a single active blocking packet | REQ-0013, REQ-0019, REQ-0021 | All | IMPLEMENTED |
+| PRIM-0031 | Recovery Queue Traceability | Keep recovery packets synchronized across roadmap, task board, traceability, and project operating instructions | REQ-0019, REQ-0020, REQ-0022 | All | IMPLEMENTED |
 
 ## Traceability Hooks
 
+- REQ-0013: Mapped in TRACEABILITY_MATRIX.md
 - REQ-0019: Mapped in TRACEABILITY_MATRIX.md
 - REQ-0020: Mapped in TRACEABILITY_MATRIX.md
 - REQ-0021: Mapped in TRACEABILITY_MATRIX.md
@@ -47,5 +48,5 @@ Concrete extraction of requirement and primitive obligations this WP must satisf
 ## Verification Hooks
 
 - Run preflight: powershell -ExecutionPolicy Bypass -File .gov/repo_scripts/governance_preflight.ps1
-- Run WP checks: powershell -ExecutionPolicy Bypass -File .gov/workflow/wp_checks/check-WP-GOV-LOOP-001.ps1
-- Proof artifacts: .product/build_target/tool_artifacts/wp_runs/WP-GOV-LOOP-001/
+- Run WP checks: powershell -ExecutionPolicy Bypass -File .gov/workflow/wp_checks/check-WP-GOV-REALIGN-001.ps1
+- Proof artifacts: .product/build_target/tool_artifacts/wp_runs/WP-GOV-REALIGN-001/

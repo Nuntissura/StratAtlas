@@ -15,15 +15,15 @@ Concrete extraction of requirement and primitive obligations this WP must satisf
 
 | Requirement | Level | Section | Description | Target | Status |
 |-------------|-------|---------|-------------|--------|--------|
-| REQ-0700 | MUST | Ã‚Â§15.1 | AI access mediated through gateway: authn/authz, RBAC, marking policy, licensing, audit | I6 | IMPLEMENTED |
-| REQ-0701 | MUST | Ã‚Â§15.2 | AI outputs labeled derived/interpretive, cite evidence by (bundle_id, asset_id, sha256), inherit markings | I6 | IMPLEMENTED |
-| REQ-0702 | SHOULD | Ã‚Â§15.3 | MCP server: policy-gated, audited tools | I6 | IMPLEMENTED |
-| REQ-0703 | MUST | Ã‚Â§15.3 | MCP tools operate on bundle IDs and content hashes, not file paths | I6 | IMPLEMENTED |
-| REQ-0704 | MUST | Ã‚Â§15.3 | MCP minimum tool surface: get_bundle_manifest, get_bundle_slice, get_context_values, submit_analysis, list_layers, get_scenario_delta | I6 | IMPLEMENTED |
-| REQ-0705 | MUST | Ã‚Â§15.3 | Every MCP invocation audit-logged | I6 | IMPLEMENTED |
-| REQ-0706 | MUST | Ã‚Â§15.3 | MCP enforces same RBAC/marking/export policies as UI gateway | I6 | IMPLEMENTED |
-| REQ-0707 | MUST | Ã‚Â§15.3 | MCP MUST NOT expose raw DB queries, file paths, or internal endpoints | I6 | IMPLEMENTED |
-| REQ-0708 | MUST | Ã‚Â§15.3 | MCP disable-able per deployment profile | I6 | IMPLEMENTED |
+| REQ-0700 | MUST | Ãƒâ€šÃ‚Â§15.1 | AI access mediated through gateway: authn/authz, RBAC, marking policy, licensing, audit | I6 | IN-PROGRESS |
+| REQ-0701 | MUST | Ãƒâ€šÃ‚Â§15.2 | AI outputs labeled derived/interpretive, cite evidence by (bundle_id, asset_id, sha256), inherit markings | I6 | IN-PROGRESS |
+| REQ-0702 | SHOULD | Ãƒâ€šÃ‚Â§15.3 | MCP server: policy-gated, audited tools | I6 | IN-PROGRESS |
+| REQ-0703 | MUST | Ãƒâ€šÃ‚Â§15.3 | MCP tools operate on bundle IDs and content hashes, not file paths | I6 | IN-PROGRESS |
+| REQ-0704 | MUST | Ãƒâ€šÃ‚Â§15.3 | MCP minimum tool surface: get_bundle_manifest, get_bundle_slice, get_context_values, submit_analysis, list_layers, get_scenario_delta | I6 | IN-PROGRESS |
+| REQ-0705 | MUST | Ãƒâ€šÃ‚Â§15.3 | Every MCP invocation audit-logged | I6 | IN-PROGRESS |
+| REQ-0706 | MUST | Ãƒâ€šÃ‚Â§15.3 | MCP enforces same RBAC/marking/export policies as UI gateway | I6 | IN-PROGRESS |
+| REQ-0707 | MUST | Ãƒâ€šÃ‚Â§15.3 | MCP MUST NOT expose raw DB queries, file paths, or internal endpoints | I6 | IN-PROGRESS |
+| REQ-0708 | MUST | Ãƒâ€šÃ‚Â§15.3 | MCP disable-able per deployment profile | I6 | IN-PROGRESS |
 
 ## Primitive Extraction
 
