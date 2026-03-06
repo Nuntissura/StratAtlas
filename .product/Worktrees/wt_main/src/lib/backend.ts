@@ -85,6 +85,7 @@ const BUNDLE_ASSET_PATHS = {
   'ai-state': 'assets/ai_state.json',
   'deviation-state': 'assets/deviation_state.json',
   'osint-state': 'assets/osint_state.json',
+  'game-model-state': 'assets/game_model_state.json',
   'recorder-state': 'assets/recorder_state.json',
 } as const
 
@@ -184,6 +185,13 @@ const buildBundleAssets = async (
     buildBundleAsset({
       assetId: 'osint-state',
       value: request.state.osint ?? null,
+      marking: request.marking,
+      provenanceRefs: request.provenance_refs,
+      capturedAt,
+    }),
+    buildBundleAsset({
+      assetId: 'game-model-state',
+      value: request.state.gameModel ?? null,
       marking: request.marking,
       provenanceRefs: request.provenance_refs,
       capturedAt,
@@ -294,6 +302,7 @@ const fallbackOpenBundle = async (bundleId: string, role: string): Promise<OpenB
   const aiSnapshot = selected.assets['ai-state']
   const deviationSnapshot = selected.assets['deviation-state']
   const osintSnapshot = selected.assets['osint-state']
+  const gameModelSnapshot = selected.assets['game-model-state']
   const recorderState = selected.assets['recorder-state']
 
   if (!isRecord(recorderState)) {
@@ -347,6 +356,13 @@ const fallbackOpenBundle = async (bundleId: string, role: string): Promise<OpenB
       canonicalize(typeof osintSnapshot === 'undefined' ? null : osintSnapshot)
   ) {
     throw new Error('Recorder state asset does not match osint-state asset')
+  }
+  if (
+    selected.manifest.assets.some((asset) => asset.asset_id === 'game-model-state') &&
+    canonicalize((recorderState as Record<string, unknown>).gameModel ?? null) !==
+      canonicalize(typeof gameModelSnapshot === 'undefined' ? null : gameModelSnapshot)
+  ) {
+    throw new Error('Recorder state asset does not match game-model-state asset')
   }
 
   await fallbackAppendAudit({

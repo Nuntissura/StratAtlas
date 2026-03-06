@@ -203,20 +203,20 @@ REQ-NNNN | LEVEL | Ã‚Â§Section | Description | Iteration Target | Status
 
 | ID | Level | Section | Description | Target | Status |
 |----|-------|---------|-------------|--------|--------|
-| REQ-1100 | MUST | Ã‚Â§20.1 | Game modeling operates at aggregate strategic level, not individual targeting | I10 | IN-PROGRESS |
-| REQ-1101 | MUST | Ã‚Â§20.2 | Game Model artifact: versioned, auditable, exportable with required fields | I10 | IN-PROGRESS |
-| REQ-1102 | MUST | Ã‚Â§20.2 | Game Models carry provenance, confidence, sensitivity markings | I10 | IN-PROGRESS |
-| REQ-1103 | SHOULD | Ã‚Â§20.3 | Support normal-form, extensive-form, stochastic game types | I10 | IN-PROGRESS |
-| REQ-1104 | MUST | Ã‚Â§20.4 | Scenario trees: decision nodes, chance nodes, information sets | I10 | IN-PROGRESS |
-| REQ-1105 | MUST | Ã‚Â§20.4 | Scenario tree branches exportable, replayable, link to scenario forks | I10 | IN-PROGRESS |
-| REQ-1106 | MUST | Ã‚Â§20.5 | Payoffs expressed as modeled proxies with uncertainty bounds, labeled Modeled Output | I10 | IN-PROGRESS |
-| REQ-1107 | MUST | Ã‚Â§20.6 | Solver runs audit-logged with inputs, config, seeds, outputs | I10 | IN-PROGRESS |
-| REQ-1108 | SHOULD | Ã‚Â§20.7 | Parameter sweeps, Monte Carlo, sensitivity ranking | I10 | IN-PROGRESS |
-| REQ-1109 | SHOULD | Ã‚Â§20.8 | Value-of-information estimation | I10 | IN-PROGRESS |
-| REQ-1110 | SHOULD | Ã‚Â§20.9 | Experiment Bundle artifact (reproducible model runs) | I10 | IN-PROGRESS |
-| REQ-1111 | MUST | Ã‚Â§20.10 | Actor granularity restricted to non-individual entities | I10 | IN-PROGRESS |
-| REQ-1112 | MUST | Ã‚Â§20.10 | Actions restricted to strategic/policy/logistics abstractions | I10 | IN-PROGRESS |
-| REQ-1113 | MUST | Ã‚Â§20.10 | Outputs labeled modeled/interpretive and non-operational | I10 | IN-PROGRESS |
+| REQ-1100 | MUST | Ã‚Â§20.1 | Game modeling operates at aggregate strategic level, not individual targeting | I10 | E2E-VERIFIED |
+| REQ-1101 | MUST | Ã‚Â§20.2 | Game Model artifact: versioned, auditable, exportable with required fields | I10 | E2E-VERIFIED |
+| REQ-1102 | MUST | Ã‚Â§20.2 | Game Models carry provenance, confidence, sensitivity markings | I10 | E2E-VERIFIED |
+| REQ-1103 | SHOULD | Ã‚Â§20.3 | Support normal-form, extensive-form, stochastic game types | I10 | E2E-VERIFIED |
+| REQ-1104 | MUST | Ã‚Â§20.4 | Scenario trees: decision nodes, chance nodes, information sets | I10 | E2E-VERIFIED |
+| REQ-1105 | MUST | Ã‚Â§20.4 | Scenario tree branches exportable, replayable, link to scenario forks | I10 | E2E-VERIFIED |
+| REQ-1106 | MUST | Ã‚Â§20.5 | Payoffs expressed as modeled proxies with uncertainty bounds, labeled Modeled Output | I10 | E2E-VERIFIED |
+| REQ-1107 | MUST | Ã‚Â§20.6 | Solver runs audit-logged with inputs, config, seeds, outputs | I10 | E2E-VERIFIED |
+| REQ-1108 | SHOULD | Ã‚Â§20.7 | Parameter sweeps, Monte Carlo, sensitivity ranking | I10 | E2E-VERIFIED |
+| REQ-1109 | SHOULD | Ã‚Â§20.8 | Value-of-information estimation | I10 | E2E-VERIFIED |
+| REQ-1110 | SHOULD | Ã‚Â§20.9 | Experiment Bundle artifact (reproducible model runs) | I10 | E2E-VERIFIED |
+| REQ-1111 | MUST | Ã‚Â§20.10 | Actor granularity restricted to non-individual entities | I10 | E2E-VERIFIED |
+| REQ-1112 | MUST | Ã‚Â§20.10 | Actions restricted to strategic/policy/logistics abstractions | I10 | E2E-VERIFIED |
+| REQ-1113 | MUST | Ã‚Â§20.10 | Outputs labeled modeled/interpretive and non-operational | I10 | E2E-VERIFIED |
 
 ---
 

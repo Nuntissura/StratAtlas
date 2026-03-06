@@ -12,6 +12,7 @@ import type {
 } from '../features/i7/contextIntake'
 import type { DeviationSnapshot } from '../features/i8/deviation'
 import type { OsintSnapshot } from '../features/i9/osint'
+import type { GameModelSnapshot } from '../features/i10/gameModeling'
 
 export type UserRole = 'viewer' | 'analyst' | 'administrator' | 'auditor'
 
@@ -86,6 +87,7 @@ export interface RecorderState {
   ai?: AiGatewaySnapshot
   deviation?: DeviationSnapshot
   osint?: OsintSnapshot
+  gameModel?: GameModelSnapshot
   selectedBundleId?: string
   savedAt: string
 }

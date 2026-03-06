@@ -44,7 +44,7 @@ PRIM-ID | Name | Type | Contract | Spec Anchor | REQs | First Iter | Status | Ow
 | PRIM-0016 | Context Domain Registration | context | Domain registration metadata contract | Section 7.4.2 | REQ-0800..REQ-0810 | I7 | E2E-VERIFIED | Codex |
 | PRIM-0017 | Context Deviation Event | analytics | Standardized context deviation event model | Section 13.5 | REQ-0900..REQ-0904 | I8 | E2E-VERIFIED | Codex |
 | PRIM-0018 | Curated OSINT Event Contract | context | Curated-source and verification-level enforcement | Section 7.4.4, 7.4.6 | REQ-1000..REQ-1003 | I9 | E2E-VERIFIED | Codex |
-| PRIM-0019 | Strategic Game Model Contract | modeling | Strategic actor/action/payoff contract | Section 20.2..20.10 | REQ-1100..REQ-1113 | I10 | IMPLEMENTED | Codex |
+| PRIM-0019 | Strategic Game Model Contract | modeling | Strategic actor/action/payoff contract | Section 20.2..20.10 | REQ-1100..REQ-1113 | I10 | E2E-VERIFIED | Codex |
 
 
 | PRIM-0020 | WP Spec Extraction Artifact | governance | Per-WP extracted requirement + primitive snapshot | Section 17 governance loop | REQ-0019, REQ-0022 | All | IMPLEMENTED | Codex |

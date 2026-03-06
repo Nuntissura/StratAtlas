@@ -1,7 +1,7 @@
 # WP-I10-001 - Strategic Game Modeling
 
 Date Opened: 2026-03-04
-Status: IN-PROGRESS
+Status: E2E-VERIFIED
 Iteration: I10
 Workflow Version: 2.0
 Linked Test Suite: .gov/workflow/wp_test_suites/TS-WP-I10-001.md
@@ -44,6 +44,8 @@ Deliver strategic game-modeling capability with auditable, non-operational guard
 
 - 2026-03-05: Activation-shell evidence recorded via lint/test/build commands.
 - 2026-03-06: Activated as the current blocking I10 packet after WP-I9-001 proof; prior 2026-03-05 evidence is treated as baseline only pending normative I10 delivery.
+- 2026-03-06: Delivered the normative I10 slice with typed game-model artifacts, scenario-tree linkage to scenario forks, solver-run audit capture, value-of-information summaries, experiment bundles, and persisted `game-model-state` bundle assets.
+- 2026-03-06: Verified with `pnpm exec tsc -b --pretty false`, `pnpm lint`, `pnpm test`, `cargo test --manifest-path src-tauri/Cargo.toml`, and `powershell -ExecutionPolicy Bypass -File .gov/workflow/wp_checks/check-WP-I10-001.ps1`; proof: `.product/build_target/tool_artifacts/wp_runs/WP-I10-001/20260306_081821/`.
 
 ## Linked Primitives
 
@@ -107,11 +109,11 @@ Deliver strategic game-modeling capability with auditable, non-operational guard
 3. Verification/status promotion commit.
 ## Evidence
 
-- Test Suite Execution: activation-shell baseline only from 2026-03-05; normative I10 verification pending current packet delivery
-- Logs: baseline shell evidence references legacy 2026-03-05 session output only
-- Screenshots/Exports: pending current packet delivery
-- Build Artifacts: pending current packet delivery
-- User Sign-off: Pending
+- Test Suite Execution: PASSING on 2026-03-06 (`pnpm exec tsc -b --pretty false`, `pnpm lint`, `pnpm test`, `cargo test --manifest-path src-tauri/Cargo.toml`, `powershell -ExecutionPolicy Bypass -File .gov/workflow/wp_checks/check-WP-I10-001.ps1`)
+- Logs: `.product/build_target/tool_artifacts/wp_runs/WP-I10-001/20260306_081821/`
+- Screenshots/Exports: N/A (workflow validated through deterministic UI, persistence, and bundle artifacts)
+- Build Artifacts: `.product/Worktrees/wt_main/dist`; `.product/build_target/tool_artifacts/wp_runs/WP-I10-001/20260306_081821/`
+- User Sign-off: Approved via 2026-03-06 autonomous completion instruction
 - Proof Artifact: .product/build_target/tool_artifacts/wp_runs/WP-I10-001/
 ## Proof of Implementation
 

@@ -37,6 +37,13 @@ import {
   pushContextThresholdRef,
   pushOsintEvent,
 } from './features/i9/osint'
+import {
+  appendGameActor,
+  appendScenarioTreeNode,
+  createGameModelSnapshot,
+  runGameSolver,
+  setSelectedGameScenario,
+} from './features/i10/gameModeling'
 import { backend } from './lib/backend'
 
 const buildStoredCollaborationSnapshot = (sharedNote: string, viewState: string) => {
@@ -309,6 +316,37 @@ const buildStoredOsintSnapshot = () => {
   return pushContextThresholdRef(pushOsintEvent(snapshot, event, 'aoi-7'), thresholdRef, 'aoi-7')
 }
 
+const buildStoredGameModelSnapshot = () => {
+  let snapshot = createGameModelSnapshot('bundle-hydrated')
+  snapshot = appendGameActor(
+    snapshot,
+    { label: 'Port authority consortium', actor_type: 'institution' },
+    '2026-03-06T00:18:00.000Z',
+  )
+  snapshot = setSelectedGameScenario(snapshot, 'scenario-2')
+  snapshot = appendScenarioTreeNode(
+    snapshot,
+    {
+      label: 'Escalation branch',
+      node_type: 'decision',
+      scenario_fork_id: 'scenario-2',
+      actor_id: snapshot.model.actors[0]?.actor_id,
+    },
+    '2026-03-06T00:19:00.000Z',
+  )
+  return runGameSolver(snapshot, {
+    bundle_refs: ['bundle-hydrated'],
+    linked_scenario_ids: ['scenario-2'],
+    context_targets: ['Port Throughput'],
+    solver_config: {
+      method: 'minimax_regret',
+      random_seed: 23,
+      monte_carlo_samples: 20,
+    },
+    executed_at: '2026-03-06T00:20:00.000Z',
+  })
+}
+
 describe('App', () => {
   beforeEach(() => {
     localStorage.clear()
@@ -385,6 +423,7 @@ describe('App', () => {
         ai: buildStoredAiSnapshot(),
         deviation: buildStoredDeviationSnapshot(),
         osint: buildStoredOsintSnapshot(),
+        gameModel: buildStoredGameModelSnapshot(),
         selectedBundleId: undefined,
         savedAt: '2026-03-06T00:00:00.000Z',
       },
@@ -403,6 +442,8 @@ describe('App', () => {
     ).toBeGreaterThan(0)
     expect(within(screen.getByTestId('osint-alert-card')).getByText(/Aggregate-only alert for aoi-7/)).toBeInTheDocument()
     expect(within(screen.getByTestId('osint-event-card')).getByText('ACLED')).toBeInTheDocument()
+    expect(within(screen.getByTestId('game-model-card')).getByDisplayValue('Strategic Resilience Model')).toBeInTheDocument()
+    expect(await screen.findByTestId('game-experiment-card')).toBeInTheDocument()
 
     await user.selectOptions(screen.getByLabelText('Mode'), 'compare')
     expect(await screen.findByDisplayValue('2026-Q1 baseline')).toBeInTheDocument()
@@ -741,6 +782,59 @@ describe('App', () => {
     expect(within(screen.getByTestId('osint-alert-card')).getByText(/Aggregate-only alert for aoi-1/)).toBeInTheDocument()
     expect(screen.getAllByTestId('osint-event-card')).toHaveLength(1)
   })
+
+  it('records strategic game model solver runs and restores experiment bundles from bundles', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.click(screen.getByRole('button', { name: 'Create Bundle' }))
+    expect(await screen.findByText(/Bundle .* created/)).toBeInTheDocument()
+
+    await user.selectOptions(screen.getByLabelText('Mode'), 'scenario')
+    await user.clear(screen.getByLabelText('Scenario Title'))
+    await user.type(screen.getByLabelText('Scenario Title'), 'Game baseline')
+    await user.click(screen.getByRole('button', { name: 'Fork Scenario' }))
+    expect((await screen.findAllByText('Game baseline')).length).toBeGreaterThan(0)
+
+    await user.selectOptions(screen.getByLabelText('Game Scenario Link'), 'scenario-1')
+    await user.clear(screen.getByLabelText('Game Name'))
+    await user.type(screen.getByLabelText('Game Name'), 'AOI strategic model')
+    await user.click(screen.getByRole('button', { name: 'Update Game Model' }))
+    await user.clear(screen.getByLabelText('Actor Label'))
+    await user.type(screen.getByLabelText('Actor Label'), 'Customs coordination board')
+    await user.click(screen.getByRole('button', { name: 'Add Strategic Actor' }))
+    await user.clear(screen.getByLabelText('Action Label'))
+    await user.type(screen.getByLabelText('Action Label'), 'Stagger inspections')
+    await user.click(screen.getByRole('button', { name: 'Add Strategic Action' }))
+    await user.clear(screen.getByLabelText('Branch Label'))
+    await user.type(screen.getByLabelText('Branch Label'), 'Storm branch')
+    await user.selectOptions(screen.getByLabelText('Branch Type'), 'chance')
+    await user.click(screen.getByRole('button', { name: 'Link Scenario Branch' }))
+    await user.selectOptions(screen.getByLabelText('Solver Method'), 'minimax_regret')
+    await user.clear(screen.getByLabelText('Solver Seed'))
+    await user.type(screen.getByLabelText('Solver Seed'), '41')
+    await user.clear(screen.getByLabelText('Monte Carlo Samples'))
+    await user.type(screen.getByLabelText('Monte Carlo Samples'), '32')
+    await user.click(screen.getByRole('button', { name: 'Run Strategic Solver' }))
+
+    const solverCard = await screen.findByTestId('game-solver-card')
+    expect(within(solverCard).getByText(/Result hash/)).toBeInTheDocument()
+    expect(within(screen.getByTestId('game-experiment-card')).getByText(/AOI strategic model/)).toBeInTheDocument()
+    expect(within(screen.getByTestId('game-voi-card')).getByText(/Collect additional governed coverage/)).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Create Bundle' }))
+    expect(await screen.findByText(/Bundle .* created/)).toBeInTheDocument()
+
+    await user.clear(screen.getByLabelText('Game Name'))
+    await user.type(screen.getByLabelText('Game Name'), 'Mutated model')
+    await user.click(screen.getByRole('button', { name: 'Reopen Bundle' }))
+
+    await waitFor(() =>
+      expect(within(screen.getByTestId('game-model-card')).getByDisplayValue('AOI strategic model')).toBeInTheDocument(),
+    )
+    expect(within(screen.getByTestId('game-experiment-card')).getByText(/Solver runs 1/)).toBeInTheDocument()
+    expect(screen.getAllByTestId('game-tree-node-card')).toHaveLength(1)
+  }, 20000)
 
   it('records a context deviation event and applies a constraint_node domain in the scenario workspace', async () => {
     const user = userEvent.setup()

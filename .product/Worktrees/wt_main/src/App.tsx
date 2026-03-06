@@ -135,7 +135,32 @@ import {
   type ThresholdComparator,
   type VerificationLevel,
 } from './features/i9/osint'
-import { buildPayoffProxy, validateGameModel } from './features/i10/gameModeling'
+import {
+  ACTION_CATEGORIES,
+  ACTOR_TYPES,
+  GAME_TYPES,
+  SCENARIO_TREE_NODE_TYPES,
+  SOLVER_METHODS,
+  appendGameAction,
+  appendGameActor,
+  appendGameAssumption,
+  appendGameObjective,
+  appendScenarioTreeNode,
+  buildPayoffProxy,
+  createGameModelSnapshot,
+  normalizeGameModelSnapshot,
+  renameGameModel,
+  runGameSolver,
+  setGameType,
+  setSelectedGameScenario,
+  validateGameModel,
+  type ActionCategory,
+  type ActorType,
+  type GameModelSnapshot,
+  type GameType,
+  type ScenarioTreeNodeType,
+  type SolverMethod,
+} from './features/i10/gameModeling'
 import { backend } from './lib/backend'
 
 const ROLES: UserRole[] = ['viewer', 'analyst', 'administrator', 'auditor']
@@ -198,6 +223,18 @@ const DEFAULT_OSINT_CATEGORY: OsintEventCategory = 'conflict_event'
 const DEFAULT_OSINT_SUMMARY = 'Curated feed reports a port-area disruption with aggregate AOI relevance.'
 const DEFAULT_OSINT_THRESHOLD_VALUE = '15'
 const DEFAULT_OSINT_THRESHOLD_COMPARATOR: ThresholdComparator = 'below'
+const DEFAULT_GAME_NAME = 'Strategic Resilience Model'
+const DEFAULT_GAME_ACTOR_LABEL = 'Port authority consortium'
+const DEFAULT_GAME_ACTOR_TYPE: ActorType = 'institution'
+const DEFAULT_GAME_OBJECTIVE_LABEL = 'Reduce congestion spillover'
+const DEFAULT_GAME_OBJECTIVE_WEIGHT = '0.4'
+const DEFAULT_GAME_ACTION_LABEL = 'Phase inspection windows'
+const DEFAULT_GAME_ACTION_CATEGORY: ActionCategory = 'policy'
+const DEFAULT_GAME_NODE_LABEL = 'Escalation branch'
+const DEFAULT_GAME_NODE_TYPE: ScenarioTreeNodeType = 'decision'
+const DEFAULT_GAME_SOLVER_METHOD: SolverMethod = 'minimax_regret'
+const DEFAULT_GAME_SOLVER_SEED = '29'
+const DEFAULT_GAME_MONTE_CARLO_SAMPLES = '24'
 
 const deviationTypeForDomain = (
   domain: ContextDomain,
@@ -705,7 +742,30 @@ function App() {
   const [osintThresholdValueInput, setOsintThresholdValueInput] =
     useState<string>(DEFAULT_OSINT_THRESHOLD_VALUE)
   const [osintSnapshot, setOsintSnapshot] = useState<OsintSnapshot>(() => createOsintSnapshot())
-  const [gameAssumption, setGameAssumption] = useState<string>('Supply remains constrained')
+  const [gameModelSnapshot, setGameModelSnapshot] = useState<GameModelSnapshot>(() =>
+    createGameModelSnapshot(),
+  )
+  const [gameNameInput, setGameNameInput] = useState<string>(DEFAULT_GAME_NAME)
+  const [gameAssumptionInput, setGameAssumptionInput] = useState<string>('Supply remains constrained')
+  const [gameTypeInput, setGameTypeInput] = useState<GameType>('extensive_form')
+  const [gameActorLabelInput, setGameActorLabelInput] = useState<string>(DEFAULT_GAME_ACTOR_LABEL)
+  const [gameActorTypeInput, setGameActorTypeInput] = useState<ActorType>(DEFAULT_GAME_ACTOR_TYPE)
+  const [gameObjectiveLabelInput, setGameObjectiveLabelInput] = useState<string>(
+    DEFAULT_GAME_OBJECTIVE_LABEL,
+  )
+  const [gameObjectiveWeightInput, setGameObjectiveWeightInput] =
+    useState<string>(DEFAULT_GAME_OBJECTIVE_WEIGHT)
+  const [gameActionLabelInput, setGameActionLabelInput] = useState<string>(DEFAULT_GAME_ACTION_LABEL)
+  const [gameActionCategoryInput, setGameActionCategoryInput] =
+    useState<ActionCategory>(DEFAULT_GAME_ACTION_CATEGORY)
+  const [gameNodeLabelInput, setGameNodeLabelInput] = useState<string>(DEFAULT_GAME_NODE_LABEL)
+  const [gameNodeTypeInput, setGameNodeTypeInput] =
+    useState<ScenarioTreeNodeType>(DEFAULT_GAME_NODE_TYPE)
+  const [gameSolverMethodInput, setGameSolverMethodInput] =
+    useState<SolverMethod>(DEFAULT_GAME_SOLVER_METHOD)
+  const [gameSolverSeedInput, setGameSolverSeedInput] = useState<string>(DEFAULT_GAME_SOLVER_SEED)
+  const [gameMonteCarloSamplesInput, setGameMonteCarloSamplesInput] =
+    useState<string>(DEFAULT_GAME_MONTE_CARLO_SAMPLES)
   const [collaboration, setCollaboration] = useState<CollaborationStateSnapshot>(() =>
     createDefaultCollaborationSnapshot(),
   )
@@ -1042,22 +1102,31 @@ function App() {
     }),
     [osintAoi, osintSnapshot, osintSummary, selectedOsintThresholdDomainKey],
   )
+  const selectedGameScenarioId = gameModelSnapshot.selected_scenario_id ?? scenario.selectedScenarioId
+  const gameModelStateForRecorder = useMemo(() => {
+    const base = normalizeGameModelSnapshot(gameModelSnapshot)
+    return {
+      ...base,
+      model: {
+        ...base.model,
+        name: gameNameInput.trim() || base.model.name,
+        game_type: gameTypeInput,
+        bundle_refs: selectedBundleId ? [selectedBundleId] : base.model.bundle_refs,
+      },
+      selected_scenario_id: selectedGameScenarioId || undefined,
+    }
+  }, [gameModelSnapshot, gameNameInput, gameTypeInput, selectedBundleId, selectedGameScenarioId])
 
   const gameModelValid = useMemo(
-    () =>
-      validateGameModel({
-        game_id: 'gm-main',
-        actors: [{ actor_id: 'state-a', actor_type: 'state' }],
-        actions: [{ action_id: 'policy-1', category: 'policy' }],
-        assumptions: [gameAssumption],
-        bundle_refs: selectedBundleId ? [selectedBundleId] : [],
-      }),
-    [gameAssumption, selectedBundleId],
+    () => validateGameModel(gameModelStateForRecorder.model),
+    [gameModelStateForRecorder],
   )
 
   const payoffProxy = useMemo(
-    () => buildPayoffProxy('throughput', 100, 15),
-    [],
+    () =>
+      gameModelStateForRecorder.latest_payoff_proxies[0] ??
+      buildPayoffProxy('throughput_resilience', 100, 15),
+    [gameModelStateForRecorder.latest_payoff_proxies],
   )
 
   const degradeRendering = shouldDegradeRendering(replayFrameMs)
@@ -1178,6 +1247,7 @@ function App() {
       ai: aiSnapshot,
       deviation: deviationStateForRecorder,
       osint: osintStateForRecorder,
+      gameModel: gameModelStateForRecorder,
       selectedBundleId: selectedBundleId || undefined,
     }),
     [
@@ -1186,6 +1256,7 @@ function App() {
       compareSnapshot,
       contextSnapshot,
       deviationStateForRecorder,
+      gameModelStateForRecorder,
       osintStateForRecorder,
       querySnapshot,
       scenario,
@@ -1209,6 +1280,7 @@ function App() {
     const aiState = normalizeAiGatewaySnapshot(state.ai)
     const deviationState = normalizeDeviationSnapshot(state.deviation)
     const osintState = normalizeOsintSnapshot(state.osint)
+    const gameModelState = normalizeGameModelSnapshot(state.gameModel)
     const restoredQueryDefinition = normalizeVersionedQuery(query.definition)
     const restoredDomains = normalizeDomains(context.domains)
     const restoredActiveDomainIds = normalizeStringArray(context.activeDomainIds).filter((domainId) =>
@@ -1294,6 +1366,33 @@ function App() {
           ? String(osintState.thresholdRefs.at(-1)?.threshold_value ?? DEFAULT_OSINT_THRESHOLD_VALUE)
           : DEFAULT_OSINT_THRESHOLD_VALUE,
       )
+      setGameModelSnapshot(gameModelState)
+      setGameNameInput(gameModelState.model.name)
+      setGameAssumptionInput(gameModelState.model.assumptions.at(-1) ?? 'Supply remains constrained')
+      setGameTypeInput(gameModelState.model.game_type)
+      setGameActorLabelInput(gameModelState.model.actors.at(-1)?.label ?? DEFAULT_GAME_ACTOR_LABEL)
+      setGameActorTypeInput(gameModelState.model.actors.at(-1)?.actor_type ?? DEFAULT_GAME_ACTOR_TYPE)
+      setGameObjectiveLabelInput(
+        gameModelState.model.objectives.at(-1)?.label ?? DEFAULT_GAME_OBJECTIVE_LABEL,
+      )
+      setGameObjectiveWeightInput(
+        gameModelState.model.objectives.at(-1)
+          ? String(gameModelState.model.objectives.at(-1)?.weight ?? DEFAULT_GAME_OBJECTIVE_WEIGHT)
+          : DEFAULT_GAME_OBJECTIVE_WEIGHT,
+      )
+      setGameActionLabelInput(
+        gameModelState.model.actions.at(-1)?.label ?? DEFAULT_GAME_ACTION_LABEL,
+      )
+      setGameActionCategoryInput(
+        gameModelState.model.actions.at(-1)?.category ?? DEFAULT_GAME_ACTION_CATEGORY,
+      )
+      setGameNodeLabelInput(gameModelState.scenario_tree.nodes.at(-1)?.label ?? DEFAULT_GAME_NODE_LABEL)
+      setGameNodeTypeInput(
+        gameModelState.scenario_tree.nodes.at(-1)?.node_type ?? DEFAULT_GAME_NODE_TYPE,
+      )
+      setGameSolverMethodInput(gameModelState.model.solver_config.method)
+      setGameSolverSeedInput(String(gameModelState.model.solver_config.random_seed))
+      setGameMonteCarloSamplesInput(String(gameModelState.model.solver_config.monte_carlo_samples))
       setDomains(restoredDomains)
       setActiveDomainIds(restoredActiveDomainIds)
       setCorrelationAoi(restoredCorrelationAoi)
@@ -1352,6 +1451,7 @@ function App() {
             ai: persisted.state.ai,
             deviation: persisted.state.deviation,
             osint: persisted.state.osint,
+            gameModel: persisted.state.gameModel,
             selectedBundleId: persisted.state.selectedBundleId,
           })
           setStatus('Recorder state restored')
@@ -1408,6 +1508,7 @@ function App() {
             ai: savedState.ai,
             deviation: savedState.deviation,
             osint: savedState.osint,
+            gameModel: savedState.gameModel,
             selectedBundleId: savedState.selectedBundleId,
           })
         }
@@ -1515,6 +1616,7 @@ function App() {
         ai: result.state.ai,
         deviation: result.state.deviation,
         osint: result.state.osint,
+        gameModel: result.state.gameModel,
         selectedBundleId: result.manifest.bundle_id,
       })
       await refresh()
@@ -2572,6 +2674,247 @@ function App() {
       .then(() => refresh())
       .catch(() => {
         setStatus('OSINT threshold linked locally; audit append unavailable.')
+      })
+  }
+
+  const onUpdateGameModel = () => {
+    const now = new Date().toISOString()
+    const renamed = renameGameModel(gameModelStateForRecorder, gameNameInput, now)
+    const nextSnapshot = setGameType(renamed, gameTypeInput, now)
+
+    setGameModelSnapshot(nextSnapshot)
+    setStatus(`Updated strategic model ${nextSnapshot.model.name} (${nextSnapshot.model.game_type}).`)
+    void backend
+      .appendAudit({
+        role,
+        event_type: 'game_model.updated',
+        payload: {
+          game_id: nextSnapshot.model.game_id,
+          version: nextSnapshot.model.version,
+          game_type: nextSnapshot.model.game_type,
+          bundle_refs: nextSnapshot.model.bundle_refs,
+        },
+      })
+      .then(() => refresh())
+      .catch(() => {
+        setStatus('Game model updated locally; audit append unavailable.')
+      })
+  }
+
+  const onAddGameActor = () => {
+    if (!gameActorLabelInput.trim()) {
+      setStatus('Add a strategic actor label before updating the game model.')
+      return
+    }
+
+    const nextSnapshot = appendGameActor(gameModelStateForRecorder, {
+      label: gameActorLabelInput,
+      actor_type: gameActorTypeInput,
+    }, new Date().toISOString())
+
+    setGameModelSnapshot(nextSnapshot)
+    setStatus(`Added ${gameActorTypeInput} actor ${gameActorLabelInput}.`)
+    void backend
+      .appendAudit({
+        role,
+        event_type: 'game_model.actor_added',
+        payload: {
+          actor: nextSnapshot.model.actors.at(-1),
+          game_id: nextSnapshot.model.game_id,
+        },
+      })
+      .then(() => refresh())
+      .catch(() => {
+        setStatus('Game actor added locally; audit append unavailable.')
+      })
+  }
+
+  const onAddGameObjective = () => {
+    const weight = Number(gameObjectiveWeightInput)
+    if (!gameObjectiveLabelInput.trim() || !Number.isFinite(weight) || weight <= 0) {
+      setStatus('Add an objective label and positive weight before updating the game model.')
+      return
+    }
+
+    const nextSnapshot = appendGameObjective(
+      gameModelStateForRecorder,
+      {
+        label: gameObjectiveLabelInput,
+        weight,
+        definition: `Modeled objective weighting for ${gameObjectiveLabelInput}.`,
+      },
+      new Date().toISOString(),
+    )
+
+    setGameModelSnapshot(nextSnapshot)
+    setStatus(`Added game objective ${gameObjectiveLabelInput}.`)
+    void backend
+      .appendAudit({
+        role,
+        event_type: 'game_model.objective_added',
+        payload: {
+          objective: nextSnapshot.model.objectives.at(-1),
+          game_id: nextSnapshot.model.game_id,
+        },
+      })
+      .then(() => refresh())
+      .catch(() => {
+        setStatus('Game objective added locally; audit append unavailable.')
+      })
+  }
+
+  const onAddGameAction = () => {
+    if (!gameActionLabelInput.trim()) {
+      setStatus('Add a strategic action label before updating the game model.')
+      return
+    }
+
+    const nextSnapshot = appendGameAction(
+      gameModelStateForRecorder,
+      {
+        label: gameActionLabelInput,
+        category: gameActionCategoryInput,
+        description: `Strategic ${gameActionCategoryInput} action for ${gameActionLabelInput}.`,
+      },
+      new Date().toISOString(),
+    )
+
+    setGameModelSnapshot(nextSnapshot)
+    setStatus(`Added ${gameActionCategoryInput} action ${gameActionLabelInput}.`)
+    void backend
+      .appendAudit({
+        role,
+        event_type: 'game_model.action_added',
+        payload: {
+          action: nextSnapshot.model.actions.at(-1),
+          game_id: nextSnapshot.model.game_id,
+        },
+      })
+      .then(() => refresh())
+      .catch(() => {
+        setStatus('Game action added locally; audit append unavailable.')
+      })
+  }
+
+  const onAddGameAssumption = () => {
+    if (!gameAssumptionInput.trim()) {
+      setStatus('Add a strategic assumption before updating the game model.')
+      return
+    }
+
+    const nextSnapshot = appendGameAssumption(
+      gameModelStateForRecorder,
+      gameAssumptionInput,
+      new Date().toISOString(),
+    )
+
+    setGameModelSnapshot(nextSnapshot)
+    setStatus(`Added game assumption: ${gameAssumptionInput}.`)
+    void backend
+      .appendAudit({
+        role,
+        event_type: 'game_model.assumption_added',
+        payload: {
+          assumption: gameAssumptionInput,
+          game_id: nextSnapshot.model.game_id,
+        },
+      })
+      .then(() => refresh())
+      .catch(() => {
+        setStatus('Game assumption added locally; audit append unavailable.')
+      })
+  }
+
+  const onLinkScenarioTreeNode = () => {
+    if (!selectedGameScenarioId) {
+      setStatus('Fork or select a scenario before linking a scenario-tree branch.')
+      return
+    }
+    if (!gameNodeLabelInput.trim()) {
+      setStatus('Add a branch label before linking a scenario-tree node.')
+      return
+    }
+
+    const nextSnapshot = appendScenarioTreeNode(
+      setSelectedGameScenario(gameModelStateForRecorder, selectedGameScenarioId),
+      {
+        label: gameNodeLabelInput,
+        node_type: gameNodeTypeInput,
+        scenario_fork_id: selectedGameScenarioId,
+        actor_id: gameModelStateForRecorder.model.actors[0]?.actor_id,
+        parent_node_id: gameModelStateForRecorder.scenario_tree.nodes.at(-1)?.node_id,
+        chance_note:
+          gameNodeTypeInput === 'chance'
+            ? `Modeled exogenous shock for ${gameNodeLabelInput}.`
+            : undefined,
+      },
+      new Date().toISOString(),
+    )
+
+    setGameModelSnapshot(nextSnapshot)
+    setStatus(`Linked ${gameNodeTypeInput} branch ${gameNodeLabelInput} to ${selectedGameScenarioId}.`)
+    void backend
+      .appendAudit({
+        role,
+        event_type: 'game_model.branch_linked',
+        payload: {
+          branch: nextSnapshot.scenario_tree.nodes.at(-1),
+          scenario_id: selectedGameScenarioId,
+        },
+      })
+      .then(() => refresh())
+      .catch(() => {
+        setStatus('Scenario-tree branch linked locally; audit append unavailable.')
+      })
+  }
+
+  const onRunGameSolver = () => {
+    if (!selectedBundleId) {
+      setStatus('Create or select a bundle before running a strategic model solve.')
+      return
+    }
+
+    const solverSeed = Number(gameSolverSeedInput)
+    const monteCarloSamples = Number(gameMonteCarloSamplesInput)
+    if (!Number.isFinite(solverSeed) || !Number.isFinite(monteCarloSamples) || monteCarloSamples <= 0) {
+      setStatus('Provide numeric solver seed and Monte Carlo sample counts before running the model.')
+      return
+    }
+
+    const linkedScenarioIds = selectedGameScenarioId ? [selectedGameScenarioId] : []
+    const nextSnapshot = runGameSolver(
+      setSelectedGameScenario(gameModelStateForRecorder, selectedGameScenarioId),
+      {
+        bundle_refs: [selectedBundleId],
+        linked_scenario_ids: linkedScenarioIds,
+        context_targets: [
+          selectedOsintThresholdDomain?.domain_name ??
+            domains[0]?.domain_name ??
+            'Port Throughput',
+        ],
+        solver_config: {
+          method: gameSolverMethodInput,
+          random_seed: solverSeed,
+          monte_carlo_samples: monteCarloSamples,
+        },
+        executed_at: new Date().toISOString(),
+      },
+    )
+
+    setGameModelSnapshot(nextSnapshot)
+    setStatus(`Strategic solver run ${nextSnapshot.solver_runs.at(-1)?.run_id ?? 'completed'} recorded.`)
+    void backend
+      .appendAudit({
+        role,
+        event_type: 'game_model.solver_run',
+        payload: {
+          solver_run: nextSnapshot.solver_runs.at(-1),
+          experiment_bundle: nextSnapshot.experiment_bundle,
+        },
+      })
+      .then(() => refresh())
+      .catch(() => {
+        setStatus('Strategic solver run recorded locally; audit append unavailable.')
       })
   }
 
@@ -4495,21 +4838,270 @@ function App() {
           </div>
 
           <h3>Strategic Model (I10)</h3>
-          <label className="field">
-            Assumption
-            <input
-              type="text"
-              value={gameAssumption}
-              onChange={(event) => setGameAssumption(event.target.value)}
-            />
-          </label>
-          <p className="status-line">
-            Model valid: {gameModelValid ? 'yes' : 'no'} | Payoff proxy:
-            {' '}
-            {payoffProxy.metric}
-            {' '}
-            [{payoffProxy.uncertainty[0]}, {payoffProxy.uncertainty[1]}]
+          <div className="overlay-grid">
+            <article className="surface-card compact" data-testid="game-model-card">
+              <div className="card-header compact">
+                <span className={`artifact-chip ${artifactTone('Modeled Output')}`}>
+                  Modeled Output
+                </span>
+                <span>{gameModelStateForRecorder.model.game_id}</span>
+              </div>
+              <label className="field">
+                Game Name
+                <input
+                  type="text"
+                  value={gameNameInput}
+                  onChange={(event) => setGameNameInput(event.target.value)}
+                />
+              </label>
+              <label className="field">
+                Game Type
+                <select
+                  value={gameTypeInput}
+                  onChange={(event) => setGameTypeInput(event.target.value as GameType)}
+                >
+                  {GAME_TYPES.map((gameType) => (
+                    <option key={gameType} value={gameType}>
+                      {gameType}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="field">
+                Assumption
+                <input
+                  type="text"
+                  value={gameAssumptionInput}
+                  onChange={(event) => setGameAssumptionInput(event.target.value)}
+                />
+              </label>
+              <label className="field">
+                Game Scenario Link
+                <select
+                  value={selectedGameScenarioId ?? ''}
+                  onChange={(event) =>
+                    setGameModelSnapshot(
+                      setSelectedGameScenario(
+                        gameModelStateForRecorder,
+                        event.target.value || undefined,
+                      ),
+                    )
+                  }
+                >
+                  <option value="">No linked scenario</option>
+                  {scenario.scenarios.map((entry) => (
+                    <option key={entry.scenarioId} value={entry.scenarioId}>
+                      {entry.title}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <p>
+                Version {gameModelStateForRecorder.model.version} | Bundle refs{' '}
+                {gameModelStateForRecorder.model.bundle_refs.length}
+              </p>
+              <p>{gameModelStateForRecorder.model.non_operational_notice}</p>
+              <div className="button-row">
+                <button onClick={onUpdateGameModel}>Update Game Model</button>
+                <button onClick={onAddGameAssumption}>Add Assumption</button>
+              </div>
+            </article>
+
+            <article className="surface-card compact">
+              <strong>Strategic Actors / Objectives / Actions</strong>
+              <label className="field">
+                Actor Label
+                <input
+                  type="text"
+                  value={gameActorLabelInput}
+                  onChange={(event) => setGameActorLabelInput(event.target.value)}
+                />
+              </label>
+              <label className="field">
+                Actor Type
+                <select
+                  value={gameActorTypeInput}
+                  onChange={(event) => setGameActorTypeInput(event.target.value as ActorType)}
+                >
+                  {ACTOR_TYPES.map((actorType) => (
+                    <option key={actorType} value={actorType}>
+                      {actorType}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <button onClick={onAddGameActor}>Add Strategic Actor</button>
+              <label className="field">
+                Objective Label
+                <input
+                  type="text"
+                  value={gameObjectiveLabelInput}
+                  onChange={(event) => setGameObjectiveLabelInput(event.target.value)}
+                />
+              </label>
+              <label className="field">
+                Objective Weight
+                <input
+                  type="number"
+                  step="0.1"
+                  value={gameObjectiveWeightInput}
+                  onChange={(event) => setGameObjectiveWeightInput(event.target.value)}
+                />
+              </label>
+              <button onClick={onAddGameObjective}>Add Strategic Objective</button>
+              <label className="field">
+                Action Label
+                <input
+                  type="text"
+                  value={gameActionLabelInput}
+                  onChange={(event) => setGameActionLabelInput(event.target.value)}
+                />
+              </label>
+              <label className="field">
+                Action Category
+                <select
+                  value={gameActionCategoryInput}
+                  onChange={(event) =>
+                    setGameActionCategoryInput(event.target.value as ActionCategory)
+                  }
+                >
+                  {ACTION_CATEGORIES.map((actionCategory) => (
+                    <option key={actionCategory} value={actionCategory}>
+                      {actionCategory}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <button onClick={onAddGameAction}>Add Strategic Action</button>
+            </article>
+
+            <article className="surface-card compact">
+              <strong>Scenario Tree / Solver</strong>
+              <label className="field">
+                Branch Label
+                <input
+                  type="text"
+                  value={gameNodeLabelInput}
+                  onChange={(event) => setGameNodeLabelInput(event.target.value)}
+                />
+              </label>
+              <label className="field">
+                Branch Type
+                <select
+                  value={gameNodeTypeInput}
+                  onChange={(event) =>
+                    setGameNodeTypeInput(event.target.value as ScenarioTreeNodeType)
+                  }
+                >
+                  {SCENARIO_TREE_NODE_TYPES.map((nodeType) => (
+                    <option key={nodeType} value={nodeType}>
+                      {nodeType}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <button onClick={onLinkScenarioTreeNode}>Link Scenario Branch</button>
+              <label className="field">
+                Solver Method
+                <select
+                  value={gameSolverMethodInput}
+                  onChange={(event) =>
+                    setGameSolverMethodInput(event.target.value as SolverMethod)
+                  }
+                >
+                  {SOLVER_METHODS.map((solverMethod) => (
+                    <option key={solverMethod} value={solverMethod}>
+                      {solverMethod}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="field">
+                Solver Seed
+                <input
+                  type="number"
+                  value={gameSolverSeedInput}
+                  onChange={(event) => setGameSolverSeedInput(event.target.value)}
+                />
+              </label>
+              <label className="field">
+                Monte Carlo Samples
+                <input
+                  type="number"
+                  value={gameMonteCarloSamplesInput}
+                  onChange={(event) => setGameMonteCarloSamplesInput(event.target.value)}
+                />
+              </label>
+              <button onClick={onRunGameSolver}>Run Strategic Solver</button>
+            </article>
+          </div>
+          <p className="status-line" data-testid="game-model-status">
+            Model valid: {gameModelValid ? 'yes' : 'no'} | Actors{' '}
+            {gameModelStateForRecorder.model.actors.length} | Actions{' '}
+            {gameModelStateForRecorder.model.actions.length} | Payoff proxy {payoffProxy.metric} [
+            {payoffProxy.uncertainty[0]}, {payoffProxy.uncertainty[1]}]
           </p>
+          <div className="context-card-list">
+            {gameModelStateForRecorder.scenario_tree.nodes.length === 0 && (
+              <p>No scenario-tree branches linked yet.</p>
+            )}
+            {gameModelStateForRecorder.scenario_tree.nodes.map((node) => (
+              <article
+                key={node.node_id}
+                className="context-card"
+                data-testid="game-tree-node-card"
+              >
+                <div className="card-header compact">
+                  <span className={`artifact-chip ${artifactTone('Modeled Output')}`}>
+                    {node.node_type}
+                  </span>
+                  <span>{node.node_id}</span>
+                </div>
+                <strong>{node.label}</strong>
+                <p>
+                  Scenario {node.scenario_fork_id ?? 'unlinked'} | Parent{' '}
+                  {node.parent_node_id ?? 'root'}
+                </p>
+                <small>{node.chance_note ?? gameModelStateForRecorder.scenario_tree.export_summary}</small>
+              </article>
+            ))}
+          </div>
+          {gameModelStateForRecorder.solver_runs.at(-1) && (
+            <article className="surface-card compact" data-testid="game-solver-card">
+              <div className="card-header compact">
+                <span className={`artifact-chip ${artifactTone('Modeled Output')}`}>
+                  Modeled Output
+                </span>
+                <span>{gameModelStateForRecorder.solver_runs.at(-1)?.run_id}</span>
+              </div>
+              <p>{gameModelStateForRecorder.solver_runs.at(-1)?.robust_summary}</p>
+              <small>
+                Seed {gameModelStateForRecorder.solver_runs.at(-1)?.random_seed} | Method{' '}
+                {gameModelStateForRecorder.solver_runs.at(-1)?.method} | Result hash{' '}
+                {gameModelStateForRecorder.solver_runs.at(-1)?.result_manifest_hash}
+              </small>
+            </article>
+          )}
+          {gameModelStateForRecorder.latest_voi_estimate && (
+            <article className="surface-card compact" data-testid="game-voi-card">
+              <strong>Value of Information</strong>
+              <p>{gameModelStateForRecorder.latest_voi_estimate.recommendation}</p>
+              <small>
+                Target {gameModelStateForRecorder.latest_voi_estimate.target} | Reduction{' '}
+                {gameModelStateForRecorder.latest_voi_estimate.uncertainty_reduction_pct}%
+              </small>
+            </article>
+          )}
+          {gameModelStateForRecorder.experiment_bundle && (
+            <article className="surface-card compact" data-testid="game-experiment-card">
+              <strong>{gameModelStateForRecorder.experiment_bundle.experiment_bundle_id}</strong>
+              <p>{gameModelStateForRecorder.experiment_bundle.summary}</p>
+              <small>
+                Bundles {gameModelStateForRecorder.experiment_bundle.snapshot_bundle_refs.join(', ') || 'none'} |
+                Solver runs {gameModelStateForRecorder.experiment_bundle.solver_run_ids.length}
+              </small>
+            </article>
+          )}
 
           <h3>Audit Ledger</h3>
           <div className="audit-list">

@@ -35,6 +35,13 @@ import {
   pushContextThresholdRef,
   pushOsintEvent,
 } from '../features/i9/osint'
+import {
+  appendGameActor,
+  appendScenarioTreeNode,
+  createGameModelSnapshot,
+  runGameSolver,
+  setSelectedGameScenario,
+} from '../features/i10/gameModeling'
 
 const buildStoredCollaborationSnapshot = (sharedNote: string, viewState: string) => {
   let snapshot = createCollaborationSnapshot('collab-main', 'analyst-1')
@@ -296,6 +303,37 @@ const buildStoredOsintSnapshot = () => {
   return pushContextThresholdRef(pushOsintEvent(snapshot, event, 'aoi-1'), thresholdRef, 'aoi-1')
 }
 
+const buildStoredGameModelSnapshot = () => {
+  let snapshot = createGameModelSnapshot('bundle-parent')
+  snapshot = appendGameActor(
+    snapshot,
+    { label: 'Port authority consortium', actor_type: 'institution' },
+    '2026-03-06T00:17:00.000Z',
+  )
+  snapshot = setSelectedGameScenario(snapshot, 'scenario-2')
+  snapshot = appendScenarioTreeNode(
+    snapshot,
+    {
+      label: 'Escalation branch',
+      node_type: 'decision',
+      scenario_fork_id: 'scenario-2',
+      actor_id: snapshot.model.actors[0]?.actor_id,
+    },
+    '2026-03-06T00:18:00.000Z',
+  )
+  return runGameSolver(snapshot, {
+    bundle_refs: ['bundle-parent'],
+    linked_scenario_ids: ['scenario-2'],
+    context_targets: ['Port Throughput'],
+    solver_config: {
+      method: 'minimax_regret',
+      random_seed: 23,
+      monte_carlo_samples: 20,
+    },
+    executed_at: '2026-03-06T00:19:00.000Z',
+  })
+}
+
 const request: CreateBundleRequest = {
   role: 'analyst',
   marking: 'INTERNAL',
@@ -352,6 +390,7 @@ const request: CreateBundleRequest = {
     ai: buildStoredAiSnapshot(),
     deviation: buildStoredDeviationSnapshot(),
     osint: buildStoredOsintSnapshot(),
+    gameModel: buildStoredGameModelSnapshot(),
     selectedBundleId: undefined,
     savedAt: '2026-03-06T00:00:00.000Z',
   },
@@ -385,6 +424,7 @@ describe('backend fallback', () => {
       'ai-state',
       'deviation-state',
       'osint-state',
+      'game-model-state',
       'recorder-state',
     ])
     expect(reopen.state.workspace.note).toBe('seed state')
@@ -410,6 +450,8 @@ describe('backend fallback', () => {
     expect(reopen.state.deviation?.events).toHaveLength(1)
     expect(reopen.state.osint?.latestAlert?.aggregate_only).toBe(true)
     expect(reopen.state.osint?.thresholdRefs).toHaveLength(1)
+    expect(reopen.state.gameModel?.solver_runs).toHaveLength(1)
+    expect(reopen.state.gameModel?.experiment_bundle?.snapshot_bundle_refs).toEqual(['bundle-parent'])
   })
 
   it('loads and saves authoritative recorder state outside bundle reopen', async () => {
@@ -431,6 +473,8 @@ describe('backend fallback', () => {
     expect(restored.state?.deviation?.latestEvent?.taxonomy_key).toBe('context.supply_chain_shift')
     expect(restored.state?.osint?.events[0]?.source).toBe('ACLED')
     expect(restored.state?.osint?.latestAlert?.threshold_refs[0]?.domain_name).toBe('Port Throughput')
+    expect(restored.state?.gameModel?.latest_voi_estimate?.target).toBe('Port Throughput')
+    expect(restored.state?.gameModel?.solver_runs[0]?.method).toBe('minimax_regret')
   })
 
   it('maintains an append-only hash chain in audit events', async () => {

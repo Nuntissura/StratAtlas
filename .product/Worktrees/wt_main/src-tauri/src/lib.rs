@@ -62,6 +62,8 @@ struct RecorderState {
   deviation: Option<Value>,
   #[serde(default)]
   osint: Option<Value>,
+  #[serde(default)]
+  game_model: Option<Value>,
   selected_bundle_id: Option<String>,
   saved_at: String,
 }
@@ -464,6 +466,15 @@ fn create_bundle(app: AppHandle, request: CreateBundleRequest) -> CommandResult<
     &request.provenance_refs,
     &captured_at,
   )?;
+  let game_model_asset = write_bundle_asset(
+    &bundle_root,
+    "game-model-state",
+    "assets/game_model_state.json",
+    &request.state.game_model.clone().unwrap_or(Value::Null),
+    &request.marking,
+    &request.provenance_refs,
+    &captured_at,
+  )?;
   let recorder_asset = write_bundle_asset(
     &bundle_root,
     "recorder-state",
@@ -484,6 +495,7 @@ fn create_bundle(app: AppHandle, request: CreateBundleRequest) -> CommandResult<
     ai_asset.clone(),
     deviation_asset.clone(),
     osint_asset.clone(),
+    game_model_asset.clone(),
     recorder_asset.clone(),
   ];
 
@@ -751,6 +763,26 @@ fn open_bundle(app: AppHandle, bundle_id: String, role: String) -> CommandResult
         }),
       )?;
       return Err("Recorder state asset does not match osint-state asset".to_string());
+    }
+  }
+  if let Some(game_model_asset) = manifest
+    .assets
+    .iter()
+    .find(|asset| asset.asset_id == "game-model-state")
+  {
+    let recorder_game_model = recorder_state.game_model.clone().unwrap_or(Value::Null);
+    let game_model_hash = sha256_hex(&canonical_json_bytes(&recorder_game_model)?);
+    if game_model_hash != game_model_asset.sha256 {
+      append_integrity_failure(
+        &app,
+        &bundle_id,
+        "recorder-state",
+        json!({
+          "expected_game_model_hash": game_model_asset.sha256,
+          "actual_game_model_hash": game_model_hash,
+        }),
+      )?;
+      return Err("Recorder state asset does not match game-model-state asset".to_string());
     }
   }
 
