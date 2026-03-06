@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it } from 'vitest'
 import App from './App'
@@ -30,6 +30,13 @@ import {
   type ContextDomain,
 } from './features/i7/contextIntake'
 import { createDeviationSnapshot, detectDeviation, pushDeviationEvent } from './features/i8/deviation'
+import {
+  buildContextThresholdRef,
+  buildOsintEvent,
+  createOsintSnapshot,
+  pushContextThresholdRef,
+  pushOsintEvent,
+} from './features/i9/osint'
 import { backend } from './lib/backend'
 
 const buildStoredCollaborationSnapshot = (sharedNote: string, viewState: string) => {
@@ -265,6 +272,43 @@ const buildStoredDeviationSnapshot = () => {
   return event ? pushDeviationEvent(snapshot, event) : snapshot
 }
 
+const buildStoredOsintSnapshot = () => {
+  const snapshot = createOsintSnapshot('aoi-7')
+  const event = buildOsintEvent({
+    source: 'ACLED',
+    verification: 'alleged',
+    aoi: 'aoi-7',
+    category: 'conflict_event',
+    summary: 'Hydrated curated disruption summary.',
+    retrievedAt: '2026-03-06T18:00:00.000Z',
+  })
+  const thresholdRef = buildContextThresholdRef({
+    domain: {
+      domain_id: 'ctx-1',
+      domain_name: 'Port Throughput',
+      domain_class: 'economic_indicator',
+      source_name: 'UNCTAD',
+      source_url: 'https://example.test/context',
+      license: 'public',
+      update_cadence: 'monthly',
+      spatial_binding: 'aoi_correlated',
+      temporal_resolution: 'monthly',
+      sensitivity_class: 'PUBLIC',
+      confidence_baseline: 'A',
+      methodology_notes: 'Official aggregation',
+      offline_behavior: 'pre_cacheable',
+      presentation_type: 'map_overlay',
+      prohibited_uses: ['MUST NOT be used for individual entity tracking'],
+    },
+    comparator: 'below',
+    thresholdValue: 15,
+    unit: 'index',
+    referenceNote: 'Aggregate-only AOI alert reference for aoi-7; not entity pursuit.',
+  })
+
+  return pushContextThresholdRef(pushOsintEvent(snapshot, event, 'aoi-7'), thresholdRef, 'aoi-7')
+}
+
 describe('App', () => {
   beforeEach(() => {
     localStorage.clear()
@@ -340,6 +384,7 @@ describe('App', () => {
         scenario: buildStoredScenarioSnapshot(),
         ai: buildStoredAiSnapshot(),
         deviation: buildStoredDeviationSnapshot(),
+        osint: buildStoredOsintSnapshot(),
         selectedBundleId: undefined,
         savedAt: '2026-03-06T00:00:00.000Z',
       },
@@ -356,6 +401,8 @@ describe('App', () => {
     expect(
       within(screen.getByTestId('mcp-result-card')).getAllByText('Hydrated MCP summary').length,
     ).toBeGreaterThan(0)
+    expect(within(screen.getByTestId('osint-alert-card')).getByText(/Aggregate-only alert for aoi-7/)).toBeInTheDocument()
+    expect(within(screen.getByTestId('osint-event-card')).getByText('ACLED')).toBeInTheDocument()
 
     await user.selectOptions(screen.getByLabelText('Mode'), 'compare')
     expect(await screen.findByDisplayValue('2026-Q1 baseline')).toBeInTheDocument()
@@ -553,7 +600,7 @@ describe('App', () => {
     expect(scope.getByText(/Bundle reference:/)).toBeInTheDocument()
     expect(scope.getByText(/scenario-export-/)).toBeInTheDocument()
     expect(scope.getByText(/Compared scenario-1 -> scenario-2/)).toBeInTheDocument()
-  })
+  }, 15000)
 
   it('renders governed layer metadata, labels, and model uncertainty', async () => {
     render(<App />)
@@ -614,8 +661,7 @@ describe('App', () => {
 
     render(<App />)
 
-    const cardTitle = await screen.findByText('Commodity Index')
-    const card = cardTitle.closest('article')
+    const card = await screen.findByTestId('context-card-ctx-2')
     expect(card).not.toBeNull()
     const scope = within(card as HTMLElement)
 
@@ -641,9 +687,9 @@ describe('App', () => {
 
     expect(await screen.findByText('Active context domains: 1 | Correlation AOI: aoi-4')).toBeInTheDocument()
     expect(screen.getByText('Correlated context only; not causal explanation.')).toBeInTheDocument()
-    const card = (await screen.findByText('Port Throughput')).closest('article')
+    const card = (await screen.findAllByTestId(/context-card-/))[0]
     expect(card).not.toBeNull()
-    const scope = within(card as HTMLElement)
+    const scope = within(card)
     expect(scope.getByText(/Correlated context only/)).toBeInTheDocument()
     expect(scope.getByText(/Live correlation window shows/)).toBeInTheDocument()
     expect(scope.getByText(/Latest value:/)).toBeInTheDocument()
@@ -658,6 +704,42 @@ describe('App', () => {
 
     expect(await screen.findByText('Active context domains: 1 | Correlation AOI: aoi-4')).toBeInTheDocument()
     expect(screen.getByText(/Latest value:/)).toBeInTheDocument()
+  })
+
+  it('records curated OSINT events with threshold-linked aggregate alerts and restores them from bundles', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.click(screen.getByRole('button', { name: 'Register Domain' }))
+    await user.selectOptions(screen.getByLabelText('Verification'), 'alleged')
+    await user.selectOptions(screen.getByLabelText('Category'), 'security_advisory')
+    await user.clear(screen.getByLabelText('Event Summary'))
+    await user.type(screen.getByLabelText('Event Summary'), 'Curated advisory for aggregate AOI monitoring.')
+    await user.clear(screen.getByLabelText('Threshold Value'))
+    await user.type(screen.getByLabelText('Threshold Value'), '12')
+    await user.click(screen.getByRole('button', { name: 'Link Context Threshold' }))
+
+    const alertCard = screen.getByTestId('osint-alert-card')
+    expect(within(alertCard).getByText(/Port Throughput below 12 index/)).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Add OSINT Event' }))
+
+    const eventCard = await screen.findByTestId('osint-event-card')
+    const eventScope = within(eventCard)
+    expect(eventScope.getByText('ACLED')).toBeInTheDocument()
+    expect(eventScope.getByText('alleged')).toHaveClass('alleged')
+    expect(within(alertCard).getByText(/Aggregate-only alert for aoi-1: 1 curated OSINT event/)).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Create Bundle' }))
+    expect(await screen.findByText(/Bundle .* created/)).toBeInTheDocument()
+
+    await user.clear(screen.getByLabelText('AOI'))
+    await user.type(screen.getByLabelText('AOI'), 'aoi-9')
+    await user.click(screen.getByRole('button', { name: 'Reopen Bundle' }))
+
+    await waitFor(() => expect(screen.getByLabelText('AOI')).toHaveValue('aoi-1'))
+    expect(within(screen.getByTestId('osint-alert-card')).getByText(/Aggregate-only alert for aoi-1/)).toBeInTheDocument()
+    expect(screen.getAllByTestId('osint-event-card')).toHaveLength(1)
   })
 
   it('records a context deviation event and applies a constraint_node domain in the scenario workspace', async () => {

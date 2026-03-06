@@ -60,6 +60,8 @@ struct RecorderState {
   ai: Option<Value>,
   #[serde(default)]
   deviation: Option<Value>,
+  #[serde(default)]
+  osint: Option<Value>,
   selected_bundle_id: Option<String>,
   saved_at: String,
 }
@@ -453,6 +455,15 @@ fn create_bundle(app: AppHandle, request: CreateBundleRequest) -> CommandResult<
     &request.provenance_refs,
     &captured_at,
   )?;
+  let osint_asset = write_bundle_asset(
+    &bundle_root,
+    "osint-state",
+    "assets/osint_state.json",
+    &request.state.osint.clone().unwrap_or(Value::Null),
+    &request.marking,
+    &request.provenance_refs,
+    &captured_at,
+  )?;
   let recorder_asset = write_bundle_asset(
     &bundle_root,
     "recorder-state",
@@ -472,6 +483,7 @@ fn create_bundle(app: AppHandle, request: CreateBundleRequest) -> CommandResult<
     scenario_asset.clone(),
     ai_asset.clone(),
     deviation_asset.clone(),
+    osint_asset.clone(),
     recorder_asset.clone(),
   ];
 
@@ -719,6 +731,26 @@ fn open_bundle(app: AppHandle, bundle_id: String, role: String) -> CommandResult
         }),
       )?;
       return Err("Recorder state asset does not match deviation-state asset".to_string());
+    }
+  }
+  if let Some(osint_asset) = manifest
+    .assets
+    .iter()
+    .find(|asset| asset.asset_id == "osint-state")
+  {
+    let recorder_osint = recorder_state.osint.clone().unwrap_or(Value::Null);
+    let osint_hash = sha256_hex(&canonical_json_bytes(&recorder_osint)?);
+    if osint_hash != osint_asset.sha256 {
+      append_integrity_failure(
+        &app,
+        &bundle_id,
+        "recorder-state",
+        json!({
+          "expected_osint_hash": osint_asset.sha256,
+          "actual_osint_hash": osint_hash,
+        }),
+      )?;
+      return Err("Recorder state asset does not match osint-state asset".to_string());
     }
   }
 

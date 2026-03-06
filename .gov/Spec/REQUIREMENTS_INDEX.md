@@ -192,10 +192,10 @@ REQ-NNNN | LEVEL | Ã‚Â§Section | Description | Iteration Target | Status
 
 | ID | Level | Section | Description | Target | Status |
 |----|-------|---------|-------------|--------|--------|
-| REQ-1000 | MUST | Ã‚Â§7.4.4 | OSINT feeds from approved curated aggregators only | I9 | IN-PROGRESS |
-| REQ-1001 | MUST | Ã‚Â§7.4.6 | OSINT events carry verification level (confirmed/reported/alleged); alleged visually distinct | I9 | IN-PROGRESS |
-| REQ-1002 | MUST | Ã‚Â§13.4 | Alerts aggregate/statistical, scoped to AOIs, never entity-pursuit | I9 | IN-PROGRESS |
-| REQ-1003 | MAY | Ã‚Â§13.4 | Alerts reference context domain thresholds | I9 | IN-PROGRESS |
+| REQ-1000 | MUST | Ã‚Â§7.4.4 | OSINT feeds from approved curated aggregators only | I9 | E2E-VERIFIED |
+| REQ-1001 | MUST | Ã‚Â§7.4.6 | OSINT events carry verification level (confirmed/reported/alleged); alleged visually distinct | I9 | E2E-VERIFIED |
+| REQ-1002 | MUST | Ã‚Â§13.4 | Alerts aggregate/statistical, scoped to AOIs, never entity-pursuit | I9 | E2E-VERIFIED |
+| REQ-1003 | MAY | Ã‚Â§13.4 | Alerts reference context domain thresholds | I9 | E2E-VERIFIED |
 
 ---
 

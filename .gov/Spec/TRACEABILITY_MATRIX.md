@@ -201,10 +201,10 @@ REQ-ID | Component(s) | Test(s) | Iteration | Verified
 
 | REQ | Component(s) | Test(s) | Iter | Verified |
 |-----|-------------|---------|------|----------|
-| REQ-1000 | .product/Worktrees/wt_main/src/features/i9/osint.ts | .product/Worktrees/wt_main/src/features/i9/i9.test.ts | I9 | 2026-03-05 |
-| REQ-1001 | .product/Worktrees/wt_main/src/features/i9/osint.ts | .product/Worktrees/wt_main/src/features/i9/i9.test.ts | I9 | 2026-03-05 |
-| REQ-1002 | .product/Worktrees/wt_main/src/features/i9/osint.ts | .product/Worktrees/wt_main/src/features/i9/i9.test.ts | I9 | 2026-03-05 |
-| REQ-1003 | .product/Worktrees/wt_main/src/features/i9/osint.ts | .product/Worktrees/wt_main/src/features/i9/i9.test.ts | I9 | 2026-03-05 |
+| REQ-1000 | .product/Worktrees/wt_main/src/App.tsx; .product/Worktrees/wt_main/src/features/i9/osint.ts | .product/Worktrees/wt_main/src/App.test.tsx; .product/Worktrees/wt_main/src/features/i9/i9.test.ts | I9 | 2026-03-06 |
+| REQ-1001 | .product/Worktrees/wt_main/src/App.tsx; .product/Worktrees/wt_main/src/App.css; .product/Worktrees/wt_main/src/features/i9/osint.ts | .product/Worktrees/wt_main/src/App.test.tsx; .product/Worktrees/wt_main/src/features/i9/i9.test.ts | I9 | 2026-03-06 |
+| REQ-1002 | .product/Worktrees/wt_main/src/App.tsx; .product/Worktrees/wt_main/src/features/i9/osint.ts | .product/Worktrees/wt_main/src/App.test.tsx; .product/Worktrees/wt_main/src/features/i9/i9.test.ts | I9 | 2026-03-06 |
+| REQ-1003 | .product/Worktrees/wt_main/src/App.tsx; .product/Worktrees/wt_main/src/contracts/i0.ts; .product/Worktrees/wt_main/src/features/i9/osint.ts; .product/Worktrees/wt_main/src/lib/backend.ts; .product/Worktrees/wt_main/src-tauri/src/lib.rs | .product/Worktrees/wt_main/src/App.test.tsx; .product/Worktrees/wt_main/src/features/i9/i9.test.ts; .product/Worktrees/wt_main/src/lib/backend.test.ts | I9 | 2026-03-06 |
 
 ---
 
@@ -246,8 +246,8 @@ REQ-ID | Component(s) | Test(s) | Iteration | Verified
 | WP-I6-001 | I6 | REQ-0700..REQ-0708 | PRIM-0015 | .gov/workflow/wp_test_suites/TS-WP-I6-001.md | E2E-VERIFIED | proof: .product/build_target/tool_artifacts/wp_runs/WP-I6-001/20260306_064311/; spec extraction: .gov/workflow/wp_spec_extractions/SX-WP-I6-001.md; user sign-off approved via 2026-03-06 autonomous completion instruction |
 | WP-I7-001 | I7 | REQ-0800..REQ-0810 | PRIM-0016 | .gov/workflow/wp_test_suites/TS-WP-I7-001.md | E2E-VERIFIED | proof: .product/build_target/tool_artifacts/wp_runs/WP-I7-001/20260306_070435/; spec extraction: .gov/workflow/wp_spec_extractions/SX-WP-I7-001.md; user sign-off approved via 2026-03-06 autonomous completion instruction |
 | WP-I8-001 | I8 | REQ-0900..REQ-0904 | PRIM-0017 | .gov/workflow/wp_test_suites/TS-WP-I8-001.md | E2E-VERIFIED | proof: .product/build_target/tool_artifacts/wp_runs/WP-I8-001/20260306_073044/; spec extraction: .gov/workflow/wp_spec_extractions/SX-WP-I8-001.md; user sign-off approved via 2026-03-06 autonomous completion instruction |
-| WP-I9-001 | I9 | REQ-1000..REQ-1003 | PRIM-0018 | .gov/workflow/wp_test_suites/TS-WP-I9-001.md | IN-PROGRESS | activated as the current blocking packet after WP-I8-001 proof; prior 2026-03-05 evidence is treated as activation-shell baseline only pending normative I9 delivery |
-| WP-I10-001 | I10 | REQ-1100..REQ-1113 | PRIM-0019 | .gov/workflow/wp_test_suites/TS-WP-I10-001.md | BLOCKED | activation shell exists; roadmap order queues delivery behind WP-I9-001 |
+| WP-I9-001 | I9 | REQ-1000..REQ-1003 | PRIM-0018 | .gov/workflow/wp_test_suites/TS-WP-I9-001.md | E2E-VERIFIED | proof: .product/build_target/tool_artifacts/wp_runs/WP-I9-001/20260306_075309/; spec extraction: .gov/workflow/wp_spec_extractions/SX-WP-I9-001.md; user sign-off approved via 2026-03-06 autonomous completion instruction |
+| WP-I10-001 | I10 | REQ-1100..REQ-1113 | PRIM-0019 | .gov/workflow/wp_test_suites/TS-WP-I10-001.md | IN-PROGRESS | activated as the current blocking packet after WP-I9-001 proof; prior 2026-03-05 shell evidence remains baseline only pending normative I10 delivery |
 | WP-GOV-LOOP-001 | All | REQ-0019..REQ-0022 | PRIM-0020, PRIM-0021, PRIM-0022, PRIM-0023 | .gov/workflow/wp_test_suites/TS-WP-GOV-LOOP-001.md | IMPLEMENTED | .gov/workflow/wp_spec_extractions/SX-WP-GOV-LOOP-001.md; .product/build_target/tool_artifacts/wp_runs/WP-GOV-LOOP-001/20260306_002544 |
 | WP-GOV-INSTALLER-001 | All | REQ-0023, REQ-0024, REQ-0025, REQ-0026, REQ-0027, REQ-0028, REQ-0029, REQ-0030, REQ-0031 | PRIM-0024, PRIM-0025, PRIM-0026, PRIM-0027, PRIM-0028 | .gov/workflow/wp_test_suites/TS-WP-GOV-INSTALLER-001.md | IMPLEMENTED | .gov/workflow/wp_spec_extractions/SX-WP-GOV-INSTALLER-001.md; .product/build_target/tool_artifacts/wp_runs/WP-GOV-INSTALLER-001/20260306_023348; .product/build_target/Current/InstallerKit/20260306_023104 |
 

@@ -90,6 +90,21 @@
   color: #ffeafd;
 }
 
+.artifact-chip.confirmed {
+  background: #1d7f4f;
+  color: #ecfff5;
+}
+
+.artifact-chip.reported {
+  background: #20496f;
+  color: #e9f7ff;
+}
+
+.artifact-chip.alleged {
+  background: #6f3125;
+  color: #fff1ea;
+}
+
 .layout {
   display: grid;
   grid-template-columns: 1.15fr 1.35fr 1fr;

@@ -47,7 +47,8 @@ This file is the execution order for capability slices. It is the scheduling bri
 - `WP-I6-001` is E2E-VERIFIED with policy-gated AI access, hash-addressed evidence refs, persisted `ai-state` bundle assets, and audited MCP tool execution on 2026-03-06; proof: `.product/build_target/tool_artifacts/wp_runs/WP-I6-001/20260306_064311/`.
 - `WP-I7-001` is E2E-VERIFIED with explicit correlation links, time-range context querying, offline staleness handling, and bundle-captured context values on 2026-03-06; proof: `.product/build_target/tool_artifacts/wp_runs/WP-I7-001/20260306_070435/`.
 - `WP-I8-001` is E2E-VERIFIED with standard `context.deviation` events, persisted `deviation-state` bundle assets, and scenario constraint-node propagation proof on 2026-03-06; proof: `.product/build_target/tool_artifacts/wp_runs/WP-I8-001/20260306_073044/`.
-- `WP-I9-001` is now the current blocking product packet.
+- `WP-I9-001` is E2E-VERIFIED with curated-source enforcement, verification-label rendering, persisted `osint-state` bundle assets, and threshold-linked aggregate-alert proof on 2026-03-06; proof: `.product/build_target/tool_artifacts/wp_runs/WP-I9-001/20260306_075309/`.
+- `WP-I10-001` is now the current blocking product packet.
 
 ---
 

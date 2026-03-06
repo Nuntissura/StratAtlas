@@ -11,6 +11,7 @@ import type {
   ContextTimeRange,
 } from '../features/i7/contextIntake'
 import type { DeviationSnapshot } from '../features/i8/deviation'
+import type { OsintSnapshot } from '../features/i9/osint'
 
 export type UserRole = 'viewer' | 'analyst' | 'administrator' | 'auditor'
 
@@ -84,6 +85,7 @@ export interface RecorderState {
   scenario?: ScenarioStateSnapshot
   ai?: AiGatewaySnapshot
   deviation?: DeviationSnapshot
+  osint?: OsintSnapshot
   selectedBundleId?: string
   savedAt: string
 }

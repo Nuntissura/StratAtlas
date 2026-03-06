@@ -119,10 +119,20 @@ import {
   type DeviationSnapshot,
 } from './features/i8/deviation'
 import {
+  OSINT_EVENT_CATEGORIES,
+  THRESHOLD_COMPARATORS,
   CURATED_OSINT_SOURCES,
   aggregateAlerts,
+  buildContextThresholdRef,
+  buildOsintEvent,
+  createOsintSnapshot,
+  normalizeOsintSnapshot,
+  pushContextThresholdRef,
+  pushOsintEvent,
   validateCuratedSource,
-  type OsintEvent,
+  type OsintEventCategory,
+  type OsintSnapshot,
+  type ThresholdComparator,
   type VerificationLevel,
 } from './features/i9/osint'
 import { buildPayoffProxy, validateGameModel } from './features/i10/gameModeling'
@@ -184,6 +194,10 @@ const DEFAULT_QUERY_VALUE = '20'
 const DEFAULT_DEPLOYMENT_PROFILE: DeploymentProfileId = 'connected'
 const DEFAULT_MCP_TOOL: McpToolName = 'get_bundle_manifest'
 const QUERY_OPERATORS: QueryOperator[] = ['equals', 'greater_than', 'less_than', 'contains']
+const DEFAULT_OSINT_CATEGORY: OsintEventCategory = 'conflict_event'
+const DEFAULT_OSINT_SUMMARY = 'Curated feed reports a port-area disruption with aggregate AOI relevance.'
+const DEFAULT_OSINT_THRESHOLD_VALUE = '15'
+const DEFAULT_OSINT_THRESHOLD_COMPARATOR: ThresholdComparator = 'below'
 
 const deviationTypeForDomain = (
   domain: ContextDomain,
@@ -682,7 +696,15 @@ function App() {
   const [osintSource, setOsintSource] = useState<string>(CURATED_OSINT_SOURCES[0])
   const [osintVerification, setOsintVerification] = useState<VerificationLevel>('reported')
   const [osintAoi, setOsintAoi] = useState<string>('aoi-1')
-  const [osintEvents, setOsintEvents] = useState<OsintEvent[]>([])
+  const [osintCategory, setOsintCategory] = useState<OsintEventCategory>(DEFAULT_OSINT_CATEGORY)
+  const [osintSummaryInput, setOsintSummaryInput] = useState<string>(DEFAULT_OSINT_SUMMARY)
+  const [selectedOsintThresholdDomainId, setSelectedOsintThresholdDomainId] = useState<string>('')
+  const [osintThresholdComparator, setOsintThresholdComparator] = useState<ThresholdComparator>(
+    DEFAULT_OSINT_THRESHOLD_COMPARATOR,
+  )
+  const [osintThresholdValueInput, setOsintThresholdValueInput] =
+    useState<string>(DEFAULT_OSINT_THRESHOLD_VALUE)
+  const [osintSnapshot, setOsintSnapshot] = useState<OsintSnapshot>(() => createOsintSnapshot())
   const [gameAssumption, setGameAssumption] = useState<string>('Supply remains constrained')
   const [collaboration, setCollaboration] = useState<CollaborationStateSnapshot>(() =>
     createDefaultCollaborationSnapshot(),
@@ -1002,9 +1024,23 @@ function App() {
     ],
   )
 
+  const selectedOsintThresholdDomainKey = selectedOsintThresholdDomainId || activeDomainIds[0] || ''
+  const selectedOsintThresholdDomain = useMemo(
+    () => domains.find((domain) => domain.domain_id === selectedOsintThresholdDomainKey),
+    [domains, selectedOsintThresholdDomainKey],
+  )
   const osintSummary = useMemo(
-    () => aggregateAlerts(osintEvents, osintAoi),
-    [osintAoi, osintEvents],
+    () => aggregateAlerts(osintSnapshot.events, osintAoi, osintSnapshot.thresholdRefs),
+    [osintAoi, osintSnapshot.events, osintSnapshot.thresholdRefs],
+  )
+  const osintStateForRecorder = useMemo(
+    () => ({
+      ...osintSnapshot,
+      selectedAoi: osintAoi,
+      selectedThresholdDomainId: selectedOsintThresholdDomainKey || undefined,
+      latestAlert: osintSummary,
+    }),
+    [osintAoi, osintSnapshot, osintSummary, selectedOsintThresholdDomainKey],
   )
 
   const gameModelValid = useMemo(
@@ -1141,6 +1177,7 @@ function App() {
       scenario,
       ai: aiSnapshot,
       deviation: deviationStateForRecorder,
+      osint: osintStateForRecorder,
       selectedBundleId: selectedBundleId || undefined,
     }),
     [
@@ -1149,6 +1186,7 @@ function App() {
       compareSnapshot,
       contextSnapshot,
       deviationStateForRecorder,
+      osintStateForRecorder,
       querySnapshot,
       scenario,
       selectedBundleId,
@@ -1170,6 +1208,7 @@ function App() {
     const scenarioState = normalizeScenarioState(state.scenario)
     const aiState = normalizeAiGatewaySnapshot(state.ai)
     const deviationState = normalizeDeviationSnapshot(state.deviation)
+    const osintState = normalizeOsintSnapshot(state.osint)
     const restoredQueryDefinition = normalizeVersionedQuery(query.definition)
     const restoredDomains = normalizeDomains(context.domains)
     const restoredActiveDomainIds = normalizeStringArray(context.activeDomainIds).filter((domainId) =>
@@ -1240,6 +1279,21 @@ function App() {
       setSelectedMcpTool(DEFAULT_MCP_TOOL)
       setDeviationSnapshot(deviationState)
       setSelectedDeviationDomainId(deviationState.selectedDomainId ?? '')
+      setOsintSnapshot(osintState)
+      setOsintAoi(osintState.selectedAoi)
+      setSelectedOsintThresholdDomainId(osintState.selectedThresholdDomainId ?? '')
+      setOsintSource(osintState.events.at(-1)?.source ?? CURATED_OSINT_SOURCES[0])
+      setOsintVerification(osintState.events.at(-1)?.verification ?? 'reported')
+      setOsintCategory(osintState.events.at(-1)?.category ?? DEFAULT_OSINT_CATEGORY)
+      setOsintSummaryInput(osintState.events.at(-1)?.summary ?? DEFAULT_OSINT_SUMMARY)
+      setOsintThresholdComparator(
+        osintState.thresholdRefs.at(-1)?.comparator ?? DEFAULT_OSINT_THRESHOLD_COMPARATOR,
+      )
+      setOsintThresholdValueInput(
+        osintState.thresholdRefs.at(-1)
+          ? String(osintState.thresholdRefs.at(-1)?.threshold_value ?? DEFAULT_OSINT_THRESHOLD_VALUE)
+          : DEFAULT_OSINT_THRESHOLD_VALUE,
+      )
       setDomains(restoredDomains)
       setActiveDomainIds(restoredActiveDomainIds)
       setCorrelationAoi(restoredCorrelationAoi)
@@ -1296,6 +1350,8 @@ function App() {
             collaboration: persisted.state.collaboration,
             scenario: persisted.state.scenario,
             ai: persisted.state.ai,
+            deviation: persisted.state.deviation,
+            osint: persisted.state.osint,
             selectedBundleId: persisted.state.selectedBundleId,
           })
           setStatus('Recorder state restored')
@@ -1350,6 +1406,8 @@ function App() {
             collaboration: savedState.collaboration,
             scenario: savedState.scenario,
             ai: savedState.ai,
+            deviation: savedState.deviation,
+            osint: savedState.osint,
             selectedBundleId: savedState.selectedBundleId,
           })
         }
@@ -1455,6 +1513,8 @@ function App() {
         collaboration: result.state.collaboration,
         scenario: result.state.scenario,
         ai: result.state.ai,
+        deviation: result.state.deviation,
+        osint: result.state.osint,
         selectedBundleId: result.manifest.bundle_id,
       })
       await refresh()
@@ -2211,6 +2271,7 @@ function App() {
       ...seededRecords,
     ])
     setSelectedDeviationDomainId((previous) => previous || domain.domain_id)
+    setSelectedOsintThresholdDomainId((previous) => previous || domain.domain_id)
     setDomainDraft(createDomainDraft())
     void backend
       .appendAudit({
@@ -2433,14 +2494,85 @@ function App() {
       setStatus(`OSINT source rejected: ${osintSource}`)
       return
     }
-    setOsintEvents((previous) => [
-      ...previous,
-      {
-        source: osintSource.toUpperCase(),
-        verification: osintVerification,
-        aoi: osintAoi,
-      },
-    ])
+    if (!osintSummaryInput.trim()) {
+      setStatus('Add a short aggregate OSINT summary before recording an event.')
+      return
+    }
+
+    const event = buildOsintEvent({
+      source: osintSource,
+      verification: osintVerification,
+      aoi: osintAoi,
+      category: osintCategory,
+      summary: osintSummaryInput,
+      lineage: [`aoi:${osintAoi}`, `category:${osintCategory}`],
+    })
+    const nextSnapshot = pushOsintEvent(osintStateForRecorder, event, osintAoi)
+
+    setOsintSnapshot(nextSnapshot)
+    setStatus(`Recorded ${event.source} ${event.verification} OSINT event for ${event.aoi}.`)
+    void backend
+      .appendAudit({
+        role,
+        event_type: 'osint.event_added',
+        payload: {
+          event,
+          latest_alert: nextSnapshot.latestAlert,
+        },
+      })
+      .then(() => refresh())
+      .catch(() => {
+        setStatus('OSINT event recorded locally; audit append unavailable.')
+      })
+  }
+
+  const onLinkOsintThreshold = () => {
+    const thresholdValue = Number(osintThresholdValueInput)
+    if (!selectedOsintThresholdDomain || !Number.isFinite(thresholdValue)) {
+      setStatus('Select an active context domain and numeric threshold before linking an OSINT alert rule.')
+      return
+    }
+
+    const latestRecord =
+      contextRecords
+        .filter(
+          (record) =>
+            record.domain_id === selectedOsintThresholdDomain.domain_id &&
+            record.target_id === osintAoi,
+        )
+        .sort((left, right) => left.observed_at.localeCompare(right.observed_at))
+        .at(-1) ??
+      contextRecords
+        .filter((record) => record.domain_id === selectedOsintThresholdDomain.domain_id)
+        .sort((left, right) => left.observed_at.localeCompare(right.observed_at))
+        .at(-1)
+
+    const thresholdRef = buildContextThresholdRef({
+      domain: selectedOsintThresholdDomain,
+      comparator: osintThresholdComparator,
+      thresholdValue,
+      unit: latestRecord?.unit ?? 'index',
+      referenceNote: `Aggregate-only AOI alert reference for ${osintAoi}; not entity pursuit.`,
+    })
+    const nextSnapshot = pushContextThresholdRef(osintStateForRecorder, thresholdRef, osintAoi)
+
+    setOsintSnapshot(nextSnapshot)
+    setStatus(
+      `Linked ${thresholdRef.domain_name} ${thresholdRef.comparator} ${thresholdRef.threshold_value} ${thresholdRef.unit} to OSINT alerts for ${osintAoi}.`,
+    )
+    void backend
+      .appendAudit({
+        role,
+        event_type: 'osint.threshold_linked',
+        payload: {
+          threshold_ref: thresholdRef,
+          latest_alert: nextSnapshot.latestAlert,
+        },
+      })
+      .then(() => refresh())
+      .catch(() => {
+        setStatus('OSINT threshold linked locally; audit append unavailable.')
+      })
   }
 
   return (
@@ -4225,6 +4357,19 @@ function App() {
             </select>
           </label>
           <label className="field">
+            Category
+            <select
+              value={osintCategory}
+              onChange={(event) => setOsintCategory(event.target.value as OsintEventCategory)}
+            >
+              {OSINT_EVENT_CATEGORIES.map((category) => (
+                <option key={category} value={category}>
+                  {category}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="field">
             AOI
             <input
               type="text"
@@ -4232,14 +4377,122 @@ function App() {
               onChange={(event) => setOsintAoi(event.target.value)}
             />
           </label>
+          <label className="field">
+            Event Summary
+            <textarea
+              value={osintSummaryInput}
+              onChange={(event) => setOsintSummaryInput(event.target.value)}
+              rows={3}
+            />
+          </label>
+          <label className="field">
+            Threshold Domain
+            <select
+              value={selectedOsintThresholdDomainKey}
+              onChange={(event) => setSelectedOsintThresholdDomainId(event.target.value)}
+            >
+              <option value="">Select active context domain</option>
+              {domains
+                .filter((domain) => activeDomainIds.includes(domain.domain_id))
+                .map((domain) => (
+                  <option key={domain.domain_id} value={domain.domain_id}>
+                    {domain.domain_name}
+                  </option>
+                ))}
+            </select>
+          </label>
+          <label className="field">
+            Threshold Comparator
+            <select
+              value={osintThresholdComparator}
+              onChange={(event) =>
+                setOsintThresholdComparator(event.target.value as ThresholdComparator)
+              }
+            >
+              {THRESHOLD_COMPARATORS.map((comparator) => (
+                <option key={comparator} value={comparator}>
+                  {comparator}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="field">
+            Threshold Value
+            <input
+              type="number"
+              value={osintThresholdValueInput}
+              onChange={(event) => setOsintThresholdValueInput(event.target.value)}
+            />
+          </label>
           <div className="controls">
             <button onClick={onAddOsintEvent}>Add OSINT Event</button>
+            <button onClick={onLinkOsintThreshold}>Link Context Threshold</button>
           </div>
           <p className="status-line">
             Alerts in {osintAoi}: {osintSummary.count}
             {' '}
-            (alleged {osintSummary.verificationBreakdown.alleged})
+            (confirmed {osintSummary.verificationBreakdown.confirmed} | reported{' '}
+            {osintSummary.verificationBreakdown.reported} | alleged{' '}
+            {osintSummary.verificationBreakdown.alleged})
           </p>
+          <article className="surface-card compact" data-testid="osint-alert-card">
+            <div className="card-header compact">
+              <span className="artifact-chip context">Curated Context</span>
+              <span>{osintSummary.aggregate_only ? 'aggregate-only AOI alert' : 'alert'}</span>
+            </div>
+            <p>{osintSummary.summary}</p>
+            <small>
+              AOI {osintSummary.aoi} | Threshold refs {osintSummary.threshold_refs.length} | Entity
+              pursuit blocked
+            </small>
+            <div className="overlay-grid">
+              {osintSummary.threshold_refs.length === 0 && (
+                <article className="surface-card compact">
+                  <strong>No linked thresholds</strong>
+                  <p>Link an active context domain to correlate alerting with contextual conditions.</p>
+                </article>
+              )}
+              {osintSummary.threshold_refs.map((thresholdRef) => (
+                <article
+                  key={thresholdRef.threshold_id}
+                  className="surface-card compact"
+                  data-testid="osint-threshold-card"
+                >
+                  <strong>{thresholdRef.domain_name}</strong>
+                  <p>
+                    {thresholdRef.comparator} {thresholdRef.threshold_value} {thresholdRef.unit}
+                  </p>
+                  <small>{thresholdRef.reference_note}</small>
+                </article>
+              ))}
+            </div>
+          </article>
+          <div className="context-card-list">
+            {osintSnapshot.events.filter((event) => event.aoi === osintAoi).length === 0 && (
+              <p>No curated OSINT events recorded for the selected AOI.</p>
+            )}
+            {osintSnapshot.events
+              .filter((event) => event.aoi === osintAoi)
+              .slice()
+              .reverse()
+              .map((event) => (
+                <article
+                  key={event.event_id}
+                  className="context-card"
+                  data-testid="osint-event-card"
+                >
+                  <div className="card-header compact">
+                    <span className="artifact-chip context">{event.artifact_label}</span>
+                    <span className={`artifact-chip ${event.verification}`}>{event.verification}</span>
+                  </div>
+                  <strong>{event.source}</strong>
+                  <p>{event.summary}</p>
+                  <small>
+                    {event.category} | AOI {event.aoi} | Retrieved {event.retrieved_at}
+                  </small>
+                </article>
+              ))}
+          </div>
 
           <h3>Strategic Model (I10)</h3>
           <label className="field">

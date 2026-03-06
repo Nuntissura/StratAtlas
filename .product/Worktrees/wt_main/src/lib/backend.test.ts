@@ -28,6 +28,13 @@ import {
   type ContextDomain,
 } from '../features/i7/contextIntake'
 import { createDeviationSnapshot, detectDeviation, pushDeviationEvent } from '../features/i8/deviation'
+import {
+  buildContextThresholdRef,
+  buildOsintEvent,
+  createOsintSnapshot,
+  pushContextThresholdRef,
+  pushOsintEvent,
+} from '../features/i9/osint'
 
 const buildStoredCollaborationSnapshot = (sharedNote: string, viewState: string) => {
   let snapshot = createCollaborationSnapshot('collab-main', 'analyst-1')
@@ -252,6 +259,43 @@ const buildStoredDeviationSnapshot = () => {
   return event ? pushDeviationEvent(snapshot, event) : snapshot
 }
 
+const buildStoredOsintSnapshot = () => {
+  const snapshot = createOsintSnapshot('aoi-1')
+  const event = buildOsintEvent({
+    source: 'ACLED',
+    verification: 'alleged',
+    aoi: 'aoi-1',
+    category: 'conflict_event',
+    summary: 'Curated disruption summary for aoi-1.',
+    retrievedAt: '2026-03-06T16:00:00.000Z',
+  })
+  const thresholdRef = buildContextThresholdRef({
+    domain: {
+      domain_id: 'ctx-1',
+      domain_name: 'Port Throughput',
+      domain_class: 'economic_indicator',
+      source_name: 'UNCTAD',
+      source_url: 'https://example.test/context',
+      license: 'public',
+      update_cadence: 'monthly',
+      spatial_binding: 'aoi_correlated',
+      temporal_resolution: 'monthly',
+      sensitivity_class: 'PUBLIC',
+      confidence_baseline: 'A',
+      methodology_notes: 'Official aggregation',
+      offline_behavior: 'pre_cacheable',
+      presentation_type: 'map_overlay',
+      prohibited_uses: ['MUST NOT be used for individual entity tracking'],
+    },
+    comparator: 'below',
+    thresholdValue: 15,
+    unit: 'index',
+    referenceNote: 'Aggregate-only AOI alert reference for aoi-1; not entity pursuit.',
+  })
+
+  return pushContextThresholdRef(pushOsintEvent(snapshot, event, 'aoi-1'), thresholdRef, 'aoi-1')
+}
+
 const request: CreateBundleRequest = {
   role: 'analyst',
   marking: 'INTERNAL',
@@ -307,6 +351,7 @@ const request: CreateBundleRequest = {
     scenario: buildStoredScenarioSnapshot(),
     ai: buildStoredAiSnapshot(),
     deviation: buildStoredDeviationSnapshot(),
+    osint: buildStoredOsintSnapshot(),
     selectedBundleId: undefined,
     savedAt: '2026-03-06T00:00:00.000Z',
   },
@@ -339,6 +384,7 @@ describe('backend fallback', () => {
       'scenario-state',
       'ai-state',
       'deviation-state',
+      'osint-state',
       'recorder-state',
     ])
     expect(reopen.state.workspace.note).toBe('seed state')
@@ -362,6 +408,8 @@ describe('backend fallback', () => {
     expect(reopen.state.ai?.latestMcpInvocation?.toolName).toBe('get_bundle_manifest')
     expect(reopen.state.deviation?.latestEvent?.event_type).toBe('context.deviation')
     expect(reopen.state.deviation?.events).toHaveLength(1)
+    expect(reopen.state.osint?.latestAlert?.aggregate_only).toBe(true)
+    expect(reopen.state.osint?.thresholdRefs).toHaveLength(1)
   })
 
   it('loads and saves authoritative recorder state outside bundle reopen', async () => {
@@ -381,6 +429,8 @@ describe('backend fallback', () => {
     expect(restored.state?.scenario?.selectedScenarioId).toBe('scenario-2')
     expect(restored.state?.ai?.deploymentProfile).toBe('connected')
     expect(restored.state?.deviation?.latestEvent?.taxonomy_key).toBe('context.supply_chain_shift')
+    expect(restored.state?.osint?.events[0]?.source).toBe('ACLED')
+    expect(restored.state?.osint?.latestAlert?.threshold_refs[0]?.domain_name).toBe('Port Throughput')
   })
 
   it('maintains an append-only hash chain in audit events', async () => {
