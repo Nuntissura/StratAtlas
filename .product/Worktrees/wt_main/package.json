@@ -11,6 +11,7 @@
     "tauri:build:installers": "tauri build --bundles msi,nsis",
     "lint": "eslint .",
     "preview": "vite preview",
+    "smoke:runtime": "node ./scripts/runtime-smoke.mjs",
     "test": "vitest run",
     "test:watch": "vitest"
   },

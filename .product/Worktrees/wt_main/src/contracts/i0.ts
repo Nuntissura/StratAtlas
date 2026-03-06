@@ -133,3 +133,62 @@ export interface SaveRecorderStateRequest {
   role: UserRole
   state: RecorderState
 }
+
+export type RuntimeSmokePhase = 'cold' | 'warm'
+
+export interface RuntimeSmokeWindowSnapshot {
+  title: string
+  width: number
+  height: number
+}
+
+export interface RuntimeSmokeRegionCheck {
+  id: string
+  present: boolean
+}
+
+export interface RuntimeSmokeAssertion {
+  id: string
+  passed: boolean
+  detail: string
+}
+
+export interface RuntimeSmokeMetric {
+  label: string
+  measuredMs: number
+  budgetMs?: number
+  passed?: boolean
+}
+
+export interface RuntimeSmokeReport {
+  phase: RuntimeSmokePhase
+  capturedAt: string
+  startupMs: number
+  window: RuntimeSmokeWindowSnapshot
+  mode: UiMode
+  selectedBundleId?: string
+  bundleCount: number
+  activeLayerCount: number
+  degradedBudgetCount: number
+  offline: boolean
+  status: string
+  integrityState: string
+  scenarioExportArtifactId?: string
+  auditEventCount: number
+  platform: string
+  regions: RuntimeSmokeRegionCheck[]
+  assertions: RuntimeSmokeAssertion[]
+  metrics: RuntimeSmokeMetric[]
+  notes: string[]
+}
+
+export interface WriteRuntimeSmokeEvidenceRequest {
+  phase: RuntimeSmokePhase
+  report: RuntimeSmokeReport
+}
+
+export interface RuntimeSmokeEvidenceResult {
+  phaseDir: string
+  reportPath: string
+  runtimeProofDir: string
+}

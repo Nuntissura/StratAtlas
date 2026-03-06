@@ -1,10 +1,10 @@
 # SX-WP-GOV-VERIFY-001 - Spec Extraction Snapshot
 
-Generated On: 2026-03-06
+Generated On: 2026-03-07
 Linked Work Packet: WP-GOV-VERIFY-001
 Linked Test Suite: .gov/workflow/wp_test_suites/TS-WP-GOV-VERIFY-001.md
 Linked WP Check Script: .gov/workflow/wp_checks/check-WP-GOV-VERIFY-001.ps1
-WP Status Snapshot: IN-PROGRESS
+WP Status Snapshot: E2E-VERIFIED
 Iteration: All
 
 ## Scope
@@ -29,8 +29,8 @@ Concrete extraction of requirement and primitive obligations this WP must satisf
 
 | Primitive | Name | Contract | REQs | First Iter | Status |
 |-----------|------|----------|------|------------|--------|
-| PRIM-0060 | Runtime Smoke Harness | Execute governed desktop runtime smoke flows across startup, shell readiness, map/layer interactions, and degraded-state handling with artifact capture | REQ-0013, REQ-0014, REQ-0015, REQ-0016, REQ-0018, REQ-0019, REQ-0020, REQ-0021, REQ-0022 | All | SPEC-MAPPED |
-| PRIM-0061 | Verification Evidence Matrix | Bind each closure claim to command evidence, desktop-smoke artifacts, and portability/performance proof before status promotion | REQ-0013, REQ-0014, REQ-0015, REQ-0016, REQ-0018, REQ-0019, REQ-0020, REQ-0021, REQ-0022 | All | SPEC-MAPPED |
+| PRIM-0060 | Runtime Smoke Harness | Execute governed desktop runtime smoke flows across startup, shell readiness, map/layer interactions, and degraded-state handling with artifact capture | REQ-0013, REQ-0014, REQ-0015, REQ-0016, REQ-0018, REQ-0019, REQ-0020, REQ-0021, REQ-0022 | All | E2E-VERIFIED |
+| PRIM-0061 | Verification Evidence Matrix | Bind each closure claim to command evidence, desktop-smoke artifacts, and portability/performance proof before status promotion | REQ-0013, REQ-0014, REQ-0015, REQ-0016, REQ-0018, REQ-0019, REQ-0020, REQ-0021, REQ-0022 | All | E2E-VERIFIED |
 
 ## Traceability Hooks
 

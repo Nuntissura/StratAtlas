@@ -1,9 +1,13 @@
 ﻿import { useEffect, useMemo, useState } from 'react'
 import './App.css'
-import { startTransition, useRef } from 'react'
+import { startTransition, useEffectEvent, useRef } from 'react'
 import type {
   AuditEvent,
   BundleManifest,
+  RuntimeSmokeAssertion,
+  RuntimeSmokeMetric,
+  RuntimeSmokeRegionCheck,
+  RuntimeSmokeReport,
   SensitivityMarking,
   UserRole,
 } from './contracts/i0'
@@ -14,7 +18,7 @@ import type {
   WorkspaceStateSnapshot,
 } from './contracts/i0'
 import type { UiMode } from './features/i1/modes'
-import { REQUIRED_UI_MODES } from './features/i1/modes'
+import { REQUIRED_UI_MODES, REQUIRED_UI_REGIONS } from './features/i1/modes'
 import {
   ARTIFACT_LABELS,
   artifactTone,
@@ -162,6 +166,12 @@ import {
   type SolverMethod,
 } from './features/i10/gameModeling'
 import { backend } from './lib/backend'
+import {
+  captureRuntimeSmokeWindowSnapshot,
+  closeRuntimeSmokeWindow,
+  runtimeSmokeConfig,
+  writeRuntimeSmokeEvidence,
+} from './lib/runtimeSmoke'
 
 const ROLES: UserRole[] = ['viewer', 'analyst', 'administrator', 'auditor']
 const MARKINGS: SensitivityMarking[] = ['PUBLIC', 'INTERNAL', 'RESTRICTED']
@@ -670,6 +680,17 @@ interface QueuedRemoteCollaborationChange {
   queuedAt: string
 }
 
+const RUNTIME_SMOKE_REGION_SELECTORS: Record<
+  (typeof REQUIRED_UI_REGIONS)[number],
+  string
+> = {
+  header: '[data-testid="region-header"]',
+  left_panel: '[data-testid="region-left-panel"]',
+  right_panel: '[data-testid="region-right-panel"]',
+  bottom_panel: '[data-testid="region-bottom-panel"]',
+  main_canvas: '[data-testid="region-main-canvas"]',
+}
+
 function App() {
   const [role, setRole] = useState<UserRole>('analyst')
   const [marking, setMarking] = useState<SensitivityMarking>('INTERNAL')
@@ -813,6 +834,21 @@ function App() {
     describeStateChangeFeedback('Shell ready', 0),
   )
   const lastSavedFingerprint = useRef<string>('')
+  const runtimeSmokeStarted = useRef<boolean>(false)
+  const runtimeSmokeStartMs = useRef<number>(performance.now())
+  const runtimeSmokeStateRef = useRef({
+    mode: 'offline' as UiMode,
+    selectedBundleId: '',
+    bundles: [] as BundleManifest[],
+    activeLayers: [] as string[],
+    toggleableLayerCatalog: [] as LayerCatalogEntry[],
+    offline: false,
+    status: '',
+    integrityState: '',
+    degradedBudgetCount: 0,
+    auditEvents: [] as AuditEvent[],
+    scenario: createDefaultScenarioSnapshot(),
+  })
 
   const offline = forcedOffline || !navigator.onLine
 
@@ -1235,6 +1271,19 @@ function App() {
     () => budgetTelemetry.filter((probe) => probe.degraded).length,
     [budgetTelemetry],
   )
+  runtimeSmokeStateRef.current = {
+    mode,
+    selectedBundleId,
+    bundles,
+    activeLayers,
+    toggleableLayerCatalog,
+    offline,
+    status,
+    integrityState,
+    degradedBudgetCount,
+    auditEvents,
+    scenario,
+  }
 
   const recorderStateCore = useMemo(
     () => ({
@@ -2917,6 +2966,563 @@ function App() {
         setStatus('Strategic solver run recorded locally; audit append unavailable.')
       })
   }
+
+  const runRuntimeSmoke = useEffectEvent(async () => {
+    const pause = (ms: number) =>
+      new Promise<void>((resolve) => {
+        window.setTimeout(resolve, ms)
+      })
+
+    const waitForCondition = async (
+      label: string,
+      predicate: () => boolean,
+      timeoutMs = 15000,
+    ): Promise<void> => {
+      const deadline = performance.now() + timeoutMs
+      while (performance.now() < deadline) {
+        if (predicate()) {
+          return
+        }
+        await pause(50)
+      }
+      throw new Error(`Runtime smoke timed out waiting for ${label}`)
+    }
+
+    const measure = async (
+      label: string,
+      action: () => Promise<void> | void,
+      budgetMs?: number,
+    ): Promise<RuntimeSmokeMetric> => {
+      const startedAt = performance.now()
+      await action()
+      const measuredMs = Math.round(performance.now() - startedAt)
+      return {
+        label,
+        measuredMs,
+        budgetMs,
+        passed: typeof budgetMs === 'number' ? measuredMs <= budgetMs : undefined,
+      }
+    }
+
+    const collectRegionChecks = (): RuntimeSmokeRegionCheck[] =>
+      REQUIRED_UI_REGIONS.map((regionId) => ({
+        id: regionId,
+        present: Boolean(document.querySelector(RUNTIME_SMOKE_REGION_SELECTORS[regionId])),
+      }))
+
+    const buildAssertions = (
+      regions: RuntimeSmokeRegionCheck[],
+      notes: string[],
+    ): RuntimeSmokeAssertion[] => {
+      const currentState = runtimeSmokeStateRef.current
+      const exportCardVisible = Boolean(document.querySelector('[data-testid="scenario-export-card"]'))
+      return [
+        {
+          id: 'required_regions_present',
+          passed: regions.every((region) => region.present),
+          detail: regions.every((region) => region.present)
+            ? 'All governed shell regions are visible in the Tauri runtime.'
+            : `Missing regions: ${regions
+                .filter((region) => !region.present)
+                .map((region) => region.id)
+                .join(', ')}`,
+        },
+        {
+          id: 'bundle_persistence_reopen',
+          passed:
+            Boolean(currentState.selectedBundleId) &&
+            currentState.integrityState.includes('Determinism check passed'),
+          detail:
+            currentState.integrityState || 'Bundle create/reopen flow did not complete successfully.',
+        },
+        {
+          id: 'offline_and_degraded_state',
+          passed: currentState.offline && currentState.degradedBudgetCount > 0,
+          detail: currentState.offline
+            ? `Offline enabled with ${currentState.degradedBudgetCount} degraded budget indicator(s).`
+            : 'Offline state was not enabled by the runtime smoke sequence.',
+        },
+        {
+          id: 'scenario_export_surface',
+          passed: Boolean(currentState.scenario.exportArtifact?.artifactId) && exportCardVisible,
+          detail: currentState.scenario.exportArtifact?.artifactId
+            ? `Scenario export artifact ${currentState.scenario.exportArtifact.artifactId} is visible.`
+            : 'Scenario export artifact was not produced.',
+        },
+        {
+          id: 'portability_note_recorded',
+          passed: notes.some((note) => note.includes('macOS')),
+          detail: notes.find((note) => note.includes('macOS')) ?? 'Portability note missing.',
+        },
+      ]
+    }
+
+    const buildReport = async (
+      metrics: RuntimeSmokeMetric[],
+      notes: string[],
+    ): Promise<RuntimeSmokeReport> => {
+      const currentState = runtimeSmokeStateRef.current
+      const regions = collectRegionChecks()
+      const assertions = buildAssertions(regions, notes)
+      return {
+        phase: runtimeSmokeConfig.phase,
+        capturedAt: new Date().toISOString(),
+        startupMs: Math.round(performance.now() - runtimeSmokeStartMs.current),
+        window: await captureRuntimeSmokeWindowSnapshot(),
+        mode: currentState.mode,
+        selectedBundleId: currentState.selectedBundleId || undefined,
+        bundleCount: currentState.bundles.length,
+        activeLayerCount: currentState.activeLayers.length,
+        degradedBudgetCount: currentState.degradedBudgetCount,
+        offline: currentState.offline,
+        status: currentState.status,
+        integrityState: currentState.integrityState,
+        scenarioExportArtifactId: currentState.scenario.exportArtifact?.artifactId,
+        auditEventCount: currentState.auditEvents.length,
+        platform: navigator.platform,
+        regions,
+        assertions,
+        metrics,
+        notes,
+      }
+    }
+
+    const appendAuditAndRefresh = async (
+      eventType: string,
+      payload: Record<string, unknown>,
+    ): Promise<void> => {
+      await backend.appendAudit({
+        role,
+        event_type: eventType,
+        payload,
+      })
+      await refresh()
+    }
+
+    const createBundleForRuntimeSmoke = async (): Promise<string> => {
+      const startedAt = beginMeasuredAction('Create bundle')
+      setBusy(true)
+      setStatus('Creating bundle...')
+      try {
+        const requestState: RecorderState = {
+          ...recorderStateCore,
+          savedAt: new Date().toISOString(),
+        }
+        const manifest = await backend.createBundle({
+          role,
+          marking,
+          state: requestState,
+          provenance_refs: [
+            {
+              source: 'workspace.session',
+              license: 'internal',
+              retrievedAt: new Date().toISOString(),
+              pipelineVersion: 'i0-002',
+            },
+          ],
+        })
+        setSelectedBundleId(manifest.bundle_id)
+        await refresh()
+        setStatus(`Bundle ${manifest.bundle_id} created`)
+        setIntegrityState('Bundle created; deterministic reopen pending')
+        return manifest.bundle_id
+      } catch (error) {
+        setStatus(`Create failed: ${String(error)}`)
+        setIntegrityState('Bundle create failed')
+        throw error
+      } finally {
+        completeMeasuredAction('Create bundle', startedAt)
+        setBusy(false)
+      }
+    }
+
+    const openBundleForRuntimeSmoke = async (bundleId: string): Promise<void> => {
+      const startedAt = beginMeasuredAction('Open bundle')
+      setBusy(true)
+      setStatus('Opening bundle...')
+      try {
+        const result = await backend.openBundle(bundleId, role)
+        applyRecorderState(result.state, result.manifest.bundle_id)
+        lastSavedFingerprint.current = serializeRecorderFingerprint({
+          workspace: result.state.workspace,
+          query: result.state.query,
+          context: result.state.context,
+          compare: result.state.compare,
+          collaboration: result.state.collaboration,
+          scenario: result.state.scenario,
+          ai: result.state.ai,
+          deviation: result.state.deviation,
+          osint: result.state.osint,
+          gameModel: result.state.gameModel,
+          selectedBundleId: result.manifest.bundle_id,
+        })
+        await refresh()
+        setStatus(`Bundle ${result.manifest.bundle_id} reopened`)
+        setIntegrityState('Determinism check passed during reopen')
+      } catch (error) {
+        setStatus(`Open failed: ${String(error)}`)
+        setIntegrityState('Determinism check failed')
+        throw error
+      } finally {
+        completeMeasuredAction('Open bundle', startedAt)
+        setBusy(false)
+      }
+    }
+
+    const setForcedOfflineForRuntimeSmoke = async (nextForcedOffline: boolean): Promise<void> => {
+      const startedAt = beginMeasuredAction('Offline mode change')
+      setForcedOffline(nextForcedOffline)
+      try {
+        await appendAuditAndRefresh('offline.mode_change', {
+          forced_offline: nextForcedOffline,
+          navigator_online: navigator.onLine,
+        })
+      } finally {
+        completeMeasuredAction('Offline mode change', startedAt)
+      }
+    }
+
+    const getRuntimeSmokeScenarioSelection = () => {
+      const snapshot = runtimeSmokeStateRef.current.scenario
+      const selectedScenario =
+        snapshot.scenarios.find((entry) => entry.scenarioId === snapshot.selectedScenarioId) ??
+        snapshot.scenarios.at(-1)
+      const comparisonScenario =
+        snapshot.scenarios.find((entry) => entry.scenarioId === snapshot.comparisonScenarioId) ??
+        snapshot.scenarios.find((entry) => entry.scenarioId !== selectedScenario?.scenarioId)
+
+      if (!selectedScenario) {
+        throw new Error('Runtime smoke requires a selected scenario.')
+      }
+      if (!comparisonScenario) {
+        throw new Error('Runtime smoke requires a comparison scenario.')
+      }
+
+      return {
+        snapshot,
+        selectedScenario,
+        comparisonScenario,
+      }
+    }
+
+    const createScenarioForkForRuntimeSmoke = async (title: string): Promise<void> => {
+      const startedAt = beginMeasuredAction('Scenario fork create')
+      try {
+        const currentState = runtimeSmokeStateRef.current
+        const bundleId = currentState.selectedBundleId
+        if (!bundleId) {
+          throw new Error('Runtime smoke requires a bundle before forking scenarios.')
+        }
+
+        const baseSnapshot =
+          currentState.scenario.parentBundleId && currentState.scenario.parentBundleId !== bundleId
+            ? createScenarioState(bundleId)
+            : currentState.scenario.parentBundleId
+              ? currentState.scenario
+              : createScenarioState(bundleId)
+        const next = createScenarioFork(baseSnapshot, {
+          title,
+          parentBundleId: bundleId,
+          parentScenarioId: baseSnapshot.selectedScenarioId || undefined,
+          marking,
+          provenanceSummary: `Parent bundle ${bundleId} | ${
+            currentState.offline ? 'cached offline fork' : 'live fork'
+          }`,
+        })
+        setScenario(next)
+        setStatus(`Scenario ${next.selectedScenarioId} forked from bundle ${bundleId}`)
+        await appendAuditAndRefresh('scenario.fork_created', {
+          bundle_id: bundleId,
+          scenario_id: next.selectedScenarioId,
+          parent_scenario_id: next.comparisonScenarioId || null,
+          offline: currentState.offline,
+          marking,
+        })
+      } finally {
+        completeMeasuredAction('Scenario fork create', startedAt)
+      }
+    }
+
+    const applyScenarioConstraintForRuntimeSmoke = async (): Promise<void> => {
+      const startedAt = beginMeasuredAction('Scenario constraint update')
+      try {
+        const { snapshot, selectedScenario } = getRuntimeSmokeScenarioSelection()
+        const next = setConstraint(snapshot, selectedScenario.scenarioId, {
+          constraintId: DEFAULT_SCENARIO_CONSTRAINT_ID,
+          label: DEFAULT_SCENARIO_CONSTRAINT_LABEL,
+          value: DEFAULT_SCENARIO_CONSTRAINT_VALUE,
+          unit: DEFAULT_SCENARIO_CONSTRAINT_UNIT,
+          rationale: DEFAULT_SCENARIO_CONSTRAINT_RATIONALE,
+          propagationWeight: DEFAULT_SCENARIO_CONSTRAINT_WEIGHT,
+        })
+        setScenario(next)
+        setStatus(`Constraint ${DEFAULT_SCENARIO_CONSTRAINT_ID} updated on ${selectedScenario.title}`)
+        await appendAuditAndRefresh('scenario.constraint_updated', {
+          bundle_id: next.parentBundleId,
+          scenario_id: selectedScenario.scenarioId,
+          constraint_id: DEFAULT_SCENARIO_CONSTRAINT_ID,
+          value: DEFAULT_SCENARIO_CONSTRAINT_VALUE,
+          propagation_weight: DEFAULT_SCENARIO_CONSTRAINT_WEIGHT,
+        })
+      } finally {
+        completeMeasuredAction('Scenario constraint update', startedAt)
+      }
+    }
+
+    const compareScenarioForksForRuntimeSmoke = async (): Promise<void> => {
+      const startedAt = beginMeasuredAction('Scenario compare')
+      try {
+        const { snapshot, selectedScenario, comparisonScenario } = getRuntimeSmokeScenarioSelection()
+        const comparison = compareScenarios(comparisonScenario, selectedScenario)
+        setScenario(setScenarioExportArtifact(snapshot, undefined))
+        setStatus(comparison.summary)
+        await appendAuditAndRefresh('scenario.compared', {
+          bundle_id: snapshot.parentBundleId,
+          left_scenario_id: comparisonScenario.scenarioId,
+          right_scenario_id: selectedScenario.scenarioId,
+          constraint_delta_count: comparison.constraintDeltaCount,
+          hypothetical_delta_count: comparison.hypotheticalDeltaCount,
+          total_propagation_delta: comparison.totalPropagationDelta,
+        })
+      } finally {
+        completeMeasuredAction('Scenario compare', startedAt)
+      }
+    }
+
+    const exportScenarioBundleForRuntimeSmoke = async (): Promise<void> => {
+      const startedAt = beginMeasuredAction('Scenario export')
+      try {
+        const currentState = runtimeSmokeStateRef.current
+        const { snapshot, selectedScenario, comparisonScenario } = getRuntimeSmokeScenarioSelection()
+        const exportArtifact = exportScenarioBundle(snapshot, {
+          leftScenarioId: comparisonScenario.scenarioId,
+          rightScenarioId: selectedScenario.scenarioId,
+          offline: currentState.offline,
+        })
+        if (!exportArtifact) {
+          throw new Error('Runtime smoke could not produce a scenario export artifact.')
+        }
+
+        setScenario(setScenarioExportArtifact(snapshot, exportArtifact))
+        setStatus(`Scenario export ready for ${exportArtifact.parentBundleId}`)
+        await appendAuditAndRefresh('scenario.export_prepared', {
+          bundle_id: exportArtifact.parentBundleId,
+          artifact_id: exportArtifact.artifactId,
+          export_fingerprint: exportArtifact.exportFingerprint,
+          left_scenario_id: exportArtifact.leftScenarioId,
+          right_scenario_id: exportArtifact.rightScenarioId,
+          offline: exportArtifact.offline,
+        })
+      } finally {
+        completeMeasuredAction('Scenario export', startedAt)
+      }
+    }
+
+    const notes = [
+      'Executed inside the real Tauri runtime using the governed desktop shell.',
+      `Runtime smoke phase: ${runtimeSmokeConfig.phase}.`,
+      'macOS portability smoke remains a required evidence slot for downstream packet promotion.',
+      'Startup timing was captured in development-mode Tauri and should be re-measured on reference hardware before gate promotion.',
+    ]
+    const metrics: RuntimeSmokeMetric[] = []
+
+    try {
+      await backend
+        .appendAudit({
+          role,
+          event_type: 'runtime_smoke.start',
+          payload: { phase: runtimeSmokeConfig.phase },
+        })
+        .catch(() => {
+          // Keep runtime smoke progressing even if the audit append fails.
+        })
+
+      await waitForCondition('hydration', () => hydrated)
+      await pause(250)
+
+      metrics.push(
+        await measure('Create bundle', async () => {
+          const bundleId = await createBundleForRuntimeSmoke()
+          await waitForCondition('bundle creation', () => runtimeSmokeStateRef.current.selectedBundleId === bundleId)
+        }),
+      )
+
+      metrics.push(
+        await measure('Open bundle', async () => {
+          await openBundleForRuntimeSmoke(runtimeSmokeStateRef.current.selectedBundleId)
+          await waitForCondition('bundle reopen integrity state', () =>
+            runtimeSmokeStateRef.current.integrityState.includes('Determinism check passed'),
+          )
+        }),
+      )
+
+      metrics.push(
+        await measure(
+          'Offline mode change',
+          async () => {
+            if (runtimeSmokeStateRef.current.offline) {
+              await setForcedOfflineForRuntimeSmoke(false)
+              await waitForCondition('temporary online reset', () => !runtimeSmokeStateRef.current.offline)
+            }
+            await setForcedOfflineForRuntimeSmoke(true)
+            await waitForCondition('forced offline enabled', () => runtimeSmokeStateRef.current.offline)
+          },
+          I1_BUDGETS.stateChangeFeedbackP95Ms,
+        ),
+      )
+
+      metrics.push(
+        await measure('Replay budget probe update', async () => {
+          onReplayFrameChange(I1_BUDGETS.panZoomFrameMs + 425)
+          await waitForCondition('degraded budget visibility', () =>
+            runtimeSmokeStateRef.current.degradedBudgetCount > 0,
+          )
+        }),
+      )
+
+      const firstLayerId = runtimeSmokeStateRef.current.toggleableLayerCatalog[0]?.layerId
+      if (firstLayerId) {
+        const initialLayerCount = runtimeSmokeStateRef.current.activeLayers.length
+        metrics.push(
+          await measure(
+            'Layer visibility update',
+            async () => {
+              toggleLayer(firstLayerId)
+              await waitForCondition('layer visibility change', () =>
+                runtimeSmokeStateRef.current.activeLayers.length !== initialLayerCount,
+              )
+            },
+            I1_BUDGETS.stateChangeFeedbackP95Ms,
+          ),
+        )
+      } else {
+        notes.push('No workspace layer was available for the layer-toggle smoke step.')
+      }
+
+      metrics.push(
+        await measure(
+          'Workflow mode change',
+          async () => {
+            onModeChange('scenario')
+            await waitForCondition('scenario mode activation', () => runtimeSmokeStateRef.current.mode === 'scenario')
+          },
+          I1_BUDGETS.stateChangeFeedbackP95Ms,
+        ),
+      )
+
+      metrics.push(
+        await measure('Scenario fork create (baseline)', async () => {
+          await createScenarioForkForRuntimeSmoke(
+            `Runtime Smoke ${runtimeSmokeConfig.phase.toUpperCase()} Baseline`,
+          )
+          await waitForCondition('first scenario fork', () =>
+            runtimeSmokeStateRef.current.scenario.scenarios.length >= 1,
+          )
+        }),
+      )
+
+      metrics.push(
+        await measure('Scenario fork create (comparison)', async () => {
+          await createScenarioForkForRuntimeSmoke(
+            `Runtime Smoke ${runtimeSmokeConfig.phase.toUpperCase()} Comparison`,
+          )
+          await waitForCondition('second scenario fork', () =>
+            runtimeSmokeStateRef.current.scenario.scenarios.length >= 2 &&
+            Boolean(runtimeSmokeStateRef.current.scenario.comparisonScenarioId),
+          )
+        }),
+      )
+
+      metrics.push(
+        await measure('Scenario constraint update', async () => {
+          await applyScenarioConstraintForRuntimeSmoke()
+          await waitForCondition('scenario constraint application', () => {
+            const currentState = runtimeSmokeStateRef.current
+            const selectedScenario = currentState.scenario.scenarios.find(
+              (entry) => entry.scenarioId === currentState.scenario.selectedScenarioId,
+            )
+            return Boolean(selectedScenario?.constraints.length)
+          })
+        }),
+      )
+
+      metrics.push(
+        await measure('Scenario compare', async () => {
+          await compareScenarioForksForRuntimeSmoke()
+          await waitForCondition('scenario comparison summary', () =>
+            runtimeSmokeStateRef.current.status.includes('constraint changes'),
+          )
+        }),
+      )
+
+      metrics.push(
+        await measure('Scenario export', async () => {
+          await exportScenarioBundleForRuntimeSmoke()
+          await waitForCondition('scenario export artifact', () =>
+            Boolean(runtimeSmokeStateRef.current.scenario.exportArtifact?.artifactId) &&
+            Boolean(document.querySelector('[data-testid="scenario-export-card"]')),
+          )
+        }),
+      )
+
+      await backend
+        .appendAudit({
+          role,
+          event_type: 'runtime_smoke.complete',
+          payload: {
+            phase: runtimeSmokeConfig.phase,
+            bundle_id: runtimeSmokeStateRef.current.selectedBundleId || null,
+            scenario_export_artifact_id:
+              runtimeSmokeStateRef.current.scenario.exportArtifact?.artifactId ?? null,
+          },
+        })
+        .catch(() => {
+          // Keep runtime smoke progressing even if the audit append fails.
+        })
+
+      const report = await buildReport(metrics, notes)
+      await writeRuntimeSmokeEvidence(report)
+    } catch (error) {
+      await backend
+        .appendAudit({
+          role,
+          event_type: 'runtime_smoke.failed',
+          payload: {
+            phase: runtimeSmokeConfig.phase,
+            detail: String(error),
+          },
+        })
+        .catch(() => {
+          // Preserve the original runtime smoke failure below.
+        })
+      const failureNotes = [...notes, `Runtime smoke failed: ${String(error)}`]
+      const failureMetrics = [...metrics]
+      const failureReport = await buildReport(failureMetrics, failureNotes)
+      try {
+        await writeRuntimeSmokeEvidence(failureReport)
+      } catch {
+        // Preserve the original runtime smoke failure below.
+      }
+      throw error
+    } finally {
+      await pause(250)
+      try {
+        await closeRuntimeSmokeWindow()
+      } catch {
+        // The launcher will terminate the dev process tree if the window close does not stop it.
+      }
+    }
+  })
+
+  useEffect(() => {
+    if (!runtimeSmokeConfig.enabled || !hydrated || runtimeSmokeStarted.current) {
+      return
+    }
+    runtimeSmokeStarted.current = true
+    void runRuntimeSmoke().catch((error) => {
+      console.error('Runtime smoke failed', error)
+    })
+  }, [hydrated])
 
   return (
     <div className="shell">

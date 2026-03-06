@@ -102,10 +102,50 @@ if (-not (Test-Path $latestArtifactDirAbs -PathType Container)) {
 $results = New-Object System.Collections.Generic.List[object]
 
 $isGovernanceWp = $WpId -like "WP-GOV-*"
+$isRuntimeGovernanceWp = $WpId -eq "WP-GOV-VERIFY-001"
 $iterationMatch = [regex]::Match($WpId, '^WP-I(\d+)-\d{3}$')
 $iterationNumber = if ($iterationMatch.Success) { [int]$iterationMatch.Groups[1].Value } else { $null }
+$runtimeSmokeArtifactAbs = $null
 
-if ($isGovernanceWp) {
+if ($isRuntimeGovernanceWp) {
+    $depLog = Join-Path $artifactRootAbs "DEP-001.log"
+    $dep = Invoke-CheckCommand -Category "Dependency" -Name "Governance Preflight" -Executable "powershell" -Arguments @("-ExecutionPolicy", "Bypass", "-File", ".gov/repo_scripts/governance_preflight.ps1") -WorkingDirectory $repoRoot -LogPath $depLog
+    $results.Add($dep) | Out-Null
+
+    $uiLog = Join-Path $artifactRootAbs "UI-001.log"
+    $runtimeSmokeArtifactAbs = Join-Path $artifactRootAbs "runtime_smoke"
+    $ui = Invoke-CheckCommand -Category "UI Contract" -Name "Tauri runtime smoke harness" -Executable "pnpm" -Arguments @("smoke:runtime", "--", "--artifact-root", $runtimeSmokeArtifactAbs) -WorkingDirectory $productAbs -LogPath $uiLog
+    $results.Add($ui) | Out-Null
+
+    $funcLog = Join-Path $artifactRootAbs "FUNC-001.log"
+    $func = Invoke-CheckCommand -Category "Functionality" -Name "Full functional suite" -Executable "pnpm" -Arguments @("test") -WorkingDirectory $productAbs -LogPath $funcLog
+    $results.Add($func) | Out-Null
+
+    $corLog = Join-Path $artifactRootAbs "COR-001.log"
+    $cor = Invoke-CheckCommand -Category "Code Correctness" -Name "Lint checks" -Executable "pnpm" -Arguments @("lint") -WorkingDirectory $productAbs -LogPath $corLog
+    $results.Add($cor) | Out-Null
+
+    $corTemplateLog = Join-Path $artifactRootAbs "COR-002.log"
+    $corTemplate = Invoke-CheckCommand -Category "Code Correctness" -Name "WP template compliance" -Executable "powershell" -Arguments @("-ExecutionPolicy", "Bypass", "-File", ".gov/repo_scripts/enforce_wp_template_compliance.ps1") -WorkingDirectory $repoRoot -LogPath $corTemplateLog
+    $results.Add($corTemplate) | Out-Null
+
+    $redLog = Join-Path $artifactRootAbs "RED-001.log"
+    $redJsonRel = "$artifactRootRel/red_team_result.json"
+    $red = Invoke-CheckCommand -Category "Red-Team" -Name "Guardrail static check" -Executable "powershell" -Arguments @("-ExecutionPolicy", "Bypass", "-File", ".gov/repo_scripts/red_team_guardrail_check.ps1", "-CodeRoot", $ProductWorktree, "-OutputJsonPath", $redJsonRel) -WorkingDirectory $repoRoot -LogPath $redLog
+    $results.Add($red) | Out-Null
+
+    $extLog = Join-Path $artifactRootAbs "EXT-001.log"
+    $ext = Invoke-CheckCommand -Category "Additional" -Name "Build checks" -Executable "pnpm" -Arguments @("build") -WorkingDirectory $productAbs -LogPath $extLog
+    $results.Add($ext) | Out-Null
+
+    $cargoManifest = Join-Path $productAbs "src-tauri/Cargo.toml"
+    if (Test-Path $cargoManifest -PathType Leaf) {
+        $extCargoLog = Join-Path $artifactRootAbs "EXT-002.log"
+        $extCargo = Invoke-CheckCommand -Category "Additional" -Name "Rust unit tests" -Executable "cargo" -Arguments @("test", "--manifest-path", "src-tauri/Cargo.toml") -WorkingDirectory $productAbs -LogPath $extCargoLog
+        $results.Add($extCargo) | Out-Null
+    }
+}
+elseif ($isGovernanceWp) {
     $depLog = Join-Path $artifactRootAbs "DEP-001.log"
     $dep = Invoke-CheckCommand -Category "Dependency" -Name "Governance Preflight" -Executable "powershell" -Arguments @("-ExecutionPolicy", "Bypass", "-File", ".gov/repo_scripts/governance_preflight.ps1") -WorkingDirectory $repoRoot -LogPath $depLog
     $results.Add($dep) | Out-Null
@@ -199,7 +239,12 @@ $summaryLines = @(
     "- Generated UTC: $($resultObject.GeneratedUtc)",
     "- Overall Passed: $($resultObject.OverallPassed)",
     "- Failed Checks: $($resultObject.FailedCount)",
-    "- Artifact Path: $($resultObject.ArtifactPath)",
+    "- Artifact Path: $($resultObject.ArtifactPath)"
+)
+if ($null -ne $runtimeSmokeArtifactAbs) {
+    $summaryLines += "- Runtime Smoke Artifact Path: $($runtimeSmokeArtifactAbs.Substring($repoRoot.Path.Length + 1).Replace('\', '/'))"
+}
+$summaryLines += @(
     "",
     "| Category | Name | Passed | Skipped | Log |",
     "|----------|------|--------|---------|-----|"

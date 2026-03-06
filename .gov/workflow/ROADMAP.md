@@ -40,9 +40,8 @@ This file is the execution order for capability slices. It is the scheduling bri
 - `WP-GOV-REALIGN-001` remains the retained proof packet for the initial implementation-reality correction; proof: `.product/build_target/tool_artifacts/wp_runs/WP-GOV-REALIGN-001/20260306_034725/`.
 - `WP-GOV-STATUS-001` remains the retained proof packet for superseded-packet closure and truthful successor propagation; proof: `.product/build_target/tool_artifacts/wp_runs/WP-GOV-STATUS-001/20260306_084102/`.
 - `WP-GOV-REALIGN-002` is now `E2E-VERIFIED`; proof: `.product/build_target/tool_artifacts/wp_runs/WP-GOV-REALIGN-002/20260306_214418/`. It realigned the queue, corrected release-facing requirement and gate overstatements, and handed off to the runtime-proof packet.
-- `WP-GOV-VERIFY-001` is the current blocking governance packet. Initial preparation validation passed with proof at `.product/build_target/tool_artifacts/wp_runs/WP-GOV-VERIFY-001/20260306_214607/`, but the packet remains open until the runtime smoke harness and evidence matrix are fully landed.
+- `WP-GOV-VERIFY-001` is now `E2E-VERIFIED`; proof: `.product/build_target/tool_artifacts/wp_runs/WP-GOV-VERIFY-001/20260307_000606/`. It landed the governed desktop runtime smoke harness, formalized artifact-backed status-promotion evidence, and handed runtime-remediation queue ownership to `WP-I0-003`.
 - Active remediation packet set:
-  - `WP-GOV-VERIFY-001`
   - `WP-I0-003`
   - `WP-I1-003`
   - `WP-I2-003`
@@ -61,6 +60,7 @@ This file is the execution order for capability slices. It is the scheduling bri
   - `WP-I8-002` and `WP-I9-002` depend on `WP-I7-002`.
   - `WP-I10-002` depends on `WP-I0-003`, `WP-I1-003`, and `WP-I7-002`.
 - Legacy proof artifacts from `WP-I0-002` through `WP-I10-001` are retained as prototype and simulator evidence only; they do not close the normative runtime gaps identified by the 2026-03-06 audit.
+- The next blocking remediation packet is `WP-I0-003`, which remains the prerequisite storage/control-plane foundation for downstream runtime slices.
 
 ---
 
@@ -104,7 +104,7 @@ In parallel with iteration delivery, maintain governance control packets:
 - `WP-GOV-LOOP-001`: E2E-VERIFIED reusable WP loop with linked spec extraction, check scripts, template compliance gates, and proof-first status claims.
 - `WP-GOV-REALIGN-002`: `E2E-VERIFIED` governance packet that realigned roadmap, taskboard, requirement, and primitive ledgers to the audited code-versus-spec reality; proof: `.product/build_target/tool_artifacts/wp_runs/WP-GOV-REALIGN-002/20260306_214418/`.
 - `WP-GOV-STATUS-001`: close superseded packets with retained proof and explicit successor references.
-- `WP-GOV-VERIFY-001`: current blocking governance packet for desktop runtime smoke coverage and expanded proof obligations beyond jsdom-only flows.
+- `WP-GOV-VERIFY-001`: `E2E-VERIFIED` governance packet establishing desktop runtime smoke coverage and expanded proof obligations beyond jsdom-only flows; proof: `.product/build_target/tool_artifacts/wp_runs/WP-GOV-VERIFY-001/20260307_000606/`.
 - `WP-GOV-INSTALLER-002`: E2E-VERIFIED follow-on packet for version-parity and release-surface alignment after governance closeout.
 
 Governance control packets are complete only when preflight and template-compliance checks pass with linked artifacts.

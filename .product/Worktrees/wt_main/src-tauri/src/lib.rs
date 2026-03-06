@@ -118,6 +118,84 @@ struct LoadRecorderStateResult {
   state: Option<RecorderState>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+enum RuntimeSmokePhase {
+  Cold,
+  Warm,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct RuntimeSmokeWindowSnapshot {
+  title: String,
+  width: u32,
+  height: u32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct RuntimeSmokeRegionCheck {
+  id: String,
+  present: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct RuntimeSmokeAssertion {
+  id: String,
+  passed: bool,
+  detail: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct RuntimeSmokeMetric {
+  label: String,
+  measured_ms: u64,
+  budget_ms: Option<u64>,
+  passed: Option<bool>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct RuntimeSmokeReport {
+  phase: RuntimeSmokePhase,
+  captured_at: String,
+  startup_ms: u64,
+  window: RuntimeSmokeWindowSnapshot,
+  mode: String,
+  selected_bundle_id: Option<String>,
+  bundle_count: usize,
+  active_layer_count: usize,
+  degraded_budget_count: usize,
+  offline: bool,
+  status: String,
+  integrity_state: String,
+  scenario_export_artifact_id: Option<String>,
+  audit_event_count: usize,
+  platform: String,
+  regions: Vec<RuntimeSmokeRegionCheck>,
+  assertions: Vec<RuntimeSmokeAssertion>,
+  metrics: Vec<RuntimeSmokeMetric>,
+  notes: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct WriteRuntimeSmokeEvidenceRequest {
+  phase: RuntimeSmokePhase,
+  report: RuntimeSmokeReport,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct RuntimeSmokeEvidenceResult {
+  phase_dir: String,
+  report_path: String,
+  runtime_proof_dir: String,
+}
+
 type CommandResult<T> = Result<T, String>;
 
 fn is_valid_role(role: &str) -> bool {
@@ -221,6 +299,71 @@ fn audit_log_path(app: &AppHandle) -> CommandResult<PathBuf> {
 
 fn recorder_state_path(app: &AppHandle) -> CommandResult<PathBuf> {
   Ok(state_dir(app)?.join("recorder_state.json"))
+}
+
+fn runtime_smoke_artifact_root() -> CommandResult<PathBuf> {
+  let configured = std::env::var("STRATATLAS_RUNTIME_SMOKE_ARTIFACT_DIR")
+    .map_err(|_| "STRATATLAS_RUNTIME_SMOKE_ARTIFACT_DIR is not configured".to_string())?;
+  let path = PathBuf::from(configured);
+  if !path.is_absolute() {
+    return Err("Runtime smoke artifact directory must be absolute".to_string());
+  }
+  fs::create_dir_all(&path).map_err(|error| {
+    format!(
+      "Failed creating runtime smoke artifact directory {}: {error}",
+      path.display()
+    )
+  })?;
+  Ok(path)
+}
+
+fn copy_file_if_exists(source: &Path, destination: &Path) -> CommandResult<()> {
+  if !source.exists() {
+    return Ok(());
+  }
+  if let Some(parent) = destination.parent() {
+    fs::create_dir_all(parent).map_err(|error| {
+      format!(
+        "Failed creating destination directory {}: {error}",
+        parent.display()
+      )
+    })?;
+  }
+  fs::copy(source, destination).map_err(|error| {
+    format!(
+      "Failed copying runtime smoke proof {} -> {}: {error}",
+      source.display(),
+      destination.display()
+    )
+  })?;
+  Ok(())
+}
+
+fn copy_directory_recursive(source: &Path, destination: &Path) -> CommandResult<()> {
+  if !source.exists() {
+    return Ok(());
+  }
+  fs::create_dir_all(destination).map_err(|error| {
+    format!(
+      "Failed creating runtime smoke directory {}: {error}",
+      destination.display()
+    )
+  })?;
+
+  for entry in fs::read_dir(source)
+    .map_err(|error| format!("Failed reading runtime smoke directory {}: {error}", source.display()))?
+  {
+    let entry = entry.map_err(|error| format!("Failed reading directory entry: {error}"))?;
+    let entry_path = entry.path();
+    let destination_path = destination.join(entry.file_name());
+    if entry_path.is_dir() {
+      copy_directory_recursive(&entry_path, &destination_path)?;
+    } else {
+      copy_file_if_exists(&entry_path, &destination_path)?;
+    }
+  }
+
+  Ok(())
 }
 
 fn read_audit_head(app: &AppHandle) -> CommandResult<AuditHead> {
@@ -896,6 +1039,75 @@ fn load_recorder_state(app: AppHandle) -> CommandResult<LoadRecorderStateResult>
   Ok(LoadRecorderStateResult { state: Some(state) })
 }
 
+#[tauri::command]
+fn write_runtime_smoke_evidence(
+  app: AppHandle,
+  request: WriteRuntimeSmokeEvidenceRequest,
+) -> CommandResult<RuntimeSmokeEvidenceResult> {
+  let phase_dir_name = match request.phase {
+    RuntimeSmokePhase::Cold => "cold",
+    RuntimeSmokePhase::Warm => "warm",
+  };
+  let report_phase_name = match request.report.phase {
+    RuntimeSmokePhase::Cold => "cold",
+    RuntimeSmokePhase::Warm => "warm",
+  };
+  if phase_dir_name != report_phase_name {
+    return Err("Runtime smoke phase does not match report phase".to_string());
+  }
+
+  let artifact_root = runtime_smoke_artifact_root()?;
+  let phase_dir = artifact_root.join(phase_dir_name);
+  let runtime_proof_dir = phase_dir.join("runtime_proof");
+  fs::create_dir_all(&runtime_proof_dir).map_err(|error| {
+    format!(
+      "Failed creating runtime smoke phase directory {}: {error}",
+      runtime_proof_dir.display()
+    )
+  })?;
+
+  let report_path = phase_dir.join("runtime_smoke_report.json");
+  let report_json = serde_json::to_string_pretty(&request.report)
+    .map_err(|error| format!("Failed serializing runtime smoke report: {error}"))?;
+  fs::write(&report_path, report_json).map_err(|error| {
+    format!(
+      "Failed writing runtime smoke report {}: {error}",
+      report_path.display()
+    )
+  })?;
+
+  let runtime_root = app_runtime_root(&app)?;
+  copy_file_if_exists(
+    &runtime_root.join("audit").join("audit_head.json"),
+    &runtime_proof_dir.join("audit_head.json"),
+  )?;
+  copy_file_if_exists(
+    &runtime_root.join("audit").join("audit_log.jsonl"),
+    &runtime_proof_dir.join("audit_log.jsonl"),
+  )?;
+  copy_file_if_exists(
+    &runtime_root.join("state").join("recorder_state.json"),
+    &runtime_proof_dir.join("recorder_state.json"),
+  )?;
+
+  if let Some(bundle_id) = request
+    .report
+    .selected_bundle_id
+    .as_ref()
+    .filter(|value| !value.trim().is_empty())
+  {
+    let bundle_source = bundles_dir(&app)?.join(bundle_id);
+    let bundle_destination = runtime_proof_dir.join("bundles").join(bundle_id);
+    copy_directory_recursive(&bundle_source, &bundle_destination)?;
+  }
+
+  Ok(RuntimeSmokeEvidenceResult {
+    phase_dir: phase_dir.display().to_string(),
+    report_path: report_path.display().to_string(),
+    runtime_proof_dir: runtime_proof_dir.display().to_string(),
+  })
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
   tauri::Builder::default()
@@ -917,7 +1129,8 @@ pub fn run() {
       list_audit_events,
       get_audit_head,
       save_recorder_state,
-      load_recorder_state
+      load_recorder_state,
+      write_runtime_smoke_evidence
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");

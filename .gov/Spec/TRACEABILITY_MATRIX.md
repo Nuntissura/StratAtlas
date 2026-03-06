@@ -311,7 +311,7 @@ For quick lookup: "What requirements does this component implement?"
 
 | WP-GOV-REALIGN-002 | All | REQ-0013, REQ-0019, REQ-0020, REQ-0021, REQ-0022 | PRIM-0029, PRIM-0030, PRIM-0031, PRIM-0041 | .gov/workflow/wp_test_suites/TS-WP-GOV-REALIGN-002.md | E2E-VERIFIED | .gov/workflow/wp_spec_extractions/SX-WP-GOV-REALIGN-002.md; .product/build_target/tool_artifacts/wp_runs/WP-GOV-REALIGN-002/20260306_214418/; user sign-off approved via 2026-03-06 instruction to close this packet and prepare the successor |
 
-| WP-GOV-VERIFY-001 | All | REQ-0013, REQ-0014, REQ-0015, REQ-0016, REQ-0018, REQ-0019, REQ-0020, REQ-0021, REQ-0022 | PRIM-0060, PRIM-0061 | .gov/workflow/wp_test_suites/TS-WP-GOV-VERIFY-001.md | IN-PROGRESS | .gov/workflow/wp_spec_extractions/SX-WP-GOV-VERIFY-001.md; .product/build_target/tool_artifacts/wp_runs/WP-GOV-VERIFY-001/20260306_214607/; current blocking governance packet |
+| WP-GOV-VERIFY-001 | All | REQ-0013, REQ-0014, REQ-0015, REQ-0016, REQ-0018, REQ-0019, REQ-0020, REQ-0021, REQ-0022 | PRIM-0060, PRIM-0061 | .gov/workflow/wp_test_suites/TS-WP-GOV-VERIFY-001.md | E2E-VERIFIED | .gov/workflow/wp_spec_extractions/SX-WP-GOV-VERIFY-001.md; .product/build_target/tool_artifacts/wp_runs/WP-GOV-VERIFY-001/20260307_000606/; governed desktop runtime smoke harness and evidence-matrix closeout; next blocking remediation packet: WP-I0-003 |
 
 | WP-I0-003 | I0 | REQ-0017, REQ-0018, REQ-0108, REQ-0109, REQ-0110, REQ-0111, REQ-0810 | PRIM-0042, PRIM-0043, PRIM-0044 | .gov/workflow/wp_test_suites/TS-WP-I0-003.md | SPEC-MAPPED | .gov/workflow/wp_spec_extractions/SX-WP-I0-003.md |
 

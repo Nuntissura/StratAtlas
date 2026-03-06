@@ -10,6 +10,8 @@ import type {
   OpenBundleResult,
   ProvenanceRef,
   RecorderState,
+  RuntimeSmokeEvidenceResult,
+  WriteRuntimeSmokeEvidenceRequest,
   SaveRecorderStateRequest,
   SensitivityMarking,
 } from '../contracts/i0'
@@ -452,5 +454,14 @@ export const backend = {
       return invoke<RecorderState>('save_recorder_state', { request })
     }
     return fallbackSaveRecorderState(request)
+  },
+
+  async writeRuntimeSmokeEvidence(
+    request: WriteRuntimeSmokeEvidenceRequest,
+  ): Promise<RuntimeSmokeEvidenceResult> {
+    if (isTauriRuntime()) {
+      return invoke<RuntimeSmokeEvidenceResult>('write_runtime_smoke_evidence', { request })
+    }
+    throw new Error('Runtime smoke evidence requires the Tauri runtime')
   },
 }

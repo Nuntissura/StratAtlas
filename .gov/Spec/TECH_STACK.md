@@ -2,7 +2,7 @@
 
 **Spec Version:** v1.2.4  
 **Last Updated:** 2026-03-06  
-**Status:** This document defines the governed target architecture. As of 2026-03-06, `.product/Worktrees/wt_main` is a buildable desktop prototype with many target dependencies installed, but major runtime integrations remain queued under `WP-GOV-REALIGN-002`, `WP-GOV-VERIFY-001`, and the follow-on remediation packets `WP-I0-003`, `WP-I1-003`, `WP-I2-003`, `WP-I5-002`, `WP-I6-002`, `WP-I7-002`, `WP-I8-002`, `WP-I9-002`, and `WP-I10-002`.
+**Status:** This document defines the governed target architecture. As of 2026-03-06, `.product/Worktrees/wt_main` is a buildable desktop prototype with many target dependencies installed. `WP-GOV-VERIFY-001` has now established governed desktop runtime smoke proof for the existing shell, while major normative runtime integrations remain queued under `WP-I0-003`, `WP-I1-003`, `WP-I2-003`, `WP-I5-002`, `WP-I6-002`, `WP-I7-002`, `WP-I8-002`, `WP-I9-002`, and `WP-I10-002`.
 
 ---
 
@@ -234,6 +234,7 @@ Shared viewport state → switching 2D ↔ 3D preserves camera position and laye
 - Keep OS-specific behavior behind Rust/TypeScript adapters instead of scattering platform conditionals.
 - Use path-safe abstractions (`PathBuf`/platform-aware path utilities) and avoid hard-coded separators/drive assumptions.
 - Track and enforce cold/warm startup and state-change feedback budgets in performance validation.
+- Governed desktop runtime smoke proof currently runs through `pnpm smoke:runtime`, which records cold/warm Tauri artifacts in the active WP proof directory and reserves explicit macOS/reference-hardware evidence slots for downstream packet promotion.
 
 ### Windows Installer Lifecycle Tooling [NEW in v1.2.2]
 
@@ -332,6 +333,7 @@ This establishes dependency download readiness and executable contract coverage 
 | PowerShell 7+ | Canonical automation runtime for governance scripts |
 | Git (non-interactive CLI) | Checkpoint commits and reproducible WP state transitions |
 | pnpm + Vitest + ESLint | Product dependency, correctness, and UI/functional verification hooks |
+| `pnpm smoke:runtime` + Node launcher | Governed cold/warm Tauri runtime smoke execution with copied audit/state/bundle proof artifacts |
 | Cargo test | Rust-side contract checks for Tauri/runtime adapters |
 | Markdown templates + validators | Enforced WP/suite/spec-extraction/check-script skeletons |
 
