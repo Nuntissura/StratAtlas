@@ -101,9 +101,9 @@ REQ-NNNN | LEVEL | Ã‚Â§Section | Description | Iteration Target | Status
 
 | ID | Level | Section | Description | Target | Status |
 |----|-------|---------|-------------|--------|--------|
-| REQ-0300 | MUST | Ã‚Â§13.1 | Baseline vs event delta analysis: at minimum density delta grids | I2 | IN-PROGRESS |
-| REQ-0301 | SHOULD | Ã‚Â§13.1 | Comparative dashboard with context domain time-series overlay | I2 | IN-PROGRESS |
-| REQ-0302 | MUST | Ã‚Â§11.3 | Golden flow: Baseline Ã¢â€ â€™ Delta Ã¢â€ â€™ Snapshot Bundle Ã¢â€ â€™ Briefing Export | I2 | IN-PROGRESS |
+| REQ-0300 | MUST | Ã‚Â§13.1 | Baseline vs event delta analysis: at minimum density delta grids | I2 | IMPLEMENTED |
+| REQ-0301 | SHOULD | Ã‚Â§13.1 | Comparative dashboard with context domain time-series overlay | I2 | IMPLEMENTED |
+| REQ-0302 | MUST | Ã‚Â§11.3 | Golden flow: Baseline Ã¢â€ â€™ Delta Ã¢â€ â€™ Snapshot Bundle Ã¢â€ â€™ Briefing Export | I2 | IMPLEMENTED |
 
 ---
 

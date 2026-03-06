@@ -20,6 +20,7 @@ describe('App', () => {
   })
 
   it('hydrates recorder state from the authoritative backend store', async () => {
+    const user = userEvent.setup()
     await backend.saveRecorderState({
       role: 'analyst',
       state: {
@@ -64,6 +65,20 @@ describe('App', () => {
           activeDomainIds: ['ctx-1'],
           correlationAoi: 'aoi-7',
         },
+        compare: {
+          baselineWindow: {
+            start: '2026-Q1 baseline',
+            end: '2026-Q1 baseline',
+            label: '2026-Q1 baseline',
+          },
+          eventWindow: {
+            start: '2026-Q2 event',
+            end: '2026-Q2 event',
+            label: '2026-Q2 event',
+          },
+          baselineSeries: [4, 5, 6],
+          eventSeries: [6, 7, 9],
+        },
         selectedBundleId: undefined,
         savedAt: '2026-03-06T00:00:00.000Z',
       },
@@ -75,6 +90,12 @@ describe('App', () => {
     expect(screen.getByText('Query v4')).toBeInTheDocument()
     expect(screen.getByText('Active context domains: 1 | Correlation AOI: aoi-7')).toBeInTheDocument()
     expect(screen.getByText('OFFLINE')).toBeInTheDocument()
+
+    await user.selectOptions(screen.getByLabelText('Mode'), 'compare')
+    expect(await screen.findByDisplayValue('2026-Q1 baseline')).toBeInTheDocument()
+    expect(screen.getByDisplayValue('2026-Q2 event')).toBeInTheDocument()
+    expect(screen.getByDisplayValue('4,5,6')).toBeInTheDocument()
+    expect(screen.getByDisplayValue('6,7,9')).toBeInTheDocument()
   })
 
   it('renders required I1 UI regions', async () => {
@@ -101,6 +122,29 @@ describe('App', () => {
     await user.type(eventInput, '2,4,6')
 
     expect(await screen.findByText('Delta: [1, 2, 3]')).toBeInTheDocument()
+  })
+
+  it('prepares a briefing artifact from compare mode with bundle and context overlays', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.click(screen.getByRole('button', { name: 'Register Domain' }))
+    await user.selectOptions(screen.getByLabelText('Mode'), 'compare')
+    await user.clear(screen.getByLabelText('Baseline Window'))
+    await user.type(screen.getByLabelText('Baseline Window'), '2026-Q1 baseline')
+    await user.clear(screen.getByLabelText('Event Window'))
+    await user.type(screen.getByLabelText('Event Window'), '2026-Q2 event')
+    await user.click(screen.getByRole('button', { name: 'Create Bundle' }))
+    expect(await screen.findByText(/Bundle .* created/)).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Prepare Briefing Artifact' }))
+
+    const card = await screen.findByTestId('briefing-artifact-card')
+    const scope = within(card)
+    expect(scope.getByText(/Bundle reference:/)).toBeInTheDocument()
+    expect(scope.getAllByText('Observed Evidence').length).toBeGreaterThan(0)
+    expect(scope.getAllByText('Curated Context').length).toBeGreaterThan(0)
+    expect(scope.getByText(/Port Throughput/)).toBeInTheDocument()
   })
 
   it('renders governed layer metadata, labels, and model uncertainty', async () => {
@@ -191,38 +235,58 @@ describe('App', () => {
     expect(screen.getByText('Degraded aggregation in effect.')).toBeInTheDocument()
   })
 
-  it('reopens a bundle and restores workspace, query, and context state', async () => {
-    const user = userEvent.setup()
-    render(<App />)
+  it(
+    'reopens a bundle and restores workspace, query, and context state',
+    async () => {
+      const user = userEvent.setup()
+      render(<App />)
 
-    await user.selectOptions(screen.getByLabelText('Mode'), 'replay')
-    await user.clear(screen.getByLabelText('Analyst Note'))
-    await user.type(screen.getByLabelText('Analyst Note'), 'Recorder note')
-    await user.click(screen.getByRole('button', { name: 'Force Offline Mode' }))
-    await user.click(screen.getByRole('button', { name: 'Register Domain' }))
-    await user.clear(screen.getByLabelText('Correlation AOI'))
-    await user.type(screen.getByLabelText('Correlation AOI'), 'aoi-9')
-    await user.click(screen.getByRole('button', { name: 'Save Correlation Selection' }))
-    await user.clear(screen.getByLabelText('Minimum Speed'))
-    await user.type(screen.getByLabelText('Minimum Speed'), '30')
-    await user.click(screen.getByRole('button', { name: 'Save Query Version' }))
-    await user.click(screen.getByRole('button', { name: 'Create Bundle' }))
-    expect(await screen.findByText(/Bundle .* created/)).toBeInTheDocument()
+      await user.selectOptions(screen.getByLabelText('Mode'), 'replay')
+      await user.selectOptions(screen.getByLabelText('Mode'), 'compare')
+      await user.clear(screen.getByLabelText('Baseline Window'))
+      await user.type(screen.getByLabelText('Baseline Window'), 'Recovered baseline')
+      await user.clear(screen.getByLabelText('Event Window'))
+      await user.type(screen.getByLabelText('Event Window'), 'Recovered event')
+      await user.clear(screen.getByLabelText('Baseline Series'))
+      await user.type(screen.getByLabelText('Baseline Series'), '5,7,9')
+      await user.clear(screen.getByLabelText('Event Series'))
+      await user.type(screen.getByLabelText('Event Series'), '8,12,15')
+      await user.selectOptions(screen.getByLabelText('Mode'), 'replay')
+      await user.clear(screen.getByLabelText('Analyst Note'))
+      await user.type(screen.getByLabelText('Analyst Note'), 'Recorder note')
+      await user.click(screen.getByRole('button', { name: 'Force Offline Mode' }))
+      await user.click(screen.getByRole('button', { name: 'Register Domain' }))
+      await user.clear(screen.getByLabelText('Correlation AOI'))
+      await user.type(screen.getByLabelText('Correlation AOI'), 'aoi-9')
+      await user.click(screen.getByRole('button', { name: 'Save Correlation Selection' }))
+      await user.clear(screen.getByLabelText('Minimum Speed'))
+      await user.type(screen.getByLabelText('Minimum Speed'), '30')
+      await user.click(screen.getByRole('button', { name: 'Save Query Version' }))
+      await user.click(screen.getByRole('button', { name: 'Create Bundle' }))
+      expect(await screen.findByText(/Bundle .* created/)).toBeInTheDocument()
 
-    await user.clear(screen.getByLabelText('Analyst Note'))
-    await user.type(screen.getByLabelText('Analyst Note'), 'Mutated note')
-    await user.selectOptions(screen.getByLabelText('Mode'), 'compare')
-    await user.click(screen.getByRole('button', { name: 'Disable Forced Offline' }))
-    await user.clear(screen.getByLabelText('Correlation AOI'))
-    await user.type(screen.getByLabelText('Correlation AOI'), 'aoi-2')
-    await user.click(screen.getByRole('checkbox', { name: /Port Throughput/ }))
+      await user.clear(screen.getByLabelText('Analyst Note'))
+      await user.type(screen.getByLabelText('Analyst Note'), 'Mutated note')
+      await user.selectOptions(screen.getByLabelText('Mode'), 'compare')
+      await user.click(screen.getByRole('button', { name: 'Disable Forced Offline' }))
+      await user.clear(screen.getByLabelText('Correlation AOI'))
+      await user.type(screen.getByLabelText('Correlation AOI'), 'aoi-2')
+      await user.click(screen.getByRole('checkbox', { name: /Port Throughput/ }))
 
-    await user.click(screen.getByRole('button', { name: 'Reopen Bundle' }))
+      await user.click(screen.getByRole('button', { name: 'Reopen Bundle' }))
 
-    expect(await screen.findByDisplayValue('Recorder note')).toBeInTheDocument()
-    expect(screen.getByText('replay workflow surface')).toBeInTheDocument()
-    expect(screen.getByText('Query v2')).toBeInTheDocument()
-    expect(screen.getByText('Active context domains: 1 | Correlation AOI: aoi-9')).toBeInTheDocument()
-    expect(screen.getByText('OFFLINE')).toBeInTheDocument()
-  })
+      expect(await screen.findByDisplayValue('Recorder note')).toBeInTheDocument()
+      expect(screen.getByText('replay workflow surface')).toBeInTheDocument()
+      expect(screen.getByText('Query v2')).toBeInTheDocument()
+      expect(screen.getByText('Active context domains: 1 | Correlation AOI: aoi-9')).toBeInTheDocument()
+      expect(screen.getByText('OFFLINE')).toBeInTheDocument()
+
+      await user.selectOptions(screen.getByLabelText('Mode'), 'compare')
+      expect(await screen.findByDisplayValue('Recovered baseline')).toBeInTheDocument()
+      expect(screen.getByDisplayValue('Recovered event')).toBeInTheDocument()
+      expect(screen.getByDisplayValue('5,7,9')).toBeInTheDocument()
+      expect(screen.getByDisplayValue('8,12,15')).toBeInTheDocument()
+    },
+    15000,
+  )
 })

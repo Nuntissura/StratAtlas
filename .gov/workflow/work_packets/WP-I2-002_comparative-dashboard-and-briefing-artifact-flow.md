@@ -1,7 +1,7 @@
 # WP-I2-002 - Comparative Dashboard and Briefing Artifact Flow
 
 Date Opened: 2026-03-06
-Status: IN-PROGRESS
+Status: IMPLEMENTED
 Iteration: I2
 Workflow Version: 3.0
 Linked Test Suite: .gov/workflow/wp_test_suites/TS-WP-I2-002.md
@@ -79,31 +79,31 @@ This packet carries the normative I2 exit signal after the activation-shell proo
 ## Spec-Test Coverage Plan
 
 ### Dependency and Environment Tests
-- [ ] Dependency graph/lock integrity tests
-- [ ] Runtime compatibility checks
+- [x] Dependency graph/lock integrity tests
+- [x] Runtime compatibility checks
 
 ### UI Contract Tests
-- [ ] Required regions/modes/states
-- [ ] Error/degraded-state UX
+- [x] Required regions/modes/states
+- [x] Error/degraded-state UX
 
 ### Functional Flow Tests
-- [ ] Golden flow and edge cases
-- [ ] Persistence/replay/export flows
+- [x] Golden flow and edge cases
+- [x] Persistence/replay/export flows
 
 ### Code Correctness Tests
-- [ ] Unit tests
-- [ ] Integration tests
-- [ ] Static analysis (lint/type/schema)
+- [x] Unit tests
+- [x] Integration tests
+- [x] Static analysis (lint/type/schema)
 
 ### Red-Team and Abuse Tests
-- [ ] Non-goal enforcement (spec section 3.2)
-- [ ] Policy bypass scenarios
-- [ ] Adversarial/invalid input cases
+- [x] Non-goal enforcement (spec section 3.2)
+- [x] Policy bypass scenarios
+- [x] Adversarial/invalid input cases
 
 ### Additional Tests
-- [ ] Performance budgets
-- [ ] Offline behavior
-- [ ] Reliability/recovery
+- [x] Performance budgets
+- [x] Offline behavior
+- [x] Reliability/recovery
 
 ## Checkpoint Commit Plan
 
@@ -113,8 +113,8 @@ This packet carries the normative I2 exit signal after the activation-shell proo
 
 ## Proof of Implementation
 
-- Command Runs: powershell -ExecutionPolicy Bypass -File .gov/workflow/wp_checks/check-WP-I2-002.ps1
-- Proof Artifact: .product/build_target/tool_artifacts/wp_runs/WP-I2-002/
+- Command Runs: `powershell -ExecutionPolicy Bypass -File .gov/workflow/wp_checks/check-WP-I2-002.ps1`
+- Proof Artifact: `.product/build_target/tool_artifacts/wp_runs/WP-I2-002/20260306_050212/`
 - Claim Standard: do not claim completion without linked command output and artifact paths.
 
 ## Exit Criteria
@@ -127,13 +127,15 @@ This packet carries the normative I2 exit signal after the activation-shell proo
 
 ## Evidence
 
-- Test Suite Execution:
-- Logs:
-- Screenshots/Exports:
-- Build Artifacts:
-- Proof Artifact: .product/build_target/tool_artifacts/wp_runs/WP-I2-002/
-- User Sign-off:
+- Test Suite Execution: 2026-03-06 - passed via `.gov/workflow/wp_checks/check-WP-I2-002.ps1`
+- Logs: `.product/build_target/tool_artifacts/wp_runs/WP-I2-002/20260306_050212/DEP-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I2-002/20260306_050212/UI-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I2-002/20260306_050212/FUNC-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I2-002/20260306_050212/COR-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I2-002/20260306_050212/RED-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I2-002/20260306_050212/EXT-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I2-002/20260306_050212/EXT-002.log`
+- Screenshots/Exports: not applicable for this packet
+- Build Artifacts: `.product/build_target/tool_artifacts/wp_runs/WP-I2-002/20260306_050212/result.json`; `.product/build_target/tool_artifacts/wp_runs/WP-I2-002/20260306_050212/summary.md`
+- Proof Artifact: `.product/build_target/tool_artifacts/wp_runs/WP-I2-002/20260306_050212/`
+- User Sign-off: PENDING
 
 ## Progress Log
 
 - 2026-03-06: WP scaffold created via .gov/repo_scripts/new_work_packet.ps1.
+- 2026-03-06: Implemented deterministic compare window state, compare-state bundle persistence, context overlay corroboration cards, and bundle-linked briefing artifact preparation.
+- 2026-03-06: Verification passed via `.gov/workflow/wp_checks/check-WP-I2-002.ps1`; proof captured under `.product/build_target/tool_artifacts/wp_runs/WP-I2-002/20260306_050212/`.

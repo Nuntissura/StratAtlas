@@ -47,6 +47,20 @@ const request: CreateBundleRequest = {
       activeDomainIds: ['ctx-1'],
       correlationAoi: 'aoi-1',
     },
+    compare: {
+      baselineWindow: {
+        start: '2026-01-01',
+        end: '2026-01-31',
+        label: 'Baseline 2026-01-01 -> 2026-01-31',
+      },
+      eventWindow: {
+        start: '2026-02-01',
+        end: '2026-02-28',
+        label: 'Event 2026-02-01 -> 2026-02-28',
+      },
+      baselineSeries: [10, 12, 16],
+      eventSeries: [8, 18, 20],
+    },
     selectedBundleId: undefined,
     savedAt: '2026-03-06T00:00:00.000Z',
   },
@@ -74,12 +88,14 @@ describe('backend fallback', () => {
       'workspace-state',
       'query-state',
       'context-snapshot',
+      'compare-state',
       'recorder-state',
     ])
     expect(reopen.state.workspace.note).toBe('seed state')
     expect(reopen.state.workspace.replayCursor).toBe(42)
     expect(reopen.state.query.definition.version).toBe(3)
     expect(reopen.state.context.activeDomainIds).toEqual(['ctx-1'])
+    expect(reopen.state.compare?.baselineSeries).toEqual([10, 12, 16])
   })
 
   it('loads and saves authoritative recorder state outside bundle reopen', async () => {
@@ -92,6 +108,7 @@ describe('backend fallback', () => {
     expect(restored.state?.workspace.workflowMode).toBe('replay')
     expect(restored.state?.query.matchedRowIds).toEqual([2, 4])
     expect(restored.state?.context.correlationAoi).toBe('aoi-1')
+    expect(restored.state?.compare?.eventWindow.end).toBe('2026-02-28')
   })
 
   it('maintains an append-only hash chain in audit events', async () => {

@@ -23,7 +23,16 @@ import {
   shouldDegradeRendering,
   type StateChangeFeedback,
 } from './features/i1/performance'
-import { buildBriefingBundle, computeDensityDelta } from './features/i2/baselineDelta'
+import {
+  buildBriefingArtifactPreview,
+  buildBriefingBundle,
+  buildCompareDashboard,
+  buildComparisonWindow,
+  buildContextOverlaySummaries,
+  computeDensityDelta,
+  type BriefingArtifactPreview,
+  type CompareStateSnapshot,
+} from './features/i2/baselineDelta'
 import { runQuery, bumpQueryVersion, type VersionedQuery } from './features/i5/queryBuilder'
 import type { QueryCondition, QueryOperator } from './features/i5/queryBuilder'
 import { submitAiAnalysis } from './features/i6/aiGateway'
@@ -48,6 +57,10 @@ const DEFAULT_QUERY: VersionedQuery = {
   version: 1,
   conditions: [{ field: 'speed', operator: 'greater_than', value: 20 }],
 }
+const DEFAULT_BASELINE_WINDOW_LABEL = '2026-Q1 baseline'
+const DEFAULT_EVENT_WINDOW_LABEL = '2026-Q2 event'
+const DEFAULT_BASELINE_INPUT = '10,12,16,21,30'
+const DEFAULT_EVENT_INPUT = '8,18,20,26,31'
 const DEFAULT_CORRELATION_AOI = 'aoi-1'
 const QUERY_OPERATORS: QueryOperator[] = ['equals', 'greater_than', 'less_than', 'contains']
 
@@ -106,6 +119,13 @@ const normalizeStringArray = (value: unknown): string[] =>
 const normalizeNumber = (value: unknown, fallback: number): number =>
   typeof value === 'number' && Number.isFinite(value) ? value : fallback
 
+const normalizeNumberArray = (value: unknown): number[] =>
+  Array.isArray(value)
+    ? value.filter((entry): entry is number => typeof entry === 'number' && Number.isFinite(entry))
+    : []
+
+const serializeNumberArray = (value: number[]): string => value.join(',')
+
 const normalizeQueryConditions = (value: unknown): QueryCondition[] => {
   if (!Array.isArray(value)) {
     return DEFAULT_QUERY.conditions
@@ -148,6 +168,41 @@ const normalizeDomains = (value: unknown): ContextDomain[] => {
         isRecord(entry) && validateDomainRegistration(entry as unknown as ContextDomain),
     )
     .map((entry) => entry as unknown as ContextDomain)
+}
+
+const normalizeComparisonWindow = (
+  value: unknown,
+  kind: 'Baseline' | 'Event',
+  fallbackLabel: string,
+) => {
+  if (!isRecord(value)) {
+    return buildComparisonWindow(kind, fallbackLabel, fallbackLabel)
+  }
+  const start = typeof value.start === 'string' ? value.start : fallbackLabel
+  const end = typeof value.end === 'string' ? value.end : start
+  const label =
+    typeof value.label === 'string'
+      ? value.label
+      : buildComparisonWindow(kind, start, end).label
+
+  return { start, end, label }
+}
+
+const normalizeCompareSnapshot = (value: unknown): CompareStateSnapshot | undefined => {
+  if (!isRecord(value)) {
+    return undefined
+  }
+
+  return {
+    baselineWindow: normalizeComparisonWindow(
+      value.baselineWindow,
+      'Baseline',
+      DEFAULT_BASELINE_WINDOW_LABEL,
+    ),
+    eventWindow: normalizeComparisonWindow(value.eventWindow, 'Event', DEFAULT_EVENT_WINDOW_LABEL),
+    baselineSeries: normalizeNumberArray(value.baselineSeries),
+    eventSeries: normalizeNumberArray(value.eventSeries),
+  }
 }
 
 const buildWorkspaceStateSnapshot = ({
@@ -222,8 +277,11 @@ function App() {
   const [integrityState, setIntegrityState] = useState<string>('No bundle validation yet')
   const [replayCursor, setReplayCursor] = useState<number>(0)
   const [replayFrameMs, setReplayFrameMs] = useState<number>(32)
-  const [baselineInput, setBaselineInput] = useState<string>('10,12,16,21,30')
-  const [eventInput, setEventInput] = useState<string>('8,18,20,26,31')
+  const [baselineWindowLabel, setBaselineWindowLabel] =
+    useState<string>(DEFAULT_BASELINE_WINDOW_LABEL)
+  const [eventWindowLabel, setEventWindowLabel] = useState<string>(DEFAULT_EVENT_WINDOW_LABEL)
+  const [baselineInput, setBaselineInput] = useState<string>(DEFAULT_BASELINE_INPUT)
+  const [eventInput, setEventInput] = useState<string>(DEFAULT_EVENT_INPUT)
   const [versionedQuery, setVersionedQuery] = useState<VersionedQuery>(DEFAULT_QUERY)
   const [aiPrompt, setAiPrompt] = useState<string>('Summarize this selected bundle.')
   const [aiSummary, setAiSummary] = useState<string>('')
@@ -241,6 +299,7 @@ function App() {
   const [osintAoi, setOsintAoi] = useState<string>('aoi-1')
   const [osintEvents, setOsintEvents] = useState<OsintEvent[]>([])
   const [gameAssumption, setGameAssumption] = useState<string>('Supply remains constrained')
+  const [briefingArtifact, setBriefingArtifact] = useState<BriefingArtifactPreview | null>(null)
   const [hydrated, setHydrated] = useState<boolean>(false)
   const [stateFeedback, setStateFeedback] = useState<StateChangeFeedback>(() =>
     describeStateChangeFeedback('Shell ready', 0),
@@ -297,13 +356,38 @@ function App() {
 
   const baselineSeries = useMemo(() => parseNumericSeries(baselineInput), [baselineInput])
   const eventSeries = useMemo(() => parseNumericSeries(eventInput), [eventInput])
-  const densityDelta = useMemo(
-    () => computeDensityDelta(baselineSeries, eventSeries),
-    [baselineSeries, eventSeries],
+  const baselineWindow = useMemo(
+    () => buildComparisonWindow('Baseline', baselineWindowLabel, baselineWindowLabel),
+    [baselineWindowLabel],
+  )
+  const eventWindow = useMemo(
+    () => buildComparisonWindow('Event', eventWindowLabel, eventWindowLabel),
+    [eventWindowLabel],
+  )
+  const densityDelta = useMemo(() => computeDensityDelta(baselineSeries, eventSeries), [
+    baselineSeries,
+    eventSeries,
+  ])
+  const compareDashboard = useMemo(
+    () => buildCompareDashboard(baselineWindow, eventWindow, baselineSeries, eventSeries),
+    [baselineSeries, baselineWindow, eventSeries, eventWindow],
+  )
+  const compareSnapshot = useMemo<CompareStateSnapshot>(
+    () => ({
+      baselineWindow,
+      eventWindow,
+      baselineSeries,
+      eventSeries,
+    }),
+    [baselineSeries, baselineWindow, eventSeries, eventWindow],
   )
   const briefingBundle = useMemo(
-    () => buildBriefingBundle('baseline_window', 'event_window', densityDelta.delta),
-    [densityDelta.delta],
+    () => buildBriefingBundle(baselineWindowLabel, eventWindowLabel, densityDelta.delta),
+    [baselineWindowLabel, densityDelta.delta, eventWindowLabel],
+  )
+  const contextOverlaySummaries = useMemo(
+    () => buildContextOverlaySummaries(domains, activeDomainIds, compareDashboard.totalDelta),
+    [activeDomainIds, compareDashboard.totalDelta, domains],
   )
 
   const deviationEvent = useMemo(
@@ -422,9 +506,10 @@ function App() {
       workspace: workspaceSnapshot,
       query: querySnapshot,
       context: contextSnapshot,
+      compare: compareSnapshot,
       selectedBundleId: selectedBundleId || undefined,
     }),
-    [contextSnapshot, querySnapshot, selectedBundleId, workspaceSnapshot],
+    [compareSnapshot, contextSnapshot, querySnapshot, selectedBundleId, workspaceSnapshot],
   )
 
   const applyRecorderState = (state: RecorderState, openedBundleId?: string): void => {
@@ -433,6 +518,7 @@ function App() {
       : ({} as Record<string, unknown>)
     const query = isRecord(state.query) ? state.query : ({} as Record<string, unknown>)
     const context = isRecord(state.context) ? state.context : ({} as Record<string, unknown>)
+    const compare = normalizeCompareSnapshot(state.compare)
     const restoredDomains = normalizeDomains(context.domains)
     const restoredActiveDomainIds = normalizeStringArray(context.activeDomainIds).filter((domainId) =>
       restoredDomains.some((domain) => domain.domain_id === domainId),
@@ -446,6 +532,12 @@ function App() {
       setForcedOffline(Boolean(workspace.forcedOffline))
       setActiveLayers(normalizeStringArray(workspace.activeLayers))
       setReplayCursor(normalizeNumber(workspace.replayCursor, 0))
+      setBaselineWindowLabel(compare?.baselineWindow.label ?? DEFAULT_BASELINE_WINDOW_LABEL)
+      setEventWindowLabel(compare?.eventWindow.label ?? DEFAULT_EVENT_WINDOW_LABEL)
+      setBaselineInput(
+        compare ? serializeNumberArray(compare.baselineSeries) : DEFAULT_BASELINE_INPUT,
+      )
+      setEventInput(compare ? serializeNumberArray(compare.eventSeries) : DEFAULT_EVENT_INPUT)
       setVersionedQuery(normalizeVersionedQuery(query.definition))
       setDomains(restoredDomains)
       setActiveDomainIds(restoredActiveDomainIds)
@@ -454,6 +546,7 @@ function App() {
           ? context.correlationAoi
           : DEFAULT_CORRELATION_AOI,
       )
+      setBriefingArtifact(null)
       setSelectedBundleId(
         openedBundleId ??
           (typeof state.selectedBundleId === 'string' ? state.selectedBundleId : ''),
@@ -501,6 +594,7 @@ function App() {
             workspace: persisted.state.workspace,
             query: persisted.state.query,
             context: persisted.state.context,
+            compare: persisted.state.compare,
             selectedBundleId: persisted.state.selectedBundleId,
           })
           setStatus('Recorder state restored')
@@ -551,6 +645,7 @@ function App() {
             workspace: savedState.workspace,
             query: savedState.query,
             context: savedState.context,
+            compare: savedState.compare,
             selectedBundleId: savedState.selectedBundleId,
           })
         }
@@ -566,6 +661,18 @@ function App() {
       cancelled = true
     }
   }, [hydrated, recorderStateCore, role])
+
+  useEffect(() => {
+    setBriefingArtifact(null)
+  }, [
+    activeDomainIds,
+    baselineInput,
+    baselineWindowLabel,
+    domains,
+    eventInput,
+    eventWindowLabel,
+    selectedBundleId,
+  ])
 
   useEffect(() => {
     const onConnectivityChange = async () => {
@@ -640,6 +747,7 @@ function App() {
         workspace: result.state.workspace,
         query: result.state.query,
         context: result.state.context,
+        compare: result.state.compare,
         selectedBundleId: result.manifest.bundle_id,
       })
       await refresh()
@@ -730,6 +838,44 @@ function App() {
       conditions: [{ field: 'speed', operator: 'greater_than', value: threshold }],
     }))
     completeMeasuredAction('Query threshold update', startedAt)
+  }
+
+  const onPrepareBriefingArtifact = () => {
+    if (!selectedBundleId) {
+      setStatus('Select or create a bundle before preparing a briefing artifact.')
+      return
+    }
+
+    const startedAt = beginMeasuredAction('Briefing artifact preparation')
+    const artifact = buildBriefingArtifactPreview({
+      bundleId: selectedBundleId,
+      marking,
+      dashboard: compareDashboard,
+      overlaySummaries: contextOverlaySummaries,
+      offline,
+    })
+    setBriefingArtifact(artifact)
+    setStatus(`Briefing artifact prepared for bundle ${selectedBundleId}`)
+    void backend
+      .appendAudit({
+        role,
+        event_type: 'briefing.artifact_prepared',
+        payload: {
+          bundle_id: selectedBundleId,
+          baseline_window: baselineWindowLabel,
+          event_window: eventWindowLabel,
+          delta_cells: compareDashboard.cells.length,
+          context_overlays: contextOverlaySummaries.length,
+        },
+      })
+      .then(() => refresh())
+      .then(() => {
+        completeMeasuredAction('Briefing artifact preparation', startedAt)
+      })
+      .catch(() => {
+        setStatus('Briefing artifact prepared locally; audit append unavailable.')
+        completeMeasuredAction('Briefing artifact preparation', startedAt)
+      })
   }
 
   const onSubmitAiSummary = () => {
@@ -1203,26 +1349,183 @@ function App() {
           )}
 
           {mode === 'compare' && (
-            <div className="sub-panel">
+            <div className="sub-panel" data-testid="compare-dashboard">
               <h3>Baseline / Delta / Briefing (I2)</h3>
-              <label className="field">
-                Baseline Series
-                <input
-                  type="text"
-                  value={baselineInput}
-                  onChange={(event) => setBaselineInput(event.target.value)}
-                />
-              </label>
-              <label className="field">
-                Event Series
-                <input
-                  type="text"
-                  value={eventInput}
-                  onChange={(event) => setEventInput(event.target.value)}
-                />
-              </label>
-              <p className="status-line">Delta: [{densityDelta.delta.join(', ')}]</p>
-              <p className="status-line">{briefingBundle.summary}</p>
+              <div className="compare-stack">
+                <div className="compare-form-grid">
+                  <label className="field">
+                    Baseline Window
+                    <input
+                      type="text"
+                      value={baselineWindowLabel}
+                      onChange={(event) => setBaselineWindowLabel(event.target.value)}
+                    />
+                  </label>
+                  <label className="field">
+                    Event Window
+                    <input
+                      type="text"
+                      value={eventWindowLabel}
+                      onChange={(event) => setEventWindowLabel(event.target.value)}
+                    />
+                  </label>
+                  <label className="field">
+                    Baseline Series
+                    <input
+                      type="text"
+                      value={baselineInput}
+                      onChange={(event) => setBaselineInput(event.target.value)}
+                    />
+                  </label>
+                  <label className="field">
+                    Event Series
+                    <input
+                      type="text"
+                      value={eventInput}
+                      onChange={(event) => setEventInput(event.target.value)}
+                    />
+                  </label>
+                </div>
+
+                <div className="delta-summary-grid">
+                  <article className="telemetry-card">
+                    <span className="metric-label">Baseline window</span>
+                    <strong>{baselineWindowLabel}</strong>
+                    <p>{baselineSeries.length} cells in the reference window.</p>
+                  </article>
+                  <article className="telemetry-card">
+                    <span className="metric-label">Event window</span>
+                    <strong>{eventWindowLabel}</strong>
+                    <p>{eventSeries.length} cells in the event window.</p>
+                  </article>
+                  <article className="telemetry-card">
+                    <span className="metric-label">Total delta</span>
+                    <strong>{compareDashboard.totalDelta}</strong>
+                    <p>
+                      {
+                        compareDashboard.cells.filter((cell) => cell.severity === 'increase').length
+                      }{' '}
+                      increases,
+                      {' '}
+                      {
+                        compareDashboard.cells.filter((cell) => cell.severity === 'decrease').length
+                      }{' '}
+                      decreases.
+                    </p>
+                  </article>
+                  <article className="telemetry-card">
+                    <span className="metric-label">Largest swing</span>
+                    <strong>{compareDashboard.maxAbsoluteDelta}</strong>
+                    <p>{contextOverlaySummaries.length} active context overlays.</p>
+                  </article>
+                </div>
+
+                <div className="delta-cell-grid">
+                  {compareDashboard.cells.map((cell) => (
+                    <article key={cell.cell_id} className={`delta-cell ${cell.severity}`}>
+                      <div className="card-header compact">
+                        <strong>{cell.cell_id}</strong>
+                        <span className={`policy-pill ${cell.severity === 'decrease' ? 'blocked' : 'allowed'}`}>
+                          {cell.severity}
+                        </span>
+                      </div>
+                      <p>
+                        Baseline {cell.baseline} | Event {cell.event}
+                      </p>
+                      <small>
+                        Delta {cell.delta} | Severity {cell.severity}
+                      </small>
+                    </article>
+                  ))}
+                </div>
+
+                <div className="overlay-grid">
+                  {contextOverlaySummaries.length === 0 && (
+                    <article className="surface-card compact">
+                      <strong>No active context overlays</strong>
+                      <p>Register and activate a context domain to corroborate compare results.</p>
+                    </article>
+                  )}
+                  {contextOverlaySummaries.map((overlay) => (
+                    <article key={overlay.domain_id} className="surface-card compact">
+                      <div className="card-header compact">
+                        <span className={`artifact-chip ${artifactTone('Curated Context')}`}>
+                          Curated Context
+                        </span>
+                        <span>{overlay.relationship}</span>
+                      </div>
+                      <strong>{overlay.domain_name}</strong>
+                      <p>
+                        Source: {overlay.source_name} | Cadence: {overlay.update_cadence}
+                      </p>
+                      <small>
+                        Confidence: {overlay.confidence_baseline} | Presentation:{' '}
+                        {overlay.presentation_type}
+                      </small>
+                    </article>
+                  ))}
+                </div>
+
+                <div className="controls">
+                  <button onClick={onPrepareBriefingArtifact}>Prepare Briefing Artifact</button>
+                </div>
+                <p className="status-line">
+                  {selectedBundleId
+                    ? `Bundle reference: ${selectedBundleId}`
+                    : 'Select or create a bundle before briefing export.'}
+                </p>
+                <p className="status-line">Delta: [{densityDelta.delta.join(', ')}]</p>
+                <p className="status-line">{briefingBundle.summary}</p>
+
+                {briefingArtifact && (
+                  <article className="artifact-callout evidence" data-testid="briefing-artifact-card">
+                    <div className="card-header">
+                      <div>
+                        <span className={`artifact-chip ${artifactTone(briefingArtifact.label)}`}>
+                          {briefingArtifact.label}
+                        </span>
+                        <h3>{briefingArtifact.summary}</h3>
+                      </div>
+                      <span
+                        className={`policy-pill ${
+                          briefingArtifact.exportStatus === 'ready' ? 'allowed' : 'blocked'
+                        }`}
+                      >
+                        {briefingArtifact.exportStatus === 'ready' ? 'Golden flow ready' : 'Bundle required'}
+                      </span>
+                    </div>
+                    <p>
+                      Bundle reference: {briefingArtifact.bundleId ?? 'none'} | Windows:{' '}
+                      {briefingArtifact.baselineWindow.label}
+                      {' -> '}
+                      {briefingArtifact.eventWindow.label}
+                    </p>
+                    <ul className="finding-list">
+                      <li>Delta cells: {briefingArtifact.deltaCellCount}</li>
+                      <li>Total delta: {briefingArtifact.totalDelta}</li>
+                      <li>Overlay domains: {briefingArtifact.overlayDomainIds.join(', ') || 'none'}</li>
+                    </ul>
+                    <div className="briefing-element-list">
+                      <article className="surface-card compact">
+                        <span className={`artifact-chip ${artifactTone('Observed Evidence')}`}>
+                          Observed Evidence
+                        </span>
+                        <strong>Density Delta Grid</strong>
+                        <p>{compareDashboard.summary}</p>
+                      </article>
+                      {contextOverlaySummaries.map((overlay) => (
+                        <article key={`briefing-${overlay.domain_id}`} className="surface-card compact">
+                          <span className={`artifact-chip ${artifactTone('Curated Context')}`}>
+                            Curated Context
+                          </span>
+                          <strong>{overlay.domain_name}</strong>
+                          <p>{overlay.relationship}</p>
+                        </article>
+                      ))}
+                    </div>
+                  </article>
+                )}
+              </div>
             </div>
           )}
 

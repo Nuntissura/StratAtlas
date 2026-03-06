@@ -40,7 +40,8 @@ This file is the execution order for capability slices. It is the scheduling bri
 - `WP-I0-002` implemented authoritative recorder/context snapshot hardening on 2026-03-06; proof: `.product/build_target/tool_artifacts/wp_runs/WP-I0-002/20260306_041144/`.
 - `WP-I1-002` implemented governed workspace surfaces, artifact labeling, and budget/degradation telemetry on 2026-03-06; proof: `.product/build_target/tool_artifacts/wp_runs/WP-I1-002/20260306_044051/`.
 - `WP-I2-001` remains the activation-shell baseline with proof at `.product/build_target/tool_artifacts/wp_runs/WP-I2-001/20260306_003742/`.
-- `WP-I2-002` is now the current blocking product packet for normative I2 delivery.
+- `WP-I2-002` implemented comparative dashboard, compare-state persistence, and briefing artifact proof on 2026-03-06; proof: `.product/build_target/tool_artifacts/wp_runs/WP-I2-002/20260306_050212/`.
+- `WP-I3-001` is now the current blocking product packet.
 
 ---
 

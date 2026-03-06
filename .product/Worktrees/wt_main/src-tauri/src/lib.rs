@@ -50,6 +50,8 @@ struct RecorderState {
   workspace: Value,
   query: Value,
   context: Value,
+  #[serde(default)]
+  compare: Option<Value>,
   selected_bundle_id: Option<String>,
   saved_at: String,
 }
@@ -398,6 +400,15 @@ fn create_bundle(app: AppHandle, request: CreateBundleRequest) -> CommandResult<
     &request.provenance_refs,
     &captured_at,
   )?;
+  let compare_asset = write_bundle_asset(
+    &bundle_root,
+    "compare-state",
+    "assets/compare_state.json",
+    &request.state.compare.clone().unwrap_or(Value::Null),
+    &request.marking,
+    &request.provenance_refs,
+    &captured_at,
+  )?;
   let recorder_asset = write_bundle_asset(
     &bundle_root,
     "recorder-state",
@@ -412,6 +423,7 @@ fn create_bundle(app: AppHandle, request: CreateBundleRequest) -> CommandResult<
     workspace_asset.clone(),
     query_asset.clone(),
     context_asset.clone(),
+    compare_asset.clone(),
     recorder_asset.clone(),
   ];
 
@@ -558,6 +570,26 @@ fn open_bundle(app: AppHandle, bundle_id: String, role: String) -> CommandResult
       }),
     )?;
     return Err("Recorder state asset does not match context-snapshot asset".to_string());
+  }
+  if let Some(compare_asset) = manifest
+    .assets
+    .iter()
+    .find(|asset| asset.asset_id == "compare-state")
+  {
+    let recorder_compare = recorder_state.compare.clone().unwrap_or(Value::Null);
+    let compare_hash = sha256_hex(&canonical_json_bytes(&recorder_compare)?);
+    if compare_hash != compare_asset.sha256 {
+      append_integrity_failure(
+        &app,
+        &bundle_id,
+        "recorder-state",
+        json!({
+          "expected_compare_hash": compare_asset.sha256,
+          "actual_compare_hash": compare_hash,
+        }),
+      )?;
+      return Err("Recorder state asset does not match compare-state asset".to_string());
+    }
   }
 
   let _ = save_recorder_state_internal(&app, &recorder_state)?;

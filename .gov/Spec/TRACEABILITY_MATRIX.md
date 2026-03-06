@@ -110,9 +110,9 @@ REQ-ID | Component(s) | Test(s) | Iteration | Verified
 
 | REQ | Component(s) | Test(s) | Iter | Verified |
 |-----|-------------|---------|------|----------|
-| REQ-0300 | .product/Worktrees/wt_main/src/features/i2/baselineDelta.ts | .product/Worktrees/wt_main/src/features/i2/i2.test.ts | I2 | 2026-03-05 |
-| REQ-0301 | .product/Worktrees/wt_main/src/features/i2/baselineDelta.ts | .product/Worktrees/wt_main/src/features/i2/i2.test.ts | I2 | 2026-03-05 |
-| REQ-0302 | .product/Worktrees/wt_main/src/features/i2/baselineDelta.ts | .product/Worktrees/wt_main/src/features/i2/i2.test.ts | I2 | 2026-03-05 |
+| REQ-0300 | .product/Worktrees/wt_main/src/features/i2/baselineDelta.ts; .product/Worktrees/wt_main/src/App.tsx; .product/Worktrees/wt_main/src/lib/backend.ts; .product/Worktrees/wt_main/src-tauri/src/lib.rs | .product/Worktrees/wt_main/src/features/i2/i2.test.ts; .product/Worktrees/wt_main/src/App.test.tsx; .product/Worktrees/wt_main/src/lib/backend.test.ts | I2 | 2026-03-06 |
+| REQ-0301 | .product/Worktrees/wt_main/src/features/i2/baselineDelta.ts; .product/Worktrees/wt_main/src/App.tsx | .product/Worktrees/wt_main/src/features/i2/i2.test.ts; .product/Worktrees/wt_main/src/App.test.tsx | I2 | 2026-03-06 |
+| REQ-0302 | .product/Worktrees/wt_main/src/features/i2/baselineDelta.ts; .product/Worktrees/wt_main/src/App.tsx; .product/Worktrees/wt_main/src/lib/backend.ts; .product/Worktrees/wt_main/src-tauri/src/lib.rs | .product/Worktrees/wt_main/src/features/i2/i2.test.ts; .product/Worktrees/wt_main/src/App.test.tsx; .product/Worktrees/wt_main/src/lib/backend.test.ts | I2 | 2026-03-06 |
 
 ---
 
@@ -239,8 +239,8 @@ REQ-ID | Component(s) | Test(s) | Iteration | Verified
 | WP-I1-001 | I1 | REQ-0200..REQ-0212, REQ-0014..REQ-0016 | PRIM-0005, PRIM-0006, PRIM-0007, PRIM-0008, PRIM-0009 | .gov/workflow/wp_test_suites/TS-WP-I1-001.md | IN-PROGRESS | activation-shell verification pass 2026-03-05; follow-on packet WP-I1-002 implemented |
 | WP-I1-002 | I1 | REQ-0011, REQ-0012, REQ-0014..REQ-0016, REQ-0200..REQ-0212, REQ-0804, REQ-0805 | PRIM-0035, PRIM-0036, PRIM-0037 | .gov/workflow/wp_test_suites/TS-WP-I1-002.md | IMPLEMENTED | proof: .product/build_target/tool_artifacts/wp_runs/WP-I1-002/20260306_044051/; spec extraction: .gov/workflow/wp_spec_extractions/SX-WP-I1-002.md |
 | WP-I2-001 | I2 | REQ-0300..REQ-0302 | PRIM-0010, PRIM-0011 | .gov/workflow/wp_test_suites/TS-WP-I2-001.md | IMPLEMENTED | proof: .product/build_target/tool_artifacts/wp_runs/WP-I2-001/20260306_003742/; follow-on packet WP-I2-002 active |
-| WP-I2-002 | I2 | REQ-0300, REQ-0301, REQ-0302 | PRIM-0038, PRIM-0039, PRIM-0040 | .gov/workflow/wp_test_suites/TS-WP-I2-002.md | IN-PROGRESS | current blocking packet for normative I2 delivery; spec extraction: .gov/workflow/wp_spec_extractions/SX-WP-I2-002.md |
-| WP-I3-001 | I3 | REQ-0400..REQ-0403 | PRIM-0012 | .gov/workflow/wp_test_suites/TS-WP-I3-001.md | BLOCKED | activation shell exists; roadmap order queues delivery behind WP-I2-002 |
+| WP-I2-002 | I2 | REQ-0300, REQ-0301, REQ-0302 | PRIM-0038, PRIM-0039, PRIM-0040 | .gov/workflow/wp_test_suites/TS-WP-I2-002.md | IMPLEMENTED | proof: .product/build_target/tool_artifacts/wp_runs/WP-I2-002/20260306_050212/; spec extraction: .gov/workflow/wp_spec_extractions/SX-WP-I2-002.md; user sign-off pending for E2E-VERIFIED |
+| WP-I3-001 | I3 | REQ-0400..REQ-0403 | PRIM-0012 | .gov/workflow/wp_test_suites/TS-WP-I3-001.md | IN-PROGRESS | activation-shell baseline exists; now current blocking packet after WP-I2-002 proof |
 | WP-I4-001 | I4 | REQ-0500..REQ-0504 | PRIM-0013 | .gov/workflow/wp_test_suites/TS-WP-I4-001.md | BLOCKED | activation shell exists; roadmap order queues delivery behind WP-I2-002 |
 | WP-I5-001 | I5 | REQ-0600..REQ-0604 | PRIM-0014 | .gov/workflow/wp_test_suites/TS-WP-I5-001.md | BLOCKED | activation shell exists; roadmap order queues delivery behind WP-I2-002 |
 | WP-I6-001 | I6 | REQ-0700..REQ-0708 | PRIM-0015 | .gov/workflow/wp_test_suites/TS-WP-I6-001.md | BLOCKED | activation shell exists; roadmap order queues delivery behind WP-I2-002 |
@@ -276,7 +276,7 @@ For quick lookup: "What requirements does this component implement?"
 |-----------|-------------|
 | .product/Worktrees/wt_main/src/contracts/i0.ts | REQ-0008..REQ-0013, REQ-0100..REQ-0112 |
 | .product/Worktrees/wt_main/src/lib/backend.ts | REQ-0008..REQ-0013, REQ-0017..REQ-0018, REQ-0100..REQ-0112 |
-| .product/Worktrees/wt_main/src/App.tsx | REQ-0008..REQ-0013, REQ-0200..REQ-0212 |
+| .product/Worktrees/wt_main/src/App.tsx | REQ-0008..REQ-0013, REQ-0200..REQ-0212, REQ-0300..REQ-0302 |
 | .product/Worktrees/wt_main/src/features/i1/modes.ts | REQ-0200..REQ-0212 |
 | .product/Worktrees/wt_main/src/features/i1/layers.ts | REQ-0200..REQ-0212 |
 | .product/Worktrees/wt_main/src/features/i1/plugins.ts | REQ-0204..REQ-0205 |
