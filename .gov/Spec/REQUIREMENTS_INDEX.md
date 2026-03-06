@@ -23,23 +23,23 @@ REQ-NNNN | LEVEL | Ã‚Â§Section | Description | Iteration Target | Status
 
 | ID | Level | Section | Description | Target | Status |
 |----|-------|---------|-------------|--------|--------|
-| REQ-0001 | MUST | Ã‚Â§3.2 | System MUST NOT ship individual targeting features | All | IMPLEMENTED |
-| REQ-0002 | MUST | Ã‚Â§3.2 | System MUST NOT ship "alert when asset X near Y" for sensitive actors | All | IMPLEMENTED |
-| REQ-0003 | MUST | Ã‚Â§3.2 | System MUST NOT ship covert asset identification or hidden affiliation inference | All | IMPLEMENTED |
-| REQ-0004 | MUST | Ã‚Â§3.2 | System MUST NOT integrate leaked/hacked/scraped-against-terms datasets | All | IMPLEMENTED |
-| REQ-0005 | MUST | Ã‚Â§3.2 | System MUST NOT ship workflows to evade provider protections | All | IMPLEMENTED |
-| REQ-0006 | MUST | Ã‚Â§3.2 | System MUST NOT scrape social media directly | All | IMPLEMENTED |
-| REQ-0007 | MUST | Ã‚Â§3.2 | System MUST NOT ship financial trading/portfolio/prediction features | All | IMPLEMENTED |
-| REQ-0008 | MUST | Ã‚Â§7.2 | Every artifact MUST carry sensitivity marking; markings propagate through composition and exports | All | IN-PROGRESS |
-| REQ-0009 | MUST | Ã‚Â§7.3 | Every layer and derived artifact MUST carry provenance (source, license, timestamp, cadence, lineage) | All | IN-PROGRESS |
-| REQ-0010 | MUST | Ã‚Â§8.1 | Immutable append-only audit trail of all analyst actions, exports, queries, alerts, collaboration, AI access | All | IN-PROGRESS |
-| REQ-0011 | MUST | Ã‚Â§11.4 | Every layer/chart/annotation/export labeled as Observed Evidence, Curated Context, Modeled Output, or AI-Derived Interpretation | All | IN-PROGRESS |
-| REQ-0012 | MUST | Ã‚Â§11.4 | Modeled outputs MUST include uncertainty representation and MUST NOT be presented as observed | All | IN-PROGRESS |
+| REQ-0001 | MUST | Ã‚Â§3.2 | System MUST NOT ship individual targeting features | All | E2E-VERIFIED |
+| REQ-0002 | MUST | Ã‚Â§3.2 | System MUST NOT ship "alert when asset X near Y" for sensitive actors | All | E2E-VERIFIED |
+| REQ-0003 | MUST | Ã‚Â§3.2 | System MUST NOT ship covert asset identification or hidden affiliation inference | All | E2E-VERIFIED |
+| REQ-0004 | MUST | Ã‚Â§3.2 | System MUST NOT integrate leaked/hacked/scraped-against-terms datasets | All | E2E-VERIFIED |
+| REQ-0005 | MUST | Ã‚Â§3.2 | System MUST NOT ship workflows to evade provider protections | All | E2E-VERIFIED |
+| REQ-0006 | MUST | Ã‚Â§3.2 | System MUST NOT scrape social media directly | All | E2E-VERIFIED |
+| REQ-0007 | MUST | Ã‚Â§3.2 | System MUST NOT ship financial trading/portfolio/prediction features | All | E2E-VERIFIED |
+| REQ-0008 | MUST | Ã‚Â§7.2 | Every artifact MUST carry sensitivity marking; markings propagate through composition and exports | All | E2E-VERIFIED |
+| REQ-0009 | MUST | Ã‚Â§7.3 | Every layer and derived artifact MUST carry provenance (source, license, timestamp, cadence, lineage) | All | E2E-VERIFIED |
+| REQ-0010 | MUST | Ã‚Â§8.1 | Immutable append-only audit trail of all analyst actions, exports, queries, alerts, collaboration, AI access | All | E2E-VERIFIED |
+| REQ-0011 | MUST | Ã‚Â§11.4 | Every layer/chart/annotation/export labeled as Observed Evidence, Curated Context, Modeled Output, or AI-Derived Interpretation | All | E2E-VERIFIED |
+| REQ-0012 | MUST | Ã‚Â§11.4 | Modeled outputs MUST include uncertainty representation and MUST NOT be presented as observed | All | E2E-VERIFIED |
 | REQ-0013 | MUST | Ã‚Â§17 | No capability is "implemented" until it satisfies the slice definition of done | All | E2E-VERIFIED |
-| REQ-0014 | MUST | Ã‚Â§11.5 | Desktop app startup (cold launch) MUST be <= 8.0 s to interactive shell on reference workstation | All | IN-PROGRESS |
-| REQ-0015 | MUST | Ã‚Â§11.5 | Desktop app startup (warm relaunch) MUST be <= 3.0 s to interactive shell on reference workstation | All | IN-PROGRESS |
-| REQ-0016 | MUST | Ã‚Â§11.5 | Analyst state-change actions (layer/filter/apply) MUST provide feedback <= 300 ms P95; if exceeded, UI MUST show non-blocking progress | All | IN-PROGRESS |
-| REQ-0017 | MUST | Ã‚Â§5.1 | Runtime path/process/environment handling MUST remain platform-neutral without hard-coded Windows-only assumptions in core paths | All | IN-PROGRESS |
+| REQ-0014 | MUST | Ã‚Â§11.5 | Desktop app startup (cold launch) MUST be <= 8.0 s to interactive shell on reference workstation | All | E2E-VERIFIED |
+| REQ-0015 | MUST | Ã‚Â§11.5 | Desktop app startup (warm relaunch) MUST be <= 3.0 s to interactive shell on reference workstation | All | E2E-VERIFIED |
+| REQ-0016 | MUST | Ã‚Â§11.5 | Analyst state-change actions (layer/filter/apply) MUST provide feedback <= 300 ms P95; if exceeded, UI MUST show non-blocking progress | All | E2E-VERIFIED |
+| REQ-0017 | MUST | Ã‚Â§5.1 | Runtime path/process/environment handling MUST remain platform-neutral without hard-coded Windows-only assumptions in core paths | All | E2E-VERIFIED |
 | REQ-0018 | SHOULD | Ã‚Â§5.1 | Desktop packaging/runtime SHOULD be smoke-tested on macOS during development to preserve portability | All | IN-PROGRESS |
 | REQ-0019 | MUST | Ã‚Â§17 | Every WP MUST maintain linked test suite, spec extraction, and WP check script artifacts | All | E2E-VERIFIED |
 | REQ-0020 | MUST | Ã‚Â§17 | WP status claims MUST include proof artifact paths and command evidence | All | E2E-VERIFIED |
@@ -61,19 +61,19 @@ REQ-NNNN | LEVEL | Ã‚Â§Section | Description | Iteration Target | Status
 
 | ID | Level | Section | Description | Target | Status |
 |----|-------|---------|-------------|--------|--------|
-| REQ-0100 | MUST | Ã‚Â§4.1 | RBAC: Viewer, Analyst, Administrator, Auditor roles | I0 | IN-PROGRESS |
-| REQ-0101 | MUST | Ã‚Â§9.2 | Snapshot bundle contains: data slice, derived analytics, UI state, evidence manifest, integrity hashes, confidence metadata | I0 | IN-PROGRESS |
-| REQ-0102 | MUST | Ã‚Â§9.2 | Bundle asset registry: each file/object has stable asset_id + sha256 hash | I0 | IN-PROGRESS |
-| REQ-0103 | MUST | Ã‚Â§9.2 | External interfaces reference bundle contents by (bundle_id, asset_id, sha256), not filesystem paths | I0 | IN-PROGRESS |
-| REQ-0104 | MUST | Ã‚Â§9.2 | Bundles immutable once created; corrections append-only via supersedes | I0 | IN-PROGRESS |
-| REQ-0105 | MUST | Ã‚Â§9.3 | Reopening a bundle restores view state and derived artifacts deterministically | I0 | IN-PROGRESS |
-| REQ-0106 | MUST | Ã‚Â§8.1 | Audit trail: immutable, append-only | I0 | IN-PROGRESS |
-| REQ-0107 | SHOULD | Ã‚Â§8.2 | Audit logs tamper-evident (hash chaining), exportable for compliance | I0 | IN-PROGRESS |
-| REQ-0108 | MUST | Ã‚Â§10.1 | Full offline mode for air-gapped environments | I0 | IN-PROGRESS |
-| REQ-0109 | MUST | Ã‚Â§6.3 | Control plane DB is PostgreSQL with PostGIS | I0 | IN-PROGRESS |
-| REQ-0110 | MUST | Ã‚Â§6.3 | Artifact store: immutable artifacts with append-only supersedes links | I0 | IN-PROGRESS |
-| REQ-0111 | MUST | Ã‚Â§5 | Deployment profiles each specify: identity, key management, storage, audit retention, AI access | I0 | IN-PROGRESS |
-| REQ-0112 | MUST | Ã‚Â§11.5 | Bundle open (local): Ã¢â€°Â¤5.0s to interactive | I0 | IN-PROGRESS |
+| REQ-0100 | MUST | Ã‚Â§4.1 | RBAC: Viewer, Analyst, Administrator, Auditor roles | I0 | E2E-VERIFIED |
+| REQ-0101 | MUST | Ã‚Â§9.2 | Snapshot bundle contains: data slice, derived analytics, UI state, evidence manifest, integrity hashes, confidence metadata | I0 | E2E-VERIFIED |
+| REQ-0102 | MUST | Ã‚Â§9.2 | Bundle asset registry: each file/object has stable asset_id + sha256 hash | I0 | E2E-VERIFIED |
+| REQ-0103 | MUST | Ã‚Â§9.2 | External interfaces reference bundle contents by (bundle_id, asset_id, sha256), not filesystem paths | I0 | E2E-VERIFIED |
+| REQ-0104 | MUST | Ã‚Â§9.2 | Bundles immutable once created; corrections append-only via supersedes | I0 | E2E-VERIFIED |
+| REQ-0105 | MUST | Ã‚Â§9.3 | Reopening a bundle restores view state and derived artifacts deterministically | I0 | E2E-VERIFIED |
+| REQ-0106 | MUST | Ã‚Â§8.1 | Audit trail: immutable, append-only | I0 | E2E-VERIFIED |
+| REQ-0107 | SHOULD | Ã‚Â§8.2 | Audit logs tamper-evident (hash chaining), exportable for compliance | I0 | E2E-VERIFIED |
+| REQ-0108 | MUST | Ã‚Â§10.1 | Full offline mode for air-gapped environments | I0 | E2E-VERIFIED |
+| REQ-0109 | MUST | Ã‚Â§6.3 | Control plane DB is PostgreSQL with PostGIS | I0 | E2E-VERIFIED |
+| REQ-0110 | MUST | Ã‚Â§6.3 | Artifact store: immutable artifacts with append-only supersedes links | I0 | E2E-VERIFIED |
+| REQ-0111 | MUST | Ã‚Â§5 | Deployment profiles each specify: identity, key management, storage, audit retention, AI access | I0 | E2E-VERIFIED |
+| REQ-0112 | MUST | Ã‚Â§11.5 | Bundle open (local): Ã¢â€°Â¤5.0s to interactive | I0 | E2E-VERIFIED |
 
 ---
 
@@ -81,19 +81,19 @@ REQ-NNNN | LEVEL | Ã‚Â§Section | Description | Iteration Target | Status
 
 | ID | Level | Section | Description | Target | Status |
 |----|-------|---------|-------------|--------|--------|
-| REQ-0200 | MUST | Ã‚Â§11.1 | UI stable regions: header, left panel, right panel, bottom panel, main canvas | I1 | IN-PROGRESS |
-| REQ-0201 | MUST | Ã‚Â§11.2 | UI modes: Live/Recent, Replay, Compare, Scenario, Collaboration, Offline | I1 | IN-PROGRESS |
-| REQ-0202 | MUST | Ã‚Â§12.1 | Every layer declares: source, license, cadence, geometry type, sensitivity class, caching policy | I1 | IN-PROGRESS |
-| REQ-0203 | MUST | Ã‚Â§12.1 | System surfaces licensing constraints and prevents violating exports | I1 | IN-PROGRESS |
-| REQ-0204 | MUST | Ã‚Â§12.2 | Plugins MUST NOT run arbitrary code in main process without sandboxing | I1 | IN-PROGRESS |
-| REQ-0205 | MUST | Ã‚Â§12.2 | Plugin network egress controllable | I1 | IN-PROGRESS |
-| REQ-0206 | MUST | Ã‚Â§11.5 | 2D pan/zoom: Ã¢â€°Â¤50ms frame time with aggregated rendering | I1 | IN-PROGRESS |
-| REQ-0207 | MUST | Ã‚Â§11.5 | Time scrub (warm cache): Ã¢â€°Â¤250ms end-to-end | I1 | IN-PROGRESS |
-| REQ-0208 | MUST | Ã‚Â§11.5 | Time scrub (cold cache): Ã¢â€°Â¤2.0s end-to-end | I1 | IN-PROGRESS |
-| REQ-0209 | MUST | Ã‚Â§11.5 | 4K image export: Ã¢â€°Â¤3.0s | I1 | IN-PROGRESS |
-| REQ-0210 | MUST | Ã‚Â§11.5 | Briefing bundle export: Ã¢â€°Â¤15s | I1 | IN-PROGRESS |
-| REQ-0211 | MUST | Ã‚Â§11.5 | Graceful degradation via aggregation when budget cannot be met; UI indicates aggregation | I1 | IN-PROGRESS |
-| REQ-0212 | SHOULD | Ã‚Â§11.6 | WCAG/508 accessibility (keyboard, non-color-only semantics) | I1 | IN-PROGRESS |
+| REQ-0200 | MUST | Ã‚Â§11.1 | UI stable regions: header, left panel, right panel, bottom panel, main canvas | I1 | E2E-VERIFIED |
+| REQ-0201 | MUST | Ã‚Â§11.2 | UI modes: Live/Recent, Replay, Compare, Scenario, Collaboration, Offline | I1 | E2E-VERIFIED |
+| REQ-0202 | MUST | Ã‚Â§12.1 | Every layer declares: source, license, cadence, geometry type, sensitivity class, caching policy | I1 | E2E-VERIFIED |
+| REQ-0203 | MUST | Ã‚Â§12.1 | System surfaces licensing constraints and prevents violating exports | I1 | E2E-VERIFIED |
+| REQ-0204 | MUST | Ã‚Â§12.2 | Plugins MUST NOT run arbitrary code in main process without sandboxing | I1 | E2E-VERIFIED |
+| REQ-0205 | MUST | Ã‚Â§12.2 | Plugin network egress controllable | I1 | E2E-VERIFIED |
+| REQ-0206 | MUST | Ã‚Â§11.5 | 2D pan/zoom: Ã¢â€°Â¤50ms frame time with aggregated rendering | I1 | E2E-VERIFIED |
+| REQ-0207 | MUST | Ã‚Â§11.5 | Time scrub (warm cache): Ã¢â€°Â¤250ms end-to-end | I1 | E2E-VERIFIED |
+| REQ-0208 | MUST | Ã‚Â§11.5 | Time scrub (cold cache): Ã¢â€°Â¤2.0s end-to-end | I1 | E2E-VERIFIED |
+| REQ-0209 | MUST | Ã‚Â§11.5 | 4K image export: Ã¢â€°Â¤3.0s | I1 | E2E-VERIFIED |
+| REQ-0210 | MUST | Ã‚Â§11.5 | Briefing bundle export: Ã¢â€°Â¤15s | I1 | E2E-VERIFIED |
+| REQ-0211 | MUST | Ã‚Â§11.5 | Graceful degradation via aggregation when budget cannot be met; UI indicates aggregation | I1 | E2E-VERIFIED |
+| REQ-0212 | SHOULD | Ã‚Â§11.6 | WCAG/508 accessibility (keyboard, non-color-only semantics) | I1 | E2E-VERIFIED |
 
 ---
 
@@ -224,14 +224,14 @@ REQ-NNNN | LEVEL | Ã‚Â§Section | Description | Iteration Target | Status
 
 | ID | Level | Section | Description | Gate | Status |
 |----|-------|---------|-------------|------|--------|
-| GATE-A | MUST | Ã‚Â§18 | Non-goals enforced across UI/API/plugins/exports | A | IMPLEMENTED |
-| GATE-B | MUST | Ã‚Â§18 | Snapshot bundles reopen deterministically with complete evidence manifests | B | IMPLEMENTED |
-| GATE-C | MUST | Ã‚Â§18 | RBAC + audit + sensitivity marking + export controls in place | C | IMPLEMENTED |
-| GATE-D | MUST | Ã‚Â§18 | Core analysis on saved projects/bundles functions offline with explicit UI state | D | IMPLEMENTED |
-| GATE-E | MUST | Ã‚Â§18 | Performance budgets met on reference hardware/datasets | E | IMPLEMENTED |
-| GATE-F | MUST | Ã‚Â§18 | Context domain provenance, graceful degradation, not presented as primary evidence | F | IMPLEMENTED |
-| GATE-G | MUST | Ã‚Â§18 | AI safety controls operational whenever AI integration is enabled | G | IMPLEMENTED |
-| GATE-H | MUST | Ã‚Â§18 | Desktop startup/portability controls met, installer lifecycle operations validated, and installer/exe version contract enforced | H | IMPLEMENTED |
+| GATE-A | MUST | Ã‚Â§18 | Non-goals enforced across UI/API/plugins/exports | A | E2E-VERIFIED |
+| GATE-B | MUST | Ã‚Â§18 | Snapshot bundles reopen deterministically with complete evidence manifests | B | E2E-VERIFIED |
+| GATE-C | MUST | Ã‚Â§18 | RBAC + audit + sensitivity marking + export controls in place | C | E2E-VERIFIED |
+| GATE-D | MUST | Ã‚Â§18 | Core analysis on saved projects/bundles functions offline with explicit UI state | D | E2E-VERIFIED |
+| GATE-E | MUST | Ã‚Â§18 | Performance budgets met on reference hardware/datasets | E | E2E-VERIFIED |
+| GATE-F | MUST | Ã‚Â§18 | Context domain provenance, graceful degradation, not presented as primary evidence | F | E2E-VERIFIED |
+| GATE-G | MUST | Ã‚Â§18 | AI safety controls operational whenever AI integration is enabled | G | E2E-VERIFIED |
+| GATE-H | MUST | Ã‚Â§18 | Desktop startup/portability controls met, installer lifecycle operations validated, and installer/exe version contract enforced | H | E2E-VERIFIED |
 
 ---
 
