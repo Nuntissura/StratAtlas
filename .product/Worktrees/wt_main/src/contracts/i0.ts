@@ -1,3 +1,7 @@
+import type { UiMode } from '../features/i1/modes'
+import type { VersionedQuery } from '../features/i5/queryBuilder'
+import type { ContextDomain } from '../features/i7/contextIntake'
+
 export type UserRole = 'viewer' | 'analyst' | 'administrator' | 'auditor'
 
 export type SensitivityMarking = 'PUBLIC' | 'INTERNAL' | 'RESTRICTED'
@@ -15,6 +19,9 @@ export interface BundleAsset {
   media_type: string
   size_bytes: number
   bundle_relative_path: string
+  marking: SensitivityMarking
+  captured_at: string
+  provenance_refs: ProvenanceRef[]
 }
 
 export interface BundleManifest {
@@ -27,6 +34,37 @@ export interface BundleManifest {
   derived_artifact_hashes: string[]
   provenance_refs: ProvenanceRef[]
   supersedes_bundle_id?: string
+}
+
+export interface WorkspaceStateSnapshot {
+  mode: string
+  workflowMode: UiMode
+  note: string
+  activeLayers: string[]
+  replayCursor: number
+  forcedOffline: boolean
+  uiVersion: string
+}
+
+export interface QueryStateSnapshot {
+  definition: VersionedQuery
+  resultCount: number
+  sourceRowCount: number
+  matchedRowIds: number[]
+}
+
+export interface ContextSnapshot {
+  domains: ContextDomain[]
+  activeDomainIds: string[]
+  correlationAoi: string
+}
+
+export interface RecorderState {
+  workspace: WorkspaceStateSnapshot
+  query: QueryStateSnapshot
+  context: ContextSnapshot
+  selectedBundleId?: string
+  savedAt: string
 }
 
 export interface AuditEvent {
@@ -42,14 +80,14 @@ export interface AuditEvent {
 export interface CreateBundleRequest {
   role: UserRole
   marking: SensitivityMarking
-  ui_state: Record<string, unknown>
+  state: RecorderState
   provenance_refs: ProvenanceRef[]
   supersedes_bundle_id?: string
 }
 
 export interface OpenBundleResult {
   manifest: BundleManifest
-  ui_state: Record<string, unknown>
+  state: RecorderState
 }
 
 export interface AuditHead {
@@ -60,4 +98,13 @@ export interface AppendAuditRequest {
   role: UserRole
   event_type: string
   payload: Record<string, unknown>
+}
+
+export interface LoadRecorderStateResult {
+  state?: RecorderState
+}
+
+export interface SaveRecorderStateRequest {
+  role: UserRole
+  state: RecorderState
 }

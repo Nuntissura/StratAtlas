@@ -6,15 +6,21 @@ import type {
   BundleAsset,
   BundleManifest,
   CreateBundleRequest,
+  LoadRecorderStateResult,
   OpenBundleResult,
+  ProvenanceRef,
+  RecorderState,
+  SaveRecorderStateRequest,
+  SensitivityMarking,
 } from '../contracts/i0'
 
 const FALLBACK_BUNDLES_KEY = 'stratatlas.fallback.bundles'
 const FALLBACK_AUDIT_KEY = 'stratatlas.fallback.audit'
+const FALLBACK_RECORDER_STATE_KEY = 'stratatlas.fallback.recorder-state'
 
 type StoredBundle = {
   manifest: BundleManifest
-  uiState: Record<string, unknown>
+  assets: Record<string, unknown>
 }
 
 const isTauriRuntime = (): boolean =>
@@ -24,6 +30,23 @@ const nowIso = (): string => new Date().toISOString()
 
 const randomId = (): string =>
   `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value)
+
+const normalizeJson = (value: unknown): unknown => {
+  if (Array.isArray(value)) {
+    return value.map((entry) => normalizeJson(entry))
+  }
+  if (isRecord(value)) {
+    return Object.fromEntries(
+      Object.entries(value)
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([key, entry]) => [key, normalizeJson(entry)]),
+    )
+  }
+  return value
+}
 
 const encodeHex = (bytes: Uint8Array): string =>
   [...bytes].map((b) => b.toString(16).padStart(2, '0')).join('')
@@ -50,59 +73,81 @@ const writeJson = (key: string, value: unknown): void => {
   localStorage.setItem(key, JSON.stringify(value))
 }
 
-const canonicalize = (obj: Record<string, unknown>): string => {
-  const entries = Object.entries(obj).sort(([a], [b]) => a.localeCompare(b))
-  return JSON.stringify(Object.fromEntries(entries))
-}
+const canonicalize = (value: unknown): string => JSON.stringify(normalizeJson(value))
 
-const createFallbackBundle = async (
-  request: CreateBundleRequest,
-): Promise<BundleManifest> => {
-  const bundles = readJson<StoredBundle[]>(FALLBACK_BUNDLES_KEY, [])
-  const bundleId = randomId()
-  const uiStateJson = canonicalize(request.ui_state)
-  const uiHash = await sha256(uiStateJson)
-  const asset: BundleAsset = {
-    asset_id: 'ui-state',
-    sha256: uiHash,
-    media_type: 'application/json',
-    size_bytes: uiStateJson.length,
-    bundle_relative_path: 'assets/ui_state.json',
-  }
-  const manifest: BundleManifest = {
-    bundle_id: bundleId,
-    created_at: nowIso(),
-    created_by_role: request.role,
-    marking: request.marking,
-    assets: [asset],
-    ui_state_hash: uiHash,
-    derived_artifact_hashes: [uiHash],
-    provenance_refs: request.provenance_refs,
-    supersedes_bundle_id: request.supersedes_bundle_id,
-  }
+const BUNDLE_ASSET_PATHS = {
+  'workspace-state': 'assets/workspace_state.json',
+  'query-state': 'assets/query_state.json',
+  'context-snapshot': 'assets/context_snapshot.json',
+  'recorder-state': 'assets/recorder_state.json',
+} as const
 
-  bundles.unshift({
-    manifest,
-    uiState: request.ui_state,
-  })
-  writeJson(FALLBACK_BUNDLES_KEY, bundles)
-  return manifest
-}
+const buildBundleAsset = async ({
+  assetId,
+  value,
+  marking,
+  provenanceRefs,
+  capturedAt,
+}: {
+  assetId: keyof typeof BUNDLE_ASSET_PATHS
+  value: unknown
+  marking: SensitivityMarking
+  provenanceRefs: ProvenanceRef[]
+  capturedAt: string
+}): Promise<{ asset: BundleAsset; payload: unknown }> => {
+  const payload = normalizeJson(value)
+  const payloadJson = canonicalize(payload)
+  const payloadHash = await sha256(payloadJson)
 
-const fallbackOpenBundle = async (bundleId: string): Promise<OpenBundleResult> => {
-  const bundles = readJson<StoredBundle[]>(FALLBACK_BUNDLES_KEY, [])
-  const selected = bundles.find((b) => b.manifest.bundle_id === bundleId)
-  if (!selected) {
-    throw new Error(`Bundle not found: ${bundleId}`)
-  }
-  const currentHash = await sha256(canonicalize(selected.uiState))
-  if (currentHash !== selected.manifest.ui_state_hash) {
-    throw new Error('Determinism check failed while reopening bundle')
-  }
   return {
-    manifest: selected.manifest,
-    ui_state: selected.uiState,
+    asset: {
+      asset_id: assetId,
+      sha256: payloadHash,
+      media_type: 'application/json',
+      size_bytes: payloadJson.length,
+      bundle_relative_path: BUNDLE_ASSET_PATHS[assetId],
+      marking,
+      captured_at: capturedAt,
+      provenance_refs: provenanceRefs,
+    },
+    payload,
   }
+}
+
+const buildBundleAssets = async (
+  request: CreateBundleRequest,
+): Promise<Array<{ asset: BundleAsset; payload: unknown }>> => {
+  const capturedAt = nowIso()
+  return Promise.all([
+    buildBundleAsset({
+      assetId: 'workspace-state',
+      value: request.state.workspace,
+      marking: request.marking,
+      provenanceRefs: request.provenance_refs,
+      capturedAt,
+    }),
+    buildBundleAsset({
+      assetId: 'query-state',
+      value: request.state.query,
+      marking: request.marking,
+      provenanceRefs: request.provenance_refs,
+      capturedAt,
+    }),
+    buildBundleAsset({
+      assetId: 'context-snapshot',
+      value: request.state.context,
+      marking: request.marking,
+      provenanceRefs: request.provenance_refs,
+      capturedAt,
+    }),
+    buildBundleAsset({
+      assetId: 'recorder-state',
+      value: request.state,
+      marking: request.marking,
+      provenanceRefs: request.provenance_refs,
+      capturedAt,
+    }),
+  ])
 }
 
 const fallbackAppendAudit = async (
@@ -110,18 +155,19 @@ const fallbackAppendAudit = async (
 ): Promise<AuditEvent> => {
   const events = readJson<AuditEvent[]>(FALLBACK_AUDIT_KEY, [])
   const prev = events.at(-1)?.event_hash
+  const ts = nowIso()
   const payloadHash = await sha256(canonicalize(request.payload))
   const canonical = JSON.stringify({
     actor_role: request.role,
     event_type: request.event_type,
     payload_hash: payloadHash,
     prev_event_hash: prev ?? null,
-    ts: nowIso(),
+    ts,
   })
   const eventHash = await sha256(`${prev ?? ''}${canonical}`)
   const event: AuditEvent = {
     event_id: randomId(),
-    ts: nowIso(),
+    ts,
     actor_role: request.role,
     event_type: request.event_type,
     payload_hash: payloadHash,
@@ -133,6 +179,110 @@ const fallbackAppendAudit = async (
   return event
 }
 
+const createFallbackBundle = async (
+  request: CreateBundleRequest,
+): Promise<BundleManifest> => {
+  const bundles = readJson<StoredBundle[]>(FALLBACK_BUNDLES_KEY, [])
+  const bundleId = randomId()
+  const assets = await buildBundleAssets(request)
+  const workspaceAsset = assets.find(({ asset }) => asset.asset_id === 'workspace-state')
+  if (!workspaceAsset) {
+    throw new Error('Workspace asset generation failed')
+  }
+  const manifest: BundleManifest = {
+    bundle_id: bundleId,
+    created_at: nowIso(),
+    created_by_role: request.role,
+    marking: request.marking,
+    assets: assets.map(({ asset }) => asset),
+    ui_state_hash: workspaceAsset.asset.sha256,
+    derived_artifact_hashes: assets.map(({ asset }) => asset.sha256),
+    provenance_refs: request.provenance_refs,
+    supersedes_bundle_id: request.supersedes_bundle_id,
+  }
+
+  bundles.unshift({
+    manifest,
+    assets: Object.fromEntries(assets.map(({ asset, payload }) => [asset.asset_id, payload])),
+  })
+  writeJson(FALLBACK_BUNDLES_KEY, bundles)
+  writeJson(FALLBACK_RECORDER_STATE_KEY, normalizeJson(request.state))
+  await fallbackAppendAudit({
+    role: request.role,
+    event_type: 'bundle.create',
+    payload: {
+      bundle_id: bundleId,
+      marking: request.marking,
+      asset_ids: manifest.assets.map((asset) => asset.asset_id),
+    },
+  })
+  return manifest
+}
+
+const fallbackOpenBundle = async (bundleId: string, role: string): Promise<OpenBundleResult> => {
+  const bundles = readJson<StoredBundle[]>(FALLBACK_BUNDLES_KEY, [])
+  const selected = bundles.find((b) => b.manifest.bundle_id === bundleId)
+  if (!selected) {
+    throw new Error(`Bundle not found: ${bundleId}`)
+  }
+
+  for (const asset of selected.manifest.assets) {
+    const payload = selected.assets[asset.asset_id]
+    if (typeof payload === 'undefined') {
+      throw new Error(`Bundle missing payload for asset ${asset.asset_id}`)
+    }
+    const currentHash = await sha256(canonicalize(payload))
+    if (currentHash !== asset.sha256) {
+      throw new Error(`Determinism check failed while reopening asset ${asset.asset_id}`)
+    }
+  }
+
+  const workspaceState = selected.assets['workspace-state']
+  const queryState = selected.assets['query-state']
+  const contextSnapshot = selected.assets['context-snapshot']
+  const recorderState = selected.assets['recorder-state']
+
+  if (!isRecord(recorderState)) {
+    throw new Error('Recorder state asset is invalid')
+  }
+  if (
+    canonicalize((recorderState as Record<string, unknown>).workspace) !== canonicalize(workspaceState) ||
+    canonicalize((recorderState as Record<string, unknown>).query) !== canonicalize(queryState) ||
+    canonicalize((recorderState as Record<string, unknown>).context) !== canonicalize(contextSnapshot)
+  ) {
+    throw new Error('Recorder state asset does not match typed bundle assets')
+  }
+
+  await fallbackAppendAudit({
+    role: role as AppendAuditRequest['role'],
+    event_type: 'bundle.open',
+    payload: {
+      bundle_id: bundleId,
+      ui_state_hash: selected.manifest.ui_state_hash,
+      asset_ids: selected.manifest.assets.map((asset) => asset.asset_id),
+    },
+  })
+  writeJson(FALLBACK_RECORDER_STATE_KEY, normalizeJson(recorderState))
+
+  return {
+    manifest: selected.manifest,
+    state: recorderState as unknown as RecorderState,
+  }
+}
+
+const fallbackLoadRecorderState = async (): Promise<LoadRecorderStateResult> => {
+  const state = readJson<RecorderState | undefined>(FALLBACK_RECORDER_STATE_KEY, undefined)
+  return { state }
+}
+
+const fallbackSaveRecorderState = async (
+  request: SaveRecorderStateRequest,
+): Promise<RecorderState> => {
+  const normalized = normalizeJson(request.state) as RecorderState
+  writeJson(FALLBACK_RECORDER_STATE_KEY, normalized)
+  return normalized
+}
+
 export const backend = {
   async createBundle(request: CreateBundleRequest): Promise<BundleManifest> {
     if (isTauriRuntime()) {
@@ -141,11 +291,11 @@ export const backend = {
     return createFallbackBundle(request)
   },
 
-  async openBundle(bundleId: string): Promise<OpenBundleResult> {
+  async openBundle(bundleId: string, role: AppendAuditRequest['role']): Promise<OpenBundleResult> {
     if (isTauriRuntime()) {
-      return invoke<OpenBundleResult>('open_bundle', { bundleId })
+      return invoke<OpenBundleResult>('open_bundle', { bundleId, role })
     }
-    return fallbackOpenBundle(bundleId)
+    return fallbackOpenBundle(bundleId, role)
   },
 
   async listBundles(): Promise<BundleManifest[]> {
@@ -176,5 +326,19 @@ export const backend = {
     }
     const events = readJson<AuditEvent[]>(FALLBACK_AUDIT_KEY, [])
     return { event_hash: events.at(-1)?.event_hash }
+  },
+
+  async loadRecorderState(): Promise<LoadRecorderStateResult> {
+    if (isTauriRuntime()) {
+      return invoke<LoadRecorderStateResult>('load_recorder_state')
+    }
+    return fallbackLoadRecorderState()
+  },
+
+  async saveRecorderState(request: SaveRecorderStateRequest): Promise<RecorderState> {
+    if (isTauriRuntime()) {
+      return invoke<RecorderState>('save_recorder_state', { request })
+    }
+    return fallbackSaveRecorderState(request)
   },
 }

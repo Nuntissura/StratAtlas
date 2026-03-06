@@ -1,6 +1,6 @@
 use chrono::Utc;
-use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde_json::{json, Map, Value};
 use sha2::{Digest, Sha256};
 use std::{
   fs::{self, OpenOptions},
@@ -11,6 +11,7 @@ use tauri::{AppHandle, Manager};
 use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 struct ProvenanceRef {
   source: String,
   license: String,
@@ -25,6 +26,9 @@ struct BundleAsset {
   media_type: String,
   size_bytes: u64,
   bundle_relative_path: String,
+  marking: String,
+  captured_at: String,
+  provenance_refs: Vec<ProvenanceRef>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -41,10 +45,20 @@ struct BundleManifest {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct RecorderState {
+  workspace: Value,
+  query: Value,
+  context: Value,
+  selected_bundle_id: Option<String>,
+  saved_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 struct CreateBundleRequest {
   role: String,
   marking: String,
-  ui_state: Value,
+  state: RecorderState,
   provenance_refs: Vec<ProvenanceRef>,
   supersedes_bundle_id: Option<String>,
 }
@@ -52,7 +66,7 @@ struct CreateBundleRequest {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct OpenBundleResult {
   manifest: BundleManifest,
-  ui_state: Value,
+  state: RecorderState,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -76,6 +90,18 @@ struct AuditEvent {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct AuditHead {
   event_hash: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct SaveRecorderStateRequest {
+  role: String,
+  state: RecorderState,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct LoadRecorderStateResult {
+  state: Option<RecorderState>,
 }
 
 type CommandResult<T> = Result<T, String>;
@@ -102,8 +128,34 @@ fn ensure_valid_relative_path(path: &str) -> CommandResult<()> {
   Ok(())
 }
 
-fn to_json_string<T: Serialize>(value: &T) -> CommandResult<String> {
-  serde_json::to_string(value).map_err(|error| format!("JSON serialization failed: {error}"))
+fn canonicalize_value(value: &Value) -> Value {
+  match value {
+    Value::Array(entries) => Value::Array(entries.iter().map(canonicalize_value).collect()),
+    Value::Object(entries) => {
+      let mut keys = entries.keys().cloned().collect::<Vec<_>>();
+      keys.sort();
+      let mut sorted = Map::new();
+      for key in keys {
+        if let Some(entry) = entries.get(&key) {
+          sorted.insert(key, canonicalize_value(entry));
+        }
+      }
+      Value::Object(sorted)
+    }
+    _ => value.clone(),
+  }
+}
+
+fn canonical_json_bytes<T: Serialize>(value: &T) -> CommandResult<Vec<u8>> {
+  let json_value =
+    serde_json::to_value(value).map_err(|error| format!("JSON serialization failed: {error}"))?;
+  serde_json::to_vec(&canonicalize_value(&json_value))
+    .map_err(|error| format!("JSON serialization failed: {error}"))
+}
+
+fn canonical_json_string<T: Serialize>(value: &T) -> CommandResult<String> {
+  String::from_utf8(canonical_json_bytes(value)?)
+    .map_err(|error| format!("UTF-8 conversion failed: {error}"))
 }
 
 fn sha256_hex(bytes: &[u8]) -> String {
@@ -138,12 +190,23 @@ fn audit_dir(app: &AppHandle) -> CommandResult<PathBuf> {
   Ok(path)
 }
 
+fn state_dir(app: &AppHandle) -> CommandResult<PathBuf> {
+  let path = app_runtime_root(app)?.join("state");
+  fs::create_dir_all(&path)
+    .map_err(|error| format!("Failed to create state directory {}: {error}", path.display()))?;
+  Ok(path)
+}
+
 fn audit_head_path(app: &AppHandle) -> CommandResult<PathBuf> {
   Ok(audit_dir(app)?.join("audit_head.json"))
 }
 
 fn audit_log_path(app: &AppHandle) -> CommandResult<PathBuf> {
   Ok(audit_dir(app)?.join("audit_log.jsonl"))
+}
+
+fn recorder_state_path(app: &AppHandle) -> CommandResult<PathBuf> {
+  Ok(state_dir(app)?.join("recorder_state.json"))
 }
 
 fn read_audit_head(app: &AppHandle) -> CommandResult<AuditHead> {
@@ -162,8 +225,7 @@ fn append_audit_internal(app: &AppHandle, request: &AppendAuditRequest) -> Comma
   }
 
   let head = read_audit_head(app)?;
-  let payload_json = to_json_string(&request.payload)?;
-  let payload_hash = sha256_hex(payload_json.as_bytes());
+  let payload_hash = sha256_hex(canonical_json_string(&request.payload)?.as_bytes());
   let ts = Utc::now().to_rfc3339();
   let canonical_event = json!({
     "actor_role": request.role,
@@ -172,7 +234,7 @@ fn append_audit_internal(app: &AppHandle, request: &AppendAuditRequest) -> Comma
     "prev_event_hash": head.event_hash,
     "ts": ts
   });
-  let canonical_json = to_json_string(&canonical_event)?;
+  let canonical_json = canonical_json_string(&canonical_event)?;
   let mut hash_input = String::new();
   if let Some(previous_hash) = &head.event_hash {
     hash_input.push_str(previous_hash);
@@ -196,18 +258,98 @@ fn append_audit_internal(app: &AppHandle, request: &AppendAuditRequest) -> Comma
     .append(true)
     .open(&log_path)
     .map_err(|error| format!("Failed opening audit log {}: {error}", log_path.display()))?;
-  let line = to_json_string(&event)?;
+  let line = canonical_json_string(&event)?;
   writeln!(log_file, "{line}")
     .map_err(|error| format!("Failed writing audit log {}: {error}", log_path.display()))?;
 
   let head_path = audit_head_path(app)?;
-  let serialized_head = to_json_string(&AuditHead {
+  let serialized_head = canonical_json_string(&AuditHead {
     event_hash: Some(event_hash),
   })?;
   fs::write(&head_path, serialized_head)
     .map_err(|error| format!("Failed writing audit head {}: {error}", head_path.display()))?;
 
   Ok(event)
+}
+
+fn save_recorder_state_internal(app: &AppHandle, state: &RecorderState) -> CommandResult<RecorderState> {
+  let path = recorder_state_path(app)?;
+  let bytes = canonical_json_bytes(state)?;
+  fs::write(&path, bytes)
+    .map_err(|error| format!("Failed writing recorder state {}: {error}", path.display()))?;
+  Ok(state.clone())
+}
+
+fn write_bundle_asset<T: Serialize>(
+  bundle_root: &Path,
+  asset_id: &str,
+  relative_path: &str,
+  value: &T,
+  marking: &str,
+  provenance_refs: &[ProvenanceRef],
+  captured_at: &str,
+) -> CommandResult<BundleAsset> {
+  ensure_valid_relative_path(relative_path)?;
+  let path = bundle_root.join(relative_path);
+  if let Some(parent) = path.parent() {
+    fs::create_dir_all(parent)
+      .map_err(|error| format!("Failed creating asset directory {}: {error}", parent.display()))?;
+  }
+
+  let bytes = canonical_json_bytes(value)?;
+  fs::write(&path, &bytes)
+    .map_err(|error| format!("Failed writing bundle asset {}: {error}", path.display()))?;
+
+  Ok(BundleAsset {
+    asset_id: asset_id.to_string(),
+    sha256: sha256_hex(&bytes),
+    media_type: "application/json".to_string(),
+    size_bytes: u64::try_from(bytes.len())
+      .map_err(|error| format!("Failed computing asset size: {error}"))?,
+    bundle_relative_path: relative_path.to_string(),
+    marking: marking.to_string(),
+    captured_at: captured_at.to_string(),
+    provenance_refs: provenance_refs.to_vec(),
+  })
+}
+
+fn read_bundle_asset_bytes(bundle_root: &Path, asset: &BundleAsset) -> CommandResult<Vec<u8>> {
+  ensure_valid_relative_path(&asset.bundle_relative_path)?;
+  let asset_path = bundle_root.join(&asset.bundle_relative_path);
+  fs::read(&asset_path)
+    .map_err(|error| format!("Failed reading bundle asset {}: {error}", asset_path.display()))
+}
+
+fn read_bundle_asset_json<T: DeserializeOwned>(
+  bundle_root: &Path,
+  asset: &BundleAsset,
+  bundle_id: &str,
+  label: &str,
+) -> CommandResult<T> {
+  let bytes = read_bundle_asset_bytes(bundle_root, asset)?;
+  serde_json::from_slice::<T>(&bytes)
+    .map_err(|error| format!("Invalid {label} JSON in bundle {bundle_id}: {error}"))
+}
+
+fn append_integrity_failure(
+  app: &AppHandle,
+  bundle_id: &str,
+  asset_id: &str,
+  detail: Value,
+) -> CommandResult<()> {
+  let _ = append_audit_internal(
+    app,
+    &AppendAuditRequest {
+      role: "auditor".to_string(),
+      event_type: "bundle.integrity_failed".to_string(),
+      payload: json!({
+        "bundle_id": bundle_id,
+        "asset_id": asset_id,
+        "detail": detail,
+      }),
+    },
+  )?;
+  Ok(())
 }
 
 #[tauri::command]
@@ -221,43 +363,66 @@ fn create_bundle(app: AppHandle, request: CreateBundleRequest) -> CommandResult<
 
   let bundle_id = Uuid::now_v7().to_string();
   let bundle_root = bundles_dir(&app)?.join(&bundle_id);
-  let assets_dir = bundle_root.join("assets");
-  fs::create_dir_all(&assets_dir).map_err(|error| {
+  fs::create_dir_all(&bundle_root).map_err(|error| {
     format!(
       "Failed creating bundle directory {}: {error}",
-      assets_dir.display()
+      bundle_root.display()
     )
   })?;
 
-  let ui_state_bytes = serde_json::to_vec(&request.ui_state)
-    .map_err(|error| format!("Failed serializing UI state: {error}"))?;
-  let ui_hash = sha256_hex(&ui_state_bytes);
-  let ui_state_relative_path = "assets/ui_state.json".to_string();
-  let ui_state_path = bundle_root.join(&ui_state_relative_path);
-  fs::write(&ui_state_path, &ui_state_bytes).map_err(|error| {
-    format!(
-      "Failed writing bundle UI state {}: {error}",
-      ui_state_path.display()
-    )
-  })?;
+  let captured_at = Utc::now().to_rfc3339();
+  let workspace_asset = write_bundle_asset(
+    &bundle_root,
+    "workspace-state",
+    "assets/workspace_state.json",
+    &request.state.workspace,
+    &request.marking,
+    &request.provenance_refs,
+    &captured_at,
+  )?;
+  let query_asset = write_bundle_asset(
+    &bundle_root,
+    "query-state",
+    "assets/query_state.json",
+    &request.state.query,
+    &request.marking,
+    &request.provenance_refs,
+    &captured_at,
+  )?;
+  let context_asset = write_bundle_asset(
+    &bundle_root,
+    "context-snapshot",
+    "assets/context_snapshot.json",
+    &request.state.context,
+    &request.marking,
+    &request.provenance_refs,
+    &captured_at,
+  )?;
+  let recorder_asset = write_bundle_asset(
+    &bundle_root,
+    "recorder-state",
+    "assets/recorder_state.json",
+    &request.state,
+    &request.marking,
+    &request.provenance_refs,
+    &captured_at,
+  )?;
 
-  let asset = BundleAsset {
-    asset_id: "ui-state".to_string(),
-    sha256: ui_hash.clone(),
-    media_type: "application/json".to_string(),
-    size_bytes: u64::try_from(ui_state_bytes.len())
-      .map_err(|error| format!("Failed computing UI state size: {error}"))?,
-    bundle_relative_path: ui_state_relative_path,
-  };
+  let assets = vec![
+    workspace_asset.clone(),
+    query_asset.clone(),
+    context_asset.clone(),
+    recorder_asset.clone(),
+  ];
 
   let manifest = BundleManifest {
     bundle_id: bundle_id.clone(),
     created_at: Utc::now().to_rfc3339(),
     created_by_role: request.role.clone(),
     marking: request.marking.clone(),
-    assets: vec![asset],
-    ui_state_hash: ui_hash.clone(),
-    derived_artifact_hashes: vec![ui_hash],
+    assets: assets.clone(),
+    ui_state_hash: workspace_asset.sha256.clone(),
+    derived_artifact_hashes: assets.iter().map(|asset| asset.sha256.clone()).collect(),
     provenance_refs: request.provenance_refs.clone(),
     supersedes_bundle_id: request.supersedes_bundle_id.clone(),
   };
@@ -272,6 +437,8 @@ fn create_bundle(app: AppHandle, request: CreateBundleRequest) -> CommandResult<
     )
   })?;
 
+  let _ = save_recorder_state_internal(&app, &request.state)?;
+
   let _ = append_audit_internal(
     &app,
     &AppendAuditRequest {
@@ -280,6 +447,7 @@ fn create_bundle(app: AppHandle, request: CreateBundleRequest) -> CommandResult<
       payload: json!({
         "bundle_id": bundle_id,
         "marking": request.marking,
+        "asset_ids": manifest.assets.iter().map(|asset| asset.asset_id.clone()).collect::<Vec<_>>(),
       }),
     },
   )?;
@@ -288,7 +456,11 @@ fn create_bundle(app: AppHandle, request: CreateBundleRequest) -> CommandResult<
 }
 
 #[tauri::command]
-fn open_bundle(app: AppHandle, bundle_id: String) -> CommandResult<OpenBundleResult> {
+fn open_bundle(app: AppHandle, bundle_id: String, role: String) -> CommandResult<OpenBundleResult> {
+  if !is_valid_role(&role) {
+    return Err(format!("Invalid role: {role}"));
+  }
+
   let bundle_root = bundles_dir(&app)?.join(&bundle_id);
   let manifest_path = bundle_root.join("manifest.json");
   let manifest_bytes = fs::read(&manifest_path).map_err(|error| {
@@ -301,25 +473,18 @@ fn open_bundle(app: AppHandle, bundle_id: String) -> CommandResult<OpenBundleRes
     .map_err(|error| format!("Invalid manifest {}: {error}", manifest_path.display()))?;
 
   for asset in &manifest.assets {
-    ensure_valid_relative_path(&asset.bundle_relative_path)?;
-    let asset_path = bundle_root.join(&asset.bundle_relative_path);
-    let bytes = fs::read(&asset_path)
-      .map_err(|error| format!("Failed reading bundle asset {}: {error}", asset_path.display()))?;
+    let bytes = read_bundle_asset_bytes(&bundle_root, asset)?;
     let hash = sha256_hex(&bytes);
     if hash != asset.sha256 {
-      let _ = append_audit_internal(
+      append_integrity_failure(
         &app,
-        &AppendAuditRequest {
-          role: "auditor".to_string(),
-          event_type: "bundle.integrity_failed".to_string(),
-          payload: json!({
-            "bundle_id": bundle_id,
-            "asset_id": asset.asset_id,
-            "expected_hash": asset.sha256,
-            "actual_hash": hash,
-          }),
-        },
-      );
+        &bundle_id,
+        &asset.asset_id,
+        json!({
+          "expected_hash": asset.sha256,
+          "actual_hash": hash,
+        }),
+      )?;
       return Err(format!(
         "Bundle integrity failed for asset {} in bundle {}",
         asset.asset_id, bundle_id
@@ -327,34 +492,93 @@ fn open_bundle(app: AppHandle, bundle_id: String) -> CommandResult<OpenBundleRes
     }
   }
 
-  let ui_asset = manifest
+  let workspace_asset = manifest
     .assets
     .iter()
-    .find(|asset| asset.asset_id == "ui-state")
-    .ok_or_else(|| "Bundle missing ui-state asset".to_string())?;
-  let ui_state_path = bundle_root.join(&ui_asset.bundle_relative_path);
-  let ui_state_bytes = fs::read(&ui_state_path).map_err(|error| {
-    format!(
-      "Failed reading UI state asset {}: {error}",
-      ui_state_path.display()
-    )
-  })?;
-  let ui_state = serde_json::from_slice::<Value>(&ui_state_bytes)
-    .map_err(|error| format!("Invalid UI state JSON in bundle {}: {error}", bundle_id))?;
+    .find(|asset| asset.asset_id == "workspace-state")
+    .ok_or_else(|| "Bundle missing workspace-state asset".to_string())?;
+  let query_asset = manifest
+    .assets
+    .iter()
+    .find(|asset| asset.asset_id == "query-state")
+    .ok_or_else(|| "Bundle missing query-state asset".to_string())?;
+  let context_asset = manifest
+    .assets
+    .iter()
+    .find(|asset| asset.asset_id == "context-snapshot")
+    .ok_or_else(|| "Bundle missing context-snapshot asset".to_string())?;
+  let recorder_asset = manifest
+    .assets
+    .iter()
+    .find(|asset| asset.asset_id == "recorder-state")
+    .ok_or_else(|| "Bundle missing recorder-state asset".to_string())?;
+
+  let recorder_state = read_bundle_asset_json::<RecorderState>(
+    &bundle_root,
+    recorder_asset,
+    &bundle_id,
+    "recorder state",
+  )?;
+  let workspace_hash = sha256_hex(&canonical_json_bytes(&recorder_state.workspace)?);
+  let query_hash = sha256_hex(&canonical_json_bytes(&recorder_state.query)?);
+  let context_hash = sha256_hex(&canonical_json_bytes(&recorder_state.context)?);
+
+  if workspace_hash != workspace_asset.sha256 {
+    append_integrity_failure(
+      &app,
+      &bundle_id,
+      "recorder-state",
+      json!({
+        "expected_workspace_hash": workspace_asset.sha256,
+        "actual_workspace_hash": workspace_hash,
+      }),
+    )?;
+    return Err("Recorder state asset does not match workspace-state asset".to_string());
+  }
+  if query_hash != query_asset.sha256 {
+    append_integrity_failure(
+      &app,
+      &bundle_id,
+      "recorder-state",
+      json!({
+        "expected_query_hash": query_asset.sha256,
+        "actual_query_hash": query_hash,
+      }),
+    )?;
+    return Err("Recorder state asset does not match query-state asset".to_string());
+  }
+  if context_hash != context_asset.sha256 {
+    append_integrity_failure(
+      &app,
+      &bundle_id,
+      "recorder-state",
+      json!({
+        "expected_context_hash": context_asset.sha256,
+        "actual_context_hash": context_hash,
+      }),
+    )?;
+    return Err("Recorder state asset does not match context-snapshot asset".to_string());
+  }
+
+  let _ = save_recorder_state_internal(&app, &recorder_state)?;
 
   let _ = append_audit_internal(
     &app,
     &AppendAuditRequest {
-      role: "analyst".to_string(),
+      role,
       event_type: "bundle.open".to_string(),
       payload: json!({
         "bundle_id": bundle_id,
         "ui_state_hash": manifest.ui_state_hash,
+        "asset_ids": manifest.assets.iter().map(|asset| asset.asset_id.clone()).collect::<Vec<_>>(),
       }),
     },
   )?;
 
-  Ok(OpenBundleResult { manifest, ui_state })
+  Ok(OpenBundleResult {
+    manifest,
+    state: recorder_state,
+  })
 }
 
 #[tauri::command]
@@ -425,6 +649,27 @@ fn get_audit_head(app: AppHandle) -> CommandResult<AuditHead> {
   read_audit_head(&app)
 }
 
+#[tauri::command]
+fn save_recorder_state(app: AppHandle, request: SaveRecorderStateRequest) -> CommandResult<RecorderState> {
+  if !is_valid_role(&request.role) {
+    return Err(format!("Invalid role: {}", request.role));
+  }
+  save_recorder_state_internal(&app, &request.state)
+}
+
+#[tauri::command]
+fn load_recorder_state(app: AppHandle) -> CommandResult<LoadRecorderStateResult> {
+  let path = recorder_state_path(&app)?;
+  if !path.exists() {
+    return Ok(LoadRecorderStateResult { state: None });
+  }
+  let bytes = fs::read(&path)
+    .map_err(|error| format!("Failed reading recorder state {}: {error}", path.display()))?;
+  let state = serde_json::from_slice::<RecorderState>(&bytes)
+    .map_err(|error| format!("Invalid recorder state {}: {error}", path.display()))?;
+  Ok(LoadRecorderStateResult { state: Some(state) })
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
   tauri::Builder::default()
@@ -444,7 +689,9 @@ pub fn run() {
       list_bundles,
       append_audit_event,
       list_audit_events,
-      get_audit_head
+      get_audit_head,
+      save_recorder_state,
+      load_recorder_state
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");
@@ -452,7 +699,8 @@ pub fn run() {
 
 #[cfg(test)]
 mod tests {
-  use super::{ensure_valid_relative_path, sha256_hex};
+  use super::{canonical_json_bytes, ensure_valid_relative_path, sha256_hex, ProvenanceRef};
+  use serde_json::json;
 
   #[test]
   fn sha256_hash_is_stable() {
@@ -460,6 +708,43 @@ mod tests {
     let second = sha256_hex(b"stratatlas");
     assert_eq!(first, second);
     assert_eq!(first.len(), 64);
+  }
+
+  #[test]
+  fn canonical_json_sorting_is_stable_for_nested_objects() {
+    let first = json!({
+      "b": 2,
+      "a": {
+        "d": 4,
+        "c": 3
+      }
+    });
+    let second = json!({
+      "a": {
+        "c": 3,
+        "d": 4
+      },
+      "b": 2
+    });
+
+    assert_eq!(
+      canonical_json_bytes(&first).expect("canonicalize first"),
+      canonical_json_bytes(&second).expect("canonicalize second")
+    );
+  }
+
+  #[test]
+  fn provenance_ref_accepts_camel_case_fields() {
+    let value = json!({
+      "source": "test",
+      "license": "internal",
+      "retrievedAt": "2026-03-06T00:00:00Z",
+      "pipelineVersion": "i0-002"
+    });
+
+    let parsed: ProvenanceRef = serde_json::from_value(value).expect("parse provenance ref");
+    assert_eq!(parsed.retrieved_at, "2026-03-06T00:00:00Z");
+    assert_eq!(parsed.pipeline_version, "i0-002");
   }
 
   #[test]

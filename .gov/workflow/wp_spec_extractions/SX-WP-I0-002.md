@@ -4,7 +4,7 @@ Generated On: 2026-03-06
 Linked Work Packet: WP-I0-002
 Linked Test Suite: .gov/workflow/wp_test_suites/TS-WP-I0-002.md
 Linked WP Check Script: .gov/workflow/wp_checks/check-WP-I0-002.ps1
-WP Status Snapshot: IN-PROGRESS
+WP Status Snapshot: IMPLEMENTED
 Iteration: I0
 
 ## Scope
@@ -36,9 +36,9 @@ Concrete extraction of requirement and primitive obligations this WP must satisf
 
 | Primitive | Name | Contract | REQs | First Iter | Status |
 |-----------|------|----------|------|------------|--------|
-| PRIM-0032 | Recorder State Store | Persist workspace, query, layer, and context state through the backend instead of only in React component memory | REQ-0008, REQ-0009, REQ-0010, REQ-0101..REQ-0112, REQ-0808 | I0 | SPEC-MAPPED |
-| PRIM-0033 | Bundle Asset Snapshot Registry | Capture multiple typed bundle assets with stable `asset_id` and `sha256` references | REQ-0008, REQ-0009, REQ-0010, REQ-0101..REQ-0112 | I0 | SPEC-MAPPED |
-| PRIM-0034 | Context Snapshot Artifact | Bundle capture of active context domains, correlation selections, and related query/config state | REQ-0101..REQ-0112, REQ-0808 | I0 | SPEC-MAPPED |
+| PRIM-0032 | Recorder State Store | Persist workspace, query, layer, and context state through the backend instead of only in React component memory | REQ-0008, REQ-0009, REQ-0010, REQ-0101..REQ-0112, REQ-0808 | I0 | IMPLEMENTED |
+| PRIM-0033 | Bundle Asset Snapshot Registry | Capture multiple typed bundle assets with stable `asset_id` and `sha256` references | REQ-0008, REQ-0009, REQ-0010, REQ-0101..REQ-0112 | I0 | IMPLEMENTED |
+| PRIM-0034 | Context Snapshot Artifact | Bundle capture of active context domains, correlation selections, and related query/config state | REQ-0101..REQ-0112, REQ-0808 | I0 | IMPLEMENTED |
 
 ## Traceability Hooks
 
