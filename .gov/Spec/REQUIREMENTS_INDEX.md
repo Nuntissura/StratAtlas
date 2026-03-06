@@ -122,11 +122,11 @@ REQ-NNNN | LEVEL | Ã‚Â§Section | Description | Iteration Target | Status
 
 | ID | Level | Section | Description | Target | Status |
 |----|-------|---------|-------------|--------|--------|
-| REQ-0500 | MUST | Ã‚Â§14 | Scenario forks linked to parent snapshots | I4 | IN-PROGRESS |
-| REQ-0501 | MUST | Ã‚Â§14 | Constraint manipulation in scenario forks | I4 | IN-PROGRESS |
-| REQ-0502 | MUST | Ã‚Â§14 | Hypothetical entities in scenario forks | I4 | IN-PROGRESS |
-| REQ-0503 | MUST | Ã‚Â§14 | Scenario comparison and export | I4 | IN-PROGRESS |
-| REQ-0504 | MUST | Ã‚Â§11.3 | Golden flow: Fork Ã¢â€ â€™ Modify Constraints Ã¢â€ â€™ Compare Ã¢â€ â€™ Export Scenario Bundle | I4 | IN-PROGRESS |
+| REQ-0500 | MUST | Ã‚Â§14 | Scenario forks linked to parent snapshots | I4 | E2E-VERIFIED |
+| REQ-0501 | MUST | Ã‚Â§14 | Constraint manipulation in scenario forks | I4 | E2E-VERIFIED |
+| REQ-0502 | MUST | Ã‚Â§14 | Hypothetical entities in scenario forks | I4 | E2E-VERIFIED |
+| REQ-0503 | MUST | Ã‚Â§14 | Scenario comparison and export | I4 | E2E-VERIFIED |
+| REQ-0504 | MUST | Ã‚Â§11.3 | Golden flow: Fork Ã¢â€ â€™ Modify Constraints Ã¢â€ â€™ Compare Ã¢â€ â€™ Export Scenario Bundle | I4 | E2E-VERIFIED |
 
 ---
 
@@ -245,5 +245,4 @@ REQ-NNNN | LEVEL | Ã‚Â§Section | Description | Iteration Target | Status
 | **Total** | **117** |
 
 *Note: This index captures the primary normative requirements. Sub-specs will decompose these into finer-grained implementation requirements with IDs in the REQ-NNxx range (e.g., REQ-0101a, REQ-0101b).*
-
 

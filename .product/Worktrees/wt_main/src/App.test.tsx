@@ -8,6 +8,14 @@ import {
   setEphemeralViewState,
   upsertSharedArtifact,
 } from './features/i3/collaboration'
+import {
+  addHypotheticalEntity,
+  createScenarioFork,
+  createScenarioState,
+  exportScenarioBundle,
+  setConstraint,
+  setScenarioExportArtifact,
+} from './features/i4/scenarios'
 import { backend } from './lib/backend'
 
 const buildStoredCollaborationSnapshot = (sharedNote: string, viewState: string) => {
@@ -22,6 +30,59 @@ const buildStoredCollaborationSnapshot = (sharedNote: string, viewState: string)
     viewState,
   })
   return snapshot
+}
+
+const buildStoredScenarioSnapshot = () => {
+  let snapshot = createScenarioState('bundle-hydrated')
+  snapshot = createScenarioFork(snapshot, {
+    title: 'Hydrated baseline',
+    parentBundleId: 'bundle-hydrated',
+    now: '2026-03-06T00:00:00.000Z',
+    provenanceSummary: 'Hydrated bundle baseline',
+  })
+  const baselineScenarioId = snapshot.selectedScenarioId
+  snapshot = setConstraint(snapshot, baselineScenarioId, {
+    constraintId: 'port_capacity',
+    label: 'Port Capacity',
+    value: 65,
+    unit: 'index',
+    rationale: 'Hydrated baseline capacity',
+    propagationWeight: 1.5,
+    now: '2026-03-06T00:05:00.000Z',
+  })
+  snapshot = createScenarioFork(snapshot, {
+    title: 'Hydrated surge',
+    parentBundleId: 'bundle-hydrated',
+    parentScenarioId: baselineScenarioId,
+    now: '2026-03-06T00:10:00.000Z',
+    provenanceSummary: 'Hydrated surge fork',
+  })
+  snapshot = setConstraint(snapshot, snapshot.selectedScenarioId, {
+    constraintId: 'port_capacity',
+    label: 'Port Capacity',
+    value: 40,
+    unit: 'index',
+    rationale: 'Hydrated surge congestion',
+    propagationWeight: 1.5,
+    now: '2026-03-06T00:12:00.000Z',
+  })
+  snapshot = addHypotheticalEntity(snapshot, snapshot.selectedScenarioId, {
+    entityId: 'floating-depot',
+    name: 'Floating depot',
+    entityType: 'asset',
+    changeSummary: 'Adds surge buffer storage',
+    provenanceSource: 'Hydrated scenario packet',
+    confidence: 'B',
+    now: '2026-03-06T00:13:00.000Z',
+  })
+  return setScenarioExportArtifact(
+    snapshot,
+    exportScenarioBundle(snapshot, {
+      leftScenarioId: baselineScenarioId,
+      rightScenarioId: snapshot.selectedScenarioId,
+      offline: true,
+    }),
+  )
 }
 
 describe('App', () => {
@@ -100,6 +161,7 @@ describe('App', () => {
           eventSeries: [6, 7, 9],
         },
         collaboration: buildStoredCollaborationSnapshot('Hydrated shared note', 'zoom-6'),
+        scenario: buildStoredScenarioSnapshot(),
         selectedBundleId: undefined,
         savedAt: '2026-03-06T00:00:00.000Z',
       },
@@ -121,6 +183,10 @@ describe('App', () => {
     await user.selectOptions(screen.getByLabelText('Mode'), 'collaboration')
     expect(screen.getByDisplayValue('Hydrated shared note')).toBeInTheDocument()
     expect(screen.getByDisplayValue('zoom-6')).toBeInTheDocument()
+
+    await user.selectOptions(screen.getByLabelText('Mode'), 'scenario')
+    expect((await screen.findAllByText('Hydrated surge')).length).toBeGreaterThan(0)
+    expect((await screen.findAllByText(/Floating depot/)).length).toBeGreaterThan(0)
   })
 
   it('renders required I1 UI regions', async () => {
@@ -198,6 +264,52 @@ describe('App', () => {
     expect(scope.getByText(/analyst-2 \| artifact\.upsert/)).toBeInTheDocument()
     expect(scope.getByText(/analyst-2 \| view\.ephemeral/)).toBeInTheDocument()
     expect(scope.getByText(/analyst-1 \| conflict\.resolved/)).toBeInTheDocument()
+  })
+
+  it('runs the scenario fork, compare, and export workflow', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.click(screen.getByRole('button', { name: 'Create Bundle' }))
+    expect(await screen.findByText(/Bundle .* created/)).toBeInTheDocument()
+
+    await user.selectOptions(screen.getByLabelText('Mode'), 'scenario')
+    expect(await screen.findByText('Scenario Fork / Constraint Propagation / Export (I4)')).toBeInTheDocument()
+
+    await user.clear(screen.getByLabelText('Scenario Title'))
+    await user.type(screen.getByLabelText('Scenario Title'), 'Baseline scenario')
+    await user.click(screen.getByRole('button', { name: 'Fork Scenario' }))
+    expect((await screen.findAllByText('Baseline scenario')).length).toBeGreaterThan(0)
+
+    await user.clear(screen.getByLabelText('Constraint Value'))
+    await user.type(screen.getByLabelText('Constraint Value'), '72')
+    await user.click(screen.getByRole('button', { name: 'Apply Constraint' }))
+
+    await user.clear(screen.getByLabelText('Scenario Title'))
+    await user.type(screen.getByLabelText('Scenario Title'), 'Surge scenario')
+    await user.click(screen.getByRole('button', { name: 'Fork Scenario' }))
+    expect((await screen.findAllByText('Surge scenario')).length).toBeGreaterThan(0)
+
+    await user.clear(screen.getByLabelText('Constraint Value'))
+    await user.type(screen.getByLabelText('Constraint Value'), '48')
+    await user.click(screen.getByRole('button', { name: 'Apply Constraint' }))
+    await user.clear(screen.getByLabelText('Entity Name'))
+    await user.type(screen.getByLabelText('Entity Name'), 'Floating depot')
+    await user.click(screen.getByRole('button', { name: 'Add Hypothetical Entity' }))
+
+    await user.click(screen.getByRole('button', { name: 'Compare Scenarios' }))
+    expect(
+      (
+        await screen.findAllByText(/1 constraint changes and 1 hypothetical entity changes/)
+      ).length,
+    ).toBeGreaterThan(0)
+
+    await user.click(screen.getByRole('button', { name: 'Export Scenario Bundle' }))
+    const exportCard = await screen.findByTestId('scenario-export-card')
+    const scope = within(exportCard)
+    expect(scope.getByText(/Bundle reference:/)).toBeInTheDocument()
+    expect(scope.getByText(/scenario-export-/)).toBeInTheDocument()
+    expect(scope.getByText(/Compared scenario-1 -> scenario-2/)).toBeInTheDocument()
   })
 
   it('renders governed layer metadata, labels, and model uncertainty', async () => {
@@ -315,6 +427,8 @@ describe('App', () => {
       await user.clear(screen.getByLabelText('Minimum Speed'))
       await user.type(screen.getByLabelText('Minimum Speed'), '30')
       await user.click(screen.getByRole('button', { name: 'Save Query Version' }))
+      await user.click(screen.getByRole('button', { name: 'Create Bundle' }))
+      expect(await screen.findByText(/Bundle .* created/)).toBeInTheDocument()
       await user.selectOptions(screen.getByLabelText('Mode'), 'collaboration')
       await user.clear(screen.getByLabelText('Shared Note'))
       await user.type(screen.getByLabelText('Shared Note'), 'Collab saved note')
@@ -322,6 +436,22 @@ describe('App', () => {
       await user.clear(screen.getByLabelText('Local View State'))
       await user.type(screen.getByLabelText('Local View State'), 'zoom-5')
       await user.click(screen.getByRole('button', { name: 'Apply Local View State' }))
+      await user.selectOptions(screen.getByLabelText('Mode'), 'scenario')
+      await user.clear(screen.getByLabelText('Scenario Title'))
+      await user.type(screen.getByLabelText('Scenario Title'), 'Saved baseline')
+      await user.click(screen.getByRole('button', { name: 'Fork Scenario' }))
+      await user.clear(screen.getByLabelText('Constraint Value'))
+      await user.type(screen.getByLabelText('Constraint Value'), '68')
+      await user.click(screen.getByRole('button', { name: 'Apply Constraint' }))
+      await user.clear(screen.getByLabelText('Scenario Title'))
+      await user.type(screen.getByLabelText('Scenario Title'), 'Saved surge')
+      await user.click(screen.getByRole('button', { name: 'Fork Scenario' }))
+      expect((await screen.findAllByText('Saved surge')).length).toBeGreaterThan(0)
+      await user.clear(screen.getByLabelText('Constraint Value'))
+      await user.type(screen.getByLabelText('Constraint Value'), '44')
+      await user.click(screen.getByRole('button', { name: 'Apply Constraint' }))
+      await user.click(screen.getByRole('button', { name: 'Compare Scenarios' }))
+      await user.click(screen.getByRole('button', { name: 'Export Scenario Bundle' }))
       await user.selectOptions(screen.getByLabelText('Mode'), 'replay')
       await user.click(screen.getByRole('button', { name: 'Create Bundle' }))
       expect(await screen.findByText(/Bundle .* created/)).toBeInTheDocument()
@@ -351,6 +481,10 @@ describe('App', () => {
       await user.selectOptions(screen.getByLabelText('Mode'), 'collaboration')
       expect(screen.getByDisplayValue('Collab saved note')).toBeInTheDocument()
       expect(screen.getByDisplayValue('zoom-5')).toBeInTheDocument()
+
+      await user.selectOptions(screen.getByLabelText('Mode'), 'scenario')
+      expect((await screen.findAllByText('Saved surge')).length).toBeGreaterThan(0)
+      expect(screen.getByText(/Compared scenario-1 -> scenario-2/)).toBeInTheDocument()
     },
     15000,
   )

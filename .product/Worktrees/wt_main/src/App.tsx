@@ -46,6 +46,21 @@ import {
   type CollaborationConflictResolution,
   type CollaborationStateSnapshot,
 } from './features/i3/collaboration'
+import {
+  addHypotheticalEntity,
+  compareScenarios,
+  createScenarioFork,
+  createScenarioState,
+  exportScenarioBundle,
+  normalizeScenarioState,
+  setComparisonScenario,
+  setConstraint,
+  setScenarioExportArtifact,
+  setSelectedScenario,
+  type EntityConfidence,
+  type HypotheticalEntityType,
+  type ScenarioStateSnapshot,
+} from './features/i4/scenarios'
 import { runQuery, bumpQueryVersion, type VersionedQuery } from './features/i5/queryBuilder'
 import type { QueryCondition, QueryOperator } from './features/i5/queryBuilder'
 import { submitAiAnalysis } from './features/i6/aiGateway'
@@ -80,6 +95,18 @@ const DEFAULT_REMOTE_COLLABORATION_ACTOR = 'analyst-2'
 const DEFAULT_REMOTE_COLLABORATION_NOTE = 'Remote counterpoint'
 const DEFAULT_REMOTE_COLLABORATION_VIEW = 'zoom-8'
 const DEFAULT_CORRELATION_AOI = 'aoi-1'
+const DEFAULT_SCENARIO_TITLE = 'Scenario 1'
+const DEFAULT_SCENARIO_CONSTRAINT_ID = 'port_capacity'
+const DEFAULT_SCENARIO_CONSTRAINT_LABEL = 'Port Capacity'
+const DEFAULT_SCENARIO_CONSTRAINT_VALUE = 70
+const DEFAULT_SCENARIO_CONSTRAINT_UNIT = 'index'
+const DEFAULT_SCENARIO_CONSTRAINT_RATIONALE = 'Analyst-adjusted throughput assumption'
+const DEFAULT_SCENARIO_CONSTRAINT_WEIGHT = 1.5
+const DEFAULT_HYPOTHETICAL_ENTITY_NAME = 'Floating depot'
+const DEFAULT_HYPOTHETICAL_ENTITY_TYPE: HypotheticalEntityType = 'asset'
+const DEFAULT_HYPOTHETICAL_ENTITY_CHANGE = 'Adds temporary storage and surge routing slack.'
+const DEFAULT_HYPOTHETICAL_ENTITY_SOURCE = 'Curated analyst scenario note'
+const DEFAULT_HYPOTHETICAL_ENTITY_CONFIDENCE: EntityConfidence = 'B'
 const QUERY_OPERATORS: QueryOperator[] = ['equals', 'greater_than', 'less_than', 'contains']
 
 const modeLabel = (forcedOffline: boolean): string =>
@@ -282,6 +309,8 @@ const createDefaultCollaborationSnapshot = (): CollaborationStateSnapshot =>
     DEFAULT_LOCAL_COLLABORATION_ACTOR,
   )
 
+const createDefaultScenarioSnapshot = (): ScenarioStateSnapshot => createScenarioState()
+
 interface QueuedRemoteCollaborationChange {
   changeId: string
   kind: 'shared' | 'ephemeral'
@@ -348,6 +377,30 @@ function App() {
   )
   const [remoteSharedQueuedAt, setRemoteSharedQueuedAt] = useState<string | null>(null)
   const [remoteViewQueuedAt, setRemoteViewQueuedAt] = useState<string | null>(null)
+  const [scenario, setScenario] = useState<ScenarioStateSnapshot>(() => createDefaultScenarioSnapshot())
+  const [scenarioTitleInput, setScenarioTitleInput] = useState<string>(DEFAULT_SCENARIO_TITLE)
+  const [scenarioConstraintIdInput, setScenarioConstraintIdInput] =
+    useState<string>(DEFAULT_SCENARIO_CONSTRAINT_ID)
+  const [scenarioConstraintLabelInput, setScenarioConstraintLabelInput] =
+    useState<string>(DEFAULT_SCENARIO_CONSTRAINT_LABEL)
+  const [scenarioConstraintValueInput, setScenarioConstraintValueInput] =
+    useState<number>(DEFAULT_SCENARIO_CONSTRAINT_VALUE)
+  const [scenarioConstraintUnitInput, setScenarioConstraintUnitInput] =
+    useState<string>(DEFAULT_SCENARIO_CONSTRAINT_UNIT)
+  const [scenarioConstraintRationaleInput, setScenarioConstraintRationaleInput] =
+    useState<string>(DEFAULT_SCENARIO_CONSTRAINT_RATIONALE)
+  const [scenarioConstraintWeightInput, setScenarioConstraintWeightInput] =
+    useState<number>(DEFAULT_SCENARIO_CONSTRAINT_WEIGHT)
+  const [scenarioEntityNameInput, setScenarioEntityNameInput] =
+    useState<string>(DEFAULT_HYPOTHETICAL_ENTITY_NAME)
+  const [scenarioEntityTypeInput, setScenarioEntityTypeInput] =
+    useState<HypotheticalEntityType>(DEFAULT_HYPOTHETICAL_ENTITY_TYPE)
+  const [scenarioEntityChangeInput, setScenarioEntityChangeInput] =
+    useState<string>(DEFAULT_HYPOTHETICAL_ENTITY_CHANGE)
+  const [scenarioEntitySourceInput, setScenarioEntitySourceInput] =
+    useState<string>(DEFAULT_HYPOTHETICAL_ENTITY_SOURCE)
+  const [scenarioEntityConfidenceInput, setScenarioEntityConfidenceInput] =
+    useState<EntityConfidence>(DEFAULT_HYPOTHETICAL_ENTITY_CONFIDENCE)
   const [briefingArtifact, setBriefingArtifact] = useState<BriefingArtifactPreview | null>(null)
   const [hydrated, setHydrated] = useState<boolean>(false)
   const [stateFeedback, setStateFeedback] = useState<StateChangeFeedback>(() =>
@@ -448,6 +501,34 @@ function App() {
   const collaborationReplayFrame = useMemo(
     () => buildCollaborationReplayFrame(collaboration),
     [collaboration],
+  )
+  const selectedScenario = useMemo(
+    () =>
+      scenario.scenarios.find((entry) => entry.scenarioId === scenario.selectedScenarioId) ??
+      scenario.scenarios[0],
+    [scenario],
+  )
+  const comparisonScenario = useMemo(
+    () =>
+      scenario.scenarios.find((entry) => entry.scenarioId === scenario.comparisonScenarioId) ??
+      scenario.scenarios.find((entry) => entry.scenarioId !== selectedScenario?.scenarioId),
+    [scenario, selectedScenario?.scenarioId],
+  )
+  const scenarioComparison = useMemo(
+    () =>
+      selectedScenario && comparisonScenario
+        ? compareScenarios(comparisonScenario, selectedScenario)
+        : null,
+    [comparisonScenario, selectedScenario],
+  )
+  const scenarioBundleMismatch = useMemo(
+    () =>
+      Boolean(
+        selectedBundleId &&
+          scenario.parentBundleId &&
+          scenario.parentBundleId !== selectedBundleId,
+      ),
+    [scenario.parentBundleId, selectedBundleId],
   )
   const queuedRemoteChanges = useMemo<QueuedRemoteCollaborationChange[]>(() => {
     const actorId = remoteCollaborationActorInput.trim() || DEFAULT_REMOTE_COLLABORATION_ACTOR
@@ -600,6 +681,7 @@ function App() {
       context: contextSnapshot,
       compare: compareSnapshot,
       collaboration,
+      scenario,
       selectedBundleId: selectedBundleId || undefined,
     }),
     [
@@ -607,6 +689,7 @@ function App() {
       compareSnapshot,
       contextSnapshot,
       querySnapshot,
+      scenario,
       selectedBundleId,
       workspaceSnapshot,
     ],
@@ -623,6 +706,7 @@ function App() {
       state.collaboration,
       DEFAULT_LOCAL_COLLABORATION_ACTOR,
     )
+    const scenarioState = normalizeScenarioState(state.scenario)
     const restoredDomains = normalizeDomains(context.domains)
     const restoredActiveDomainIds = normalizeStringArray(context.activeDomainIds).filter((domainId) =>
       restoredDomains.some((domain) => domain.domain_id === domainId),
@@ -654,6 +738,23 @@ function App() {
       setRemoteCollaborationViewInput(DEFAULT_REMOTE_COLLABORATION_VIEW)
       setRemoteSharedQueuedAt(null)
       setRemoteViewQueuedAt(null)
+      setScenario(scenarioState)
+      setScenarioTitleInput(
+        scenarioState.scenarios.length > 0
+          ? `Scenario ${scenarioState.scenarios.length + 1}`
+          : DEFAULT_SCENARIO_TITLE,
+      )
+      setScenarioConstraintIdInput(DEFAULT_SCENARIO_CONSTRAINT_ID)
+      setScenarioConstraintLabelInput(DEFAULT_SCENARIO_CONSTRAINT_LABEL)
+      setScenarioConstraintValueInput(DEFAULT_SCENARIO_CONSTRAINT_VALUE)
+      setScenarioConstraintUnitInput(DEFAULT_SCENARIO_CONSTRAINT_UNIT)
+      setScenarioConstraintRationaleInput(DEFAULT_SCENARIO_CONSTRAINT_RATIONALE)
+      setScenarioConstraintWeightInput(DEFAULT_SCENARIO_CONSTRAINT_WEIGHT)
+      setScenarioEntityNameInput(DEFAULT_HYPOTHETICAL_ENTITY_NAME)
+      setScenarioEntityTypeInput(DEFAULT_HYPOTHETICAL_ENTITY_TYPE)
+      setScenarioEntityChangeInput(DEFAULT_HYPOTHETICAL_ENTITY_CHANGE)
+      setScenarioEntitySourceInput(DEFAULT_HYPOTHETICAL_ENTITY_SOURCE)
+      setScenarioEntityConfidenceInput(DEFAULT_HYPOTHETICAL_ENTITY_CONFIDENCE)
       setVersionedQuery(normalizeVersionedQuery(query.definition))
       setDomains(restoredDomains)
       setActiveDomainIds(restoredActiveDomainIds)
@@ -712,6 +813,7 @@ function App() {
             context: persisted.state.context,
             compare: persisted.state.compare,
             collaboration: persisted.state.collaboration,
+            scenario: persisted.state.scenario,
             selectedBundleId: persisted.state.selectedBundleId,
           })
           setStatus('Recorder state restored')
@@ -764,6 +866,7 @@ function App() {
             context: savedState.context,
             compare: savedState.compare,
             collaboration: savedState.collaboration,
+            scenario: savedState.scenario,
             selectedBundleId: savedState.selectedBundleId,
           })
         }
@@ -867,6 +970,7 @@ function App() {
         context: result.state.context,
         compare: result.state.compare,
         collaboration: result.state.collaboration,
+        scenario: result.state.scenario,
         selectedBundleId: result.manifest.bundle_id,
       })
       await refresh()
@@ -1147,6 +1251,179 @@ function App() {
       resolution,
     })
     completeMeasuredAction('Collaboration conflict resolution', startedAt)
+  }
+
+  const appendScenarioAudit = (eventType: string, payload: Record<string, unknown>): void => {
+    void backend
+      .appendAudit({
+        role,
+        event_type: eventType,
+        payload,
+      })
+      .then(() => refresh())
+      .catch(() => {
+        // Scenario state remains locally functional when audit persistence is unavailable.
+      })
+  }
+
+  const onCreateScenarioFork = () => {
+    if (!selectedBundleId) {
+      setStatus('Create or select a parent bundle before forking a scenario.')
+      return
+    }
+
+    const startedAt = beginMeasuredAction('Scenario fork create')
+    const baseSnapshot =
+      scenario.parentBundleId && scenario.parentBundleId !== selectedBundleId
+        ? createScenarioState(selectedBundleId)
+        : scenario.parentBundleId
+          ? scenario
+          : createScenarioState(selectedBundleId)
+    const next = createScenarioFork(baseSnapshot, {
+      title: scenarioTitleInput,
+      parentBundleId: selectedBundleId,
+      parentScenarioId: baseSnapshot.selectedScenarioId || undefined,
+      marking,
+      provenanceSummary: `Parent bundle ${selectedBundleId} | ${offline ? 'cached offline fork' : 'live fork'}`,
+    })
+    setScenario(next)
+    setScenarioTitleInput(`Scenario ${next.scenarios.length + 1}`)
+    setStatus(`Scenario ${next.selectedScenarioId} forked from bundle ${selectedBundleId}`)
+    appendScenarioAudit('scenario.fork_created', {
+      bundle_id: selectedBundleId,
+      scenario_id: next.selectedScenarioId,
+      parent_scenario_id: next.comparisonScenarioId || null,
+      offline,
+      marking,
+    })
+    completeMeasuredAction('Scenario fork create', startedAt)
+  }
+
+  const onSelectScenarioFork = (scenarioId: string) => {
+    const startedAt = beginMeasuredAction('Scenario selection change')
+    setScenario((previous) => setSelectedScenario(previous, scenarioId))
+    completeMeasuredAction('Scenario selection change', startedAt)
+  }
+
+  const onSelectComparisonScenario = (scenarioId: string) => {
+    const startedAt = beginMeasuredAction('Scenario comparison target change')
+    setScenario((previous) => setComparisonScenario(previous, scenarioId))
+    completeMeasuredAction('Scenario comparison target change', startedAt)
+  }
+
+  const onApplyScenarioConstraint = () => {
+    if (!selectedScenario) {
+      setStatus('Fork a scenario before applying constraints.')
+      return
+    }
+
+    const startedAt = beginMeasuredAction('Scenario constraint update')
+    const next = setConstraint(scenario, selectedScenario.scenarioId, {
+      constraintId: scenarioConstraintIdInput,
+      label: scenarioConstraintLabelInput,
+      value: scenarioConstraintValueInput,
+      unit: scenarioConstraintUnitInput,
+      rationale: scenarioConstraintRationaleInput,
+      propagationWeight: scenarioConstraintWeightInput,
+    })
+    setScenario(next)
+    setStatus(`Constraint ${scenarioConstraintIdInput} updated on ${selectedScenario.title}`)
+    appendScenarioAudit('scenario.constraint_updated', {
+      bundle_id: next.parentBundleId,
+      scenario_id: selectedScenario.scenarioId,
+      constraint_id: scenarioConstraintIdInput,
+      value: scenarioConstraintValueInput,
+      propagation_weight: scenarioConstraintWeightInput,
+    })
+    completeMeasuredAction('Scenario constraint update', startedAt)
+  }
+
+  const onAddScenarioEntity = () => {
+    if (!selectedScenario) {
+      setStatus('Fork a scenario before adding hypothetical entities.')
+      return
+    }
+
+    const startedAt = beginMeasuredAction('Scenario hypothetical entity add')
+    const entityId = scenarioEntityNameInput
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '')
+    const next = addHypotheticalEntity(scenario, selectedScenario.scenarioId, {
+      entityId: entityId || `entity-${selectedScenario.hypotheticalEntities.length + 1}`,
+      name: scenarioEntityNameInput,
+      entityType: scenarioEntityTypeInput,
+      changeSummary: scenarioEntityChangeInput,
+      provenanceSource: scenarioEntitySourceInput,
+      confidence: scenarioEntityConfidenceInput,
+    })
+    setScenario(next)
+    setStatus(`Hypothetical entity added to ${selectedScenario.title}`)
+    appendScenarioAudit('scenario.entity_added', {
+      bundle_id: next.parentBundleId,
+      scenario_id: selectedScenario.scenarioId,
+      entity_id: entityId || `entity-${selectedScenario.hypotheticalEntities.length + 1}`,
+      entity_type: scenarioEntityTypeInput,
+      confidence: scenarioEntityConfidenceInput,
+    })
+    completeMeasuredAction('Scenario hypothetical entity add', startedAt)
+  }
+
+  const onCompareScenarioForks = () => {
+    if (!selectedScenario || !comparisonScenario) {
+      setStatus('Select a scenario and comparison target before comparing.')
+      return
+    }
+
+    const startedAt = beginMeasuredAction('Scenario compare')
+    const comparison = compareScenarios(comparisonScenario, selectedScenario)
+    setScenario((previous) => setScenarioExportArtifact(previous, undefined))
+    setStatus(comparison.summary)
+    appendScenarioAudit('scenario.compared', {
+      bundle_id: scenario.parentBundleId,
+      left_scenario_id: comparisonScenario.scenarioId,
+      right_scenario_id: selectedScenario.scenarioId,
+      constraint_delta_count: comparison.constraintDeltaCount,
+      hypothetical_delta_count: comparison.hypotheticalDeltaCount,
+      total_propagation_delta: comparison.totalPropagationDelta,
+    })
+    completeMeasuredAction('Scenario compare', startedAt)
+  }
+
+  const onExportScenarioBundle = () => {
+    if (!selectedScenario || !comparisonScenario) {
+      setStatus('Select a scenario pair before exporting a scenario bundle.')
+      return
+    }
+    if (!scenario.parentBundleId) {
+      setStatus('Scenario export requires a parent bundle reference.')
+      return
+    }
+
+    const startedAt = beginMeasuredAction('Scenario export')
+    const exportArtifact = exportScenarioBundle(scenario, {
+      leftScenarioId: comparisonScenario.scenarioId,
+      rightScenarioId: selectedScenario.scenarioId,
+      offline,
+    })
+    if (!exportArtifact) {
+      setStatus('Scenario export could not be produced from the current state.')
+      completeMeasuredAction('Scenario export', startedAt)
+      return
+    }
+
+    setScenario((previous) => setScenarioExportArtifact(previous, exportArtifact))
+    setStatus(`Scenario export ready for ${exportArtifact.parentBundleId}`)
+    appendScenarioAudit('scenario.export_prepared', {
+      bundle_id: exportArtifact.parentBundleId,
+      artifact_id: exportArtifact.artifactId,
+      export_fingerprint: exportArtifact.exportFingerprint,
+      left_scenario_id: exportArtifact.leftScenarioId,
+      right_scenario_id: exportArtifact.rightScenarioId,
+      offline: exportArtifact.offline,
+    })
+    completeMeasuredAction('Scenario export', startedAt)
   }
 
   const onSubmitAiSummary = () => {
@@ -1863,6 +2140,357 @@ function App() {
                     ))}
                   </ul>
                 </article>
+              </div>
+            </div>
+          )}
+
+          {mode === 'scenario' && (
+            <div className="sub-panel" data-testid="scenario-panel">
+              <h3>Scenario Fork / Constraint Propagation / Export (I4)</h3>
+              <div className="compare-stack">
+                <div className="compare-form-grid">
+                  <label className="field">
+                    Scenario Title
+                    <input
+                      type="text"
+                      value={scenarioTitleInput}
+                      onChange={(event) => setScenarioTitleInput(event.target.value)}
+                    />
+                  </label>
+                  <label className="field">
+                    Active Scenario
+                    <select
+                      value={selectedScenario?.scenarioId ?? ''}
+                      onChange={(event) => onSelectScenarioFork(event.target.value)}
+                    >
+                      <option value="">No scenario selected</option>
+                      {scenario.scenarios.map((entry) => (
+                        <option key={entry.scenarioId} value={entry.scenarioId}>
+                          {entry.title}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="field">
+                    Compare Against
+                    <select
+                      value={comparisonScenario?.scenarioId ?? ''}
+                      onChange={(event) => onSelectComparisonScenario(event.target.value)}
+                    >
+                      <option value="">No comparison target</option>
+                      {scenario.scenarios
+                        .filter((entry) => entry.scenarioId !== selectedScenario?.scenarioId)
+                        .map((entry) => (
+                          <option key={entry.scenarioId} value={entry.scenarioId}>
+                            {entry.title}
+                          </option>
+                        ))}
+                    </select>
+                  </label>
+                  <label className="field">
+                    Constraint Id
+                    <input
+                      type="text"
+                      value={scenarioConstraintIdInput}
+                      onChange={(event) => setScenarioConstraintIdInput(event.target.value)}
+                    />
+                  </label>
+                  <label className="field">
+                    Constraint Label
+                    <input
+                      type="text"
+                      value={scenarioConstraintLabelInput}
+                      onChange={(event) => setScenarioConstraintLabelInput(event.target.value)}
+                    />
+                  </label>
+                  <label className="field">
+                    Constraint Value
+                    <input
+                      type="number"
+                      value={scenarioConstraintValueInput}
+                      onChange={(event) => setScenarioConstraintValueInput(Number(event.target.value))}
+                    />
+                  </label>
+                  <label className="field">
+                    Constraint Unit
+                    <input
+                      type="text"
+                      value={scenarioConstraintUnitInput}
+                      onChange={(event) => setScenarioConstraintUnitInput(event.target.value)}
+                    />
+                  </label>
+                  <label className="field">
+                    Propagation Weight
+                    <input
+                      type="number"
+                      step={0.1}
+                      value={scenarioConstraintWeightInput}
+                      onChange={(event) => setScenarioConstraintWeightInput(Number(event.target.value))}
+                    />
+                  </label>
+                  <label className="field">
+                    Constraint Rationale
+                    <textarea
+                      rows={3}
+                      value={scenarioConstraintRationaleInput}
+                      onChange={(event) => setScenarioConstraintRationaleInput(event.target.value)}
+                    />
+                  </label>
+                  <label className="field">
+                    Entity Name
+                    <input
+                      type="text"
+                      value={scenarioEntityNameInput}
+                      onChange={(event) => setScenarioEntityNameInput(event.target.value)}
+                    />
+                  </label>
+                  <label className="field">
+                    Entity Type
+                    <select
+                      value={scenarioEntityTypeInput}
+                      onChange={(event) =>
+                        setScenarioEntityTypeInput(event.target.value as HypotheticalEntityType)
+                      }
+                    >
+                      <option value="asset">asset</option>
+                      <option value="corridor">corridor</option>
+                      <option value="policy">policy</option>
+                      <option value="actor">actor</option>
+                    </select>
+                  </label>
+                  <label className="field">
+                    Entity Change
+                    <textarea
+                      rows={3}
+                      value={scenarioEntityChangeInput}
+                      onChange={(event) => setScenarioEntityChangeInput(event.target.value)}
+                    />
+                  </label>
+                  <label className="field">
+                    Entity Provenance
+                    <input
+                      type="text"
+                      value={scenarioEntitySourceInput}
+                      onChange={(event) => setScenarioEntitySourceInput(event.target.value)}
+                    />
+                  </label>
+                  <label className="field">
+                    Entity Confidence
+                    <select
+                      value={scenarioEntityConfidenceInput}
+                      onChange={(event) =>
+                        setScenarioEntityConfidenceInput(event.target.value as EntityConfidence)
+                      }
+                    >
+                      <option value="A">A</option>
+                      <option value="B">B</option>
+                      <option value="C">C</option>
+                    </select>
+                  </label>
+                </div>
+
+                <div className="delta-summary-grid">
+                  <article className="telemetry-card">
+                    <span className="metric-label">Parent bundle</span>
+                    <strong>{scenario.parentBundleId || selectedBundleId || 'bundle required'}</strong>
+                    <p>{offline ? 'Offline cached scenario workflow active.' : 'Live bundle context available.'}</p>
+                  </article>
+                  <article className="telemetry-card">
+                    <span className="metric-label">Scenario forks</span>
+                    <strong>{scenario.scenarios.length}</strong>
+                    <p>{selectedScenario ? `${selectedScenario.constraints.length} constraints on focus scenario.` : 'Fork a scenario to start modeling.'}</p>
+                  </article>
+                  <article className="telemetry-card">
+                    <span className="metric-label">Comparison</span>
+                    <strong>{scenarioComparison ? `${scenarioComparison.constraintDeltaCount} deltas` : 'not ready'}</strong>
+                    <p>{scenarioComparison ? `${scenarioComparison.hypotheticalDeltaCount} hypothetical changes.` : 'Select two scenario forks to compare.'}</p>
+                  </article>
+                  <article className="telemetry-card">
+                    <span className="metric-label">Export status</span>
+                    <strong>{scenario.exportArtifact ? 'ready' : 'pending'}</strong>
+                    <p>{scenario.exportArtifact ? `Fingerprint ${scenario.exportArtifact.exportFingerprint}` : 'Export stays deterministic once inputs stop changing.'}</p>
+                  </article>
+                </div>
+
+                <div className="controls">
+                  <button onClick={onCreateScenarioFork}>Fork Scenario</button>
+                  <button onClick={onApplyScenarioConstraint}>Apply Constraint</button>
+                  <button onClick={onAddScenarioEntity}>Add Hypothetical Entity</button>
+                  <button onClick={onCompareScenarioForks}>Compare Scenarios</button>
+                  <button onClick={onExportScenarioBundle}>Export Scenario Bundle</button>
+                </div>
+
+                {scenarioBundleMismatch && (
+                  <article className="surface-card compact">
+                    <strong>Selected bundle differs from current scenario parent</strong>
+                    <p>
+                      Forking again will start a new scenario branch from bundle {selectedBundleId}.
+                    </p>
+                  </article>
+                )}
+
+                <div className="overlay-grid">
+                  {scenario.scenarios.length === 0 && (
+                    <article className="surface-card compact">
+                      <strong>No scenario forks yet</strong>
+                      <p>Create or select a bundle, then fork a scenario to attach constraints and hypothetical entities.</p>
+                    </article>
+                  )}
+                  {scenario.scenarios.map((entry) => (
+                    <article key={entry.scenarioId} className="surface-card compact">
+                      <div className="card-header compact">
+                        <span className={`artifact-chip ${artifactTone('Modeled Output')}`}>
+                          Modeled Output
+                        </span>
+                        <span>{entry.scenarioId}</span>
+                      </div>
+                      <strong>{entry.title}</strong>
+                      <p>
+                        Parent bundle: {entry.parentBundleId}
+                        {entry.parentScenarioId ? ` | Forked from ${entry.parentScenarioId}` : ''}
+                      </p>
+                      <small>
+                        Marking: {entry.marking} | Seed: {entry.solverSeed} | Constraints:{' '}
+                        {entry.constraints.length} | Hypothetical entities:{' '}
+                        {entry.hypotheticalEntities.length}
+                      </small>
+                      <p>{entry.provenanceSummary}</p>
+                    </article>
+                  ))}
+                </div>
+
+                {selectedScenario && (
+                  <article className={`artifact-callout ${artifactTone('Modeled Output')}`}>
+                    <div className="card-header compact">
+                      <span className={`artifact-chip ${artifactTone('Modeled Output')}`}>
+                        Modeled Output
+                      </span>
+                      <span>{selectedScenario.title}</span>
+                    </div>
+                    <p>
+                      Bundle reference: {selectedScenario.parentBundleId} | Modified:{' '}
+                      {selectedScenario.modifiedAt}
+                    </p>
+                    <p>Provenance: {selectedScenario.provenanceSummary}</p>
+                    <div className="overlay-grid">
+                      {selectedScenario.constraints.length === 0 && (
+                        <article className="surface-card compact">
+                          <strong>No constraints yet</strong>
+                          <p>Apply a constraint to start propagation analysis.</p>
+                        </article>
+                      )}
+                      {selectedScenario.constraints.map((constraint) => (
+                        <article key={constraint.constraintId} className="surface-card compact">
+                          <strong>{constraint.label}</strong>
+                          <p>
+                            {constraint.constraintId}: {constraint.value} {constraint.unit}
+                          </p>
+                          <small>
+                            Weight {constraint.propagationWeight} | {constraint.rationale || 'No rationale recorded.'}
+                          </small>
+                        </article>
+                      ))}
+                    </div>
+                    <div className="overlay-grid">
+                      {selectedScenario.hypotheticalEntities.length === 0 && (
+                        <article className="surface-card compact">
+                          <strong>No hypothetical entities yet</strong>
+                          <p>Add an entity to document modeled branch assumptions.</p>
+                        </article>
+                      )}
+                      {selectedScenario.hypotheticalEntities.map((entity) => (
+                        <article key={entity.entityId} className="surface-card compact">
+                          <strong>{entity.name}</strong>
+                          <p>
+                            {entity.entityType} | Confidence {entity.confidence}
+                          </p>
+                          <small>
+                            {entity.changeSummary} | Provenance: {entity.provenanceSource}
+                          </small>
+                        </article>
+                      ))}
+                    </div>
+                  </article>
+                )}
+
+                {scenarioComparison && (
+                  <article className={`artifact-callout ${artifactTone('Observed Evidence')}`}>
+                    <div className="card-header compact">
+                      <span className={`artifact-chip ${artifactTone('Observed Evidence')}`}>
+                        Observed Evidence
+                      </span>
+                      <span>
+                        {comparisonScenario?.title ?? 'Baseline'} {'->'}{' '}
+                        {selectedScenario?.title ?? 'Scenario'}
+                      </span>
+                    </div>
+                    <p>{scenarioComparison.summary}</p>
+                    <p>
+                      Total propagation delta: {scenarioComparison.totalPropagationDelta} | Parent bundle:{' '}
+                      {scenario.parentBundleId || 'n/a'}
+                    </p>
+                    <div className="overlay-grid">
+                      {scenarioComparison.constraintDeltas.length === 0 && (
+                        <article className="surface-card compact">
+                          <strong>No constraint deltas</strong>
+                          <p>The compared scenario pair currently matches on numeric constraints.</p>
+                        </article>
+                      )}
+                      {scenarioComparison.constraintDeltas.map((delta) => (
+                        <article key={delta.constraintId} className="surface-card compact">
+                          <strong>{delta.label}</strong>
+                          <p>
+                            {delta.leftValue} {'->'} {delta.rightValue} {delta.unit}
+                          </p>
+                          <small>
+                            Delta {delta.delta} | Propagation impact {delta.propagationImpact}
+                          </small>
+                        </article>
+                      ))}
+                    </div>
+                    <div className="overlay-grid">
+                      {scenarioComparison.hypotheticalDeltas.length === 0 && (
+                        <article className="surface-card compact">
+                          <strong>No hypothetical entity deltas</strong>
+                          <p>Both scenario forks currently reference the same modeled entities.</p>
+                        </article>
+                      )}
+                      {scenarioComparison.hypotheticalDeltas.map((delta) => (
+                        <article key={delta.entityId} className="surface-card compact">
+                          <strong>{delta.name}</strong>
+                          <p>
+                            {delta.change} in {selectedScenario?.title}
+                          </p>
+                        </article>
+                      ))}
+                    </div>
+                  </article>
+                )}
+
+                {scenario.exportArtifact && (
+                  <article
+                    className={`artifact-callout ${artifactTone('Modeled Output')}`}
+                    data-testid="scenario-export-card"
+                  >
+                    <div className="card-header compact">
+                      <span className={`artifact-chip ${artifactTone('Modeled Output')}`}>
+                        Modeled Output
+                      </span>
+                      <span>{scenario.exportArtifact.artifactId}</span>
+                    </div>
+                    <p>{scenario.exportArtifact.summary}</p>
+                    <p>
+                      Bundle reference: {scenario.exportArtifact.parentBundleId} | Export fingerprint:{' '}
+                      {scenario.exportArtifact.exportFingerprint}
+                    </p>
+                    <small>
+                      Compared {scenario.exportArtifact.leftScenarioId} {'->'}{' '}
+                      {scenario.exportArtifact.rightScenarioId} | Marking:{' '}
+                      {scenario.exportArtifact.marking} | Offline:{' '}
+                      {scenario.exportArtifact.offline ? 'yes' : 'no'}
+                    </small>
+                  </article>
+                )}
               </div>
             </div>
           )}

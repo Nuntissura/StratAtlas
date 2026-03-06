@@ -1,7 +1,7 @@
 # WP-I5-001 - Query Builder Versioned Queries
 
 Date Opened: 2026-03-04
-Status: IMPLEMENTED
+Status: IN-PROGRESS
 Iteration: I5
 Workflow Version: 2.0
 Linked Test Suite: .gov/workflow/wp_test_suites/TS-WP-I5-001.md
@@ -41,12 +41,12 @@ Deliver composable query-builder workflows with saved and versioned queries.
 - 2026-03-05: Integrated I0-I10 app shell expanded in .product/Worktrees/wt_main/src/App.tsx with replay/compare/query/AI/context/deviation/OSINT/game-model workflows.
 - 2026-03-05: Sub-spec advanced from STUB to DRAFT and moved into active sub-spec phase.
 
-
 - 2026-03-05: Implementation completed and verified via lint/test/build evidence.
+- 2026-03-06: Reactivated as the current blocking I5 packet after WP-I4-001 proof; prior 2026-03-05 evidence is treated as activation-shell baseline only pending normative I5 delivery.
 
 ## Linked Primitives
 
-- PRIM-0014 | <name> | linked contract for this iteration
+- PRIM-0014 | Versioned Query Contract | composable conditions, rendered results, and saved version lineage
 
 ## Primitive Matrix Impact
 
@@ -106,10 +106,10 @@ Deliver composable query-builder workflows with saved and versioned queries.
 3. Verification/status promotion commit.
 ## Evidence
 
-- Test Suite Execution: PASSING (pnpm lint, pnpm test, pnpm build, cargo test --manifest-path src-tauri/Cargo.toml)
-- Logs: command output captured in Codex session run on 2026-03-05
-- Screenshots/Exports: N/A (CLI-driven validation)
-- Build Artifacts: .product/Worktrees/wt_main/dist
+- Test Suite Execution: activation-shell baseline only from 2026-03-05; normative I5 verification pending current packet delivery
+- Logs: baseline shell evidence references legacy 2026-03-05 session output only
+- Screenshots/Exports: pending current packet delivery
+- Build Artifacts: pending current packet delivery
 - User Sign-off: Pending
 - Proof Artifact: .product/build_target/tool_artifacts/wp_runs/WP-I5-001/
 ## Proof of Implementation

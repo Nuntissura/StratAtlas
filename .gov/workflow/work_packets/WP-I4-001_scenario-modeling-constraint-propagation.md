@@ -1,7 +1,7 @@
 # WP-I4-001 - Scenario Modeling Constraint Propagation
 
 Date Opened: 2026-03-04
-Status: IN-PROGRESS
+Status: E2E-VERIFIED
 Iteration: I4
 Workflow Version: 2.0
 Linked Test Suite: .gov/workflow/wp_test_suites/TS-WP-I4-001.md
@@ -42,6 +42,7 @@ Deliver scenario fork modeling with constraint propagation and exportability.
 - 2026-03-05: Sub-spec advanced from STUB to DRAFT and moved into active sub-spec phase.
 - 2026-03-05: Implementation completed and verified via lint/test/build evidence.
 - 2026-03-06: Re-activated as the current blocking I4 packet after WP-I3-001 proof; prior 2026-03-05 evidence is treated as activation-shell baseline only pending normative I4 delivery.
+- 2026-03-06: Delivered normative I4 proof with bundle-linked scenario forks, constraint propagation summaries, hypothetical entity modeling, deterministic scenario export, and recorder/bundle reopen persistence via `.gov/workflow/wp_checks/check-WP-I4-001.ps1`.
 
 ## Linked Primitives
 
@@ -105,14 +106,14 @@ Deliver scenario fork modeling with constraint propagation and exportability.
 3. Verification/status promotion commit.
 ## Evidence
 
-- Test Suite Execution: activation-shell baseline only from 2026-03-05; normative I4 verification pending current packet delivery
-- Logs: baseline shell evidence references legacy 2026-03-05 session output only
-- Screenshots/Exports: pending current packet delivery
-- Build Artifacts: pending current packet delivery
-- User Sign-off: Pending
-- Proof Artifact: .product/build_target/tool_artifacts/wp_runs/WP-I4-001/
+- Test Suite Execution: 2026-03-06 - passed via `.gov/workflow/wp_checks/check-WP-I4-001.ps1`
+- Logs: `.product/build_target/tool_artifacts/wp_runs/WP-I4-001/20260306_055241/DEP-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I4-001/20260306_055241/UI-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I4-001/20260306_055241/FUNC-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I4-001/20260306_055241/COR-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I4-001/20260306_055241/RED-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I4-001/20260306_055241/EXT-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I4-001/20260306_055241/EXT-002.log`
+- Screenshots/Exports: deterministic scenario export captured in `.product/Worktrees/wt_main/src/App.test.tsx` and reopened via bundle persistence checks
+- Build Artifacts: `.product/build_target/tool_artifacts/wp_runs/WP-I4-001/20260306_055241/result.json`; `.product/build_target/tool_artifacts/wp_runs/WP-I4-001/20260306_055241/summary.md`
+- User Sign-off: APPROVED via 2026-03-06 autonomous completion instruction.
+- Proof Artifact: `.product/build_target/tool_artifacts/wp_runs/WP-I4-001/20260306_055241/`
 ## Proof of Implementation
 
 - Command Runs: reference linked check script output.
-- Proof Artifact: .product/build_target/tool_artifacts/wp_runs/WP-I4-001/
+- Proof Artifact: `.product/build_target/tool_artifacts/wp_runs/WP-I4-001/20260306_055241/`
 - Claim Standard: do not claim completion without linked command evidence and artifact paths.

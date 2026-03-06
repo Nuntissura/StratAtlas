@@ -54,6 +54,8 @@ struct RecorderState {
   compare: Option<Value>,
   #[serde(default)]
   collaboration: Option<Value>,
+  #[serde(default)]
+  scenario: Option<Value>,
   selected_bundle_id: Option<String>,
   saved_at: String,
 }
@@ -420,6 +422,15 @@ fn create_bundle(app: AppHandle, request: CreateBundleRequest) -> CommandResult<
     &request.provenance_refs,
     &captured_at,
   )?;
+  let scenario_asset = write_bundle_asset(
+    &bundle_root,
+    "scenario-state",
+    "assets/scenario_state.json",
+    &request.state.scenario.clone().unwrap_or(Value::Null),
+    &request.marking,
+    &request.provenance_refs,
+    &captured_at,
+  )?;
   let recorder_asset = write_bundle_asset(
     &bundle_root,
     "recorder-state",
@@ -436,6 +447,7 @@ fn create_bundle(app: AppHandle, request: CreateBundleRequest) -> CommandResult<
     context_asset.clone(),
     compare_asset.clone(),
     collaboration_asset.clone(),
+    scenario_asset.clone(),
     recorder_asset.clone(),
   ];
 
@@ -623,6 +635,26 @@ fn open_bundle(app: AppHandle, bundle_id: String, role: String) -> CommandResult
       return Err(
         "Recorder state asset does not match collaboration-state asset".to_string()
       );
+    }
+  }
+  if let Some(scenario_asset) = manifest
+    .assets
+    .iter()
+    .find(|asset| asset.asset_id == "scenario-state")
+  {
+    let recorder_scenario = recorder_state.scenario.clone().unwrap_or(Value::Null);
+    let scenario_hash = sha256_hex(&canonical_json_bytes(&recorder_scenario)?);
+    if scenario_hash != scenario_asset.sha256 {
+      append_integrity_failure(
+        &app,
+        &bundle_id,
+        "recorder-state",
+        json!({
+          "expected_scenario_hash": scenario_asset.sha256,
+          "actual_scenario_hash": scenario_hash,
+        }),
+      )?;
+      return Err("Recorder state asset does not match scenario-state asset".to_string());
     }
   }
 

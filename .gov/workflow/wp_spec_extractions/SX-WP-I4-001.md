@@ -4,7 +4,7 @@ Generated On: 2026-03-06
 Linked Work Packet: WP-I4-001
 Linked Test Suite: .gov/workflow/wp_test_suites/TS-WP-I4-001.md
 Linked WP Check Script: .gov/workflow/wp_checks/check-WP-I4-001.ps1
-WP Status Snapshot: IN-PROGRESS
+WP Status Snapshot: E2E-VERIFIED
 Iteration: I4
 
 ## Scope
@@ -15,17 +15,17 @@ Concrete extraction of requirement and primitive obligations this WP must satisf
 
 | Requirement | Level | Section | Description | Target | Status |
 |-------------|-------|---------|-------------|--------|--------|
-| REQ-0500 | MUST | Ãƒâ€šÃ‚Â§14 | Scenario forks linked to parent snapshots | I4 | IN-PROGRESS |
-| REQ-0501 | MUST | Ãƒâ€šÃ‚Â§14 | Constraint manipulation in scenario forks | I4 | IN-PROGRESS |
-| REQ-0502 | MUST | Ãƒâ€šÃ‚Â§14 | Hypothetical entities in scenario forks | I4 | IN-PROGRESS |
-| REQ-0503 | MUST | Ãƒâ€šÃ‚Â§14 | Scenario comparison and export | I4 | IN-PROGRESS |
-| REQ-0504 | MUST | Ãƒâ€šÃ‚Â§11.3 | Golden flow: Fork ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ Modify Constraints ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ Compare ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ Export Scenario Bundle | I4 | IN-PROGRESS |
+| REQ-0500 | MUST | Ãƒâ€šÃ‚Â§14 | Scenario forks linked to parent snapshots | I4 | E2E-VERIFIED |
+| REQ-0501 | MUST | Ãƒâ€šÃ‚Â§14 | Constraint manipulation in scenario forks | I4 | E2E-VERIFIED |
+| REQ-0502 | MUST | Ãƒâ€šÃ‚Â§14 | Hypothetical entities in scenario forks | I4 | E2E-VERIFIED |
+| REQ-0503 | MUST | Ãƒâ€šÃ‚Â§14 | Scenario comparison and export | I4 | E2E-VERIFIED |
+| REQ-0504 | MUST | Ãƒâ€šÃ‚Â§11.3 | Golden flow: Fork ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ Modify Constraints ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ Compare ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ Export Scenario Bundle | I4 | E2E-VERIFIED |
 
 ## Primitive Extraction
 
 | Primitive | Name | Contract | REQs | First Iter | Status |
 |-----------|------|----------|------|------------|--------|
-| PRIM-0013 | Scenario Fork Contract | Parent-linked scenario constraints/entities | REQ-0500..REQ-0504 | I4 | IMPLEMENTED |
+| PRIM-0013 | Scenario Fork Contract | Parent-linked scenario constraints/entities | REQ-0500..REQ-0504 | I4 | E2E-VERIFIED |
 
 ## Traceability Hooks
 

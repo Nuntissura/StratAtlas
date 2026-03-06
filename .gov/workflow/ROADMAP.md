@@ -42,7 +42,8 @@ This file is the execution order for capability slices. It is the scheduling bri
 - `WP-I2-001` remains the activation-shell baseline with proof at `.product/build_target/tool_artifacts/wp_runs/WP-I2-001/20260306_003742/`.
 - `WP-I2-002` is E2E-VERIFIED with comparative dashboard, compare-state persistence, and briefing artifact proof on 2026-03-06; proof: `.product/build_target/tool_artifacts/wp_runs/WP-I2-002/20260306_050212/`.
 - `WP-I3-001` is E2E-VERIFIED with merge-safe collaboration, reconnect conflict resolution, and attributed replay proof on 2026-03-06; proof: `.product/build_target/tool_artifacts/wp_runs/WP-I3-001/20260306_052546/`.
-- `WP-I4-001` is now the current blocking product packet.
+- `WP-I4-001` is E2E-VERIFIED with scenario fork, bundle-backed persistence, and deterministic export proof on 2026-03-06; proof: `.product/build_target/tool_artifacts/wp_runs/WP-I4-001/20260306_055241/`.
+- `WP-I5-001` is now the current blocking product packet.
 
 ---
 

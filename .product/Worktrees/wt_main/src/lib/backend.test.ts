@@ -7,6 +7,14 @@ import {
   setEphemeralViewState,
   upsertSharedArtifact,
 } from '../features/i3/collaboration'
+import {
+  addHypotheticalEntity,
+  createScenarioFork,
+  createScenarioState,
+  exportScenarioBundle,
+  setScenarioExportArtifact,
+  setConstraint,
+} from '../features/i4/scenarios'
 
 const buildStoredCollaborationSnapshot = (sharedNote: string, viewState: string) => {
   let snapshot = createCollaborationSnapshot('collab-main', 'analyst-1')
@@ -20,6 +28,59 @@ const buildStoredCollaborationSnapshot = (sharedNote: string, viewState: string)
     viewState,
   })
   return snapshot
+}
+
+const buildStoredScenarioSnapshot = () => {
+  let snapshot = createScenarioState('bundle-parent')
+  snapshot = createScenarioFork(snapshot, {
+    title: 'Baseline scenario',
+    parentBundleId: 'bundle-parent',
+    now: '2026-03-06T00:00:00.000Z',
+    provenanceSummary: 'Bundle bundle-parent baseline',
+  })
+  const baselineScenarioId = snapshot.selectedScenarioId
+  snapshot = setConstraint(snapshot, baselineScenarioId, {
+    constraintId: 'port_capacity',
+    label: 'Port Capacity',
+    value: 72,
+    unit: 'index',
+    rationale: 'Nominal throughput',
+    propagationWeight: 1.4,
+    now: '2026-03-06T00:05:00.000Z',
+  })
+  snapshot = createScenarioFork(snapshot, {
+    title: 'Surge scenario',
+    parentBundleId: 'bundle-parent',
+    parentScenarioId: baselineScenarioId,
+    now: '2026-03-06T00:10:00.000Z',
+    provenanceSummary: 'Forked from baseline',
+  })
+  snapshot = setConstraint(snapshot, snapshot.selectedScenarioId, {
+    constraintId: 'port_capacity',
+    label: 'Port Capacity',
+    value: 48,
+    unit: 'index',
+    rationale: 'Congested under surge',
+    propagationWeight: 1.4,
+    now: '2026-03-06T00:15:00.000Z',
+  })
+  snapshot = addHypotheticalEntity(snapshot, snapshot.selectedScenarioId, {
+    entityId: 'entity-b',
+    name: 'Floating depot',
+    entityType: 'asset',
+    changeSummary: 'Introduces temporary fuel storage',
+    provenanceSource: 'Curated logistics brief',
+    confidence: 'B',
+    now: '2026-03-06T00:16:00.000Z',
+  })
+  return setScenarioExportArtifact(
+    snapshot,
+    exportScenarioBundle(snapshot, {
+      leftScenarioId: baselineScenarioId,
+      rightScenarioId: snapshot.selectedScenarioId,
+      offline: true,
+    }),
+  )
 }
 
 const request: CreateBundleRequest = {
@@ -82,6 +143,7 @@ const request: CreateBundleRequest = {
       eventSeries: [8, 18, 20],
     },
     collaboration: buildStoredCollaborationSnapshot('alpha / bravo', 'zoom-8'),
+    scenario: buildStoredScenarioSnapshot(),
     selectedBundleId: undefined,
     savedAt: '2026-03-06T00:00:00.000Z',
   },
@@ -111,6 +173,7 @@ describe('backend fallback', () => {
       'context-snapshot',
       'compare-state',
       'collaboration-state',
+      'scenario-state',
       'recorder-state',
     ])
     expect(reopen.state.workspace.note).toBe('seed state')
@@ -123,6 +186,9 @@ describe('backend fallback', () => {
         (artifact) => artifact.artifactId === DEFAULT_COLLABORATION_ARTIFACT_ID,
       )?.content,
     ).toBe('alpha / bravo')
+    expect(reopen.state.scenario?.parentBundleId).toBe('bundle-parent')
+    expect(reopen.state.scenario?.scenarios).toHaveLength(2)
+    expect(reopen.state.scenario?.exportArtifact?.artifactId).toContain('scenario-export-')
   })
 
   it('loads and saves authoritative recorder state outside bundle reopen', async () => {
@@ -137,6 +203,7 @@ describe('backend fallback', () => {
     expect(restored.state?.context.correlationAoi).toBe('aoi-1')
     expect(restored.state?.compare?.eventWindow.end).toBe('2026-02-28')
     expect(restored.state?.collaboration?.ephemeralViewState).toBe('zoom-8')
+    expect(restored.state?.scenario?.selectedScenarioId).toBe('scenario-2')
   })
 
   it('maintains an append-only hash chain in audit events', async () => {

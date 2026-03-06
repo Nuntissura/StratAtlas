@@ -38,7 +38,7 @@ PRIM-ID | Name | Type | Contract | Spec Anchor | REQs | First Iter | Status | Ow
 | PRIM-0010 | Baseline-Delta Cell Grid | analytics | Deterministic baseline/event delta outputs | Section 13.1 | REQ-0300, REQ-0301 | I2 | IMPLEMENTED | Codex |
 | PRIM-0011 | Briefing Bundle Artifact | export | Briefing bundle payload and summary contract | Section 11.3 | REQ-0302 | I2 | IMPLEMENTED | Codex |
 | PRIM-0012 | Collaboration Session Event | collaboration | Actor-attributed merge-safe session events | Section 10.2 | REQ-0400..REQ-0403 | I3 | E2E-VERIFIED | Codex |
-| PRIM-0013 | Scenario Fork Contract | modeling | Parent-linked scenario constraints/entities | Section 14 | REQ-0500..REQ-0504 | I4 | IMPLEMENTED | Codex |
+| PRIM-0013 | Scenario Fork Contract | modeling | Parent-linked scenario constraints/entities | Section 14 | REQ-0500..REQ-0504 | I4 | E2E-VERIFIED | Codex |
 | PRIM-0014 | Versioned Query Contract | analytics | Query conditions, execution, and versioning | Section 13.2 | REQ-0600..REQ-0604 | I5 | IMPLEMENTED | Codex |
 | PRIM-0015 | AI Gateway Request Contract | ai | Hash-addressed policy-gated AI requests | Section 15.1..15.3 | REQ-0700..REQ-0708 | I6 | IMPLEMENTED | Codex |
 | PRIM-0016 | Context Domain Registration | context | Domain registration metadata contract | Section 7.4.2 | REQ-0800..REQ-0810 | I7 | IMPLEMENTED | Codex |
