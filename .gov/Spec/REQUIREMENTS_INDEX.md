@@ -45,15 +45,15 @@ REQ-NNNN | LEVEL | Ã‚Â§Section | Description | Iteration Target | Status
 | REQ-0020 | MUST | Ã‚Â§17 | WP status claims MUST include proof artifact paths and command evidence | All | E2E-VERIFIED |
 | REQ-0021 | MUST | Ã‚Â§18 | Governance preflight MUST enforce WP template compliance to prevent shortcut execution | All | E2E-VERIFIED |
 | REQ-0022 | SHOULD | Ã‚Â§17 | Teams SHOULD run WP loop automation (`run_wp_loop.ps1`) before status-promotion sweeps | All | E2E-VERIFIED |
-| REQ-0023 | MUST | Ã‚Â§5.2 | Windows distribution MUST provide uninstall, repair, full-repair, update, and downgrade lifecycle operations | All | IMPLEMENTED |
-| REQ-0024 | MUST | Ã‚Â§5.2 | Installer pathway MUST support standard uninstall via Windows installer controls | All | IMPLEMENTED |
-| REQ-0025 | MUST | Ã‚Â§5.2 | Repair MUST preserve user presets/data under AppData paths | All | IMPLEMENTED |
-| REQ-0026 | MUST | Ã‚Â§5.2 | Full-repair MUST clean reinstall binaries and restore user presets/data by default, with explicit data-drop option | All | IMPLEMENTED |
-| REQ-0027 | MUST | Ã‚Â§5.2 | Update operation MUST reject non-newer packages | All | IMPLEMENTED |
-| REQ-0028 | MUST | Ã‚Â§5.2 | Downgrade operation MUST be explicit and auditable | All | IMPLEMENTED |
-| REQ-0029 | SHOULD | Ã‚Â§5.2 | Release kit SHOULD include a maintenance script and lifecycle documentation next to installer artifacts | All | IMPLEMENTED |
-| REQ-0030 | MUST | Ã‚Â§5.2 | Installer build version MUST increase monotonically for rebuilt release artifacts from changed code | All | IMPLEMENTED |
-| REQ-0031 | MUST | Ã‚Â§5.2 | EXE and installer artifacts from the same build MUST use the same version | All | IMPLEMENTED |
+| REQ-0023 | MUST | Ã‚Â§5.2 | Windows distribution MUST provide uninstall, repair, full-repair, update, and downgrade lifecycle operations | All | E2E-VERIFIED |
+| REQ-0024 | MUST | Ã‚Â§5.2 | Installer pathway MUST support standard uninstall via Windows installer controls | All | E2E-VERIFIED |
+| REQ-0025 | MUST | Ã‚Â§5.2 | Repair MUST preserve user presets/data under AppData paths | All | E2E-VERIFIED |
+| REQ-0026 | MUST | Ã‚Â§5.2 | Full-repair MUST clean reinstall binaries and restore user presets/data by default, with explicit data-drop option | All | E2E-VERIFIED |
+| REQ-0027 | MUST | Ã‚Â§5.2 | Update operation MUST reject non-newer packages | All | E2E-VERIFIED |
+| REQ-0028 | MUST | Ã‚Â§5.2 | Downgrade operation MUST be explicit and auditable | All | E2E-VERIFIED |
+| REQ-0029 | SHOULD | Ã‚Â§5.2 | Release kit SHOULD include a maintenance script and lifecycle documentation next to installer artifacts | All | E2E-VERIFIED |
+| REQ-0030 | MUST | Ã‚Â§5.2 | Installer build version MUST increase monotonically for rebuilt release artifacts from changed code | All | E2E-VERIFIED |
+| REQ-0031 | MUST | Ã‚Â§5.2 | EXE and installer artifacts from the same build MUST use the same version | All | E2E-VERIFIED |
 
 ---
 
