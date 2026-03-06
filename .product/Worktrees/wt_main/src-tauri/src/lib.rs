@@ -58,6 +58,8 @@ struct RecorderState {
   scenario: Option<Value>,
   #[serde(default)]
   ai: Option<Value>,
+  #[serde(default)]
+  deviation: Option<Value>,
   selected_bundle_id: Option<String>,
   saved_at: String,
 }
@@ -442,6 +444,15 @@ fn create_bundle(app: AppHandle, request: CreateBundleRequest) -> CommandResult<
     &request.provenance_refs,
     &captured_at,
   )?;
+  let deviation_asset = write_bundle_asset(
+    &bundle_root,
+    "deviation-state",
+    "assets/deviation_state.json",
+    &request.state.deviation.clone().unwrap_or(Value::Null),
+    &request.marking,
+    &request.provenance_refs,
+    &captured_at,
+  )?;
   let recorder_asset = write_bundle_asset(
     &bundle_root,
     "recorder-state",
@@ -460,6 +471,7 @@ fn create_bundle(app: AppHandle, request: CreateBundleRequest) -> CommandResult<
     collaboration_asset.clone(),
     scenario_asset.clone(),
     ai_asset.clone(),
+    deviation_asset.clone(),
     recorder_asset.clone(),
   ];
 
@@ -687,6 +699,26 @@ fn open_bundle(app: AppHandle, bundle_id: String, role: String) -> CommandResult
         }),
       )?;
       return Err("Recorder state asset does not match ai-state asset".to_string());
+    }
+  }
+  if let Some(deviation_asset) = manifest
+    .assets
+    .iter()
+    .find(|asset| asset.asset_id == "deviation-state")
+  {
+    let recorder_deviation = recorder_state.deviation.clone().unwrap_or(Value::Null);
+    let deviation_hash = sha256_hex(&canonical_json_bytes(&recorder_deviation)?);
+    if deviation_hash != deviation_asset.sha256 {
+      append_integrity_failure(
+        &app,
+        &bundle_id,
+        "recorder-state",
+        json!({
+          "expected_deviation_hash": deviation_asset.sha256,
+          "actual_deviation_hash": deviation_hash,
+        }),
+      )?;
+      return Err("Recorder state asset does not match deviation-state asset".to_string());
     }
   }
 

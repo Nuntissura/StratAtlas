@@ -1,7 +1,7 @@
 # WP-I8-001 - Context Deviation Infrastructure Propagation
 
 Date Opened: 2026-03-04
-Status: IN-PROGRESS
+Status: E2E-VERIFIED
 Iteration: I8
 Workflow Version: 2.0
 Linked Test Suite: .gov/workflow/wp_test_suites/TS-WP-I8-001.md
@@ -44,6 +44,7 @@ Deliver context deviation detection and infrastructure propagation in scenarios.
 
 - 2026-03-05: Implementation completed and verified via lint/test/build evidence.
 - 2026-03-06: Reactivated as the current blocking I8 packet after WP-I7-001 proof; prior 2026-03-05 evidence is treated as activation-shell baseline only pending normative I8 delivery.
+- 2026-03-06: Delivered normative I8 workflow with `context.deviation` taxonomy events, persisted `deviation-state` bundle assets, and scenario constraint-node propagation backed by proof artifact `WP-I8-001/20260306_073044`.
 
 ## Linked Primitives
 
@@ -107,14 +108,14 @@ Deliver context deviation detection and infrastructure propagation in scenarios.
 3. Verification/status promotion commit.
 ## Evidence
 
-- Test Suite Execution: activation-shell baseline only from 2026-03-05; normative I8 verification pending current packet delivery
-- Logs: baseline shell evidence references legacy 2026-03-05 session output only
-- Screenshots/Exports: pending current packet delivery
-- Build Artifacts: pending current packet delivery
-- User Sign-off: Pending
-- Proof Artifact: .product/build_target/tool_artifacts/wp_runs/WP-I8-001/
+- Test Suite Execution: 2026-03-06 - passed via `.gov/workflow/wp_checks/check-WP-I8-001.ps1`
+- Logs: `.product/build_target/tool_artifacts/wp_runs/WP-I8-001/20260306_073044/DEP-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I8-001/20260306_073044/UI-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I8-001/20260306_073044/FUNC-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I8-001/20260306_073044/COR-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I8-001/20260306_073044/RED-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I8-001/20260306_073044/EXT-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I8-001/20260306_073044/EXT-002.log`
+- Screenshots/Exports: N/A (proof captured as command logs and persisted recorder artifacts)
+- Build Artifacts: `.product/build_target/tool_artifacts/wp_runs/WP-I8-001/20260306_073044/result.json`; `.product/build_target/tool_artifacts/wp_runs/WP-I8-001/20260306_073044/summary.md`
+- User Sign-off: Approved via 2026-03-06 autonomous completion instruction
+- Proof Artifact: `.product/build_target/tool_artifacts/wp_runs/WP-I8-001/20260306_073044/`
 ## Proof of Implementation
 
 - Command Runs: reference linked check script output.
-- Proof Artifact: .product/build_target/tool_artifacts/wp_runs/WP-I8-001/
+- Proof Artifact: `.product/build_target/tool_artifacts/wp_runs/WP-I8-001/20260306_073044/`
 - Claim Standard: do not claim completion without linked command evidence and artifact paths.

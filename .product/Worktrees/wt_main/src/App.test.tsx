@@ -29,6 +29,7 @@ import {
   buildSampleContextRecords,
   type ContextDomain,
 } from './features/i7/contextIntake'
+import { createDeviationSnapshot, detectDeviation, pushDeviationEvent } from './features/i8/deviation'
 import { backend } from './lib/backend'
 
 const buildStoredCollaborationSnapshot = (sharedNote: string, viewState: string) => {
@@ -240,6 +241,30 @@ const buildStoredContextSnapshot = ({
   }
 }
 
+const buildStoredDeviationSnapshot = () => {
+  const event = detectDeviation(
+    [
+      { ts: '2026-03-06T08:00:00.000Z', value: 100 },
+      { ts: '2026-03-06T10:00:00.000Z', value: 102 },
+    ],
+    [
+      { ts: '2026-03-06T12:00:00.000Z', value: 60 },
+      { ts: '2026-03-06T14:00:00.000Z', value: 58 },
+    ],
+    0.2,
+    'infrastructure',
+    {
+      domainId: 'ctx-1',
+      domainName: 'Port Throughput',
+      targetId: 'aoi-7',
+      confidenceBaseline: 'A',
+    },
+  )
+
+  const snapshot = createDeviationSnapshot()
+  return event ? pushDeviationEvent(snapshot, event) : snapshot
+}
+
 describe('App', () => {
   beforeEach(() => {
     localStorage.clear()
@@ -314,6 +339,7 @@ describe('App', () => {
         collaboration: buildStoredCollaborationSnapshot('Hydrated shared note', 'zoom-6'),
         scenario: buildStoredScenarioSnapshot(),
         ai: buildStoredAiSnapshot(),
+        deviation: buildStoredDeviationSnapshot(),
         selectedBundleId: undefined,
         savedAt: '2026-03-06T00:00:00.000Z',
       },
@@ -344,6 +370,9 @@ describe('App', () => {
     await user.selectOptions(screen.getByLabelText('Mode'), 'scenario')
     expect((await screen.findAllByText('Hydrated surge')).length).toBeGreaterThan(0)
     expect((await screen.findAllByText(/Floating depot/)).length).toBeGreaterThan(0)
+
+    await user.selectOptions(screen.getByLabelText('Mode'), 'live_recent')
+    expect((await screen.findAllByText(/context\.supply_chain_shift/)).length).toBeGreaterThan(0)
   })
 
   it('renders required I1 UI regions', async () => {
@@ -629,6 +658,37 @@ describe('App', () => {
 
     expect(await screen.findByText('Active context domains: 1 | Correlation AOI: aoi-4')).toBeInTheDocument()
     expect(screen.getByText(/Latest value:/)).toBeInTheDocument()
+  })
+
+  it('records a context deviation event and applies a constraint_node domain in the scenario workspace', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.selectOptions(screen.getByLabelText('Presentation Type'), 'constraint_node')
+    await user.click(screen.getByRole('button', { name: 'Register Domain' }))
+    await user.click(screen.getByRole('button', { name: 'Create Bundle' }))
+    expect(await screen.findByText(/Bundle .* created/)).toBeInTheDocument()
+
+    await user.selectOptions(screen.getByLabelText('Mode'), 'live_recent')
+    await user.click(screen.getByRole('button', { name: 'Load Active Domain Series' }))
+    await user.click(screen.getByRole('button', { name: 'Record Deviation Event' }))
+
+    const deviationCard = await screen.findByTestId('deviation-event-card')
+    const deviationScope = within(deviationCard)
+    expect(deviationScope.getByText(/context\.supply_chain_shift/)).toBeInTheDocument()
+    expect(deviationScope.getByText(/^Port Throughput$/)).toBeInTheDocument()
+
+    await user.selectOptions(screen.getByLabelText('Mode'), 'scenario')
+    await user.clear(screen.getByLabelText('Scenario Title'))
+    await user.type(screen.getByLabelText('Scenario Title'), 'Deviation scenario')
+    await user.click(screen.getByRole('button', { name: 'Fork Scenario' }))
+    expect((await screen.findAllByText('Deviation scenario')).length).toBeGreaterThan(0)
+
+    await user.click(screen.getByRole('button', { name: 'Apply Port Throughput Constraint' }))
+    expect(
+      await screen.findByText(/Applied context constraint node Port Throughput to Deviation scenario\./),
+    ).toBeInTheDocument()
+    expect(screen.getAllByText(/modeled scenario input/).length).toBeGreaterThan(0)
   })
 
   it('shows degraded aggregation feedback when the replay frame budget is exceeded', async () => {

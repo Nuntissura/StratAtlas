@@ -107,7 +107,17 @@ import {
   type ContextRecord,
   type ContextTimeRange,
 } from './features/i7/contextIntake'
-import { detectDeviation, type DeviationEvent } from './features/i8/deviation'
+import {
+  buildConstraintNodeSuggestion,
+  createDeviationSnapshot,
+  detectDeviation,
+  detectDeviationFromRecords,
+  normalizeDeviationSnapshot,
+  pushDeviationEvent,
+  type ConstraintNodeSuggestion,
+  type DeviationEvent,
+  type DeviationSnapshot,
+} from './features/i8/deviation'
 import {
   CURATED_OSINT_SOURCES,
   aggregateAlerts,
@@ -174,6 +184,20 @@ const DEFAULT_QUERY_VALUE = '20'
 const DEFAULT_DEPLOYMENT_PROFILE: DeploymentProfileId = 'connected'
 const DEFAULT_MCP_TOOL: McpToolName = 'get_bundle_manifest'
 const QUERY_OPERATORS: QueryOperator[] = ['equals', 'greater_than', 'less_than', 'contains']
+
+const deviationTypeForDomain = (
+  domain: ContextDomain,
+): DeviationEvent['deviation_type'] => {
+  if (domain.domain_class === 'trade_flow') {
+    return 'trade_flow'
+  }
+
+  if (domain.domain_class === 'regulatory') {
+    return 'regulatory'
+  }
+
+  return 'infrastructure'
+}
 
 const modeLabel = (forcedOffline: boolean): string =>
   forcedOffline ? 'Offline (forced)' : 'Online-capable'
@@ -651,6 +675,10 @@ function App() {
   const [deviationThreshold, setDeviationThreshold] = useState<number>(0.2)
   const [deviationType, setDeviationType] =
     useState<DeviationEvent['deviation_type']>('trade_flow')
+  const [selectedDeviationDomainId, setSelectedDeviationDomainId] = useState<string>('')
+  const [deviationSnapshot, setDeviationSnapshot] = useState<DeviationSnapshot>(() =>
+    createDeviationSnapshot(),
+  )
   const [osintSource, setOsintSource] = useState<string>(CURATED_OSINT_SOURCES[0])
   const [osintVerification, setOsintVerification] = useState<VerificationLevel>('reported')
   const [osintAoi, setOsintAoi] = useState<string>('aoi-1')
@@ -915,6 +943,33 @@ function App() {
     remoteViewQueuedAt,
   ])
 
+  const selectedDeviationDomainKey = selectedDeviationDomainId || activeDomainIds[0] || ''
+  const selectedDeviationDomain = useMemo(
+    () => domains.find((domain) => domain.domain_id === selectedDeviationDomainKey),
+    [domains, selectedDeviationDomainKey],
+  )
+  const selectedDeviationRecords = useMemo(
+    () =>
+      contextRecords
+        .filter(
+          (record) =>
+            record.domain_id === selectedDeviationDomain?.domain_id &&
+            record.target_id === correlationAoi,
+        )
+        .sort((left, right) => left.observed_at.localeCompare(right.observed_at)),
+    [contextRecords, correlationAoi, selectedDeviationDomain?.domain_id],
+  )
+  const constraintNodeDomains = useMemo(
+    () => domains.filter((domain) => domain.presentation_type === 'constraint_node'),
+    [domains],
+  )
+  const deviationStateForRecorder = useMemo(
+    () => ({
+      ...deviationSnapshot,
+      selectedDomainId: selectedDeviationDomainKey || undefined,
+    }),
+    [deviationSnapshot, selectedDeviationDomainKey],
+  )
   const deviationEvent = useMemo(
     () =>
       detectDeviation(
@@ -928,8 +983,23 @@ function App() {
         })),
         deviationThreshold,
         deviationType,
+        selectedDeviationDomain
+          ? {
+              domainId: selectedDeviationDomain.domain_id,
+              domainName: selectedDeviationDomain.domain_name,
+              targetId: correlationAoi,
+              confidenceBaseline: selectedDeviationDomain.confidence_baseline,
+            }
+          : undefined,
       ),
-    [deviationBaselineInput, deviationObservedInput, deviationThreshold, deviationType],
+    [
+      correlationAoi,
+      deviationBaselineInput,
+      deviationObservedInput,
+      deviationThreshold,
+      deviationType,
+      selectedDeviationDomain,
+    ],
   )
 
   const osintSummary = useMemo(
@@ -1070,6 +1140,7 @@ function App() {
       collaboration,
       scenario,
       ai: aiSnapshot,
+      deviation: deviationStateForRecorder,
       selectedBundleId: selectedBundleId || undefined,
     }),
     [
@@ -1077,6 +1148,7 @@ function App() {
       collaboration,
       compareSnapshot,
       contextSnapshot,
+      deviationStateForRecorder,
       querySnapshot,
       scenario,
       selectedBundleId,
@@ -1097,6 +1169,7 @@ function App() {
     )
     const scenarioState = normalizeScenarioState(state.scenario)
     const aiState = normalizeAiGatewaySnapshot(state.ai)
+    const deviationState = normalizeDeviationSnapshot(state.deviation)
     const restoredQueryDefinition = normalizeVersionedQuery(query.definition)
     const restoredDomains = normalizeDomains(context.domains)
     const restoredActiveDomainIds = normalizeStringArray(context.activeDomainIds).filter((domainId) =>
@@ -1165,6 +1238,8 @@ function App() {
       setLatestMcpInvocation(aiState.latestMcpInvocation)
       setAiSummary(aiState.latestAnalysis?.content ?? '')
       setSelectedMcpTool(DEFAULT_MCP_TOOL)
+      setDeviationSnapshot(deviationState)
+      setSelectedDeviationDomainId(deviationState.selectedDomainId ?? '')
       setDomains(restoredDomains)
       setActiveDomainIds(restoredActiveDomainIds)
       setCorrelationAoi(restoredCorrelationAoi)
@@ -2135,6 +2210,7 @@ function App() {
       ...previous.filter((record) => record.domain_id !== domain.domain_id),
       ...seededRecords,
     ])
+    setSelectedDeviationDomainId((previous) => previous || domain.domain_id)
     setDomainDraft(createDomainDraft())
     void backend
       .appendAudit({
@@ -2236,6 +2312,120 @@ function App() {
         setStatus('Correlation selection updated locally; audit append unavailable.')
         completeMeasuredAction('Correlation selection save', startedAt)
       })
+  }
+
+  const onLoadDeviationDomainSeries = () => {
+    if (!selectedDeviationDomain || selectedDeviationRecords.length < 2) {
+      setStatus('Select an active context domain with enough records to derive a deviation baseline.')
+      return
+    }
+
+    const midpoint = Math.ceil(selectedDeviationRecords.length / 2)
+    const baselineSeries = selectedDeviationRecords
+      .slice(0, midpoint)
+      .map((record) => record.numeric_value)
+    const observedSeries = selectedDeviationRecords
+      .slice(midpoint)
+      .map((record) => record.numeric_value)
+
+    setDeviationBaselineInput(baselineSeries.join(','))
+    setDeviationObservedInput(observedSeries.join(','))
+    setDeviationType(deviationTypeForDomain(selectedDeviationDomain))
+    setStatus(`Loaded ${selectedDeviationDomain.domain_name} context records into the deviation detector.`)
+  }
+
+  const onRecordDeviationEvent = () => {
+    const eventToRecord =
+      deviationEvent ??
+      (selectedDeviationDomain
+        ? detectDeviationFromRecords({
+            domain: selectedDeviationDomain,
+            records: selectedDeviationRecords,
+            targetId: correlationAoi,
+            threshold: deviationThreshold,
+            deviationType: deviationTypeForDomain(selectedDeviationDomain),
+          })
+        : null)
+
+    if (!selectedDeviationDomain || !eventToRecord) {
+      setStatus('Load a context domain series that exceeds the threshold before recording a deviation event.')
+      return
+    }
+
+    const latestRecord = selectedDeviationRecords.at(-1)
+    const suggestion = latestRecord
+      ? buildConstraintNodeSuggestion({
+          domain: selectedDeviationDomain,
+          latestRecord,
+          event: eventToRecord,
+        })
+      : null
+    const nextDeviationSnapshot = pushDeviationEvent(
+      deviationStateForRecorder,
+      eventToRecord,
+      suggestion,
+    )
+
+    setDeviationSnapshot(nextDeviationSnapshot)
+    setStatus(`Recorded ${eventToRecord.taxonomy_key} for ${eventToRecord.domain_name}.`)
+    void backend
+      .appendAudit({
+        role,
+        event_type: 'context.deviation_recorded',
+        payload: {
+          event: eventToRecord,
+          suggestion,
+        },
+      })
+      .then(() => refresh())
+      .catch(() => {
+        setStatus('Deviation event recorded locally; audit append unavailable.')
+      })
+  }
+
+  const onApplyContextConstraint = (
+    domain: ContextDomain,
+    suggestion?: ConstraintNodeSuggestion,
+  ) => {
+    if (!selectedScenario) {
+      setStatus('Select or fork a scenario before applying a context constraint node.')
+      return
+    }
+
+    const latestRecord =
+      visibleContextRecords
+        .filter((record) => record.domain_id === domain.domain_id && record.target_id === correlationAoi)
+        .at(-1) ??
+      contextRecords
+        .filter((record) => record.domain_id === domain.domain_id)
+        .sort((left, right) => left.observed_at.localeCompare(right.observed_at))
+        .at(-1)
+
+    if (!suggestion && !latestRecord) {
+      setStatus(`No context record is available to apply ${domain.domain_name} to the scenario.`)
+      return
+    }
+
+    const next = setConstraint(scenario, selectedScenario.scenarioId, {
+      constraintId: suggestion?.constraintId ?? domain.domain_id,
+      label: suggestion?.label ?? domain.domain_name,
+      value: suggestion?.recommendedValue ?? latestRecord!.numeric_value,
+      unit: suggestion?.unit ?? latestRecord!.unit,
+      rationale:
+        suggestion?.rationale ??
+        `Applied from correlated context domain ${domain.domain_name}; treat as modeled scenario input.`,
+      propagationWeight: suggestion?.propagationWeight ?? 1.25,
+      now: new Date().toISOString(),
+    })
+
+    setScenario(next)
+    appendScenarioAudit('scenario.context_constraint_applied', {
+      scenario_id: selectedScenario.scenarioId,
+      domain_id: domain.domain_id,
+      source_event_id: suggestion?.source_event_id ?? null,
+      target_id: suggestion?.target_id ?? latestRecord?.target_id ?? correlationAoi,
+    })
+    setStatus(`Applied context constraint node ${domain.domain_name} to ${selectedScenario.title}.`)
   }
 
   const onAddOsintEvent = () => {
@@ -3290,6 +3480,66 @@ function App() {
                   <button onClick={onExportScenarioBundle}>Export Scenario Bundle</button>
                 </div>
 
+                <article className="surface-card compact" data-testid="constraint-node-panel">
+                  <div className="card-header">
+                    <strong>Context Constraint Nodes (I8)</strong>
+                    <span className="artifact-chip context">Curated Context</span>
+                  </div>
+                  <p className="status-line">
+                    constraint_node domains become modeled inputs in scenario forks; they are not observed evidence.
+                  </p>
+                  {constraintNodeDomains.length === 0 && (
+                    <p>No constraint_node context domains registered.</p>
+                  )}
+                  <div className="context-card-list">
+                    {constraintNodeDomains.map((domain) => {
+                      const suggestion = deviationSnapshot.suggestions.find(
+                        (entry) => entry.domain_id === domain.domain_id,
+                      )
+                      const latestRecord =
+                        visibleContextRecords
+                          .filter(
+                            (record) =>
+                              record.domain_id === domain.domain_id &&
+                              record.target_id === correlationAoi,
+                          )
+                          .at(-1) ??
+                        contextRecords
+                          .filter((record) => record.domain_id === domain.domain_id)
+                          .sort((left, right) => left.observed_at.localeCompare(right.observed_at))
+                          .at(-1)
+
+                      return (
+                        <article
+                          key={`constraint-node-${domain.domain_id}`}
+                          className="context-card"
+                          data-testid={`constraint-node-${domain.domain_id}`}
+                        >
+                          <div className="card-header compact">
+                            <strong>{domain.domain_name}</strong>
+                            <span>{suggestion ? 'deviation-linked' : 'manual context input'}</span>
+                          </div>
+                          <p className="status-line">
+                            Latest value:{' '}
+                            {suggestion?.recommendedValue ?? latestRecord?.numeric_value ?? 'n/a'}{' '}
+                            {suggestion?.unit ?? latestRecord?.unit ?? ''}
+                          </p>
+                          <p className="status-line">
+                            Target: {suggestion?.target_id ?? latestRecord?.target_id ?? correlationAoi}
+                          </p>
+                          <p className="status-line">
+                            {suggestion?.rationale ??
+                              `Derived from ${domain.domain_name}; apply as a modeled constraint, not direct evidence.`}
+                          </p>
+                          <button onClick={() => onApplyContextConstraint(domain, suggestion)}>
+                            Apply {domain.domain_name} Constraint
+                          </button>
+                        </article>
+                      )
+                    })}
+                  </div>
+                </article>
+
                 {scenarioBundleMismatch && (
                   <article className="surface-card compact">
                     <strong>Selected bundle differs from current scenario parent</strong>
@@ -3650,6 +3900,28 @@ function App() {
             <div className="sub-panel">
               <h3>Context Deviation (I8)</h3>
               <label className="field">
+                Deviation Domain
+                <select
+                  value={selectedDeviationDomainKey}
+                  onChange={(event) => setSelectedDeviationDomainId(event.target.value)}
+                >
+                  <option value="">Select active context domain</option>
+                  {domains
+                    .filter((domain) => activeDomainIds.includes(domain.domain_id))
+                    .map((domain) => (
+                      <option key={domain.domain_id} value={domain.domain_id}>
+                        {domain.domain_name}
+                      </option>
+                    ))}
+                </select>
+              </label>
+              {selectedDeviationDomain && (
+                <p className="status-line">
+                  Domain: {selectedDeviationDomain.domain_name} | Target: {correlationAoi} | Records:{' '}
+                  {selectedDeviationRecords.length}
+                </p>
+              )}
+              <label className="field">
                 Baseline
                 <input
                   type="text"
@@ -3687,6 +3959,10 @@ function App() {
                   <option value="regulatory">regulatory</option>
                 </select>
               </label>
+              <div className="controls">
+                <button onClick={onLoadDeviationDomainSeries}>Load Active Domain Series</button>
+                <button onClick={onRecordDeviationEvent}>Record Deviation Event</button>
+              </div>
               <p className="status-line">
                 Deviation:
                 {' '}
@@ -3694,6 +3970,31 @@ function App() {
                   ? `${deviationEvent.deviation_type} (${deviationEvent.score.toFixed(2)})`
                   : 'none'}
               </p>
+              {deviationEvent && (
+                <>
+                  <p className="status-line">
+                    Taxonomy: {deviationEvent.taxonomy_key} | Confidence:{' '}
+                    {deviationEvent.confidence_score.toFixed(2)}
+                  </p>
+                  <p className="status-line">
+                    Baseline reference: {deviationEvent.baseline_reference}
+                  </p>
+                </>
+              )}
+              {deviationSnapshot.latestEvent && (
+                <article className="surface-card compact" data-testid="deviation-event-card">
+                  <div className="card-header compact">
+                    <span className="artifact-chip context">Curated Context</span>
+                    <span>{deviationSnapshot.latestEvent.domain_name}</span>
+                  </div>
+                  <p>{deviationSnapshot.latestEvent.summary}</p>
+                  <small>
+                    {deviationSnapshot.latestEvent.taxonomy_key} | magnitude:{' '}
+                    {deviationSnapshot.latestEvent.deviation_magnitude.toFixed(2)} | target:{' '}
+                    {deviationSnapshot.latestEvent.target_id}
+                  </small>
+                </article>
+              )}
             </div>
           )}
 

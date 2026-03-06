@@ -4,7 +4,7 @@ Generated On: 2026-03-06
 Linked Work Packet: WP-I8-001
 Linked Test Suite: .gov/workflow/wp_test_suites/TS-WP-I8-001.md
 Linked WP Check Script: .gov/workflow/wp_checks/check-WP-I8-001.ps1
-WP Status Snapshot: IN-PROGRESS
+WP Status Snapshot: E2E-VERIFIED
 Iteration: I8
 
 ## Scope
@@ -15,17 +15,17 @@ Concrete extraction of requirement and primitive obligations this WP must satisf
 
 | Requirement | Level | Section | Description | Target | Status |
 |-------------|-------|---------|-------------|--------|--------|
-| REQ-0900 | SHOULD | Ãƒâ€šÃ‚Â§13.5 | Trade flow deviation detection vs historical baseline | I8 | IN-PROGRESS |
-| REQ-0901 | SHOULD | Ãƒâ€šÃ‚Â§13.5 | Infrastructure status deviation detection | I8 | IN-PROGRESS |
-| REQ-0902 | SHOULD | Ãƒâ€šÃ‚Â§13.5 | Regulatory regime change detection for active AOIs | I8 | IN-PROGRESS |
-| REQ-0903 | MUST | Ãƒâ€šÃ‚Â§13.5 | Deviation events emitted through standard Event model with context.deviation taxonomy | I8 | IN-PROGRESS |
-| REQ-0904 | MUST | Ãƒâ€šÃ‚Â§7.4.7 | constraint_node domains available in Scenario Workspace | I8 | IN-PROGRESS |
+| REQ-0900 | SHOULD | Ãƒâ€šÃ‚Â§13.5 | Trade flow deviation detection vs historical baseline | I8 | E2E-VERIFIED |
+| REQ-0901 | SHOULD | Ãƒâ€šÃ‚Â§13.5 | Infrastructure status deviation detection | I8 | E2E-VERIFIED |
+| REQ-0902 | SHOULD | Ãƒâ€šÃ‚Â§13.5 | Regulatory regime change detection for active AOIs | I8 | E2E-VERIFIED |
+| REQ-0903 | MUST | Ãƒâ€šÃ‚Â§13.5 | Deviation events emitted through standard Event model with context.deviation taxonomy | I8 | E2E-VERIFIED |
+| REQ-0904 | MUST | Ãƒâ€šÃ‚Â§7.4.7 | constraint_node domains available in Scenario Workspace | I8 | E2E-VERIFIED |
 
 ## Primitive Extraction
 
 | Primitive | Name | Contract | REQs | First Iter | Status |
 |-----------|------|----------|------|------------|--------|
-| PRIM-0017 | Context Deviation Event | Standardized context deviation event model | REQ-0900..REQ-0904 | I8 | IMPLEMENTED |
+| PRIM-0017 | Context Deviation Event | Standardized context deviation event model | REQ-0900..REQ-0904 | I8 | E2E-VERIFIED |
 
 ## Traceability Hooks
 

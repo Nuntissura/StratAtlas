@@ -180,11 +180,11 @@ REQ-NNNN | LEVEL | Ã‚Â§Section | Description | Iteration Target | Status
 
 | ID | Level | Section | Description | Target | Status |
 |----|-------|---------|-------------|--------|--------|
-| REQ-0900 | SHOULD | Ã‚Â§13.5 | Trade flow deviation detection vs historical baseline | I8 | IN-PROGRESS |
-| REQ-0901 | SHOULD | Ã‚Â§13.5 | Infrastructure status deviation detection | I8 | IN-PROGRESS |
-| REQ-0902 | SHOULD | Ã‚Â§13.5 | Regulatory regime change detection for active AOIs | I8 | IN-PROGRESS |
-| REQ-0903 | MUST | Ã‚Â§13.5 | Deviation events emitted through standard Event model with context.deviation taxonomy | I8 | IN-PROGRESS |
-| REQ-0904 | MUST | Ã‚Â§7.4.7 | constraint_node domains available in Scenario Workspace | I8 | IN-PROGRESS |
+| REQ-0900 | SHOULD | Ã‚Â§13.5 | Trade flow deviation detection vs historical baseline | I8 | E2E-VERIFIED |
+| REQ-0901 | SHOULD | Ã‚Â§13.5 | Infrastructure status deviation detection | I8 | E2E-VERIFIED |
+| REQ-0902 | SHOULD | Ã‚Â§13.5 | Regulatory regime change detection for active AOIs | I8 | E2E-VERIFIED |
+| REQ-0903 | MUST | Ã‚Â§13.5 | Deviation events emitted through standard Event model with context.deviation taxonomy | I8 | E2E-VERIFIED |
+| REQ-0904 | MUST | Ã‚Â§7.4.7 | constraint_node domains available in Scenario Workspace | I8 | E2E-VERIFIED |
 
 ---
 

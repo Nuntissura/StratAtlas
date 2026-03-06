@@ -349,6 +349,11 @@ export const simulateReconnectMerge = (
   }
 
   Y.applyUpdate(localDoc, Y.encodeStateAsUpdate(remoteDoc))
+  if (typeof remoteViewState === 'string') {
+    // Ephemeral camera/view state is not conflict-resolved like shared artifacts; the reconnecting
+    // client should reflect the most recent remote view update after merge.
+    getEphemeralMap(localDoc).set('viewState', remoteViewState)
+  }
 
   const mergedArtifacts = artifactContentMap(localDoc)
   const baseContent = baseArtifacts.get(artifactId) ?? ''

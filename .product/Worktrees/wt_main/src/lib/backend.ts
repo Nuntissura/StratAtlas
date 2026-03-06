@@ -83,6 +83,7 @@ const BUNDLE_ASSET_PATHS = {
   'collaboration-state': 'assets/collaboration_state.json',
   'scenario-state': 'assets/scenario_state.json',
   'ai-state': 'assets/ai_state.json',
+  'deviation-state': 'assets/deviation_state.json',
   'recorder-state': 'assets/recorder_state.json',
 } as const
 
@@ -168,6 +169,13 @@ const buildBundleAssets = async (
     buildBundleAsset({
       assetId: 'ai-state',
       value: request.state.ai ?? null,
+      marking: request.marking,
+      provenanceRefs: request.provenance_refs,
+      capturedAt,
+    }),
+    buildBundleAsset({
+      assetId: 'deviation-state',
+      value: request.state.deviation ?? null,
       marking: request.marking,
       provenanceRefs: request.provenance_refs,
       capturedAt,
@@ -276,6 +284,7 @@ const fallbackOpenBundle = async (bundleId: string, role: string): Promise<OpenB
   const collaborationSnapshot = selected.assets['collaboration-state']
   const scenarioSnapshot = selected.assets['scenario-state']
   const aiSnapshot = selected.assets['ai-state']
+  const deviationSnapshot = selected.assets['deviation-state']
   const recorderState = selected.assets['recorder-state']
 
   if (!isRecord(recorderState)) {
@@ -315,6 +324,13 @@ const fallbackOpenBundle = async (bundleId: string, role: string): Promise<OpenB
       canonicalize(typeof aiSnapshot === 'undefined' ? null : aiSnapshot)
   ) {
     throw new Error('Recorder state asset does not match ai-state asset')
+  }
+  if (
+    selected.manifest.assets.some((asset) => asset.asset_id === 'deviation-state') &&
+    canonicalize((recorderState as Record<string, unknown>).deviation ?? null) !==
+      canonicalize(typeof deviationSnapshot === 'undefined' ? null : deviationSnapshot)
+  ) {
+    throw new Error('Recorder state asset does not match deviation-state asset')
   }
 
   await fallbackAppendAudit({

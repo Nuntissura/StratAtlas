@@ -27,6 +27,7 @@ import {
   buildSampleContextRecords,
   type ContextDomain,
 } from '../features/i7/contextIntake'
+import { createDeviationSnapshot, detectDeviation, pushDeviationEvent } from '../features/i8/deviation'
 
 const buildStoredCollaborationSnapshot = (sharedNote: string, viewState: string) => {
   let snapshot = createCollaborationSnapshot('collab-main', 'analyst-1')
@@ -227,6 +228,30 @@ const buildStoredContextSnapshot = ({
   }
 }
 
+const buildStoredDeviationSnapshot = () => {
+  const event = detectDeviation(
+    [
+      { ts: '2026-03-06T08:00:00.000Z', value: 100 },
+      { ts: '2026-03-06T10:00:00.000Z', value: 104 },
+    ],
+    [
+      { ts: '2026-03-06T12:00:00.000Z', value: 62 },
+      { ts: '2026-03-06T14:00:00.000Z', value: 58 },
+    ],
+    0.2,
+    'infrastructure',
+    {
+      domainId: 'ctx-1',
+      domainName: 'Port Throughput',
+      targetId: 'aoi-1',
+      confidenceBaseline: 'A',
+    },
+  )
+
+  const snapshot = createDeviationSnapshot()
+  return event ? pushDeviationEvent(snapshot, event) : snapshot
+}
+
 const request: CreateBundleRequest = {
   role: 'analyst',
   marking: 'INTERNAL',
@@ -281,6 +306,7 @@ const request: CreateBundleRequest = {
     collaboration: buildStoredCollaborationSnapshot('alpha / bravo', 'zoom-8'),
     scenario: buildStoredScenarioSnapshot(),
     ai: buildStoredAiSnapshot(),
+    deviation: buildStoredDeviationSnapshot(),
     selectedBundleId: undefined,
     savedAt: '2026-03-06T00:00:00.000Z',
   },
@@ -312,6 +338,7 @@ describe('backend fallback', () => {
       'collaboration-state',
       'scenario-state',
       'ai-state',
+      'deviation-state',
       'recorder-state',
     ])
     expect(reopen.state.workspace.note).toBe('seed state')
@@ -333,6 +360,8 @@ describe('backend fallback', () => {
     expect(reopen.state.scenario?.exportArtifact?.artifactId).toContain('scenario-export-')
     expect(reopen.state.ai?.latestAnalysis?.artifactId).toBe('ai-interpretation-test1234')
     expect(reopen.state.ai?.latestMcpInvocation?.toolName).toBe('get_bundle_manifest')
+    expect(reopen.state.deviation?.latestEvent?.event_type).toBe('context.deviation')
+    expect(reopen.state.deviation?.events).toHaveLength(1)
   })
 
   it('loads and saves authoritative recorder state outside bundle reopen', async () => {
@@ -351,6 +380,7 @@ describe('backend fallback', () => {
     expect(restored.state?.collaboration?.ephemeralViewState).toBe('zoom-8')
     expect(restored.state?.scenario?.selectedScenarioId).toBe('scenario-2')
     expect(restored.state?.ai?.deploymentProfile).toBe('connected')
+    expect(restored.state?.deviation?.latestEvent?.taxonomy_key).toBe('context.supply_chain_shift')
   })
 
   it('maintains an append-only hash chain in audit events', async () => {

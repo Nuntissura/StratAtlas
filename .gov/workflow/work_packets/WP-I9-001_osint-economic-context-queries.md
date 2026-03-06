@@ -1,7 +1,7 @@
 # WP-I9-001 - OSINT Economic Context Queries
 
 Date Opened: 2026-03-04
-Status: IMPLEMENTED
+Status: IN-PROGRESS
 Iteration: I9
 Workflow Version: 2.0
 Linked Test Suite: .gov/workflow/wp_test_suites/TS-WP-I9-001.md
@@ -43,10 +43,11 @@ Deliver curated OSINT and economic context integration with context-aware query/
 
 
 - 2026-03-05: Implementation completed and verified via lint/test/build evidence.
+- 2026-03-06: Activated as the current blocking I9 packet after WP-I8-001 proof; prior 2026-03-05 evidence is treated as activation-shell baseline only pending normative I9 delivery.
 
 ## Linked Primitives
 
-- PRIM-0018 | <name> | linked contract for this iteration
+- PRIM-0018 | Curated OSINT Event Contract | curated-source enforcement, verification labeling, and aggregate-only alert semantics
 
 ## Primitive Matrix Impact
 
@@ -106,10 +107,10 @@ Deliver curated OSINT and economic context integration with context-aware query/
 3. Verification/status promotion commit.
 ## Evidence
 
-- Test Suite Execution: PASSING (pnpm lint, pnpm test, pnpm build, cargo test --manifest-path src-tauri/Cargo.toml)
-- Logs: command output captured in Codex session run on 2026-03-05
-- Screenshots/Exports: N/A (CLI-driven validation)
-- Build Artifacts: .product/Worktrees/wt_main/dist
+- Test Suite Execution: activation-shell baseline only from 2026-03-05; normative I9 verification pending current packet delivery
+- Logs: baseline shell evidence references legacy 2026-03-05 session output only
+- Screenshots/Exports: pending current packet delivery
+- Build Artifacts: pending current packet delivery
 - User Sign-off: Pending
 - Proof Artifact: .product/build_target/tool_artifacts/wp_runs/WP-I9-001/
 ## Proof of Implementation

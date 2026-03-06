@@ -10,6 +10,7 @@ import type {
   ContextRecord,
   ContextTimeRange,
 } from '../features/i7/contextIntake'
+import type { DeviationSnapshot } from '../features/i8/deviation'
 
 export type UserRole = 'viewer' | 'analyst' | 'administrator' | 'auditor'
 
@@ -82,6 +83,7 @@ export interface RecorderState {
   collaboration?: CollaborationStateSnapshot
   scenario?: ScenarioStateSnapshot
   ai?: AiGatewaySnapshot
+  deviation?: DeviationSnapshot
   selectedBundleId?: string
   savedAt: string
 }
