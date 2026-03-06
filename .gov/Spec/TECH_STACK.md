@@ -2,7 +2,7 @@
 
 **Spec Version:** v1.2.4  
 **Last Updated:** 2026-03-06  
-**Status:** Target architecture is implemented in `.product/Worktrees/wt_main` and backed by the verified I0-I10 packet set; active closeout packets `WP-GOV-MAINT-002` and `WP-GOV-INSTALLER-002` are reconciling governance truthfulness and release-surface alignment.
+**Status:** Target architecture is implemented in `.product/Worktrees/wt_main`, backed by the verified I0-I10 packet set, and closed out by `WP-GOV-MAINT-002` and `WP-GOV-INSTALLER-002` with reconciled governance and installer release-surface proof.
 
 ---
 
@@ -240,7 +240,7 @@ Shared viewport state → switching 2D ↔ 3D preserves camera position and laye
 | Attribute | Value |
 |-----------|-------|
 | Role | Installer lifecycle operations (uninstall, repair, full-repair, update, downgrade) and reproducible installer kit assembly |
-| Components | `src-tauri/tauri.conf.json` (WiX + NSIS bundle policy), `scripts/windows-installer-maintenance.ps1`, `.gov/repo_scripts/build_windows_installer.ps1` |
+| Components | `package.json`, `src-tauri/Cargo.toml`, `src-tauri/tauri.conf.json` (aligned release manifests), `scripts/windows-installer-maintenance.ps1`, `docs/INSTALLER_LIFECYCLE.md`, `.gov/repo_scripts/build_windows_installer.ps1` |
 | Why chosen | Uses native Windows installer channels (MSI/WiX + NSIS) while adding explicit lifecycle controls and audited maintenance operations |
 | Spec alignment | Â§5.2 installer lifecycle contract, Â§18 Gate H lifecycle validation |
 

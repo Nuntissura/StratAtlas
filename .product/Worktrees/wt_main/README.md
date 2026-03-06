@@ -1,73 +1,57 @@
-# React + TypeScript + Vite
+# StratAtlas Desktop Worktree
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This worktree contains the governed StratAtlas desktop application. Product code lives here. Governance packets, specs, release scripts, and proof artifacts live under the repository root in `.gov/` and `.product/build_target/`.
 
-Currently, two official plugins are available:
+## Prerequisites
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- Windows workstation for the governed installer flow
+- Node.js 24.x
+- `pnpm`
+- Rust 1.77.2 or newer
+- Tauri 2 desktop prerequisites for Windows
 
-## React Compiler
+## Daily Commands
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Run from this directory:
 
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```powershell
+pnpm install
+pnpm lint
+pnpm test
+pnpm build
+cargo test --manifest-path src-tauri/Cargo.toml
+pnpm tauri dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Governed Installer Build
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+Run from the repository root:
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```powershell
+powershell -ExecutionPolicy Bypass -File .gov/repo_scripts/build_windows_installer.ps1
 ```
+
+The governed installer build:
+
+- validates governance preflight unless `-SkipPreflight` is supplied
+- requires `package.json`, `src-tauri/tauri.conf.json`, and `src-tauri/Cargo.toml` to agree on the current checked-in version
+- increments the patch version only after a successful installer build
+- keeps the checked-in package, Tauri, and Cargo manifests synchronized to the shipped installer version
+- stages MSI/NSIS artifacts, the maintenance script, the lifecycle document, and a SHA256 manifest into `.product/build_target/Current/InstallerKit/<timestamp>/`
+- writes build logs to `.product/build_target/logs/`
+
+## Artifact Locations
+
+- Current installer kits: `.product/build_target/Current/InstallerKit/`
+- Installer build logs: `.product/build_target/logs/`
+- WP proof artifacts: `.product/build_target/tool_artifacts/wp_runs/`
+
+## Operator References
+
+- `docs/INSTALLER_LIFECYCLE.md`
+- `scripts/windows-installer-maintenance.ps1`
+
+## Repository Boundary
+
+- Keep governance-only content in `.gov/`.
+- Keep generated artifacts out of this worktree unless the file is part of the governed product surface.

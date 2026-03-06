@@ -4,7 +4,7 @@ Generated On: 2026-03-06
 Linked Work Packet: WP-GOV-INSTALLER-002
 Linked Test Suite: .gov/workflow/wp_test_suites/TS-WP-GOV-INSTALLER-002.md
 Linked WP Check Script: .gov/workflow/wp_checks/check-WP-GOV-INSTALLER-002.ps1
-WP Status Snapshot: SPEC-MAPPED
+WP Status Snapshot: E2E-VERIFIED
 Iteration: All
 
 ## Scope
@@ -15,7 +15,7 @@ Concrete extraction of requirement and primitive obligations this WP must satisf
 
 | Requirement | Level | Section | Description | Target | Status |
 |-------------|-------|---------|-------------|--------|--------|
-| REQ-0017 | MUST | Ãƒâ€šÃ‚Â§5.1 | Runtime path/process/environment handling MUST remain platform-neutral without hard-coded Windows-only assumptions in core paths | All | IN-PROGRESS |
+| REQ-0017 | MUST | Ãƒâ€šÃ‚Â§5.1 | Runtime path/process/environment handling MUST remain platform-neutral without hard-coded Windows-only assumptions in core paths | All | E2E-VERIFIED |
 | REQ-0029 | SHOULD | Ãƒâ€šÃ‚Â§5.2 | Release kit SHOULD include a maintenance script and lifecycle documentation next to installer artifacts | All | E2E-VERIFIED |
 | REQ-0030 | MUST | Ãƒâ€šÃ‚Â§5.2 | Installer build version MUST increase monotonically for rebuilt release artifacts from changed code | All | E2E-VERIFIED |
 | REQ-0031 | MUST | Ãƒâ€šÃ‚Â§5.2 | EXE and installer artifacts from the same build MUST use the same version | All | E2E-VERIFIED |

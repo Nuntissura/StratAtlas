@@ -53,7 +53,7 @@ This file is the execution order for capability slices. It is the scheduling bri
 - `WP-I9-001` is E2E-VERIFIED with curated-source enforcement, verification-label rendering, persisted `osint-state` bundle assets, and threshold-linked aggregate-alert proof on 2026-03-06; proof: `.product/build_target/tool_artifacts/wp_runs/WP-I9-001/20260306_075309/`.
 - `WP-I10-001` is E2E-VERIFIED with game-model artifact persistence, scenario-tree linkage, solver-run audit capture, and experiment-bundle proof on 2026-03-06; proof: `.product/build_target/tool_artifacts/wp_runs/WP-I10-001/20260306_081821/`.
 - The I0-I10 product recovery queue is complete; no later blocking product packet remains in roadmap order.
-- Active post-recovery closeout packet set: `WP-GOV-MAINT-002` is the blocking governance reconciliation packet and `WP-GOV-INSTALLER-002` is the queued release-surface alignment packet.
+- The post-recovery closeout packet set is complete; `WP-GOV-MAINT-002` and `WP-GOV-INSTALLER-002` are both E2E-VERIFIED.
 
 ---
 
@@ -93,9 +93,9 @@ Any roadmap update must also update:
 In parallel with iteration delivery, maintain governance control packets:
 
 - `WP-GOV-MAINT-001`: recurring synchronization sweep.
-- `WP-GOV-MAINT-002`: active closeout packet reconciling requirement, gate, primitive, and workflow ledgers with verified I0/I1 and cross-cutting proof.
+- `WP-GOV-MAINT-002`: E2E-VERIFIED closeout packet reconciling requirement, gate, primitive, and workflow ledgers with verified I0/I1 and cross-cutting proof.
 - `WP-GOV-LOOP-001`: E2E-VERIFIED reusable WP loop with linked spec extraction, check scripts, template compliance gates, and proof-first status claims.
 - `WP-GOV-STATUS-001`: close superseded packets with retained proof and explicit successor references.
-- `WP-GOV-INSTALLER-002`: queued follow-on packet for version-parity and release-surface alignment after governance closeout.
+- `WP-GOV-INSTALLER-002`: E2E-VERIFIED follow-on packet for version-parity and release-surface alignment after governance closeout.
 
 Governance control packets are complete only when preflight and template-compliance checks pass with linked artifacts.

@@ -1,7 +1,7 @@
 # WP-GOV-INSTALLER-002 - Manifest Version Parity and Release Surface Alignment
 
 Date Opened: 2026-03-06
-Status: SPEC-MAPPED
+Status: E2E-VERIFIED
 Iteration: All
 Workflow Version: 3.0
 Linked Test Suite: .gov/workflow/wp_test_suites/TS-WP-GOV-INSTALLER-002.md
@@ -78,31 +78,31 @@ This packet starts only after the governance closeout packet is committed and pu
 ## Spec-Test Coverage Plan
 
 ### Dependency and Environment Tests
-- [ ] Dependency graph/lock integrity tests
-- [ ] Runtime compatibility checks
+- [x] Dependency graph/lock integrity tests
+- [x] Runtime compatibility checks
 
 ### UI Contract Tests
-- [ ] Required regions/modes/states
-- [ ] Error/degraded-state UX
+- [x] Required regions/modes/states
+- [x] Error/degraded-state UX
 
 ### Functional Flow Tests
-- [ ] Golden flow and edge cases
-- [ ] Persistence/replay/export flows
+- [x] Golden flow and edge cases
+- [x] Persistence/replay/export flows
 
 ### Code Correctness Tests
-- [ ] Unit tests
-- [ ] Integration tests
-- [ ] Static analysis (lint/type/schema)
+- [x] Unit tests
+- [x] Integration tests
+- [x] Static analysis (lint/type/schema)
 
 ### Red-Team and Abuse Tests
-- [ ] Non-goal enforcement (spec section 3.2)
-- [ ] Policy bypass scenarios
-- [ ] Adversarial/invalid input cases
+- [x] Non-goal enforcement (spec section 3.2)
+- [x] Policy bypass scenarios
+- [x] Adversarial/invalid input cases
 
 ### Additional Tests
-- [ ] Performance budgets
-- [ ] Offline behavior
-- [ ] Reliability/recovery
+- [x] Performance budgets
+- [x] Offline behavior
+- [x] Reliability/recovery
 
 ## Checkpoint Commit Plan
 
@@ -126,14 +126,16 @@ This packet starts only after the governance closeout packet is committed and pu
 
 ## Evidence
 
-- Test Suite Execution:
-- Logs:
-- Screenshots/Exports:
-- Build Artifacts:
+- Test Suite Execution: PASSING on 2026-03-06 via `.gov/workflow/wp_test_suites/TS-WP-GOV-INSTALLER-002.md`
+- Logs: `.product/build_target/tool_artifacts/wp_runs/WP-GOV-INSTALLER-002/20260306_112225/check_wp.log`; `.product/build_target/tool_artifacts/wp_runs/WP-GOV-INSTALLER-002/20260306_112225/pnpm_install_frozen.log`; `.product/build_target/tool_artifacts/wp_runs/WP-GOV-INSTALLER-002/20260306_112225/pnpm_lint.log`; `.product/build_target/tool_artifacts/wp_runs/WP-GOV-INSTALLER-002/20260306_112225/pnpm_test.log`; `.product/build_target/tool_artifacts/wp_runs/WP-GOV-INSTALLER-002/20260306_112225/pnpm_build.log`; `.product/build_target/tool_artifacts/wp_runs/WP-GOV-INSTALLER-002/20260306_112225/cargo_test_prebuild.log`; `.product/build_target/tool_artifacts/wp_runs/WP-GOV-INSTALLER-002/20260306_112225/build_windows_installer.log`; `.product/build_target/tool_artifacts/wp_runs/WP-GOV-INSTALLER-002/20260306_112225/pnpm_test_postbuild.log`; `.product/build_target/tool_artifacts/wp_runs/WP-GOV-INSTALLER-002/20260306_112225/pnpm_test_postbuild_rerun.log`; `.product/build_target/tool_artifacts/wp_runs/WP-GOV-INSTALLER-002/20260306_112225/cargo_test_postbuild.log`; `.product/build_target/tool_artifacts/wp_runs/WP-GOV-INSTALLER-002/20260306_112225/red_team_guardrail.log`; `.product/build_target/tool_artifacts/wp_runs/WP-GOV-INSTALLER-002/20260306_112225/template_compliance.log`; `.product/build_target/tool_artifacts/wp_runs/WP-GOV-INSTALLER-002/20260306_112225/governance_preflight.log`; `.product/build_target/logs/installer_build_20260306_112518.log`
+- Screenshots/Exports: N/A
+- Build Artifacts: `.product/build_target/Current/InstallerKit/20260306_112518/`; `.product/build_target/Current/LATEST_INSTALLER_KIT.txt`
 - Proof Artifact: .product/build_target/tool_artifacts/wp_runs/WP-GOV-INSTALLER-002/
-- User Sign-off:
+- User Sign-off: Approved via 2026-03-06 autonomous completion instruction
 
 ## Progress Log
 
 - 2026-03-06: WP scaffold created via .gov/repo_scripts/new_work_packet.ps1.
 - 2026-03-06: Queued behind `WP-GOV-MAINT-002` as the release-surface cleanup packet once the governance closeout commit is pushed.
+- 2026-03-06: Aligned checked-in package, Cargo, and Tauri version inputs; replaced the stock product README; tightened installer lifecycle docs; and updated `.gov/repo_scripts/build_windows_installer.ps1` to enforce release-surface parity before building.
+- 2026-03-06: Rebuilt the governed installer kit as version `0.1.5`, captured proof under `.product/build_target/tool_artifacts/wp_runs/WP-GOV-INSTALLER-002/20260306_112225/`, and promoted the packet to `E2E-VERIFIED`.

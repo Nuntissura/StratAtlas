@@ -60,9 +60,9 @@ REQ-ID | Component(s) | Test(s) | Iteration | Verified
 | REQ-0026 | .product/Worktrees/wt_main/scripts/windows-installer-maintenance.ps1 | .gov/workflow/wp_test_suites/TS-WP-GOV-INSTALLER-001.md; .gov/workflow/wp_checks/check-WP-GOV-INSTALLER-001.ps1 | All | 2026-03-06 |
 | REQ-0027 | .product/Worktrees/wt_main/scripts/windows-installer-maintenance.ps1 | .gov/workflow/wp_test_suites/TS-WP-GOV-INSTALLER-001.md; .gov/workflow/wp_checks/check-WP-GOV-INSTALLER-001.ps1 | All | 2026-03-06 |
 | REQ-0028 | .product/Worktrees/wt_main/scripts/windows-installer-maintenance.ps1; .product/Worktrees/wt_main/src-tauri/tauri.conf.json | .gov/workflow/wp_test_suites/TS-WP-GOV-INSTALLER-001.md; .gov/workflow/wp_checks/check-WP-GOV-INSTALLER-001.ps1 | All | 2026-03-06 |
-| REQ-0029 | .gov/repo_scripts/build_windows_installer.ps1; .product/Worktrees/wt_main/docs/INSTALLER_LIFECYCLE.md | .gov/workflow/wp_test_suites/TS-WP-GOV-INSTALLER-001.md; .gov/workflow/wp_checks/check-WP-GOV-INSTALLER-001.ps1 | All | 2026-03-06 |
-| REQ-0030 | .gov/repo_scripts/build_windows_installer.ps1; .product/Worktrees/wt_main/src-tauri/tauri.conf.json | .gov/workflow/wp_test_suites/TS-WP-GOV-INSTALLER-001.md; .gov/workflow/wp_checks/check-WP-GOV-INSTALLER-001.ps1 | All | 2026-03-06 |
-| REQ-0031 | .gov/repo_scripts/build_windows_installer.ps1; .product/Worktrees/wt_main/src-tauri/tauri.conf.json | .gov/workflow/wp_test_suites/TS-WP-GOV-INSTALLER-001.md; .gov/workflow/wp_checks/check-WP-GOV-INSTALLER-001.ps1 | All | 2026-03-06 |
+| REQ-0029 | .gov/repo_scripts/build_windows_installer.ps1; .product/Worktrees/wt_main/README.md; .product/Worktrees/wt_main/docs/INSTALLER_LIFECYCLE.md | .gov/workflow/wp_test_suites/TS-WP-GOV-INSTALLER-001.md; .gov/workflow/wp_test_suites/TS-WP-GOV-INSTALLER-002.md; .gov/workflow/wp_checks/check-WP-GOV-INSTALLER-001.ps1; .gov/workflow/wp_checks/check-WP-GOV-INSTALLER-002.ps1 | All | 2026-03-06 |
+| REQ-0030 | .gov/repo_scripts/build_windows_installer.ps1; .product/Worktrees/wt_main/package.json; .product/Worktrees/wt_main/src-tauri/Cargo.toml; .product/Worktrees/wt_main/src-tauri/tauri.conf.json | .gov/workflow/wp_test_suites/TS-WP-GOV-INSTALLER-001.md; .gov/workflow/wp_test_suites/TS-WP-GOV-INSTALLER-002.md; .gov/workflow/wp_checks/check-WP-GOV-INSTALLER-001.ps1; .gov/workflow/wp_checks/check-WP-GOV-INSTALLER-002.ps1 | All | 2026-03-06 |
+| REQ-0031 | .gov/repo_scripts/build_windows_installer.ps1; .product/Worktrees/wt_main/package.json; .product/Worktrees/wt_main/src-tauri/Cargo.toml; .product/Worktrees/wt_main/src-tauri/tauri.conf.json | .gov/workflow/wp_test_suites/TS-WP-GOV-INSTALLER-001.md; .gov/workflow/wp_test_suites/TS-WP-GOV-INSTALLER-002.md; .gov/workflow/wp_checks/check-WP-GOV-INSTALLER-001.ps1; .gov/workflow/wp_checks/check-WP-GOV-INSTALLER-002.ps1 | All | 2026-03-06 |
 
 ---
 
@@ -294,6 +294,8 @@ For quick lookup: "What requirements does this component implement?"
 | .product/Worktrees/wt_main/src/features/i9/osint.ts | REQ-0001..REQ-0007, REQ-1000..REQ-1003 |
 | .product/Worktrees/wt_main/src/features/i10/gameModeling.ts | REQ-0001..REQ-0007, REQ-1100..REQ-1113 |
 | .product/Worktrees/wt_main/src-tauri/src/lib.rs | REQ-0017..REQ-0018, REQ-0100..REQ-0112, REQ-0400..REQ-0403, REQ-0500, REQ-0504 |
+| .product/Worktrees/wt_main/README.md | REQ-0029 |
+| .product/Worktrees/wt_main/src-tauri/Cargo.toml | REQ-0030, REQ-0031 |
 | .product/Worktrees/wt_main/src-tauri/tauri.conf.json | REQ-0023, REQ-0024, REQ-0028, REQ-0030, REQ-0031 |
 | .product/Worktrees/wt_main/scripts/windows-installer-maintenance.ps1 | REQ-0023..REQ-0028 |
 | .gov/repo_scripts/build_windows_installer.ps1 | REQ-0023, REQ-0029, REQ-0030, REQ-0031 |
@@ -303,6 +305,6 @@ For quick lookup: "What requirements does this component implement?"
 
 | WP-GOV-STATUS-001 | All | REQ-0013, REQ-0019, REQ-0020, REQ-0021, REQ-0022 | PRIM-0029, PRIM-0030, PRIM-0031, PRIM-0041 | .gov/workflow/wp_test_suites/TS-WP-GOV-STATUS-001.md | E2E-VERIFIED | .gov/workflow/wp_spec_extractions/SX-WP-GOV-STATUS-001.md; .product/build_target/tool_artifacts/wp_runs/WP-GOV-STATUS-001/20260306_084102/; user sign-off approved via 2026-03-06 autonomous completion instruction |
 
-| WP-GOV-INSTALLER-002 | All | REQ-0017, REQ-0029, REQ-0030, REQ-0031 | PRIM-0024, PRIM-0028 | .gov/workflow/wp_test_suites/TS-WP-GOV-INSTALLER-002.md | SPEC-MAPPED | .gov/workflow/wp_spec_extractions/SX-WP-GOV-INSTALLER-002.md; planned proof: .product/build_target/tool_artifacts/wp_runs/WP-GOV-INSTALLER-002/ |
+| WP-GOV-INSTALLER-002 | All | REQ-0017, REQ-0029, REQ-0030, REQ-0031 | PRIM-0024, PRIM-0028 | .gov/workflow/wp_test_suites/TS-WP-GOV-INSTALLER-002.md | E2E-VERIFIED | .gov/workflow/wp_spec_extractions/SX-WP-GOV-INSTALLER-002.md; .product/build_target/tool_artifacts/wp_runs/WP-GOV-INSTALLER-002/20260306_112225/; .product/build_target/tool_artifacts/wp_runs/WP-GOV-INSTALLER-002/20260306_112235/; .product/build_target/Current/InstallerKit/20260306_112518/; user sign-off approved via 2026-03-06 autonomous completion instruction |
 
 | WP-GOV-MAINT-002 | All | REQ-0001..REQ-0017, REQ-0019..REQ-0022, REQ-0100..REQ-0112, REQ-0200..REQ-0212 | PRIM-0029, PRIM-0030, PRIM-0031, PRIM-0032, PRIM-0033, PRIM-0034, PRIM-0035, PRIM-0036, PRIM-0037, PRIM-0041 | .gov/workflow/wp_test_suites/TS-WP-GOV-MAINT-002.md | E2E-VERIFIED | .gov/workflow/wp_spec_extractions/SX-WP-GOV-MAINT-002.md; .product/build_target/tool_artifacts/wp_runs/WP-GOV-MAINT-002/20260306_110842/; user sign-off approved via 2026-03-06 autonomous completion instruction |
