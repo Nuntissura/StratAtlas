@@ -110,9 +110,9 @@ REQ-ID | Component(s) | Test(s) | Iteration | Verified
 
 | REQ | Component(s) | Test(s) | Iter | Verified |
 |-----|-------------|---------|------|----------|
-| REQ-0300 | .product/Worktrees/wt_main/src/features/i2/baselineDelta.ts; .product/Worktrees/wt_main/src/App.tsx; .product/Worktrees/wt_main/src/lib/backend.ts; .product/Worktrees/wt_main/src-tauri/src/lib.rs | .product/Worktrees/wt_main/src/features/i2/i2.test.ts; .product/Worktrees/wt_main/src/App.test.tsx; .product/Worktrees/wt_main/src/lib/backend.test.ts | I2 | 2026-03-06 |
-| REQ-0301 | .product/Worktrees/wt_main/src/features/i2/baselineDelta.ts; .product/Worktrees/wt_main/src/App.tsx | .product/Worktrees/wt_main/src/features/i2/i2.test.ts; .product/Worktrees/wt_main/src/App.test.tsx | I2 | 2026-03-06 |
-| REQ-0302 | .product/Worktrees/wt_main/src/features/i2/baselineDelta.ts; .product/Worktrees/wt_main/src/App.tsx; .product/Worktrees/wt_main/src/lib/backend.ts; .product/Worktrees/wt_main/src-tauri/src/lib.rs | .product/Worktrees/wt_main/src/features/i2/i2.test.ts; .product/Worktrees/wt_main/src/App.test.tsx; .product/Worktrees/wt_main/src/lib/backend.test.ts | I2 | 2026-03-06 |
+| REQ-0300 | .product/Worktrees/wt_main/src/features/i2/baselineDelta.ts; .product/Worktrees/wt_main/src/App.tsx; .product/Worktrees/wt_main/src/features/i1/runtime/mapRuntimeScene.ts; .product/Worktrees/wt_main/src/lib/backend.ts; .product/Worktrees/wt_main/src-tauri/src/lib.rs | .product/Worktrees/wt_main/src/features/i2/i2.test.ts; .product/Worktrees/wt_main/src/features/i1/i1.test.ts; .product/Worktrees/wt_main/src/App.test.tsx; .product/Worktrees/wt_main/src/lib/backend.test.ts | I2 | 2026-03-07 |
+| REQ-0301 | .product/Worktrees/wt_main/src/features/i2/baselineDelta.ts; .product/Worktrees/wt_main/src/App.tsx; .product/Worktrees/wt_main/src/features/i1/runtime/mapRuntimeScene.ts | .product/Worktrees/wt_main/src/features/i2/i2.test.ts; .product/Worktrees/wt_main/src/features/i1/i1.test.ts; .product/Worktrees/wt_main/src/App.test.tsx | I2 | 2026-03-07 |
+| REQ-0302 | .product/Worktrees/wt_main/src/features/i2/baselineDelta.ts; .product/Worktrees/wt_main/src/App.tsx; .product/Worktrees/wt_main/src/lib/backend.ts; .product/Worktrees/wt_main/src-tauri/src/lib.rs | .product/Worktrees/wt_main/src/features/i2/i2.test.ts; .product/Worktrees/wt_main/src/App.test.tsx; .product/Worktrees/wt_main/src/lib/backend.test.ts | I2 | 2026-03-07 |
 
 ---
 
@@ -315,11 +315,11 @@ For quick lookup: "What requirements does this component implement?"
 
 | WP-I0-003 | I0 | REQ-0017, REQ-0018, REQ-0108, REQ-0109, REQ-0110, REQ-0111, REQ-0810 | PRIM-0042, PRIM-0043, PRIM-0044 | .gov/workflow/wp_test_suites/TS-WP-I0-003.md | E2E-VERIFIED | .gov/workflow/wp_spec_extractions/SX-WP-I0-003.md; .product/build_target/tool_artifacts/wp_runs/WP-I0-003/20260307_021247/; user sign-off approved via 2026-03-07 instruction to execute this packet |
 
-| WP-I1-003 | I1 | REQ-0011, REQ-0012, REQ-0014, REQ-0015, REQ-0016, REQ-0200, REQ-0201, REQ-0202, REQ-0203, REQ-0206, REQ-0207, REQ-0208, REQ-0209, REQ-0210, REQ-0211, REQ-0212 | PRIM-0045, PRIM-0046, PRIM-0047 | .gov/workflow/wp_test_suites/TS-WP-I1-003.md | SPEC-MAPPED | .gov/workflow/wp_spec_extractions/SX-WP-I1-003.md |
+| WP-I1-003 | I1 | REQ-0011, REQ-0012, REQ-0014, REQ-0015, REQ-0016, REQ-0200, REQ-0201, REQ-0202, REQ-0203, REQ-0206, REQ-0207, REQ-0208, REQ-0209, REQ-0210, REQ-0211, REQ-0212 | PRIM-0045, PRIM-0046, PRIM-0047 | .gov/workflow/wp_test_suites/TS-WP-I1-003.md | E2E-VERIFIED | .gov/workflow/wp_spec_extractions/SX-WP-I1-003.md; .product/build_target/tool_artifacts/wp_runs/WP-I1-003/20260307_045256/; user sign-off approved via 2026-03-07 instruction to perform the outstanding `WP-I1-003` closeout tasks |
 
-| WP-I2-003 | I2 | REQ-0209, REQ-0210, REQ-0300, REQ-0301, REQ-0302 | PRIM-0048, PRIM-0049 | .gov/workflow/wp_test_suites/TS-WP-I2-003.md | SPEC-MAPPED | .gov/workflow/wp_spec_extractions/SX-WP-I2-003.md |
+| WP-I2-003 | I2 | REQ-0209, REQ-0210, REQ-0300, REQ-0301, REQ-0302 | PRIM-0048, PRIM-0049 | .gov/workflow/wp_test_suites/TS-WP-I2-003.md | E2E-VERIFIED | .gov/workflow/wp_spec_extractions/SX-WP-I2-003.md; .product/build_target/tool_artifacts/wp_runs/WP-I2-003/20260307_201453/; user sign-off approved via 2026-03-07 instruction to start and proceed with this packet |
 
-| WP-I5-002 | I5 | REQ-0108, REQ-0600, REQ-0601, REQ-0602, REQ-0603, REQ-0604, REQ-0810 | PRIM-0050, PRIM-0051 | .gov/workflow/wp_test_suites/TS-WP-I5-002.md | SPEC-MAPPED | .gov/workflow/wp_spec_extractions/SX-WP-I5-002.md |
+| WP-I5-002 | I5 | REQ-0108, REQ-0600, REQ-0601, REQ-0602, REQ-0603, REQ-0604, REQ-0810 | PRIM-0050, PRIM-0051 | .gov/workflow/wp_test_suites/TS-WP-I5-002.md | IN-PROGRESS | .gov/workflow/wp_spec_extractions/SX-WP-I5-002.md; governance kickoff activated on 2026-03-07 ahead of the first governed query-runtime implementation slice |
 
 | WP-I6-002 | I6 | REQ-0700, REQ-0701, REQ-0702, REQ-0703, REQ-0704, REQ-0705, REQ-0706, REQ-0707, REQ-0708 | PRIM-0052, PRIM-0053 | .gov/workflow/wp_test_suites/TS-WP-I6-002.md | SPEC-MAPPED | .gov/workflow/wp_spec_extractions/SX-WP-I6-002.md |
 

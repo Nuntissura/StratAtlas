@@ -1,7 +1,7 @@
 # WP-I5-002 - DuckDB Backed Query Execution and Saved Results
 
 Date Opened: 2026-03-06
-Status: SPEC-MAPPED
+Status: IN-PROGRESS
 Iteration: I5
 Workflow Version: 3.0
 Linked Test Suite: .gov/workflow/wp_test_suites/TS-WP-I5-002.md
@@ -136,3 +136,4 @@ Replace hard-coded in-memory query rows with governed query execution and saved 
 
 - 2026-03-06: WP scaffold created via .gov/repo_scripts/new_work_packet.ps1.
 - 2026-03-06: Packet scope refined to replace simulated query behavior with governed execution and saved result artifacts.
+- 2026-03-07: Packet activated after `WP-I2-003` closure; governance kickoff moved the packet, suite, roadmap, taskboard, and primitive/traceability ledgers to `IN-PROGRESS` before the first runtime implementation slice.

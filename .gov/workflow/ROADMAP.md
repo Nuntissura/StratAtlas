@@ -1,6 +1,6 @@
 # StratAtlas - Roadmap and Build Order
 
-Date: 2026-03-06
+Date: 2026-03-07
 Source anchors: `.gov/Spec/stratatlas_spec_v1_2.md` section 19 and `.gov/Spec/REQUIREMENTS_INDEX.md`
 
 This file is the execution order for capability slices. It is the scheduling bridge between the spec and day-to-day work packets.
@@ -60,7 +60,10 @@ This file is the execution order for capability slices. It is the scheduling bri
   - `WP-I8-002` and `WP-I9-002` depend on `WP-I7-002`.
   - `WP-I10-002` depends on `WP-I0-003`, `WP-I1-003`, and `WP-I7-002`.
 - Legacy proof artifacts from `WP-I0-002` through `WP-I10-001` are retained as prototype and simulator evidence only; they do not close the normative runtime gaps identified by the 2026-03-06 audit.
-- The next blocking implementation packet is `WP-I1-003`, which is now ready to start with `WP-I0-003` and `WP-GOV-I1-RESEARCH-001` both closed.
+- `WP-I1-003` is now `E2E-VERIFIED`; proof: `.product/build_target/tool_artifacts/wp_runs/WP-I1-003/20260307_045256/`. The main canvas now mounts the real MapLibre/Cesium runtime, the existing feature set projects into meaningful map-linked overlays and inspect state, and governed cold/warm Tauri runtime smoke evidence is attached under `runtime_smoke/`.
+- `WP-I2-003` is now `E2E-VERIFIED`; proof: `.product/build_target/tool_artifacts/wp_runs/WP-I2-003/20260307_201453/`. It closes REQ-0300..REQ-0302 with AOI-linked delta analytics, compare-driven map projection, deterministic briefing preparation, derived-bundle persistence, and deterministic reopen proof.
+- `REQ-0209` and `REQ-0210` remain `IN-PROGRESS` because this packet does not yet include explicit export-budget timing evidence.
+- The current blocking implementation packet is `WP-I5-002`, now `IN-PROGRESS`. The first active slice is replacing the hard-coded query row simulation with governed execution-adapter plumbing, truthful result-layer materialization, and bundle-linked saved-query persistence.
 
 ---
 
