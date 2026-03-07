@@ -1,4 +1,4 @@
-# StratAtlas - Technology Stack
+﻿# StratAtlas - Technology Stack
 
 **Spec Version:** v1.2.4  
 **Last Updated:** 2026-03-06  
@@ -73,6 +73,13 @@ Every technology choice must satisfy:
 
 Shared viewport state → switching 2D ↔ 3D preserves camera position and layer config
 ```
+
+### I1 Execution Profile (2026-03-07)
+
+- `WP-I1-003` will treat MapLibre GL JS as the default analyst surface and CesiumJS as the purposeful 3D mode.
+- deck.gl is mandatory for the first 2D analytic overlay pass and optional for selected shared geometry preparation in 3D; `WP-I1-003` MUST NOT block 3D delivery on full deck.gl/Cesium feature parity.
+- Current approved map-polish candidates after the core runtime are Terra Draw for AOI editing and measurement, and `maplibre-gl-compare`-style split comparison behavior, both drawn from the governance research packet rather than adopted blindly.
+- Borrowed UX references such as kepler.gl, TerriaJS, and MapStore2 are guidance inputs only; they are not runtime dependencies.
 
 ---
 
@@ -174,6 +181,7 @@ Shared viewport state → switching 2D ↔ 3D preserves camera position and laye
 |-----------|-------|
 | License | PostgreSQL License (permissive) |
 | Role | Authoritative control plane: RBAC, layer registry, provenance, audit ledger, domain registry |
+| Current implementation note | Implemented in WP-I0-003 as the governed control-plane backbone for deployment profiles, bundle registry, audit state, recorder state, and AOI geometry persistence |
 | Spec alignment | §6.3 (normative requirement) |
 
 ### TimescaleDB — Time-Series Context Store
@@ -184,6 +192,7 @@ Shared viewport state → switching 2D ↔ 3D preserves camera position and laye
 | Role | Time-series storage for context domains (trade flows, commodity prices, port throughput) |
 | Why chosen | PostgreSQL extension (same DB, no separate service); hypertables with automatic time partitioning; continuous aggregates for rollups; efficient time-range queries |
 | Alternatives considered | InfluxDB (separate service, tighter license), QuestDB (smaller ecosystem), plain PostgreSQL partitioning (manual, less optimized) |
+| Current implementation note | WP-I0-003 delivers the governed baseline on indexed PostgreSQL tables and live time-range query proof; TimescaleDB remains an optional optimization layer rather than a current runtime dependency |
 | Spec alignment | §6.3 Context Store |
 
 ### MinIO — Object / Artifact Store
@@ -195,6 +204,7 @@ Shared viewport state → switching 2D ↔ 3D preserves camera position and laye
 | Why chosen | S3-compatible API; works on-prem, air-gapped, and cloud; content-addressed storage |
 | Alternatives considered | Local filesystem with content-hash naming (simpler, may be sufficient for desktop-first), SeaweedFS (Apache 2.0, lighter) |
 | Risks | AGPL license requires careful evaluation; if problematic, use SeaweedFS or local filesystem with S3-compatible wrapper |
+| Current implementation note | WP-I0-003 currently uses a local immutable filesystem artifact store mirrored into the governed PostgreSQL registry; MinIO or another S3-compatible backend remains a future alternative, not the current product runtime |
 | Spec alignment | §6.3 Artifact Store |
 
 ---

@@ -10,7 +10,7 @@ Linked WP Check Script: .gov/workflow/wp_checks/check-WP-I1-003.ps1
 
 ## Intent
 
-Replace the current summary-card canvas surrogate with the real governed 2D and 3D geospatial runtime required by the spec. This packet delivers the actual map and layer surface, rendering budgets, and interaction telemetry that other runtime packets build on.
+Replace the current summary-card canvas surrogate with the real governed 2D and 3D geospatial runtime required by the spec. This packet delivers the actual map and layer surface, establishes map-first feature integration for the existing app workflows, and locks the rendering, export, and performance contracts that later runtime packets build on.
 
 ## Linked Requirements
 
@@ -44,14 +44,16 @@ Replace the current summary-card canvas surrogate with the real governed 2D and 
 ## Required Pre-Work
 
 - Confirm sub-spec is written and approved.
+- Confirm `.gov/Spec/sub-specs/I1_map_runtime_research.md` is current and the research packet `WP-GOV-I1-RESEARCH-001` is closed.
 - Confirm traceability rows are present and current.
 - Confirm task board row exists and status is current.
 - Confirm governance kickoff checkpoint commit is made before product implementation.
 
 ## In Scope
 
-- Deliver the real map or globe canvas, governed layer registry integration, and mode-aware rendering shell.
-- Replace summary-only interaction paths with runtime map operations that can support replay, compare, export, and later scenario workflows.
+- Deliver the real MapLibre 2D canvas, Cesium 3D globe mode, and governed shared scene-state shell in the main canvas region.
+- Replace summary-only interaction paths with runtime map operations that support replay, compare, export, collaboration, query, context, scenario, AI, and later strategic-model workflows.
+- Route the current governed state contracts, even where still simulator-backed, into real layers, annotations, inspect states, and map-linked compare surfaces.
 - Capture performance telemetry and degraded-state behavior required by REQ-0014 through REQ-0016 and REQ-0206 through REQ-0212.
 
 ## Out of Scope
@@ -59,6 +61,7 @@ Replace the current summary-card canvas surrogate with the real governed 2D and 
 - Solving the comparative analytics, query execution, or AI gateway remediation packets that sit on top of this runtime.
 - Closing storage and ingestion gaps that belong to WP-I0-003 and WP-I7-002.
 - Shipping any layer source that violates licensing, provenance, or non-goal constraints.
+- Building optional map-polish follow-ons such as indexed 3D tiles search, story-camera presets, or street-view integrations unless they are needed for the core runtime contract.
 
 ## Expected Files Touched
 
@@ -67,6 +70,8 @@ Replace the current summary-card canvas surrogate with the real governed 2D and 
 - .gov/Spec/TRACEABILITY_MATRIX.md
 - .gov/Spec/PRIMITIVES_INDEX.md
 - .gov/Spec/PRIMITIVES_MATRIX.md
+- .gov/Spec/TECH_STACK.md
+- .gov/Spec/sub-specs/I1_map_runtime_research.md
 - .gov/workflow/taskboard/TASK_BOARD.md
 - .gov/workflow/work_packets/WP-I1-003_real-2d-3d-canvas-and-governed-layer-runtime.md
 - .gov/workflow/wp_test_suites/TS-WP-I1-003.md
@@ -75,15 +80,17 @@ Replace the current summary-card canvas surrogate with the real governed 2D and 
 - .product/Worktrees/wt_main/src/App.tsx
 - .product/Worktrees/wt_main/src/App.css
 - .product/Worktrees/wt_main/src/features/i1/
+- .product/Worktrees/wt_main/src/features/i1/components/
+- .product/Worktrees/wt_main/src/features/i1/runtime/
 - .product/Worktrees/wt_main/src/contracts/
 
 ## Interconnection Plan
 
 | Primitive | Feature/Tool | Technology | Combined Outcome |
 |-----------|--------------|------------|------------------|
-| PRIM-0045 | 2D and 3D canvas runtime | React shell with governed map runtime integration | Replaces the current faux canvas with the actual geospatial workstation surface. |
-| PRIM-0046 | overlay composition | GPU-backed map overlays and governed layer metadata | Makes runtime analytics and contextual layers renderable under the spec contract. |
-| PRIM-0047 | interaction budget telemetry | startup and interaction instrumentation | Ensures runtime delivery can be measured and degraded-state behavior can be proven. |
+| PRIM-0045 | dual-surface map shell | React shell, MapLibre GL JS, CesiumJS, shared scene state | Replaces the current faux canvas with the actual geospatial workstation surface. |
+| PRIM-0046 | governed overlay composition | deck.gl overlays, MapLibre layer specs, Cesium entities/tiles, governed layer metadata | Makes query, compare, context, scenario, AI, and modeling outputs renderable on the real map surfaces. |
+| PRIM-0047 | interaction budget telemetry | runtime timers, Tauri smoke proof, degraded-state UX, export timing | Ensures runtime delivery can be measured and degraded-state behavior can be proven. |
 
 ## Spec-Test Coverage Plan
 
@@ -92,16 +99,18 @@ Replace the current summary-card canvas surrogate with the real governed 2D and 
 - [ ] Runtime compatibility checks
 
 ### UI Contract Tests
-- [ ] Required regions/modes/states
+- [ ] Required regions/modes/states with real mounted map or globe
 - [ ] Error/degraded-state UX
+- [ ] Layer labels, provenance, and legend visibility on-map
 
 ### Functional Flow Tests
-- [ ] Golden flow and edge cases
+- [ ] Replay, compare, and layer-toggle golden flows
+- [ ] Query, context, scenario, collaboration, AI, and modeling map-link flows
 - [ ] Persistence/replay/export flows
 
 ### Code Correctness Tests
 - [ ] Unit tests
-- [ ] Integration tests
+- [ ] Map runtime integration tests
 - [ ] Static analysis (lint/type/schema)
 
 ### Red-Team and Abuse Tests
@@ -113,6 +122,7 @@ Replace the current summary-card canvas surrogate with the real governed 2D and 
 - [ ] Performance budgets
 - [ ] Offline behavior
 - [ ] Reliability/recovery
+- [ ] Desktop runtime smoke for 2D and 3D surface mounting
 
 ## Checkpoint Commit Plan
 
@@ -147,3 +157,4 @@ Replace the current summary-card canvas surrogate with the real governed 2D and 
 
 - 2026-03-06: WP scaffold created via .gov/repo_scripts/new_work_packet.ps1.
 - 2026-03-06: Packet scope refined to define the real canvas runtime and performance-budget remediation required after the audit.
+- 2026-03-07: Packet scope updated to follow the source-backed map-first contract from `WP-GOV-I1-RESEARCH-001`.

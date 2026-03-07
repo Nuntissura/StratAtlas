@@ -41,8 +41,9 @@ This file is the execution order for capability slices. It is the scheduling bri
 - `WP-GOV-STATUS-001` remains the retained proof packet for superseded-packet closure and truthful successor propagation; proof: `.product/build_target/tool_artifacts/wp_runs/WP-GOV-STATUS-001/20260306_084102/`.
 - `WP-GOV-REALIGN-002` is now `E2E-VERIFIED`; proof: `.product/build_target/tool_artifacts/wp_runs/WP-GOV-REALIGN-002/20260306_214418/`. It realigned the queue, corrected release-facing requirement and gate overstatements, and handed off to the runtime-proof packet.
 - `WP-GOV-VERIFY-001` is now `E2E-VERIFIED`; proof: `.product/build_target/tool_artifacts/wp_runs/WP-GOV-VERIFY-001/20260307_000606/`. It landed the governed desktop runtime smoke harness, formalized artifact-backed status-promotion evidence, and handed runtime-remediation queue ownership to `WP-I0-003`.
+- `WP-I0-003` is now `E2E-VERIFIED`; proof: `.product/build_target/tool_artifacts/wp_runs/WP-I0-003/20260307_021247/`. It established the governed PostgreSQL/PostGIS control plane, immutable artifact-store registry semantics, deployment-profile persistence, and live time-range query proof that downstream runtime packets depend on.
+- `WP-GOV-I1-RESEARCH-001` is now `E2E-VERIFIED`; proof: `.product/build_target/tool_artifacts/wp_runs/WP-GOV-I1-RESEARCH-001/20260307_031932/`. It captured source-backed 2D/3D runtime research, feature-to-map integration rules, and the map-first execution contract that `WP-I1-003` now follows.
 - Active remediation packet set:
-  - `WP-I0-003`
   - `WP-I1-003`
   - `WP-I2-003`
   - `WP-I5-002`
@@ -52,15 +53,14 @@ This file is the execution order for capability slices. It is the scheduling bri
   - `WP-I9-002`
   - `WP-I10-002`
 - Sequencing constraints:
-  - `WP-I0-003` establishes the governed control-plane, artifact-store, and time-range storage backbone and blocks downstream runtime packets.
-  - `WP-I1-003` depends on `WP-I0-003`.
+  - `WP-I1-003` depends on the now-closed `WP-I0-003` governed backbone packet.
   - `WP-I2-003` and `WP-I5-002` depend on `WP-I0-003` and `WP-I1-003`.
   - `WP-I6-002` depends on `WP-I0-003` and `WP-I5-002`.
   - `WP-I7-002` depends on `WP-I0-003` and `WP-I1-003`.
   - `WP-I8-002` and `WP-I9-002` depend on `WP-I7-002`.
   - `WP-I10-002` depends on `WP-I0-003`, `WP-I1-003`, and `WP-I7-002`.
 - Legacy proof artifacts from `WP-I0-002` through `WP-I10-001` are retained as prototype and simulator evidence only; they do not close the normative runtime gaps identified by the 2026-03-06 audit.
-- The next blocking remediation packet is `WP-I0-003`, which remains the prerequisite storage/control-plane foundation for downstream runtime slices.
+- The next blocking implementation packet is `WP-I1-003`, which is now ready to start with `WP-I0-003` and `WP-GOV-I1-RESEARCH-001` both closed.
 
 ---
 
@@ -105,6 +105,7 @@ In parallel with iteration delivery, maintain governance control packets:
 - `WP-GOV-REALIGN-002`: `E2E-VERIFIED` governance packet that realigned roadmap, taskboard, requirement, and primitive ledgers to the audited code-versus-spec reality; proof: `.product/build_target/tool_artifacts/wp_runs/WP-GOV-REALIGN-002/20260306_214418/`.
 - `WP-GOV-STATUS-001`: close superseded packets with retained proof and explicit successor references.
 - `WP-GOV-VERIFY-001`: `E2E-VERIFIED` governance packet establishing desktop runtime smoke coverage and expanded proof obligations beyond jsdom-only flows; proof: `.product/build_target/tool_artifacts/wp_runs/WP-GOV-VERIFY-001/20260307_000606/`.
+- `WP-GOV-I1-RESEARCH-001`: `E2E-VERIFIED` I1-specific governance packet for map-runtime research capture, feature-to-map integration, and source-backed runtime design direction before `WP-I1-003`; proof: `.product/build_target/tool_artifacts/wp_runs/WP-GOV-I1-RESEARCH-001/20260307_031932/`.
 - `WP-GOV-INSTALLER-002`: E2E-VERIFIED follow-on packet for version-parity and release-surface alignment after governance closeout.
 
 Governance control packets are complete only when preflight and template-compliance checks pass with linked artifacts.

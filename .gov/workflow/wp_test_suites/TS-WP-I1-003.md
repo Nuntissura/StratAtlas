@@ -7,41 +7,46 @@ Iteration: I1
 
 ## Scope
 
-Validate WP delivery against linked requirements and primitives.
+Validate that `WP-I1-003` replaces the faux main canvas with a real governed 2D/3D runtime, routes existing product features into meaningful map behavior, and proves the required interaction and export budgets.
 
 ## Inputs
 
 - Linked requirements: REQ-0011, REQ-0012, REQ-0014, REQ-0015, REQ-0016, REQ-0200, REQ-0201, REQ-0202, REQ-0203, REQ-0206, REQ-0207, REQ-0208, REQ-0209, REQ-0210, REQ-0211, REQ-0212
 - Linked primitives: PRIM-0045, PRIM-0046, PRIM-0047
-- Linked components: <fill>
+- Linked components: `.product/Worktrees/wt_main/src/App.tsx`, `.product/Worktrees/wt_main/src/App.css`, `.product/Worktrees/wt_main/src/features/i1/`, `.product/Worktrees/wt_main/src/contracts/`, `.product/Worktrees/wt_main/src/lib/runtimeSmoke.ts`, `.product/Worktrees/wt_main/src-tauri/src/lib.rs`
 
 ## Test Case Matrix
 
 | Case ID | Requirement | Primitive | Category | Target | Command/Test | Expected |
 |--------|-------------|-----------|----------|--------|--------------|----------|
-| DEP-001 | REQ-0011 | PRIM-0045 | Dependency | dependency graph | <command> | dependencies resolved and policy-compliant |
-| UI-001 | REQ-0011 | PRIM-0045 | UI Contract | required UI contract | <test file> | required regions/modes and degraded states pass |
-| FUNC-001 | REQ-0011 | PRIM-0045 | Functionality | golden flow | <test file> | golden flow passes deterministically |
-| COR-001 | REQ-0011 | PRIM-0045 | Code Correctness | module contracts | <unit/integration> | invariant and regression checks pass |
-| RED-001 | REQ-0011 | PRIM-0045 | Red Team / Abuse | misuse constraints | <security test> | abuse cases blocked and audited |
-| EXT-001 | REQ-0011 | PRIM-0045 | Additional | perf/offline/reliability | <test> | budgets and resilience targets met |
+| DEP-001 | REQ-0202 | PRIM-0045 | Dependency | runtime dependency graph | `pnpm install --frozen-lockfile` and runtime mount checks | map dependencies resolve and mount under Tauri and Vitest |
+| UI-001 | REQ-0200 | PRIM-0045 | UI Contract | required UI contract | `src/App.test.tsx`, map-runtime UI tests, desktop smoke | real map or globe mounts in `region-main-canvas`; required regions and labels remain present |
+| FUNC-001 | REQ-0201 | PRIM-0046 | Functionality | mode-aware map flows | I1 runtime tests plus desktop smoke | replay, compare, query, context, scenario, collaboration, AI, and modeling flows visibly affect the map |
+| COR-001 | REQ-0203 | PRIM-0046 | Code Correctness | layer governance | layer/runtime adapter tests, export guard tests | licensing, artifact labels, and export visibility rules survive the real renderer |
+| RED-001 | REQ-0011 | PRIM-0046 | Red Team / Abuse | misuse and labeling guardrails | static guardrail checks plus targeted runtime assertions | non-goals remain blocked and AI/modeled/context labels remain distinct |
+| EXT-001 | REQ-0206 | PRIM-0047 | Additional | performance and recovery | runtime smoke, perf instrumentation, export timing checks | interaction budgets or explicit degradation indicators are proven |
 
 ## Dependency and Environment Tests
 
 - [ ] Runtime dependency install/lock integrity
 - [ ] Platform portability constraints checked
-- [ ] Required services/adapters available
+- [ ] MapLibre, Cesium, and overlay adapters mount in the supported desktop shell
 
 ## UI Contract Tests
 
 - [ ] Required regions
 - [ ] Required modes/states
+- [ ] Real map or globe surface present in `region-main-canvas`
 - [ ] Error and degraded-state UX
+- [ ] Visible legend, provenance, and artifact-label state on the map surface
 
 ## Functional Flow Tests
 
-- [ ] Golden flow
-- [ ] Deterministic replay path
+- [ ] Replay updates the visible map
+- [ ] Compare mode uses split or otherwise directly comparative map behavior
+- [ ] Query results render as runtime layers
+- [ ] Context domains influence the map or map-linked inspect state
+- [ ] Collaboration, scenario, AI, and modeling flows connect to map state
 - [ ] Export/import or persistence flow
 
 ## Code Correctness Tests
@@ -49,12 +54,14 @@ Validate WP delivery against linked requirements and primitives.
 - [ ] Unit tests
 - [ ] Integration tests
 - [ ] Static checks (lint/type/schema)
+- [ ] Layer/runtime adapter contract tests
 
 ## Red-Team and Abuse Tests
 
 - [ ] Non-goal enforcement (spec section 3.2)
 - [ ] Policy bypass attempts
 - [ ] Invalid input and path abuse cases
+- [ ] Label confusion cases (Observed vs Context vs Modeled vs AI) on the map
 
 ## Additional Tests
 
@@ -62,6 +69,7 @@ Validate WP delivery against linked requirements and primitives.
 - [ ] Offline behavior
 - [ ] Accessibility/usability checks
 - [ ] Reliability/recovery checks
+- [ ] Desktop runtime smoke for 2D and 3D mount paths
 
 ## Automation Hook
 
