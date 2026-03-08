@@ -426,11 +426,12 @@ function Invoke-RemoteMacCheck {
         throw "Timed out waiting for the hosted macOS workflow run to appear."
     }
 
-    gh run watch $run.databaseId --repo $RemoteRepo --interval 10 | Out-Null
-    $run = gh run view $run.databaseId --repo $RemoteRepo --json conclusion,status,url,displayTitle | ConvertFrom-Json
+    $runId = $run.databaseId
+    gh run watch $runId --repo $RemoteRepo --interval 10 | Out-Null
+    $run = gh run view $runId --repo $RemoteRepo --json databaseId,conclusion,status,url,displayTitle | ConvertFrom-Json
 
     try {
-        gh run download $run.databaseId --repo $RemoteRepo -n $artifactName -D $downloadRoot | Out-Null
+        gh run download $runId --repo $RemoteRepo -n $artifactName -D $downloadRoot | Out-Null
     }
     catch {
         Write-Warning "Artifact download failed for run $($run.url)."
