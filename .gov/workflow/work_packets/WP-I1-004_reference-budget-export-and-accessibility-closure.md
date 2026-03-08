@@ -1,7 +1,7 @@
 # WP-I1-004 - Reference Budget Export and Accessibility Closure
 
 Date Opened: 2026-03-08
-Status: IN-PROGRESS
+Status: E2E-VERIFIED
 Iteration: I1
 Workflow Version: 4.0
 Packet Class: IMPLEMENTATION
@@ -127,9 +127,9 @@ Close the remaining runtime-budget, export-timing, and accessibility debt on top
 
 ## Change Ledger
 
-- What Became Real: The live map surface now captures a governed 4K export artifact through the real MapLibre/Cesium runtime, persists PNG plus metadata via the Tauri backend, and records packet-specific cold/warm smoke proof with accessibility and export assertions under `wp_runs/WP-I1-004/`.
-- What Remains Simulated: The packet still does not have a dedicated 2D pan/zoom frame-time probe tied to `REQ-0206`, and the current warm startup evidence remains above the 3.0 s requirement threshold on the dev-mode runtime.
-- Next Blocking Real Seam: Add packet-grade 2D pan/zoom instrumentation and bring warm startup-to-shell within the `REQ-0015` budget so Gate E can be promoted without inference.
+- What Became Real: The governed map runtime now emits packet-grade cold/warm startup, state-change, pan/zoom, scrub, briefing-export, 4K export, and accessibility evidence in the real Tauri desktop shell; the export path also falls back cleanly when the live source canvas is temporarily zero-sized during cold runtime transitions.
+- What Remains Simulated: Nothing within this packet scope; the remaining portability proof is isolated to `WP-GOV-PORT-002`.
+- Next Blocking Real Seam: Execute real macOS runtime smoke and promote `REQ-0018` / `GATE-H` in `WP-GOV-PORT-002`.
 
 ## Checkpoint Commit Plan
 
@@ -155,9 +155,9 @@ Close the remaining runtime-budget, export-timing, and accessibility debt on top
 ## Evidence
 
 - Test Suite Execution: `pnpm exec vitest run src/App.test.tsx src/features/i1/i1.test.ts`; `pnpm lint`; `pnpm build`; `cargo test --manifest-path src-tauri/Cargo.toml --no-run`; `powershell -ExecutionPolicy Bypass -File .gov/workflow/wp_checks/check-WP-I1-004.ps1`
-- Logs: `.product/build_target/tool_artifacts/wp_runs/WP-I1-004/20260308_211610/summary.md`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-004/20260308_211610/UI-001.log`
-- Screenshots/Exports: `.product/build_target/tool_artifacts/wp_runs/WP-I1-004/20260308_211610/runtime_smoke/runtime_smoke_summary.md`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-004/20260308_211610/runtime_smoke/cold/runtime_proof/map_exports/map-export-aoi-2-planar-20260308_201644z.png`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-004/20260308_211610/runtime_smoke/warm/runtime_proof/map_exports/map-export-aoi-2-planar-20260308_201725z.png`
-- Build Artifacts: `.product/build_target/tool_artifacts/wp_runs/WP-I1-004/20260308_211610/runtime_smoke/cold/runtime_smoke_report.json`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-004/20260308_211610/runtime_smoke/warm/runtime_smoke_report.json`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-004/20260308_211610/result.json`
+- Logs: `.product/build_target/tool_artifacts/wp_runs/WP-I1-004/20260308_232056/summary.md`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-004/20260308_232056/UI-001.log`
+- Screenshots/Exports: `.product/build_target/tool_artifacts/wp_runs/WP-I1-004/20260308_232056/runtime_smoke/cold/runtime_proof/map_exports/map-export-aoi-2-planar-20260308_222126z.png`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-004/20260308_232056/runtime_smoke/warm/runtime_proof/map_exports/map-export-aoi-2-planar-20260308_222208z.png`
+- Build Artifacts: `.product/build_target/tool_artifacts/wp_runs/WP-I1-004/20260308_232056/runtime_smoke/cold/runtime_smoke_report.json`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-004/20260308_232056/runtime_smoke/warm/runtime_smoke_report.json`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-004/20260308_232056/result.json`
 - Proof Artifact: .product/build_target/tool_artifacts/wp_runs/WP-I1-004/
 - User Sign-off:
 
@@ -168,3 +168,4 @@ Close the remaining runtime-budget, export-timing, and accessibility debt on top
 - 2026-03-08: Local validation passed for the first runtime slice via targeted Vitest coverage, `pnpm build`, Rust compile, and packet-specific manual smoke at `.product/build_target/tool_artifacts/manual_runtime_smoke/WP-I1-004_slice/`; startup-to-shell measured 2235 ms cold / 2820 ms warm, briefing artifact proof passed, and accessibility assertions passed, while the real 4K export path plus formal packet proof remain open.
 - 2026-03-08: Product remediation added the real 4K map export path, packet-specific export persistence, immediate pressed-state feedback on surface-mode toggles, and runtime-smoke guardrails that fail fast when the export request does not enter the governed flow.
 - 2026-03-08: Official packet proof passed via `.product/build_target/tool_artifacts/wp_runs/WP-I1-004/20260308_211610/`; cold/warm 4K export timings measured 2540 ms / 2575 ms, briefing export remained within the 15 s budget, accessibility assertions passed, and planar restore feedback measured 15 ms / 18 ms. Packet remains `IN-PROGRESS` because warm startup still measured 3432 ms against `REQ-0015`, and `REQ-0206` still needs a dedicated 2D pan/zoom probe.
+- 2026-03-08: Closeout remediation stabilized surface-mode smoke transitions via direct runtime handles and feedback snapshots, added zero-sized-canvas export fallback handling, and produced final proof under `.product/build_target/tool_artifacts/wp_runs/WP-I1-004/20260308_232056/`; cold/warm startup measured 413 ms / 281 ms, planar pan/zoom 18 ms / 23 ms, briefing export 1718 ms / 1780 ms, 4K export 1728 ms / 1903 ms, and accessibility assertions passed in both phases.

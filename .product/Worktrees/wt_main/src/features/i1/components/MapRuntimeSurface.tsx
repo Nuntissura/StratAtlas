@@ -30,7 +30,10 @@ import {
   type MapRuntimeTelemetry,
   type SurfaceMode,
 } from '../runtime/mapRuntimeTelemetry'
-import { buildMapRuntimeExportCapture, type MapRuntimeExportCapture } from '../runtime/mapRuntimeExport'
+import {
+  buildMapRuntimeExportCapture,
+  type MapRuntimeExportCapture,
+} from '../runtime/mapRuntimeExport'
 import {
   focusCesiumRuntime,
   initializeCesiumRuntime,
@@ -61,6 +64,24 @@ export interface MapRuntimeSurfaceHandle {
     bundleId?: string
     visibleLayerCount: number
   }) => Promise<MapRuntimeExportCapture>
+  getSurfaceModeFeedbackSnapshot: () => {
+    measuredMs: number
+    sequence: number
+    surfaceMode: SurfaceMode
+  }
+  measurePlanarPanZoomFrame: (options?: {
+    animationDurationMs?: number
+    panOffsetPx?: [number, number]
+    timeoutMs?: number
+    zoomDelta?: number
+  }) => Promise<{
+    averageFrameMs: number
+    durationMs: number
+    maxFrameMs: number
+    sampleCount: number
+  }>
+  requestSurfaceMode: (nextMode: SurfaceMode) => void
+  switchSurfaceMode: (nextMode: SurfaceMode) => Promise<number>
 }
 
 const CARTO_TILES: string[] = [
@@ -362,7 +383,19 @@ export const MapRuntimeSurface = forwardRef<MapRuntimeSurfaceHandle, MapRuntimeS
   const offlineRef = useRef<boolean>(offline)
   const sceneRef = useRef<MapRuntimeScene>(scene)
   const focusAoiRef = useRef<string>(scene.focusAoiId)
+  const surfaceModeRef = useRef<SurfaceMode>('planar')
   const surfaceModeFeedbackStartRef = useRef<number | null>(null)
+  const surfaceModeFeedbackSnapshotRef = useRef({
+    measuredMs: 0,
+    sequence: 0,
+    surfaceMode: 'planar' as SurfaceMode,
+  })
+  const pendingSurfaceModeSwitchRef = useRef<{
+    mode: SurfaceMode
+    resolve: (measuredMs: number) => void
+    reject: (error: Error) => void
+    timeoutHandle: number
+  } | null>(null)
   const [surfaceMode, setSurfaceMode] = useState<SurfaceMode>('planar')
   const [selectedInspectId, setSelectedInspectId] = useState<string>(scene.inspectCards[0]?.id ?? '')
   const [selectedFocusAoiId, setSelectedFocusAoiId] = useState<string>(scene.focusAoiId)
@@ -381,6 +414,10 @@ export const MapRuntimeSurface = forwardRef<MapRuntimeSurfaceHandle, MapRuntimeS
   useEffect(() => {
     focusAoiRef.current = selectedFocusAoiId
   }, [selectedFocusAoiId])
+
+  useEffect(() => {
+    surfaceModeRef.current = surfaceMode
+  }, [surfaceMode])
 
   useEffect(() => {
     setSelectedFocusAoiId(scene.focusAoiId)
@@ -404,30 +441,58 @@ export const MapRuntimeSurface = forwardRef<MapRuntimeSurfaceHandle, MapRuntimeS
     }
   })
 
-  const requestSurfaceModeChange = (nextMode: SurfaceMode): void => {
-    if (nextMode === surfaceMode) {
+  const requestSurfaceModeChange = useEffectEvent((nextMode: SurfaceMode): void => {
+    if (nextMode === surfaceModeRef.current) {
       return
     }
     surfaceModeFeedbackStartRef.current = performance.now()
     flushSync(() => {
       setSurfaceMode(nextMode)
     })
-  }
+    surfaceModeRef.current = nextMode
+  })
 
   useEffect(() => {
     if (surfaceModeFeedbackStartRef.current === null) {
       return
     }
-    onSurfaceModeFeedback?.(
+    const measuredMs = Math.round(performance.now() - surfaceModeFeedbackStartRef.current)
+    surfaceModeFeedbackSnapshotRef.current = {
+      measuredMs,
+      sequence: surfaceModeFeedbackSnapshotRef.current.sequence + 1,
       surfaceMode,
-      Math.round(performance.now() - surfaceModeFeedbackStartRef.current),
-    )
+    }
+    onSurfaceModeFeedback?.(surfaceMode, measuredMs)
+    if (
+      pendingSurfaceModeSwitchRef.current &&
+      pendingSurfaceModeSwitchRef.current.mode === surfaceMode
+    ) {
+      window.clearTimeout(pendingSurfaceModeSwitchRef.current.timeoutHandle)
+      pendingSurfaceModeSwitchRef.current.resolve(measuredMs)
+      pendingSurfaceModeSwitchRef.current = null
+    }
     surfaceModeFeedbackStartRef.current = null
   }, [onSurfaceModeFeedback, surfaceMode])
+
+  useEffect(() => {
+    return () => {
+      if (pendingSurfaceModeSwitchRef.current) {
+        window.clearTimeout(pendingSurfaceModeSwitchRef.current.timeoutHandle)
+        pendingSurfaceModeSwitchRef.current.reject(
+          new Error('Map runtime surface mode switch was interrupted by unmount.'),
+        )
+        pendingSurfaceModeSwitchRef.current = null
+      }
+    }
+  }, [])
 
   useImperativeHandle(
     ref,
     () => ({
+      getSurfaceModeFeedbackSnapshot: () => surfaceModeFeedbackSnapshotRef.current,
+      requestSurfaceMode: (nextMode) => {
+        requestSurfaceModeChange(nextMode)
+      },
       capture4kMapExport: async ({ marking: exportMarking, bundleId, visibleLayerCount: exportVisibleLayerCount }) => {
         if (!sceneRef.current.inspectCards.length) {
           throw new Error('Map runtime export requires at least one inspect target.')
@@ -469,8 +534,174 @@ export const MapRuntimeSurface = forwardRef<MapRuntimeSurfaceHandle, MapRuntimeS
           sourceCanvas,
         })
       },
+      measurePlanarPanZoomFrame: async ({
+        animationDurationMs = 220,
+        panOffsetPx = [96, -56],
+        timeoutMs = 4000,
+        zoomDelta = 0.08,
+      } = {}) => {
+        const map = mapRef.current
+        if (!interactiveSupportedRef.current || !map || !planarReady) {
+          throw new Error('Planar pan/zoom probe requires an interactive MapLibre runtime.')
+        }
+
+        const waitForAnimationFrames = async (count = 1): Promise<void> => {
+          for (let index = 0; index < count; index += 1) {
+            await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()))
+          }
+        }
+
+        map.stop()
+        map.resize()
+
+        const originCenter = map.getCenter()
+        const originZoom = map.getZoom()
+        const originBearing = map.getBearing()
+        const originPitch = map.getPitch()
+        const projectedCenter = map.project(originCenter)
+        const targetCenter = map.unproject([
+          projectedCenter.x + panOffsetPx[0],
+          projectedCenter.y + panOffsetPx[1],
+        ])
+
+        await waitForAnimationFrames(4)
+
+        return await new Promise<{
+          averageFrameMs: number
+          durationMs: number
+          maxFrameMs: number
+          sampleCount: number
+        }>((resolve, reject) => {
+          const startedAt = performance.now()
+          let settled = false
+          let lastRenderAt: number | null = null
+          let maxFrameMs = 0
+          let totalFrameMs = 0
+          let sampleCount = 0
+          let timeoutHandle = 0
+
+          const cleanup = () => {
+            map.off('render', onRender)
+            map.off('moveend', onMoveEnd)
+            if (timeoutHandle) {
+              window.clearTimeout(timeoutHandle)
+            }
+          }
+
+          const restoreView = async () => {
+            map.stop()
+            map.jumpTo({
+              bearing: originBearing,
+              center: originCenter,
+              pitch: originPitch,
+              zoom: originZoom,
+            })
+            map.triggerRepaint()
+            await waitForAnimationFrames(2)
+          }
+
+          const finish = async () => {
+            if (settled) {
+              return
+            }
+            settled = true
+            cleanup()
+            try {
+              await restoreView()
+              if (sampleCount < 1) {
+                reject(new Error('Planar pan/zoom probe did not record any render-frame samples.'))
+                return
+              }
+              resolve({
+                averageFrameMs: Math.round(totalFrameMs / sampleCount),
+                durationMs: Math.round(performance.now() - startedAt),
+                maxFrameMs: Math.round(maxFrameMs),
+                sampleCount,
+              })
+            } catch (error) {
+              reject(error)
+            }
+          }
+
+          const fail = async (message: string) => {
+            if (settled) {
+              return
+            }
+            settled = true
+            cleanup()
+            try {
+              await restoreView()
+            } catch {
+              // Best-effort view restore after a failed probe.
+            }
+            reject(new Error(message))
+          }
+
+          const onRender = () => {
+            const now = performance.now()
+            if (lastRenderAt !== null) {
+              const frameMs = now - lastRenderAt
+              maxFrameMs = Math.max(maxFrameMs, frameMs)
+              totalFrameMs += frameMs
+              sampleCount += 1
+            }
+            lastRenderAt = now
+          }
+
+          const onMoveEnd = () => {
+            void window.requestAnimationFrame(() => {
+              void finish()
+            })
+          }
+
+          timeoutHandle = window.setTimeout(() => {
+            void fail('Planar pan/zoom probe timed out before the map finished animating.')
+          }, timeoutMs)
+
+          map.on('render', onRender)
+          map.on('moveend', onMoveEnd)
+          map.easeTo({
+            bearing: originBearing,
+            center: targetCenter,
+            duration: animationDurationMs,
+            essential: true,
+            pitch: originPitch,
+            zoom: originZoom + zoomDelta,
+          })
+        })
+      },
+      switchSurfaceMode: async (nextMode) => {
+        if (nextMode === surfaceMode) {
+          return 0
+        }
+
+        if (pendingSurfaceModeSwitchRef.current) {
+          window.clearTimeout(pendingSurfaceModeSwitchRef.current.timeoutHandle)
+          pendingSurfaceModeSwitchRef.current.reject(
+            new Error('A previous map surface mode switch was superseded by a new request.'),
+          )
+          pendingSurfaceModeSwitchRef.current = null
+        }
+
+        return await new Promise<number>((resolve, reject) => {
+          const timeoutHandle = window.setTimeout(() => {
+            if (pendingSurfaceModeSwitchRef.current?.mode === nextMode) {
+              pendingSurfaceModeSwitchRef.current = null
+            }
+            reject(new Error(`Timed out switching map runtime surface to ${nextMode}.`))
+          }, 5000)
+
+          pendingSurfaceModeSwitchRef.current = {
+            mode: nextMode,
+            reject,
+            resolve,
+            timeoutHandle,
+          }
+          requestSurfaceModeChange(nextMode)
+        })
+      },
     }),
-    [mode, selectedFocusAoiId, selectedInspectId, surfaceMode],
+    [mode, planarReady, selectedFocusAoiId, selectedInspectId, surfaceMode],
   )
 
   useEffect(() => {

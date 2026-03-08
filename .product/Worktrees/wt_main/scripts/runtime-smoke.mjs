@@ -369,6 +369,7 @@ const validatePhase = async (phase, phaseDir, logPath) => {
     }
   }
   if (wpId === 'WP-I1-004') {
+    const startupBudgetMs = phase === 'warm' ? 3000 : 8000
     const requiredI1Assertions = [
       'map_accessibility_controls',
       'non_color_semantics_present',
@@ -402,6 +403,25 @@ const validatePhase = async (phase, phaseDir, logPath) => {
     if (!existsSync(mapExportProofPath) || !existsSync(mapExportMetadataProofPath)) {
       throw new Error(`Runtime proof did not copy the 4K map export artifact for ${phase}`)
     }
+    if (report.startupMs > startupBudgetMs) {
+      throw new Error(
+        `Startup budget failed for ${phase}: ${report.startupMs} ms > ${startupBudgetMs} ms`,
+      )
+    }
+    const panZoomMetric = report.metrics.find((metric) => metric.label === 'Planar pan/zoom frame')
+    if (!panZoomMetric || panZoomMetric.passed !== true) {
+      throw new Error(`Planar pan/zoom timing budget failed for ${phase}`)
+    }
+    const replayMetric = report.metrics.find((metric) => metric.label === 'Replay cursor update')
+    if (!replayMetric || replayMetric.passed !== true) {
+      throw new Error(`Replay cursor timing budget failed for ${phase}`)
+    }
+    const briefingMetric = report.metrics.find(
+      (metric) => metric.label === 'Briefing artifact preparation',
+    )
+    if (!briefingMetric || briefingMetric.passed !== true) {
+      throw new Error(`Briefing artifact timing budget failed for ${phase}`)
+    }
     const mapExportMetric = report.metrics.find((metric) => metric.label === '4K map export')
     if (!mapExportMetric || mapExportMetric.passed !== true) {
       throw new Error(`4K map export timing budget failed for ${phase}`)
@@ -434,6 +454,16 @@ const validatePhase = async (phase, phaseDir, logPath) => {
 
   if (!report.assertions.every((assertion) => assertion.passed)) {
     throw new Error(`One or more runtime smoke assertions failed for ${phase}`)
+  }
+  const failedBudgetMetrics = report.metrics.filter(
+    (metric) => typeof metric.budgetMs === 'number' && metric.passed === false,
+  )
+  if (failedBudgetMetrics.length > 0) {
+    throw new Error(
+      `One or more runtime smoke budget metrics failed for ${phase}: ${failedBudgetMetrics
+        .map((metric) => metric.label)
+        .join(', ')}`,
+    )
   }
 
   writePhaseSummary(phase, report, auditEvents, phaseDir)

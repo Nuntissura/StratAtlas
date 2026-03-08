@@ -418,7 +418,7 @@ const renderMapExportCanvas = ({
   context.fillStyle = 'rgba(7, 18, 28, 0.94)'
   context.fillRect(0, EXPORT_HEIGHT - EXPORT_FOOTER_HEIGHT, EXPORT_WIDTH, EXPORT_FOOTER_HEIGHT)
 
-  if (sourceCanvas) {
+  if (sourceCanvas && sourceCanvas.width > 0 && sourceCanvas.height > 0) {
     const fitted = fitRect(sourceCanvas.width, sourceCanvas.height, mapRect)
     context.save()
     context.beginPath()
@@ -569,14 +569,15 @@ export const buildMapRuntimeExportCapture = async (
 ): Promise<MapRuntimeExportCapture> => {
   const generatedAt = new Date().toISOString()
   let usedSourceCanvas = Boolean(options.sourceCanvas)
-  let canvas = renderMapExportCanvas({
-    ...options,
-    generatedAt,
-    sourceCanvas: options.sourceCanvas,
-  })
+  let canvas: HTMLCanvasElement
   let pngBytes: Uint8Array
 
   try {
+    canvas = renderMapExportCanvas({
+      ...options,
+      generatedAt,
+      sourceCanvas: options.sourceCanvas,
+    })
     pngBytes = canvasToPngBytes(canvas)
   } catch {
     usedSourceCanvas = false

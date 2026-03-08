@@ -71,8 +71,8 @@ This file is the execution order for capability slices. It is the scheduling bri
 - `WP-I9-002` is now `E2E-VERIFIED`; proof: `.product/build_target/tool_artifacts/wp_runs/WP-I9-002/20260308_170238/`. It closes REQ-1000..REQ-1003 with governed connector-backed aggregate AOI alert evaluation, deterministic bundle reopen, map-linked alert projection, and cold/warm Tauri runtime smoke evidence.
 - `WP-I10-002` is now `E2E-VERIFIED`. It replaces the remaining local arithmetic strategic-model solve path with a governed backend runtime, persisted solver traces, reproducible experiment bundles, and packet-specific cold/warm Tauri runtime smoke proof.
 - The I0-I10 remediation queue is now fully `E2E-VERIFIED`. Remaining blockers are cross-cutting gate debts in startup/performance, export timing, accessibility, and macOS portability evidence.
-- `WP-I1-004` is now `IN-PROGRESS`. It is the current blocking packet for Gate E and the remaining reference-runtime evidence on `REQ-0014`, `REQ-0015`, `REQ-0016`, `REQ-0206`, `REQ-0207`, `REQ-0208`, `REQ-0209`, `REQ-0210`, and `REQ-0212`.
-- `WP-GOV-PORT-002` is now `SPEC-MAPPED` as the successor verification packet for `REQ-0018` and `GATE-H` once `WP-I1-004` closes.
+- `WP-I1-004` is now `E2E-VERIFIED`; proof: `.product/build_target/tool_artifacts/wp_runs/WP-I1-004/20260308_232056/`. It closes `GATE-E`, `REQ-0014`, `REQ-0015`, `REQ-0016`, `REQ-0206`, `REQ-0207`, `REQ-0208`, `REQ-0209`, `REQ-0210`, and `REQ-0212` with packet-grade cold/warm startup, state-change, pan/zoom, scrub, briefing-export, 4K export, and accessibility evidence in the governed Tauri runtime.
+- `WP-GOV-PORT-002` is now the remaining blocker for `REQ-0018` and `GATE-H` after the Windows/reference-runtime budget closure in `WP-I1-004`.
 
 ---
 

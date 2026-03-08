@@ -36,9 +36,9 @@ REQ-NNNN | LEVEL | Section | Description | Iteration Target | Status
 | REQ-0011 | MUST | Section 11.4 | Every layer/chart/annotation/export labeled as Observed Evidence, Curated Context, Modeled Output, or AI-Derived Interpretation | All | E2E-VERIFIED |
 | REQ-0012 | MUST | Section 11.4 | Modeled outputs MUST include uncertainty representation and MUST NOT be presented as observed | All | E2E-VERIFIED |
 | REQ-0013 | MUST | Section 17 | No capability is "implemented" until it satisfies the slice definition of done | All | E2E-VERIFIED |
-| REQ-0014 | MUST | Section 11.5 | Desktop app startup (cold launch) MUST be <= 8.0 s to interactive shell on reference workstation | All | IN-PROGRESS |
-| REQ-0015 | MUST | Section 11.5 | Desktop app startup (warm relaunch) MUST be <= 3.0 s to interactive shell on reference workstation | All | IN-PROGRESS |
-| REQ-0016 | MUST | Section 11.5 | Analyst state-change actions (layer/filter/apply) MUST provide feedback <= 300 ms P95; if exceeded, UI MUST show non-blocking progress | All | IN-PROGRESS |
+| REQ-0014 | MUST | Section 11.5 | Desktop app startup (cold launch) MUST be <= 8.0 s to interactive shell on reference workstation | All | E2E-VERIFIED |
+| REQ-0015 | MUST | Section 11.5 | Desktop app startup (warm relaunch) MUST be <= 3.0 s to interactive shell on reference workstation | All | E2E-VERIFIED |
+| REQ-0016 | MUST | Section 11.5 | Analyst state-change actions (layer/filter/apply) MUST provide feedback <= 300 ms P95; if exceeded, UI MUST show non-blocking progress | All | E2E-VERIFIED |
 | REQ-0017 | MUST | Section 5.1 | Runtime path/process/environment handling MUST remain platform-neutral without hard-coded Windows-only assumptions in core paths | All | E2E-VERIFIED |
 | REQ-0018 | SHOULD | Section 5.1 | Desktop packaging/runtime SHOULD be smoke-tested on macOS during development to preserve portability | All | IN-PROGRESS |
 | REQ-0019 | MUST | Section 17 | Every WP MUST maintain linked test suite, spec extraction, and WP check script artifacts | All | E2E-VERIFIED |
@@ -87,13 +87,13 @@ REQ-NNNN | LEVEL | Section | Description | Iteration Target | Status
 | REQ-0203 | MUST | Section 12.1 | System surfaces licensing constraints and prevents violating exports | I1 | E2E-VERIFIED |
 | REQ-0204 | MUST | Section 12.2 | Plugins MUST NOT run arbitrary code in main process without sandboxing | I1 | E2E-VERIFIED |
 | REQ-0205 | MUST | Section 12.2 | Plugin network egress controllable | I1 | E2E-VERIFIED |
-| REQ-0206 | MUST | Section 11.5 | 2D pan/zoom: <=50ms frame time with aggregated rendering | I1 | IN-PROGRESS |
-| REQ-0207 | MUST | Section 11.5 | Time scrub (warm cache): <=250ms end-to-end | I1 | IN-PROGRESS |
-| REQ-0208 | MUST | Section 11.5 | Time scrub (cold cache): <=2.0s end-to-end | I1 | IN-PROGRESS |
-| REQ-0209 | MUST | Section 11.5 | 4K image export: <=3.0s | I1 | IN-PROGRESS |
-| REQ-0210 | MUST | Section 11.5 | Briefing bundle export: <=15s | I1 | IN-PROGRESS |
+| REQ-0206 | MUST | Section 11.5 | 2D pan/zoom: <=50ms frame time with aggregated rendering | I1 | E2E-VERIFIED |
+| REQ-0207 | MUST | Section 11.5 | Time scrub (warm cache): <=250ms end-to-end | I1 | E2E-VERIFIED |
+| REQ-0208 | MUST | Section 11.5 | Time scrub (cold cache): <=2.0s end-to-end | I1 | E2E-VERIFIED |
+| REQ-0209 | MUST | Section 11.5 | 4K image export: <=3.0s | I1 | E2E-VERIFIED |
+| REQ-0210 | MUST | Section 11.5 | Briefing bundle export: <=15s | I1 | E2E-VERIFIED |
 | REQ-0211 | MUST | Section 11.5 | Graceful degradation via aggregation when budget cannot be met; UI indicates aggregation | I1 | E2E-VERIFIED |
-| REQ-0212 | SHOULD | Section 11.6 | WCAG/508 accessibility (keyboard, non-color-only semantics) | I1 | IN-PROGRESS |
+| REQ-0212 | SHOULD | Section 11.6 | WCAG/508 accessibility (keyboard, non-color-only semantics) | I1 | E2E-VERIFIED |
 
 ---
 
@@ -228,7 +228,7 @@ REQ-NNNN | LEVEL | Section | Description | Iteration Target | Status
 | GATE-B | MUST | Section 18 | Snapshot bundles reopen deterministically with complete evidence manifests | B | E2E-VERIFIED |
 | GATE-C | MUST | Section 18 | RBAC + audit + sensitivity marking + export controls in place | C | E2E-VERIFIED |
 | GATE-D | MUST | Section 18 | Core analysis on saved projects/bundles functions offline with explicit UI state | D | E2E-VERIFIED |
-| GATE-E | MUST | Section 18 | Performance budgets met on reference hardware/datasets | E | IN-PROGRESS |
+| GATE-E | MUST | Section 18 | Performance budgets met on reference hardware/datasets | E | E2E-VERIFIED |
 | GATE-F | MUST | Section 18 | Context domain provenance, graceful degradation, not presented as primary evidence | F | IN-PROGRESS |
 | GATE-G | MUST | Section 18 | AI safety controls operational whenever AI integration is enabled | G | E2E-VERIFIED |
 | GATE-H | MUST | Section 18 | Desktop startup/portability controls met, installer lifecycle operations validated, and installer/exe version contract enforced | H | IN-PROGRESS |

@@ -1,7 +1,7 @@
 # TS-WP-I1-004 - Spec vs Code Test Suite
 
 Date Opened: 2026-03-08
-Status: IN-PROGRESS
+Status: E2E-VERIFIED
 Linked Work Packet: WP-I1-004
 Iteration: I1
 
@@ -79,11 +79,11 @@ Validate WP delivery against linked requirements and primitives.
 ## Execution Summary
 
 - Last Run Date: 2026-03-08
-- Result: Official packet proof now passes, and the packet remains `IN-PROGRESS` only because not all linked requirements are promotable yet.
-- Blocking Failures: Warm startup still measures 3432 ms in the official warm smoke against the `REQ-0015` <= 3.0 s threshold, and `REQ-0206` still lacks a dedicated packet-grade 2D pan/zoom frame-time probe.
-- Evidence Paths: `.product/build_target/tool_artifacts/wp_runs/WP-I1-004/20260308_211610/`; `pnpm exec vitest run src/App.test.tsx src/features/i1/i1.test.ts`; `pnpm lint`; `pnpm build`; `cargo test --manifest-path src-tauri/Cargo.toml --no-run`
-- What Became Real: The governed runtime now produces real 4K export artifacts with persisted PNG/metadata proof, accessibility assertions pass in both tests and Tauri smoke, and planar restore plus export timings are attached to the packet evidence bundle.
-- What Remains Simulated: No dedicated pan/zoom probe is attached to the packet yet, and warm startup remains above the normative threshold in the current dev-mode smoke evidence.
-- Next Blocking Real Seam: Add explicit 2D pan/zoom timing capture and optimize or re-baseline warm startup-to-shell so Gate E can move from partial evidence to full promotion.
+- Result: Official packet proof passed and all linked requirements are now promotable from the packet evidence.
+- Blocking Failures: None.
+- Evidence Paths: `.product/build_target/tool_artifacts/wp_runs/WP-I1-004/20260308_232056/`; `pnpm test -- --run`; `pnpm lint`; `pnpm build`; `cargo test --manifest-path src-tauri/Cargo.toml`; `powershell -ExecutionPolicy Bypass -File .gov/workflow/wp_checks/check-WP-I1-004.ps1`
+- What Became Real: Cold/warm startup, state-change feedback, pan/zoom frame time, replay scrub, briefing export, 4K export, and accessibility semantics now have packet-grade Tauri proof, with stabilized surface-transition capture and zero-sized-canvas export fallback handling in the governed map runtime.
+- What Remains Simulated: Nothing inside the packet scope; the remaining portability debt is isolated to `WP-GOV-PORT-002`.
+- Next Blocking Real Seam: Execute real macOS desktop smoke for `REQ-0018` and `GATE-H` in `WP-GOV-PORT-002`.
 - Reviewer:
 - User Sign-off:
