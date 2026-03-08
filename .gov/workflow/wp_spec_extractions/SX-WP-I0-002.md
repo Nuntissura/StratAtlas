@@ -1,15 +1,25 @@
 # SX-WP-I0-002 - Spec Extraction Snapshot
 
-Generated On: 2026-03-06
+Generated On: 2026-03-08
 Linked Work Packet: WP-I0-002
 Linked Test Suite: .gov/workflow/wp_test_suites/TS-WP-I0-002.md
 Linked WP Check Script: .gov/workflow/wp_checks/check-WP-I0-002.ps1
+Packet Class Snapshot: UNSPECIFIED
+Workflow Version Snapshot: 3.0
 WP Status Snapshot: E2E-VERIFIED
 Iteration: I0
 
 ## Scope
 
 Concrete extraction of requirement and primitive obligations this WP must satisfy before status promotion.
+
+## Reality Boundary Snapshot
+
+- Not defined in WP.
+
+## Change Ledger Snapshot
+
+- Not defined in WP.
 
 ## Requirement Extraction
 
@@ -26,9 +36,9 @@ Concrete extraction of requirement and primitive obligations this WP must satisf
 | REQ-0106 | MUST | Ãƒâ€šÃ‚Â§8.1 | Audit trail: immutable, append-only | I0 | E2E-VERIFIED |
 | REQ-0107 | SHOULD | Ãƒâ€šÃ‚Â§8.2 | Audit logs tamper-evident (hash chaining), exportable for compliance | I0 | E2E-VERIFIED |
 | REQ-0108 | MUST | Ãƒâ€šÃ‚Â§10.1 | Full offline mode for air-gapped environments | I0 | E2E-VERIFIED |
-| REQ-0109 | MUST | Ãƒâ€šÃ‚Â§6.3 | Control plane DB is PostgreSQL with PostGIS | I0 | SPEC-MAPPED |
-| REQ-0110 | MUST | Ãƒâ€šÃ‚Â§6.3 | Artifact store: immutable artifacts with append-only supersedes links | I0 | IN-PROGRESS |
-| REQ-0111 | MUST | Ãƒâ€šÃ‚Â§5 | Deployment profiles each specify: identity, key management, storage, audit retention, AI access | I0 | SPEC-MAPPED |
+| REQ-0109 | MUST | Ãƒâ€šÃ‚Â§6.3 | Control plane DB is PostgreSQL with PostGIS | I0 | E2E-VERIFIED |
+| REQ-0110 | MUST | Ãƒâ€šÃ‚Â§6.3 | Artifact store: immutable artifacts with append-only supersedes links | I0 | E2E-VERIFIED |
+| REQ-0111 | MUST | Ãƒâ€šÃ‚Â§5 | Deployment profiles each specify: identity, key management, storage, audit retention, AI access | I0 | E2E-VERIFIED |
 | REQ-0112 | MUST | Ãƒâ€šÃ‚Â§11.5 | Bundle open (local): ÃƒÂ¢Ã¢â‚¬Â°Ã‚Â¤5.0s to interactive | I0 | E2E-VERIFIED |
 | REQ-0808 | MUST | Ãƒâ€šÃ‚Â§7.4.8 | Snapshot bundles include context values at capture time | I7 | IN-PROGRESS |
 

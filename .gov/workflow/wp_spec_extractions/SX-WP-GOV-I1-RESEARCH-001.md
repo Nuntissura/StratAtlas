@@ -1,9 +1,11 @@
 # SX-WP-GOV-I1-RESEARCH-001 - Spec Extraction Snapshot
 
-Generated On: 2026-03-07
+Generated On: 2026-03-08
 Linked Work Packet: WP-GOV-I1-RESEARCH-001
 Linked Test Suite: .gov/workflow/wp_test_suites/TS-WP-GOV-I1-RESEARCH-001.md
 Linked WP Check Script: .gov/workflow/wp_checks/check-WP-GOV-I1-RESEARCH-001.ps1
+Packet Class Snapshot: UNSPECIFIED
+Workflow Version Snapshot: 3.0
 WP Status Snapshot: E2E-VERIFIED
 Iteration: I1
 
@@ -11,15 +13,23 @@ Iteration: I1
 
 Concrete extraction of requirement and primitive obligations this WP must satisfy before status promotion.
 
+## Reality Boundary Snapshot
+
+- Not defined in WP.
+
+## Change Ledger Snapshot
+
+- Not defined in WP.
+
 ## Requirement Extraction
 
 | Requirement | Level | Section | Description | Target | Status |
 |-------------|-------|---------|-------------|--------|--------|
-| REQ-0013 | MUST | Ã‚Â§17 | No capability is "implemented" until it satisfies the slice definition of done | All | E2E-VERIFIED |
-| REQ-0019 | MUST | Ã‚Â§17 | Every WP MUST maintain linked test suite, spec extraction, and WP check script artifacts | All | E2E-VERIFIED |
-| REQ-0020 | MUST | Ã‚Â§17 | WP status claims MUST include proof artifact paths and command evidence | All | E2E-VERIFIED |
-| REQ-0021 | MUST | Ã‚Â§18 | Governance preflight MUST enforce WP template compliance to prevent shortcut execution | All | E2E-VERIFIED |
-| REQ-0022 | SHOULD | Ã‚Â§17 | Teams SHOULD run WP loop automation (`run_wp_loop.ps1`) before status-promotion sweeps | All | E2E-VERIFIED |
+| REQ-0013 | MUST | Ãƒâ€šÃ‚Â§17 | No capability is "implemented" until it satisfies the slice definition of done | All | E2E-VERIFIED |
+| REQ-0019 | MUST | Ãƒâ€šÃ‚Â§17 | Every WP MUST maintain linked test suite, spec extraction, and WP check script artifacts | All | E2E-VERIFIED |
+| REQ-0020 | MUST | Ãƒâ€šÃ‚Â§17 | WP status claims MUST include proof artifact paths and command evidence | All | E2E-VERIFIED |
+| REQ-0021 | MUST | Ãƒâ€šÃ‚Â§18 | Governance preflight MUST enforce WP template compliance to prevent shortcut execution | All | E2E-VERIFIED |
+| REQ-0022 | SHOULD | Ãƒâ€šÃ‚Â§17 | Teams SHOULD run WP loop automation (`run_wp_loop.ps1`) before status-promotion sweeps | All | E2E-VERIFIED |
 
 ## Primitive Extraction
 

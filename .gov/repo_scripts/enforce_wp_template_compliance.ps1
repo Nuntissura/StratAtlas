@@ -39,6 +39,20 @@ function Clean-MetadataValue {
     return $Value.Trim().Trim("`"")
 }
 
+function Test-VersionAtLeast {
+    Param(
+        [string]$Value,
+        [string]$Minimum
+    )
+
+    try {
+        return ([version](Clean-MetadataValue -Value $Value)) -ge [version]$Minimum
+    }
+    catch {
+        return $false
+    }
+}
+
 $scriptDirectory = Split-Path -Parent $MyInvocation.MyCommand.Path
 $repoRoot = Resolve-Path (Join-Path $scriptDirectory "..\..")
 $workPacketDir = Join-Path $repoRoot ".gov/workflow/work_packets"
@@ -67,6 +81,12 @@ $requiredSections = @(
     "Evidence"
 )
 
+$requiredV4Sections = @(
+    "Reality Boundary",
+    "Fallback Register",
+    "Change Ledger"
+)
+
 $expectedTouchedAnchors = @(
     ".gov/Spec/REQUIREMENTS_INDEX.md",
     ".gov/Spec/TRACEABILITY_MATRIX.md",
@@ -89,6 +109,8 @@ $requiredSuiteHeadings = @(
     "## Execution Summary"
 )
 
+$allowedPacketClasses = @("RESEARCH", "SCAFFOLD", "IMPLEMENTATION", "VERIFICATION")
+
 $workPackets = Get-ChildItem -Path $workPacketDir -Filter "WP-*.md" -File
 foreach ($wpFile in $workPackets) {
     $raw = Get-Content -Raw $wpFile.FullName
@@ -99,6 +121,12 @@ foreach ($wpFile in $workPackets) {
     }
 
     $wpId = $idMatch.Groups[1].Value
+    $workflowVersionMatch = [regex]::Match($raw, '(?m)^Workflow Version:\s*(.+)$')
+    $workflowVersion = if ($workflowVersionMatch.Success) { Clean-MetadataValue -Value $workflowVersionMatch.Groups[1].Value } else { "" }
+    $isWorkflowV4 = $workflowVersionMatch.Success -and (Test-VersionAtLeast -Value $workflowVersion -Minimum "4.0")
+    $statusMatch = [regex]::Match($raw, '(?m)^Status:\s*(.+)$')
+    $statusValue = if ($statusMatch.Success) { Clean-MetadataValue -Value $statusMatch.Groups[1].Value } else { "" }
+    $packetClassMatch = [regex]::Match($raw, '(?m)^Packet Class:\s*(.+)$')
 
     foreach ($prefix in $requiredMetadataPrefixes) {
         if ($raw -notmatch ("(?m)^" + [regex]::Escape($prefix))) {
@@ -106,9 +134,57 @@ foreach ($wpFile in $workPackets) {
         }
     }
 
+    if ($isWorkflowV4) {
+        if (-not $packetClassMatch.Success) {
+            Add-Issue -IssueList $issues -WpId $wpId -Category "WP-Metadata" -Message "Workflow Version 4.0+ packets must include metadata line: Packet Class:"
+        }
+        else {
+            $packetClass = Clean-MetadataValue -Value $packetClassMatch.Groups[1].Value
+            if ($allowedPacketClasses -notcontains $packetClass) {
+                Add-Issue -IssueList $issues -WpId $wpId -Category "WP-Metadata" -Message "Packet Class '$packetClass' is invalid. Allowed: $($allowedPacketClasses -join ', ')"
+            }
+            if ($packetClass -eq "SCAFFOLD" -and $statusValue -eq "E2E-VERIFIED") {
+                Add-Issue -IssueList $issues -WpId $wpId -Category "WP-Status" -Message "SCAFFOLD packets must not be promoted to E2E-VERIFIED."
+            }
+        }
+    }
+
     foreach ($section in $requiredSections) {
         if ($raw -notmatch ("(?m)^##\s+" + [regex]::Escape($section) + "\s*$")) {
             Add-Issue -IssueList $issues -WpId $wpId -Category "WP-Section" -Message "Missing required section: ## $section"
+        }
+    }
+
+    if ($isWorkflowV4) {
+        foreach ($section in $requiredV4Sections) {
+            if ($raw -notmatch ("(?m)^##\s+" + [regex]::Escape($section) + "\s*$")) {
+                Add-Issue -IssueList $issues -WpId $wpId -Category "WP-Section" -Message "Workflow Version 4.0+ packets must include section: ## $section"
+            }
+        }
+
+        $realityBody = Get-SectionText -Raw $raw -Heading "Reality Boundary"
+        foreach ($anchor in @("- Real Seam:", "- User-Visible Win:", "- Proof Target:", "- Allowed Temporary Fallbacks:", "- Promotion Guard:")) {
+            if ($realityBody -notmatch [regex]::Escape($anchor)) {
+                Add-Issue -IssueList $issues -WpId $wpId -Category "WP-RealityBoundary" -Message "Reality Boundary section missing anchor: $anchor"
+            }
+        }
+
+        $fallbackBody = Get-SectionText -Raw $raw -Heading "Fallback Register"
+        foreach ($anchor in @("- Explicit simulated/mock/sample paths:", "- Required labels in code/UI/governance:", "- Successor packet or debt owner:", "- Exit condition to remove fallback:")) {
+            if ($fallbackBody -notmatch [regex]::Escape($anchor)) {
+                Add-Issue -IssueList $issues -WpId $wpId -Category "WP-FallbackRegister" -Message "Fallback Register section missing anchor: $anchor"
+            }
+        }
+
+        $changeBody = Get-SectionText -Raw $raw -Heading "Change Ledger"
+        foreach ($anchor in @("- What Became Real:", "- What Remains Simulated:", "- Next Blocking Real Seam:")) {
+            if ($changeBody -notmatch [regex]::Escape($anchor)) {
+                Add-Issue -IssueList $issues -WpId $wpId -Category "WP-ChangeLedger" -Message "Change Ledger section missing anchor: $anchor"
+            }
+        }
+
+        if ($raw -match '<[^>\r\n]+>' -or $raw -match '\bTBD\b') {
+            Add-Issue -IssueList $issues -WpId $wpId -Category "WP-Placeholder" -Message "Workflow Version 4.0+ packets must not retain placeholder or TBD markers."
         }
     }
 
@@ -147,6 +223,21 @@ foreach ($wpFile in $workPackets) {
                     Add-Issue -IssueList $issues -WpId $wpId -Category "Suite-Cases" -Message "Suite test case matrix missing $caseId"
                 }
             }
+
+            if ($isWorkflowV4) {
+                if ($suiteRaw -notmatch [regex]::Escape("## Reality Boundary Assertions")) {
+                    Add-Issue -IssueList $issues -WpId $wpId -Category "Suite-Section" -Message "Workflow Version 4.0+ suites must include heading: ## Reality Boundary Assertions"
+                }
+                foreach ($anchor in @("- Packet Class:", "- Real Seam:", "- Proof Target:", "- Allowed Fallbacks:", "- Promotion Guard:", "- What Became Real:", "- What Remains Simulated:", "- Next Blocking Real Seam:")) {
+                    if ($suiteRaw -notmatch [regex]::Escape($anchor)) {
+                        Add-Issue -IssueList $issues -WpId $wpId -Category "Suite-RealityBoundary" -Message "Workflow Version 4.0+ suite missing anchor: $anchor"
+                    }
+                }
+
+                if ($suiteRaw -match '<[^>\r\n]+>' -or $suiteRaw -match '\bTBD\b') {
+                    Add-Issue -IssueList $issues -WpId $wpId -Category "Suite-Placeholder" -Message "Workflow Version 4.0+ suites must not retain placeholder or TBD markers."
+                }
+            }
         }
     }
 
@@ -155,6 +246,17 @@ foreach ($wpFile in $workPackets) {
         $extractAbs = Join-Path $repoRoot ($extractRel.Replace("/", "\"))
         if (-not (Test-Path $extractAbs -PathType Leaf)) {
             Add-Issue -IssueList $issues -WpId $wpId -Category "WP-Link" -Message "Linked spec extraction does not exist: $extractRel"
+        }
+        elseif ($isWorkflowV4) {
+            $extractRaw = Get-Content -Raw $extractAbs
+            foreach ($marker in @("Packet Class Snapshot:", "Workflow Version Snapshot:", "## Reality Boundary Snapshot", "## Change Ledger Snapshot")) {
+                if ($extractRaw -notmatch [regex]::Escape($marker)) {
+                    Add-Issue -IssueList $issues -WpId $wpId -Category "Extract-Section" -Message "Workflow Version 4.0+ spec extraction missing marker: $marker"
+                }
+            }
+            if ($extractRaw -match '<[^>\r\n]+>' -or $extractRaw -match '\bTBD\b') {
+                Add-Issue -IssueList $issues -WpId $wpId -Category "Extract-Placeholder" -Message "Workflow Version 4.0+ spec extractions must not retain placeholder or TBD markers."
+            }
         }
     }
 
@@ -207,4 +309,3 @@ if ($issueCount -gt 0) {
 }
 
 exit 0
-

@@ -15,6 +15,14 @@ Iteration: I0..I10 or All
 - Linked primitives:
 - Linked components:
 
+## Reality Boundary Assertions
+
+- Packet Class:
+- Real Seam:
+- Proof Target:
+- Allowed Fallbacks:
+- Promotion Guard:
+
 ## Test Case Matrix
 
 | Case ID | Requirement | Primitive | Category | Target | Command/Test | Expected |
@@ -74,5 +82,8 @@ Iteration: I0..I10 or All
 - Result:
 - Blocking Failures:
 - Evidence Paths:
+- What Became Real:
+- What Remains Simulated:
+- Next Blocking Real Seam:
 - Reviewer:
 - User Sign-off:

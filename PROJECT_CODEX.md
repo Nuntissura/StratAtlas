@@ -38,24 +38,28 @@ Execution loop:
 
 1. Confirm sequence and scope against `.gov/workflow/ROADMAP.md`.
 2. Choose or create the active Work Packet for the current iteration stage and confirm linked sub-spec (prefer `.gov/repo_scripts/new_work_packet.ps1`).
-3. Update the Task Board row for that WP (status/owner/requirements/sub-spec).
-4. Create/update the linked WP test suite (`.gov/workflow/wp_test_suites/`).
-5. Create/update the linked WP spec extraction (`.gov/workflow/wp_spec_extractions/`) via `.gov/repo_scripts/update_wp_spec_extract.ps1`.
-6. Ensure linked WP check script exists (`.gov/workflow/wp_checks/`) and executes via `.gov/repo_scripts/run_wp_checks.ps1`.
-7. Update `REQUIREMENTS_INDEX.md`, `TRACEABILITY_MATRIX.md`, `PRIMITIVES_INDEX.md`, `PRIMITIVES_MATRIX.md`, and `TECH_STACK.md` if scope or architecture assumptions changed.
-8. Create a governance checkpoint commit before product implementation (automatic when using `new_work_packet.ps1` unless `-SkipCheckpointCommit` is passed).
-9. Implement shippable product code in `.product/Worktrees/wt_main`.
-10. Run preflight: `powershell -ExecutionPolicy Bypass -File .gov/repo_scripts/governance_preflight.ps1`.
-11. Enforce WP template compliance: `powershell -ExecutionPolicy Bypass -File .gov/repo_scripts/enforce_wp_template_compliance.ps1`.
-12. Run the governance-sync checklist in `.gov/workflow/GOVERNANCE_WORKFLOW.md`.
-13. Update WP/test suite/taskboard with outcome + proof artifact path (`.product/build_target/tool_artifacts/wp_runs/<WP-ID>/`).
-14. For installer-impacting WPs, run `powershell -ExecutionPolicy Bypass -File .gov/repo_scripts/build_windows_installer.ps1` and record installer kit path + manifest in WP evidence.
+3. For Workflow Version `4.0+`, classify the packet as `RESEARCH`, `SCAFFOLD`, `IMPLEMENTATION`, or `VERIFICATION` and record `Packet Class`.
+4. Define the packet `Reality Boundary`: real seam, user-visible win, proof target, allowed temporary fallbacks, and successor/debt owner if a fallback remains.
+5. Update the Task Board row for that WP (status/owner/requirements/sub-spec).
+6. Create/update the linked WP test suite (`.gov/workflow/wp_test_suites/`).
+7. Create/update the linked WP spec extraction (`.gov/workflow/wp_spec_extractions/`) via `.gov/repo_scripts/update_wp_spec_extract.ps1`.
+8. Ensure linked WP check script exists (`.gov/workflow/wp_checks/`) and executes via `.gov/repo_scripts/run_wp_checks.ps1`.
+9. Update `REQUIREMENTS_INDEX.md`, `TRACEABILITY_MATRIX.md`, `PRIMITIVES_INDEX.md`, `PRIMITIVES_MATRIX.md`, and `TECH_STACK.md` if scope or architecture assumptions changed.
+10. Create a governance checkpoint commit before product implementation (automatic when using `new_work_packet.ps1` unless `-SkipCheckpointCommit` is passed).
+11. Implement shippable product code in `.product/Worktrees/wt_main`.
+12. Run preflight: `powershell -ExecutionPolicy Bypass -File .gov/repo_scripts/governance_preflight.ps1`.
+13. Enforce WP template compliance: `powershell -ExecutionPolicy Bypass -File .gov/repo_scripts/enforce_wp_template_compliance.ps1`.
+14. Run the governance-sync checklist in `.gov/workflow/GOVERNANCE_WORKFLOW.md`.
+15. Update WP/test suite/taskboard with outcome + proof artifact path (`.product/build_target/tool_artifacts/wp_runs/<WP-ID>/`), plus `What Became Real`, `What Remains Simulated`, and `Next Blocking Real Seam`.
+16. For installer-impacting WPs, run `powershell -ExecutionPolicy Bypass -File .gov/repo_scripts/build_windows_installer.ps1` and record installer kit path + manifest in WP evidence.
 
 If an iteration has multiple sequenced WPs:
 
 - Keep the active packet set explicit in `ROADMAP.md` and `TASK_BOARD.md`.
 - Treat the current blocking packet as the only packet eligible to drive requirement promotion.
 - Downgrade requirement status when earlier packets only delivered scaffolding or prototype behavior.
+- Breadth exploration belongs in `RESEARCH` packets; `SCAFFOLD` packets prepare follow-on work but do not advance requirement completion claims.
+- `IMPLEMENTATION` packets should retire one real seam at a time instead of widening multiple partially simulated surfaces.
 
 ## 3) Canonical Decision Files
 
@@ -147,5 +151,6 @@ The following must stay synchronized at all times:
 - `E2E-VERIFIED` is the only done state.
 - `IMPLEMENTED` means code and lower-level checks exist, but not done.
 - `SUPERSEDED` closes a replaced packet historically and must cite the successor packet; it is not a done state.
+- Workflow Version `4.0+` packets must keep `Reality Boundary`, `Fallback Register`, and `Change Ledger` truthful at all times.
 - No WP may be promoted to `E2E-VERIFIED` without linked evidence and explicit user sign-off in WP + test-suite artifacts.
 - Never overstate implementation state: every claim must cite proof artifacts and command evidence.

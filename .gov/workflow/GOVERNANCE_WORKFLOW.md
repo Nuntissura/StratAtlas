@@ -73,18 +73,20 @@ When `.gov/Spec/stratatlas_spec_v1_2.md` changes:
 When a WP is created or activated:
 
 1. Create WP from template (or via `.gov/repo_scripts/new_work_packet.ps1`).
-2. Create linked test suite in `.gov/workflow/wp_test_suites/`.
-3. Create/update linked spec extraction in `.gov/workflow/wp_spec_extractions/` (use `.gov/repo_scripts/update_wp_spec_extract.ps1`).
-4. Create linked check script in `.gov/workflow/wp_checks/` (delegating to `.gov/repo_scripts/run_wp_checks.ps1`).
-5. Update task board row (owner/scope/status/sub-spec/requirements).
-6. Update traceability WP coverage section.
-7. Update primitives index and primitives matrix.
-8. Create a governance checkpoint commit before product implementation (automatic when using `new_work_packet.ps1` unless `-SkipCheckpointCommit` is passed).
+2. For Workflow Version `4.0+`, set `Packet Class` and record the `Reality Boundary`, `Fallback Register`, and initial `Change Ledger`.
+3. Create linked test suite in `.gov/workflow/wp_test_suites/`.
+4. Create/update linked spec extraction in `.gov/workflow/wp_spec_extractions/` (use `.gov/repo_scripts/update_wp_spec_extract.ps1`).
+5. Create linked check script in `.gov/workflow/wp_checks/` (delegating to `.gov/repo_scripts/run_wp_checks.ps1`).
+6. Update task board row (owner/scope/status/sub-spec/requirements).
+7. Update traceability WP coverage section.
+8. Update primitives index and primitives matrix.
+9. Create a governance checkpoint commit before product implementation (automatic when using `new_work_packet.ps1` unless `-SkipCheckpointCommit` is passed).
 
 If multiple sequenced WPs exist for one iteration:
 
-9. Update `ROADMAP.md` and `TASK_BOARD.md` to identify the active packet set and the current blocking packet.
-10. Downgrade requirement status when a prior packet only delivered scaffolding, demo logic, or prototype behavior.
+10. Update `ROADMAP.md` and `TASK_BOARD.md` to identify the active packet set and the current blocking packet.
+11. Downgrade requirement status when a prior packet only delivered scaffolding, demo logic, or prototype behavior.
+12. Keep the next blocking real seam explicit, not just the next packet name.
 
 ### Trigger C: Implementation progress
 
@@ -95,6 +97,7 @@ When product work progresses:
 3. Update traceability rows for affected requirements.
 4. Update primitives matrix rows for changed combinations/components/tests.
 5. Update test suite execution summary and evidence paths.
+6. For Workflow Version `4.0+`, update `What Became Real`, `What Remains Simulated`, and `Next Blocking Real Seam`.
 
 ### Trigger D: E2E verification attempt
 
@@ -104,6 +107,8 @@ Before promoting any item to `E2E-VERIFIED`:
 2. Evidence paths (logs/artifacts) must be recorded.
 3. Red-team and non-goal checks must be executed.
 4. User sign-off must be documented in the WP and test-suite file.
+5. Workflow Version `4.0+` packets must not retain unresolved `TBD` or placeholder markers in WP/suite/extraction artifacts.
+6. `SCAFFOLD` packets may not promote linked requirements or primitives to `E2E-VERIFIED`.
 
 ### Trigger E: Supersession closure
 
@@ -120,11 +125,13 @@ When a WP is replaced by a successor packet:
 
 Every WP must include these sections:
 
+- `Packet Class` metadata line for Workflow Version `4.0+`
 - `Linked Requirements`
 - `Linked Primitives`
 - `Linked Spec Extraction`
 - `Linked WP Check Script`
 - `Primitive Matrix Impact`
+- `Reality Boundary` for Workflow Version `4.0+`
 - `Expected Files Touched`
 - `Interconnection Plan`
 - `Spec-Test Coverage Plan` including:
@@ -134,6 +141,8 @@ Every WP must include these sections:
   - code correctness tests
   - red-team tests
   - additional tests (performance/offline/reliability/etc.)
+- `Fallback Register` for Workflow Version `4.0+`
+- `Change Ledger` for Workflow Version `4.0+`
 - `Checkpoint Commit Plan`
 - `Proof of Implementation`
 - `Evidence`
@@ -165,12 +174,13 @@ Use `.gov/repo_scripts/governance_checkpoint_commit.ps1` to standardize this.
 Per WP, run this loop:
 
 1. `SPEC EXTRACT`: refresh extraction with `.gov/repo_scripts/update_wp_spec_extract.ps1`.
-2. `PLAN`: confirm WP/suite/check-script scope and expected touched files.
+2. `PLAN`: confirm WP/suite/check-script scope, packet class, reality boundary, fallbacks, and expected touched files.
 3. `EXECUTE`: implement changes in `.product/Worktrees/wt_main`.
 4. `VERIFY`: run `.gov/workflow/wp_checks/check-WP-<...>.ps1` (or `.gov/repo_scripts/run_wp_checks.ps1`).
 5. `ENFORCE`: run `.gov/repo_scripts/enforce_wp_template_compliance.ps1`.
 6. `SYNC`: run `.gov/repo_scripts/governance_preflight.ps1` and update taskboard/traceability/primitives.
-7. `CHECKPOINT`: commit governance/implementation evidence before moving to next WP.
+7. `LEDGER`: update `What Became Real`, `What Remains Simulated`, and `Next Blocking Real Seam`.
+8. `CHECKPOINT`: commit governance/implementation evidence before moving to next WP.
 
 No status claim may skip the `VERIFY` + `ENFORCE` + proof artifact requirement.
 
@@ -188,6 +198,8 @@ No status claim may skip the `VERIFY` + `ENFORCE` + proof artifact requirement.
 ## 8) Governance-Sync Checklist (Use in Every Relevant PR)
 
 - [ ] Work maps to an active WP.
+- [ ] Workflow Version `4.0+` packets declare `Packet Class`.
+- [ ] Workflow Version `4.0+` packets define `Reality Boundary`, `Fallback Register`, and `Change Ledger`.
 - [ ] Linked test suite exists and is current.
 - [ ] Linked spec extraction exists and is current.
 - [ ] Linked WP check script exists and runs.
@@ -200,5 +212,6 @@ No status claim may skip the `VERIFY` + `ENFORCE` + proof artifact requirement.
 - [ ] Build readiness checklist remains accurate.
 - [ ] Product publish changes are sourced from `.product/Worktrees/wt_main`.
 - [ ] WP template compliance check passes (`enforce_wp_template_compliance.ps1`).
+- [ ] Simulated/seeded/sample runtime paths are explicitly labeled and recorded when material.
 - [ ] Startup/performance and macOS-portability requirements are reflected when affected.
 - [ ] `PROJECT_CODEX.md`, `AGENTS.md`, and `MODEL_BEHAVIOR.md` reflect current workflow.

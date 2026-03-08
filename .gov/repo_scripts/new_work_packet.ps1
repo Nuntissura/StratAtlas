@@ -17,6 +17,8 @@ Param(
     [string]$SubSpecPath = ".gov/Spec/sub-specs/<fill>.md",
     [string]$Owner = "Unassigned",
     [string]$Status = "SPEC-MAPPED",
+    [ValidateSet("RESEARCH", "SCAFFOLD", "IMPLEMENTATION", "VERIFICATION")]
+    [string]$PacketClass = "IMPLEMENTATION",
     [string[]]$ExpectedFiles = @(
         ".gov/Spec/stratatlas_spec_v1_2.md",
         ".gov/Spec/REQUIREMENTS_INDEX.md",
@@ -102,6 +104,7 @@ if ($allowedStatuses -notcontains $Status) {
 
 $Requirements = @($Requirements | ForEach-Object { $_ -split "," } | ForEach-Object { $_.Trim() } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Sort-Object -Unique)
 $PrimitiveIds = @($PrimitiveIds | ForEach-Object { $_ -split "," } | ForEach-Object { $_.Trim() } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Sort-Object -Unique)
+$ExpectedFiles = @($ExpectedFiles | ForEach-Object { $_ -split "," } | ForEach-Object { $_.Trim() } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
 
 $scriptDirectory = Split-Path -Parent $MyInvocation.MyCommand.Path
 $repoRoot = Resolve-Path (Join-Path $scriptDirectory "..\..")
@@ -152,7 +155,7 @@ foreach ($item in $ExpectedFiles) {
 }
 
 $reqBullets = ($Requirements | ForEach-Object { "- $_" }) -join "`r`n"
-$primBullets = ($PrimitiveIds | ForEach-Object { "- $_ | <name> | <reason>" }) -join "`r`n"
+$primBullets = ($PrimitiveIds | ForEach-Object { "- $_ | TBD NAME | explain why this primitive matters to this WP before status promotion" }) -join "`r`n"
 $expectedBullets = ($normalizedExpected | ForEach-Object { "- $_" }) -join "`r`n"
 
 $wpContent = @"
@@ -161,14 +164,15 @@ $wpContent = @"
 Date Opened: $today
 Status: $Status
 Iteration: $Iteration
-Workflow Version: 3.0
+Workflow Version: 4.0
+Packet Class: $PacketClass
 Linked Test Suite: $suiteRel
 Linked Spec Extraction: $specExtractRel
 Linked WP Check Script: $wpCheckRel
 
 ## Intent
 
-<1-3 sentence outcome statement>
+TBD - replace before status promotion.
 
 ## Linked Requirements
 
@@ -189,15 +193,23 @@ $primBullets
 - Confirm task board row exists and status is current.
 - Confirm governance kickoff checkpoint commit is made before product implementation.
 
+## Reality Boundary
+
+- Real Seam: TBD
+- User-Visible Win: TBD
+- Proof Target: TBD
+- Allowed Temporary Fallbacks: TBD
+- Promotion Guard: RESEARCH and SCAFFOLD packets do not promote linked requirements or primitives to `E2E-VERIFIED`.
+
 ## In Scope
 
-- <item 1>
-- <item 2>
+- TBD - replace before status promotion.
+- TBD - replace before status promotion.
 
 ## Out of Scope
 
-- <item 1>
-- <item 2>
+- TBD - replace before status promotion.
+- TBD - replace before status promotion.
 
 ## Expected Files Touched
 
@@ -207,7 +219,7 @@ $expectedBullets
 
 | Primitive | Feature/Tool | Technology | Combined Outcome |
 |-----------|--------------|------------|------------------|
-| <primitive> | <feature/tool> | <tech> | <why this combination matters> |
+| TBD PRIMITIVE | TBD FEATURE/TOOL | TBD TECHNOLOGY | TBD COMBINED OUTCOME |
 
 ## Spec-Test Coverage Plan
 
@@ -238,6 +250,19 @@ $expectedBullets
 - [ ] Offline behavior
 - [ ] Reliability/recovery
 
+## Fallback Register
+
+- Explicit simulated/mock/sample paths: TBD
+- Required labels in code/UI/governance: TBD
+- Successor packet or debt owner: TBD
+- Exit condition to remove fallback: TBD
+
+## Change Ledger
+
+- What Became Real: TBD
+- What Remains Simulated: TBD
+- Next Blocking Real Seam: TBD
+
 ## Checkpoint Commit Plan
 
 1. Governance kickoff commit (spec/wp/taskboard/traceability/primitives).
@@ -256,6 +281,7 @@ $expectedBullets
 - Traceability, primitives index, and primitives matrix are synchronized.
 - Linked test suite has executed results and evidence paths.
 - Evidence bundle is attached.
+- `Reality Boundary`, `Fallback Register`, and `Change Ledger` are truthful.
 - User Sign-off: APPROVED.
 
 ## Evidence
@@ -293,18 +319,26 @@ Validate WP delivery against linked requirements and primitives.
 
 - Linked requirements: $($Requirements -join ", ")
 - Linked primitives: $($PrimitiveIds -join ", ")
-- Linked components: <fill>
+- Linked components: TBD
+
+## Reality Boundary Assertions
+
+- Packet Class: $PacketClass
+- Real Seam: TBD
+- Proof Target: TBD
+- Allowed Fallbacks: TBD
+- Promotion Guard: RESEARCH and SCAFFOLD packets do not promote linked requirements or primitives to `E2E-VERIFIED`.
 
 ## Test Case Matrix
 
 | Case ID | Requirement | Primitive | Category | Target | Command/Test | Expected |
 |--------|-------------|-----------|----------|--------|--------------|----------|
-| DEP-001 | $suiteReq | $suitePrim | Dependency | dependency graph | <command> | dependencies resolved and policy-compliant |
-| UI-001 | $suiteReq | $suitePrim | UI Contract | required UI contract | <test file> | required regions/modes and degraded states pass |
-| FUNC-001 | $suiteReq | $suitePrim | Functionality | golden flow | <test file> | golden flow passes deterministically |
-| COR-001 | $suiteReq | $suitePrim | Code Correctness | module contracts | <unit/integration> | invariant and regression checks pass |
-| RED-001 | $suiteReq | $suitePrim | Red Team / Abuse | misuse constraints | <security test> | abuse cases blocked and audited |
-| EXT-001 | $suiteReq | $suitePrim | Additional | perf/offline/reliability | <test> | budgets and resilience targets met |
+| DEP-001 | $suiteReq | $suitePrim | Dependency | dependency graph | TBD COMMAND | dependencies resolved and policy-compliant |
+| UI-001 | $suiteReq | $suitePrim | UI Contract | required UI contract | TBD TEST FILE | required regions/modes and degraded states pass |
+| FUNC-001 | $suiteReq | $suitePrim | Functionality | golden flow | TBD TEST FILE | golden flow passes deterministically |
+| COR-001 | $suiteReq | $suitePrim | Code Correctness | module contracts | TBD UNIT/INTEGRATION | invariant and regression checks pass |
+| RED-001 | $suiteReq | $suitePrim | Red Team / Abuse | misuse constraints | TBD SECURITY TEST | abuse cases blocked and audited |
+| EXT-001 | $suiteReq | $suitePrim | Additional | perf/offline/reliability | TBD ADDITIONAL TEST | budgets and resilience targets met |
 
 ## Dependency and Environment Tests
 
@@ -354,6 +388,9 @@ Validate WP delivery against linked requirements and primitives.
 - Result:
 - Blocking Failures:
 - Evidence Paths:
+- What Became Real:
+- What Remains Simulated:
+- Next Blocking Real Seam:
 - Reviewer:
 - User Sign-off:
 "@
@@ -365,7 +402,7 @@ $checkScriptContent = $checkTemplate.Replace("<WP-ID>", $WpId)
 [System.IO.File]::WriteAllText($wpCheckPath, $checkScriptContent.TrimEnd() + "`r`n", [System.Text.UTF8Encoding]::new($false))
 
 $reqSummary = ($Requirements -join ", ")
-$taskBoardRow = "| $WpId | $Iteration | $Title | <scope> | $Status | $Owner | $reqSummary | $SubSpecPath | $suiteRel | $today | Spec extraction: $specExtractRel; check script: $wpCheckRel |"
+$taskBoardRow = "| $WpId | $Iteration | $Title | TBD - replace before status promotion | $Status | $Owner | $reqSummary | $SubSpecPath | $suiteRel | $today | Packet class: $PacketClass; Spec extraction: $specExtractRel; check script: $wpCheckRel |"
 Ensure-TableRow -Path $taskBoardPath -RowPrefix "| $WpId |" -RowValue $taskBoardRow -AnchorHeader "## Active Board"
 
 $traceRaw = Get-Content $tracePath -Raw
@@ -391,7 +428,7 @@ foreach ($primitiveId in $PrimitiveIds) {
     if ($primitiveIndexRaw -match [regex]::Escape("| $primitiveId |")) {
         continue
     }
-    $primitiveIndexRaw += "`r`n| $primitiveId | <name> | <type> | <contract> | <spec anchor> | $reqSummary | $Iteration | SPEC-MAPPED | $Owner | Added by new_work_packet.ps1 |"
+    $primitiveIndexRaw += "`r`n| $primitiveId | TBD NAME | governance | TBD CONTRACT | TBD SPEC ANCHOR | $reqSummary | $Iteration | SPEC-MAPPED | $Owner | Added by new_work_packet.ps1; replace before status promotion |"
 }
 [System.IO.File]::WriteAllText($primitiveIndexPath, $primitiveIndexRaw.TrimEnd() + "`r`n", [System.Text.UTF8Encoding]::new($false))
 
@@ -400,7 +437,7 @@ foreach ($primitiveId in $PrimitiveIds) {
     if ($primitiveMatrixRaw -match [regex]::Escape("| $primitiveId | $WpId |")) {
         continue
     }
-    $primitiveMatrixRaw += "`r`n| $primitiveId | $WpId | $reqSummary | <components> | <tests> | <tech/tools> | <combined primitives/tools> | SPEC-MAPPED | $today |"
+    $primitiveMatrixRaw += "`r`n| $primitiveId | $WpId | $reqSummary | TBD COMPONENTS | TBD TESTS | TBD TECH/TOOLS | TBD COMBINED PRIMITIVES/TOOLS | SPEC-MAPPED | $today |"
 }
 [System.IO.File]::WriteAllText($primitiveMatrixPath, $primitiveMatrixRaw.TrimEnd() + "`r`n", [System.Text.UTF8Encoding]::new($false))
 

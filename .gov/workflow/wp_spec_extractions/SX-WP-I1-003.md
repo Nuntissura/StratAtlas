@@ -1,44 +1,54 @@
 # SX-WP-I1-003 - Spec Extraction Snapshot
 
-Generated On: 2026-03-07
+Generated On: 2026-03-08
 Linked Work Packet: WP-I1-003
 Linked Test Suite: .gov/workflow/wp_test_suites/TS-WP-I1-003.md
 Linked WP Check Script: .gov/workflow/wp_checks/check-WP-I1-003.ps1
-WP Status Snapshot: SPEC-MAPPED
+Packet Class Snapshot: UNSPECIFIED
+Workflow Version Snapshot: 3.0
+WP Status Snapshot: E2E-VERIFIED
 Iteration: I1
 
 ## Scope
 
 Concrete extraction of requirement and primitive obligations this WP must satisfy before status promotion.
 
+## Reality Boundary Snapshot
+
+- Not defined in WP.
+
+## Change Ledger Snapshot
+
+- Not defined in WP.
+
 ## Requirement Extraction
 
 | Requirement | Level | Section | Description | Target | Status |
 |-------------|-------|---------|-------------|--------|--------|
-| REQ-0011 | MUST | Ã‚Â§11.4 | Every layer/chart/annotation/export labeled as Observed Evidence, Curated Context, Modeled Output, or AI-Derived Interpretation | All | E2E-VERIFIED |
-| REQ-0012 | MUST | Ã‚Â§11.4 | Modeled outputs MUST include uncertainty representation and MUST NOT be presented as observed | All | E2E-VERIFIED |
-| REQ-0014 | MUST | Ã‚Â§11.5 | Desktop app startup (cold launch) MUST be <= 8.0 s to interactive shell on reference workstation | All | IN-PROGRESS |
-| REQ-0015 | MUST | Ã‚Â§11.5 | Desktop app startup (warm relaunch) MUST be <= 3.0 s to interactive shell on reference workstation | All | IN-PROGRESS |
-| REQ-0016 | MUST | Ã‚Â§11.5 | Analyst state-change actions (layer/filter/apply) MUST provide feedback <= 300 ms P95; if exceeded, UI MUST show non-blocking progress | All | IN-PROGRESS |
-| REQ-0200 | MUST | Ã‚Â§11.1 | UI stable regions: header, left panel, right panel, bottom panel, main canvas | I1 | E2E-VERIFIED |
-| REQ-0201 | MUST | Ã‚Â§11.2 | UI modes: Live/Recent, Replay, Compare, Scenario, Collaboration, Offline | I1 | E2E-VERIFIED |
-| REQ-0202 | MUST | Ã‚Â§12.1 | Every layer declares: source, license, cadence, geometry type, sensitivity class, caching policy | I1 | E2E-VERIFIED |
-| REQ-0203 | MUST | Ã‚Â§12.1 | System surfaces licensing constraints and prevents violating exports | I1 | IN-PROGRESS |
-| REQ-0206 | MUST | Ã‚Â§11.5 | 2D pan/zoom: Ã¢â€°Â¤50ms frame time with aggregated rendering | I1 | IN-PROGRESS |
-| REQ-0207 | MUST | Ã‚Â§11.5 | Time scrub (warm cache): Ã¢â€°Â¤250ms end-to-end | I1 | IN-PROGRESS |
-| REQ-0208 | MUST | Ã‚Â§11.5 | Time scrub (cold cache): Ã¢â€°Â¤2.0s end-to-end | I1 | IN-PROGRESS |
-| REQ-0209 | MUST | Ã‚Â§11.5 | 4K image export: Ã¢â€°Â¤3.0s | I1 | IN-PROGRESS |
-| REQ-0210 | MUST | Ã‚Â§11.5 | Briefing bundle export: Ã¢â€°Â¤15s | I1 | IN-PROGRESS |
-| REQ-0211 | MUST | Ã‚Â§11.5 | Graceful degradation via aggregation when budget cannot be met; UI indicates aggregation | I1 | IN-PROGRESS |
-| REQ-0212 | SHOULD | Ã‚Â§11.6 | WCAG/508 accessibility (keyboard, non-color-only semantics) | I1 | IN-PROGRESS |
+| REQ-0011 | MUST | Ãƒâ€šÃ‚Â§11.4 | Every layer/chart/annotation/export labeled as Observed Evidence, Curated Context, Modeled Output, or AI-Derived Interpretation | All | E2E-VERIFIED |
+| REQ-0012 | MUST | Ãƒâ€šÃ‚Â§11.4 | Modeled outputs MUST include uncertainty representation and MUST NOT be presented as observed | All | E2E-VERIFIED |
+| REQ-0014 | MUST | Ãƒâ€šÃ‚Â§11.5 | Desktop app startup (cold launch) MUST be <= 8.0 s to interactive shell on reference workstation | All | IN-PROGRESS |
+| REQ-0015 | MUST | Ãƒâ€šÃ‚Â§11.5 | Desktop app startup (warm relaunch) MUST be <= 3.0 s to interactive shell on reference workstation | All | IN-PROGRESS |
+| REQ-0016 | MUST | Ãƒâ€šÃ‚Â§11.5 | Analyst state-change actions (layer/filter/apply) MUST provide feedback <= 300 ms P95; if exceeded, UI MUST show non-blocking progress | All | IN-PROGRESS |
+| REQ-0200 | MUST | Ãƒâ€šÃ‚Â§11.1 | UI stable regions: header, left panel, right panel, bottom panel, main canvas | I1 | E2E-VERIFIED |
+| REQ-0201 | MUST | Ãƒâ€šÃ‚Â§11.2 | UI modes: Live/Recent, Replay, Compare, Scenario, Collaboration, Offline | I1 | E2E-VERIFIED |
+| REQ-0202 | MUST | Ãƒâ€šÃ‚Â§12.1 | Every layer declares: source, license, cadence, geometry type, sensitivity class, caching policy | I1 | E2E-VERIFIED |
+| REQ-0203 | MUST | Ãƒâ€šÃ‚Â§12.1 | System surfaces licensing constraints and prevents violating exports | I1 | E2E-VERIFIED |
+| REQ-0206 | MUST | Ãƒâ€šÃ‚Â§11.5 | 2D pan/zoom: ÃƒÂ¢Ã¢â‚¬Â°Ã‚Â¤50ms frame time with aggregated rendering | I1 | IN-PROGRESS |
+| REQ-0207 | MUST | Ãƒâ€šÃ‚Â§11.5 | Time scrub (warm cache): ÃƒÂ¢Ã¢â‚¬Â°Ã‚Â¤250ms end-to-end | I1 | IN-PROGRESS |
+| REQ-0208 | MUST | Ãƒâ€šÃ‚Â§11.5 | Time scrub (cold cache): ÃƒÂ¢Ã¢â‚¬Â°Ã‚Â¤2.0s end-to-end | I1 | IN-PROGRESS |
+| REQ-0209 | MUST | Ãƒâ€šÃ‚Â§11.5 | 4K image export: ÃƒÂ¢Ã¢â‚¬Â°Ã‚Â¤3.0s | I1 | IN-PROGRESS |
+| REQ-0210 | MUST | Ãƒâ€šÃ‚Â§11.5 | Briefing bundle export: ÃƒÂ¢Ã¢â‚¬Â°Ã‚Â¤15s | I1 | IN-PROGRESS |
+| REQ-0211 | MUST | Ãƒâ€šÃ‚Â§11.5 | Graceful degradation via aggregation when budget cannot be met; UI indicates aggregation | I1 | E2E-VERIFIED |
+| REQ-0212 | SHOULD | Ãƒâ€šÃ‚Â§11.6 | WCAG/508 accessibility (keyboard, non-color-only semantics) | I1 | IN-PROGRESS |
 
 ## Primitive Extraction
 
 | Primitive | Name | Contract | REQs | First Iter | Status |
 |-----------|------|----------|------|------------|--------|
-| PRIM-0045 | Dual Surface Geospatial Runtime | Deliver governed 2D and 3D canvas surfaces with mode-aware layer orchestration, labeling contracts, and stable shell integration | REQ-0011, REQ-0012, REQ-0014, REQ-0015, REQ-0016, REQ-0200, REQ-0201, REQ-0202, REQ-0203, REQ-0206, REQ-0207, REQ-0208, REQ-0209, REQ-0210, REQ-0211, REQ-0212 | I1 | SPEC-MAPPED |
-| PRIM-0046 | GPU Overlay Composition | Compose governed raster, vector, and analytic overlays within performance budgets while preserving labeling and licensing constraints | REQ-0011, REQ-0012, REQ-0014, REQ-0015, REQ-0016, REQ-0200, REQ-0201, REQ-0202, REQ-0203, REQ-0206, REQ-0207, REQ-0208, REQ-0209, REQ-0210, REQ-0211, REQ-0212 | I1 | SPEC-MAPPED |
-| PRIM-0047 | Budgeted Interaction Telemetry | Measure startup, pan/zoom, scrub, and export budgets and expose governed degradation signals when runtime budgets are exceeded | REQ-0011, REQ-0012, REQ-0014, REQ-0015, REQ-0016, REQ-0200, REQ-0201, REQ-0202, REQ-0203, REQ-0206, REQ-0207, REQ-0208, REQ-0209, REQ-0210, REQ-0211, REQ-0212 | I1 | SPEC-MAPPED |
+| PRIM-0045 | Dual Surface Geospatial Runtime | Deliver governed 2D and 3D canvas surfaces with mode-aware layer orchestration, labeling contracts, and stable shell integration | REQ-0011, REQ-0012, REQ-0014, REQ-0015, REQ-0016, REQ-0200, REQ-0201, REQ-0202, REQ-0203, REQ-0206, REQ-0207, REQ-0208, REQ-0209, REQ-0210, REQ-0211, REQ-0212 | I1 | E2E-VERIFIED |
+| PRIM-0046 | GPU Overlay Composition | Compose governed raster, vector, and analytic overlays within performance budgets while preserving labeling and licensing constraints | REQ-0011, REQ-0012, REQ-0014, REQ-0015, REQ-0016, REQ-0200, REQ-0201, REQ-0202, REQ-0203, REQ-0206, REQ-0207, REQ-0208, REQ-0209, REQ-0210, REQ-0211, REQ-0212 | I1 | E2E-VERIFIED |
+| PRIM-0047 | Budgeted Interaction Telemetry | Measure startup, pan/zoom, scrub, and export budgets and expose governed degradation signals when runtime budgets are exceeded | REQ-0011, REQ-0012, REQ-0014, REQ-0015, REQ-0016, REQ-0200, REQ-0201, REQ-0202, REQ-0203, REQ-0206, REQ-0207, REQ-0208, REQ-0209, REQ-0210, REQ-0211, REQ-0212 | I1 | E2E-VERIFIED |
 
 ## Traceability Hooks
 

@@ -1,6 +1,6 @@
 # StratAtlas - Roadmap and Build Order
 
-Date: 2026-03-07
+Date: 2026-03-08
 Source anchors: `.gov/Spec/stratatlas_spec_v1_2.md` section 19 and `.gov/Spec/REQUIREMENTS_INDEX.md`
 
 This file is the execution order for capability slices. It is the scheduling bridge between the spec and day-to-day work packets.
@@ -63,7 +63,10 @@ This file is the execution order for capability slices. It is the scheduling bri
 - `WP-I1-003` is now `E2E-VERIFIED`; proof: `.product/build_target/tool_artifacts/wp_runs/WP-I1-003/20260307_045256/`. The main canvas now mounts the real MapLibre/Cesium runtime, the existing feature set projects into meaningful map-linked overlays and inspect state, and governed cold/warm Tauri runtime smoke evidence is attached under `runtime_smoke/`.
 - `WP-I2-003` is now `E2E-VERIFIED`; proof: `.product/build_target/tool_artifacts/wp_runs/WP-I2-003/20260307_201453/`. It closes REQ-0300..REQ-0302 with AOI-linked delta analytics, compare-driven map projection, deterministic briefing preparation, derived-bundle persistence, and deterministic reopen proof.
 - `REQ-0209` and `REQ-0210` remain `IN-PROGRESS` because this packet does not yet include explicit export-budget timing evidence.
-- The current blocking implementation packet is `WP-I5-002`, now `IN-PROGRESS`. The first active slice is replacing the hard-coded query row simulation with governed execution-adapter plumbing, truthful result-layer materialization, and bundle-linked saved-query persistence.
+- `WP-I5-002` is now `E2E-VERIFIED`; proof: `.product/build_target/tool_artifacts/wp_runs/WP-I5-002/20260307_232719/`. It closes REQ-0600..REQ-0604 with DuckDB-backed governed query execution, SQL fingerprint capture, context-aware predicates, deterministic matched-row layer materialization, and bundle reopen proof.
+- `WP-I6-002` is now `E2E-VERIFIED`; proof: `.product/build_target/tool_artifacts/wp_runs/WP-I6-002/20260308_012806/`. It closes REQ-0700..REQ-0708 with a governed provider-agnostic adapter, live Codex CLI / ChatGPT-login runtime proof, OpenAI Responses fallback support, audited MCP execution, and cold/warm Tauri runtime smoke evidence including live AI and MCP assertions.
+- `WP-GOV-DEPTH-001` is now `E2E-VERIFIED`; proof: `.product/build_target/tool_artifacts/wp_runs/WP-GOV-DEPTH-001/20260308_042222/`. It establishes the depth-first workflow baseline for future work through Workflow Version 4.0 packet fields, extract snapshots, and scaffold/placeholder enforcement, and it does not change the current product blocker `WP-I7-002`.
+- The next blocking implementation packet is `WP-I7-002`, currently `SPEC-MAPPED`.
 
 ---
 
@@ -110,5 +113,6 @@ In parallel with iteration delivery, maintain governance control packets:
 - `WP-GOV-VERIFY-001`: `E2E-VERIFIED` governance packet establishing desktop runtime smoke coverage and expanded proof obligations beyond jsdom-only flows; proof: `.product/build_target/tool_artifacts/wp_runs/WP-GOV-VERIFY-001/20260307_000606/`.
 - `WP-GOV-I1-RESEARCH-001`: `E2E-VERIFIED` I1-specific governance packet for map-runtime research capture, feature-to-map integration, and source-backed runtime design direction before `WP-I1-003`; proof: `.product/build_target/tool_artifacts/wp_runs/WP-GOV-I1-RESEARCH-001/20260307_031932/`.
 - `WP-GOV-INSTALLER-002`: E2E-VERIFIED follow-on packet for version-parity and release-surface alignment after governance closeout.
+- `WP-GOV-DEPTH-001`: `E2E-VERIFIED` governance packet upgrading the packet template, generator, compliance rules, extraction snapshots, and root instructions so breadth-first work stays explicit while only real seams can advance delivery claims; proof: `.product/build_target/tool_artifacts/wp_runs/WP-GOV-DEPTH-001/20260308_042222/`.
 
 Governance control packets are complete only when preflight and template-compliance checks pass with linked artifacts.

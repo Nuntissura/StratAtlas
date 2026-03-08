@@ -1,15 +1,25 @@
 # SX-WP-GOV-ITER-ACTIVE-001 - Spec Extraction Snapshot
 
-Generated On: 2026-03-06
+Generated On: 2026-03-08
 Linked Work Packet: WP-GOV-ITER-ACTIVE-001
 Linked Test Suite: .gov/workflow/wp_test_suites/TS-WP-GOV-ITER-ACTIVE-001.md
 Linked WP Check Script: .gov/workflow/wp_checks/check-WP-GOV-ITER-ACTIVE-001.ps1
+Packet Class Snapshot: UNSPECIFIED
+Workflow Version Snapshot: 3.0
 WP Status Snapshot: SUPERSEDED
 Iteration: I0-I10
 
 ## Scope
 
 Concrete extraction of requirement and primitive obligations this WP must satisfy before status promotion.
+
+## Reality Boundary Snapshot
+
+- Not defined in WP.
+
+## Change Ledger Snapshot
+
+- Not defined in WP.
 
 ## Requirement Extraction
 

@@ -1,15 +1,25 @@
 # SX-WP-GOV-MAINT-001 - Spec Extraction Snapshot
 
-Generated On: 2026-03-06
+Generated On: 2026-03-08
 Linked Work Packet: WP-GOV-MAINT-001
 Linked Test Suite: .gov/workflow/wp_test_suites/TS-WP-GOV-MAINT-001.md
 Linked WP Check Script: .gov/workflow/wp_checks/check-WP-GOV-MAINT-001.ps1
+Packet Class Snapshot: UNSPECIFIED
+Workflow Version Snapshot: 3.0
 WP Status Snapshot: RECURRING
 Iteration: All
 
 ## Scope
 
 Concrete extraction of requirement and primitive obligations this WP must satisfy before status promotion.
+
+## Reality Boundary Snapshot
+
+- Not defined in WP.
+
+## Change Ledger Snapshot
+
+- Not defined in WP.
 
 ## Requirement Extraction
 

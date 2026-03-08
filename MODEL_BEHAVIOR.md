@@ -35,6 +35,8 @@ If implementation and governance diverge, pause and reconcile governance first.
 - Anchor meaningful work to an active Work Packet and linked WP test suite.
 - Anchor meaningful work to linked `wp_spec_extractions` and `wp_checks` artifacts.
 - When an iteration has multiple sequenced WPs, work only against the current blocking packet and keep roadmap/taskboard state explicit.
+- For Workflow Version `4.0+` packets, extract `Packet Class`, `Reality Boundary`, `Fallback Register`, and `Change Ledger` before coding.
+- On session resume, read the active blocking WP, linked suite/extraction, latest proof artifact, and current `Fallback Register` before continuing.
 - Keep diffs small, scoped, and reviewable.
 - Update governance docs when requirement scope changes.
 - Update traceability and primitive matrices when new implementation obligations are introduced.
@@ -42,6 +44,13 @@ If implementation and governance diverge, pause and reconcile governance first.
 - Ensure each WP includes expected touched files and an interconnection plan (primitives/tools/features/technologies).
 - Create a governance checkpoint commit before implementation work to prevent loss on session failures (default behavior when using `.gov/repo_scripts/new_work_packet.ps1`).
 - Run `.gov/repo_scripts/enforce_wp_template_compliance.ps1` before status promotion to prevent shortcuts.
+
+## 4A) Depth-First Execution
+
+- Prefer one end-to-end working vertical slice that makes one seam real over multiple partial surfaces that stay simulated.
+- If the fastest path is scaffold/sample/simulated behavior, either keep the packet explicitly scaffold-classed or activate a named successor before making delivery claims.
+- Do not present simulated or seeded runtime behavior as authoritative in UI copy, code comments, governance notes, or closeout summaries.
+- Every meaningful progress update and every closeout must answer: `What Became Real`, `What Remains Simulated`, and `Next Blocking Real Seam`.
 
 ## 5) Safety and Non-Goal Guardrails
 
@@ -83,5 +92,6 @@ If a requested change is ambiguous, high-risk, or conflicts with governance cons
 - `E2E-VERIFIED` is the only done state.
 - `IMPLEMENTED` is not done.
 - `SUPERSEDED` is a historical closure state for replaced packets and is not done.
+- `SCAFFOLD` packets cannot promote linked requirements or primitives to `E2E-VERIFIED`.
 - The agent must not promote a WP/REQ to `E2E-VERIFIED` without linked runtime evidence and explicit user sign-off recorded in the WP and linked test-suite file.
 - The agent must not claim completion without proof artifact paths under `.product/build_target/tool_artifacts/wp_runs/<WP-ID>/`.

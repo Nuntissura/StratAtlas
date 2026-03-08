@@ -3,7 +3,8 @@
 Date Opened: YYYY-MM-DD
 Status: SPEC-MAPPED
 Iteration: I0..I10 or All
-Workflow Version: 3.0
+Workflow Version: 4.0
+Packet Class: RESEARCH | SCAFFOLD | IMPLEMENTATION | VERIFICATION
 Linked Test Suite: `.gov/workflow/wp_test_suites/TS-WP-<...>.md`
 Linked Spec Extraction: `.gov/workflow/wp_spec_extractions/SX-WP-<...>.md`
 Linked WP Check Script: `.gov/workflow/wp_checks/check-WP-<...>.ps1`
@@ -30,6 +31,14 @@ Linked WP Check Script: `.gov/workflow/wp_checks/check-WP-<...>.ps1`
 - Confirm traceability rows are present and current.
 - Confirm task board row exists and status is current.
 - Create governance checkpoint commit before product implementation.
+
+## Reality Boundary
+
+- Real Seam:
+- User-Visible Win:
+- Proof Target:
+- Allowed Temporary Fallbacks:
+- Promotion Guard:
 
 ## In Scope
 
@@ -90,6 +99,19 @@ Linked WP Check Script: `.gov/workflow/wp_checks/check-WP-<...>.ps1`
 - [ ] Offline behavior
 - [ ] Reliability/recovery
 
+## Fallback Register
+
+- Explicit simulated/mock/sample paths:
+- Required labels in code/UI/governance:
+- Successor packet or debt owner:
+- Exit condition to remove fallback:
+
+## Change Ledger
+
+- What Became Real:
+- What Remains Simulated:
+- Next Blocking Real Seam:
+
 ## Checkpoint Commit Plan
 
 1. Governance kickoff commit (spec/wp/taskboard/traceability/primitives).
@@ -108,6 +130,7 @@ Linked WP Check Script: `.gov/workflow/wp_checks/check-WP-<...>.ps1`
 - Traceability, primitives index, and primitives matrix are synchronized.
 - Linked test suite has executed results and evidence paths.
 - Evidence bundle is attached.
+- `Reality Boundary`, `Fallback Register`, and `Change Ledger` remain truthful.
 - User Sign-off: APPROVED.
 
 ## Evidence

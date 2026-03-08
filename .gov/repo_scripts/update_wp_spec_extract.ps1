@@ -133,11 +133,15 @@ foreach ($wpFile in $wpFiles) {
     $dateValue = (Get-Date -Format "yyyy-MM-dd")
     $statusValue = if ([regex]::Match($raw, '(?m)^Status:\s*(.+)$').Success) { ([regex]::Match($raw, '(?m)^Status:\s*(.+)$').Groups[1].Value.Trim()) } else { "UNKNOWN" }
     $iterationValue = if ([regex]::Match($raw, '(?m)^Iteration:\s*(.+)$').Success) { ([regex]::Match($raw, '(?m)^Iteration:\s*(.+)$').Groups[1].Value.Trim()) } else { "UNKNOWN" }
+    $workflowVersionValue = if ([regex]::Match($raw, '(?m)^Workflow Version:\s*(.+)$').Success) { Clean-MetadataValue -Value ([regex]::Match($raw, '(?m)^Workflow Version:\s*(.+)$').Groups[1].Value) } else { "UNKNOWN" }
+    $packetClassValue = if ([regex]::Match($raw, '(?m)^Packet Class:\s*(.+)$').Success) { Clean-MetadataValue -Value ([regex]::Match($raw, '(?m)^Packet Class:\s*(.+)$').Groups[1].Value) } else { "UNSPECIFIED" }
     $linkedSuite = if ([regex]::Match($raw, '(?m)^Linked Test Suite:\s*(.+)$').Success) { Clean-MetadataValue -Value ([regex]::Match($raw, '(?m)^Linked Test Suite:\s*(.+)$').Groups[1].Value) } else { ".gov/workflow/wp_test_suites/TS-$currentWpId.md" }
     $linkedCheck = if ([regex]::Match($raw, '(?m)^Linked WP Check Script:\s*(.+)$').Success) { Clean-MetadataValue -Value ([regex]::Match($raw, '(?m)^Linked WP Check Script:\s*(.+)$').Groups[1].Value) } else { ".gov/workflow/wp_checks/check-$currentWpId.ps1" }
 
     $requirementsSection = Get-SectionText -Raw $raw -Heading "Linked Requirements"
     $primitivesSection = Get-SectionText -Raw $raw -Heading "Linked Primitives"
+    $realityBoundarySection = Get-SectionText -Raw $raw -Heading "Reality Boundary"
+    $changeLedgerSection = Get-SectionText -Raw $raw -Heading "Change Ledger"
     $reqIds = Expand-RequirementIds -Text $requirementsSection
     $primIds = @([regex]::Matches($primitivesSection, 'PRIM-\d{4}') | ForEach-Object { $_.Value } | Sort-Object -Unique)
 
@@ -182,12 +186,22 @@ Generated On: $dateValue
 Linked Work Packet: $currentWpId
 Linked Test Suite: $linkedSuite
 Linked WP Check Script: $linkedCheck
+Packet Class Snapshot: $packetClassValue
+Workflow Version Snapshot: $workflowVersionValue
 WP Status Snapshot: $statusValue
 Iteration: $iterationValue
 
 ## Scope
 
 Concrete extraction of requirement and primitive obligations this WP must satisfy before status promotion.
+
+## Reality Boundary Snapshot
+
+$(if ([string]::IsNullOrWhiteSpace($realityBoundarySection)) { "- Not defined in WP." } else { $realityBoundarySection })
+
+## Change Ledger Snapshot
+
+$(if ([string]::IsNullOrWhiteSpace($changeLedgerSection)) { "- Not defined in WP." } else { $changeLedgerSection })
 
 ## Requirement Extraction
 

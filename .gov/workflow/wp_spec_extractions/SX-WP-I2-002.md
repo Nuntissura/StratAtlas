@@ -1,9 +1,11 @@
 # SX-WP-I2-002 - Spec Extraction Snapshot
 
-Generated On: 2026-03-06
+Generated On: 2026-03-08
 Linked Work Packet: WP-I2-002
 Linked Test Suite: .gov/workflow/wp_test_suites/TS-WP-I2-002.md
 Linked WP Check Script: .gov/workflow/wp_checks/check-WP-I2-002.ps1
+Packet Class Snapshot: UNSPECIFIED
+Workflow Version Snapshot: 3.0
 WP Status Snapshot: E2E-VERIFIED
 Iteration: I2
 
@@ -11,13 +13,21 @@ Iteration: I2
 
 Concrete extraction of requirement and primitive obligations this WP must satisfy before status promotion.
 
+## Reality Boundary Snapshot
+
+- Not defined in WP.
+
+## Change Ledger Snapshot
+
+- Not defined in WP.
+
 ## Requirement Extraction
 
 | Requirement | Level | Section | Description | Target | Status |
 |-------------|-------|---------|-------------|--------|--------|
-| REQ-0300 | MUST | Ãƒâ€šÃ‚Â§13.1 | Baseline vs event delta analysis: at minimum density delta grids | I2 | IN-PROGRESS |
-| REQ-0301 | SHOULD | Ãƒâ€šÃ‚Â§13.1 | Comparative dashboard with context domain time-series overlay | I2 | IN-PROGRESS |
-| REQ-0302 | MUST | Ãƒâ€šÃ‚Â§11.3 | Golden flow: Baseline ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ Delta ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ Snapshot Bundle ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ Briefing Export | I2 | IN-PROGRESS |
+| REQ-0300 | MUST | Ãƒâ€šÃ‚Â§13.1 | Baseline vs event delta analysis: at minimum density delta grids | I2 | E2E-VERIFIED |
+| REQ-0301 | SHOULD | Ãƒâ€šÃ‚Â§13.1 | Comparative dashboard with context domain time-series overlay | I2 | E2E-VERIFIED |
+| REQ-0302 | MUST | Ãƒâ€šÃ‚Â§11.3 | Golden flow: Baseline ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ Delta ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ Snapshot Bundle ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ Briefing Export | I2 | E2E-VERIFIED |
 
 ## Primitive Extraction
 

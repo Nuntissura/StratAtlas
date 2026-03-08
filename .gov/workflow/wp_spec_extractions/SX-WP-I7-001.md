@@ -1,15 +1,25 @@
 # SX-WP-I7-001 - Spec Extraction Snapshot
 
-Generated On: 2026-03-06
+Generated On: 2026-03-08
 Linked Work Packet: WP-I7-001
 Linked Test Suite: .gov/workflow/wp_test_suites/TS-WP-I7-001.md
 Linked WP Check Script: .gov/workflow/wp_checks/check-WP-I7-001.ps1
+Packet Class Snapshot: UNSPECIFIED
+Workflow Version Snapshot: 2.0
 WP Status Snapshot: E2E-VERIFIED
 Iteration: I7
 
 ## Scope
 
 Concrete extraction of requirement and primitive obligations this WP must satisfy before status promotion.
+
+## Reality Boundary Snapshot
+
+- Not defined in WP.
+
+## Change Ledger Snapshot
+
+- Not defined in WP.
 
 ## Requirement Extraction
 
@@ -25,7 +35,7 @@ Concrete extraction of requirement and primitive obligations this WP must satisf
 | REQ-0807 | MUST | Ãƒâ€šÃ‚Â§7.4.8 | online_only domains degrade gracefully with staleness indicator | I7 | IN-PROGRESS |
 | REQ-0808 | MUST | Ãƒâ€šÃ‚Â§7.4.8 | Snapshot bundles include context values at capture time | I7 | IN-PROGRESS |
 | REQ-0809 | MUST | Ãƒâ€šÃ‚Â§11.3 | Golden flow: Context Correlation ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ Enable ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ Observe ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ Capture in bundle | I7 | IN-PROGRESS |
-| REQ-0810 | MUST | Ãƒâ€šÃ‚Â§6.3 | Context Store supports efficient time-range queries | I7 | SPEC-MAPPED |
+| REQ-0810 | MUST | Ãƒâ€šÃ‚Â§6.3 | Context Store supports efficient time-range queries | I7 | E2E-VERIFIED |
 
 ## Primitive Extraction
 

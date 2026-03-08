@@ -4,10 +4,25 @@ Generated On: YYYY-MM-DD
 Linked Work Packet: WP-...
 Linked Test Suite: .gov/workflow/wp_test_suites/TS-WP-....md
 Linked WP Check Script: .gov/workflow/wp_checks/check-WP-....ps1
+Packet Class Snapshot: IMPLEMENTATION
+Workflow Version Snapshot: 4.0
 
 ## Scope
 
 Concise extraction of the authoritative spec/index/matrix obligations this WP must satisfy.
+
+## Reality Boundary Snapshot
+
+- Real Seam:
+- User-Visible Win:
+- Proof Target:
+- Allowed Temporary Fallbacks:
+
+## Change Ledger Snapshot
+
+- What Became Real:
+- What Remains Simulated:
+- Next Blocking Real Seam:
 
 ## Requirement Extraction
 
@@ -38,4 +53,3 @@ Concise extraction of the authoritative spec/index/matrix obligations this WP mu
 
 - Run: `powershell -ExecutionPolicy Bypass -File .gov/workflow/wp_checks/check-<WP-ID>.ps1`
 - Artifacts: `.product/build_target/tool_artifacts/wp_runs/<WP-ID>/`
-

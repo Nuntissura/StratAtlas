@@ -51,6 +51,19 @@ If these disagree with implementation, reconcile governance intent first.
 - `SUPERSEDED` may be used only when a packet is explicitly replaced by a named successor with retained proof; it is not done.
 - Never claim completion without proof artifacts under `.product/build_target/tool_artifacts/wp_runs/<WP-ID>/` and linked command evidence.
 
+## 3.1) Delivery Depth and Packet Classification
+
+- Every Workflow Version `4.0+` WP MUST declare `Packet Class:` as one of `RESEARCH`, `SCAFFOLD`, `IMPLEMENTATION`, or `VERIFICATION`.
+- `RESEARCH` packets may broaden options and capture cited references, but they MUST NOT promote linked requirements or imply runtime delivery.
+- `SCAFFOLD` packets may wire shells, adapters, and labeled temporary sample/simulated paths, but they MUST NOT promote linked requirements or primitives to `E2E-VERIFIED`.
+- `IMPLEMENTATION` packets MUST retire at least one real seam and record it in the WP `Reality Boundary` and `Change Ledger`.
+- `VERIFICATION` packets may strengthen proof, smoke coverage, and evidence capture, but they MUST NOT disguise unfinished implementation as completed delivery.
+- Every Workflow Version `4.0+` WP MUST include `Reality Boundary`, `Fallback Register`, and `Change Ledger` sections.
+- Every Workflow Version `4.0+` WP MUST state `What Became Real`, `What Remains Simulated`, and `Next Blocking Real Seam`.
+- Any seeded, sample, mock, templated, or simulated runtime path outside tests MUST be explicitly labeled in code and recorded in the active WP `Fallback Register`.
+- Breadth exploration belongs in `RESEARCH` packets; requirement promotion belongs only to packets that close a real seam with proof.
+- No active Workflow Version `4.0+` governance artifact may retain unresolved placeholder tokens or `TBD` markers.
+
 ## 4) Product Worktree and Build Target Policy
 
 - Shippable product coding is done in `.product/Worktrees/wt_main`.
