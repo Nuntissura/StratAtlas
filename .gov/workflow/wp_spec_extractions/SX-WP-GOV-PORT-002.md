@@ -6,7 +6,7 @@ Linked Test Suite: .gov/workflow/wp_test_suites/TS-WP-GOV-PORT-002.md
 Linked WP Check Script: .gov/workflow/wp_checks/check-WP-GOV-PORT-002.ps1
 Packet Class Snapshot: VERIFICATION
 Workflow Version Snapshot: 4.0
-WP Status Snapshot: SPEC-MAPPED
+WP Status Snapshot: IN-PROGRESS
 Iteration: All
 
 ## Scope
@@ -23,15 +23,15 @@ Concrete extraction of requirement and primitive obligations this WP must satisf
 
 ## Change Ledger Snapshot
 
-- What Became Real: The remaining portability debt is now isolated into an explicit verification packet with a concrete macOS proof target instead of a generic roadmap note.
-- What Remains Simulated: No macOS artifact-backed runtime smoke exists yet; `REQ-0018` and `GATE-H` remain open.
-- Next Blocking Real Seam: Execute governed runtime smoke on macOS and capture packet-proof artifacts suitable for Gate H promotion.
+- What Became Real: The packet now has an active execution plan that routes governed macOS smoke through a GitHub-hosted runner so proof can be produced from a Windows development workstation without relabeling Windows-only evidence as portability proof.
+- What Remains Simulated: No macOS artifact-backed runtime smoke exists yet; `REQ-0018` and `GATE-H` remain open until the hosted proof path runs successfully.
+- Next Blocking Real Seam: Land the GitHub-hosted macOS smoke workflow, dispatch it through the packet check, and copy the resulting artifact bundle into `.product/build_target/tool_artifacts/wp_runs/WP-GOV-PORT-002/`.
 
 ## Requirement Extraction
 
 | Requirement | Level | Section | Description | Target | Status |
 |-------------|-------|---------|-------------|--------|--------|
-| REQ-0018 | SHOULD | ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§5.1 | Desktop packaging/runtime SHOULD be smoke-tested on macOS during development to preserve portability | All | IN-PROGRESS |
+| REQ-0018 | SHOULD | Section 5.1 | Desktop packaging/runtime SHOULD be smoke-tested on macOS during development to preserve portability | All | IN-PROGRESS |
 
 ## Primitive Extraction
 
@@ -39,7 +39,7 @@ Concrete extraction of requirement and primitive obligations this WP must satisf
 |-----------|------|----------|------|------------|--------|
 | PRIM-0060 | Runtime Smoke Harness | Execute governed desktop runtime smoke flows across startup, shell readiness, map/layer interactions, and degraded-state handling with artifact capture | REQ-0013, REQ-0014, REQ-0015, REQ-0016, REQ-0018, REQ-0019, REQ-0020, REQ-0021, REQ-0022 | All | E2E-VERIFIED |
 | PRIM-0061 | Verification Evidence Matrix | Bind each closure claim to command evidence, desktop-smoke artifacts, and portability/performance proof before status promotion | REQ-0013, REQ-0014, REQ-0015, REQ-0016, REQ-0018, REQ-0019, REQ-0020, REQ-0021, REQ-0022 | All | E2E-VERIFIED |
-| PRIM-0069 | Portability Smoke Matrix | Execute and record governed desktop smoke across supported operating systems with platform-specific artifact linkage for Gate H promotion | GATE-H, REQ-0018 | All | SPEC-MAPPED |
+| PRIM-0069 | Portability Smoke Matrix | Execute and record governed desktop smoke across supported operating systems with platform-specific artifact linkage for Gate H promotion | GATE-H, REQ-0018 | All | IN-PROGRESS |
 
 ## Traceability Hooks
 

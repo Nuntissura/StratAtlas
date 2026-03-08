@@ -1,7 +1,7 @@
 # TS-WP-GOV-PORT-002 - Spec vs Code Test Suite
 
 Date Opened: 2026-03-08
-Status: PLANNED
+Status: IN-PROGRESS
 Linked Work Packet: WP-GOV-PORT-002
 Iteration: All
 
@@ -29,7 +29,7 @@ Validate WP delivery against linked requirements and primitives.
 |--------|-------------|-----------|----------|--------|--------------|----------|
 | DEP-001 | REQ-0018, GATE-H | PRIM-0069 | Dependency | portability prerequisites | `powershell -ExecutionPolicy Bypass -File .gov/repo_scripts/governance_preflight.ps1` | Packet prerequisites and portability-safe path assumptions are current before macOS smoke runs. |
 | UI-001 | REQ-0018 | PRIM-0060 | UI Contract | macOS interactive shell and degraded states | `pnpm smoke:runtime -- --wp-id WP-GOV-PORT-002` on macOS | The desktop runtime reaches the shell and preserves labeled degraded states on macOS. |
-| FUNC-001 | GATE-H | PRIM-0060, PRIM-0069 | Functionality | packet-specific macOS smoke proof | `powershell -ExecutionPolicy Bypass -File .gov/workflow/wp_checks/check-WP-GOV-PORT-002.ps1` | Cold/warm macOS smoke artifacts and platform metadata are captured under the packet proof path. |
+| FUNC-001 | GATE-H | PRIM-0060, PRIM-0069 | Functionality | packet-specific macOS smoke proof | `powershell -ExecutionPolicy Bypass -File .gov/workflow/wp_checks/check-WP-GOV-PORT-002.ps1` | The packet check dispatches a GitHub-hosted macOS smoke run when invoked from non-macOS hosts, then downloads cold/warm macOS artifacts and platform metadata under the packet proof path. |
 | COR-001 | REQ-0018, GATE-H | PRIM-0061 | Code Correctness | ledger and runtime contract sync | `pnpm lint`, `pnpm test -- --run`, and `cargo test --manifest-path src-tauri/Cargo.toml` | Portability-safe runtime paths and governance ledgers stay aligned. |
 | RED-001 | GATE-H | PRIM-0061 | Red Team / Abuse | evidence substitution and policy bypass | `powershell -ExecutionPolicy Bypass -File .gov/repo_scripts/red_team_guardrail_check.ps1 -CodeRoot .product/Worktrees/wt_main -OutputJsonPath .product/build_target/tool_artifacts/wp_runs/WP-GOV-PORT-002/red_team_result.json` | Windows-only or policy-bypassing evidence cannot masquerade as portability proof. |
 | EXT-001 | GATE-H | PRIM-0069 | Additional | startup/recovery on macOS | `pnpm smoke:runtime -- --wp-id WP-GOV-PORT-002` plus packet artifact review on macOS | Startup and recovery artifacts on macOS are sufficient for Gate H promotion. |
@@ -82,7 +82,7 @@ Validate WP delivery against linked requirements and primitives.
 - Result:
 - Blocking Failures:
 - Evidence Paths:
-- What Became Real: The remaining portability debt is now mapped to a concrete macOS proof plan.
+- What Became Real: The remaining portability debt is now mapped to an active hosted-macOS proof plan rather than a passive placeholder.
 - What Remains Simulated: No macOS artifact-backed runtime smoke evidence exists yet.
 - Next Blocking Real Seam: Execute the governed smoke harness on macOS and capture promotable artifacts.
 - Reviewer:

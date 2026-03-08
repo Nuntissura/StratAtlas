@@ -340,4 +340,4 @@ For quick lookup: "What requirements does this component implement?"
 | WP-GOV-DEPTH-001 | All | REQ-0013, REQ-0019, REQ-0020, REQ-0021, REQ-0022 | PRIM-0065, PRIM-0066 | .gov/workflow/wp_test_suites/TS-WP-GOV-DEPTH-001.md | E2E-VERIFIED | .gov/workflow/wp_spec_extractions/SX-WP-GOV-DEPTH-001.md; .product/build_target/tool_artifacts/wp_runs/WP-GOV-DEPTH-001/20260308_042222/; AGENTS.md; MODEL_BEHAVIOR.md; PROJECT_CODEX.md; .gov/workflow/GOVERNANCE_WORKFLOW.md |
 
 
-| WP-GOV-PORT-002 | All | GATE-H, REQ-0018 | PRIM-0060, PRIM-0061, PRIM-0069 | .gov/workflow/wp_test_suites/TS-WP-GOV-PORT-002.md | SPEC-MAPPED | .gov/workflow/wp_spec_extractions/SX-WP-GOV-PORT-002.md |
+| WP-GOV-PORT-002 | All | GATE-H, REQ-0018 | PRIM-0060, PRIM-0061, PRIM-0069 | .gov/workflow/wp_test_suites/TS-WP-GOV-PORT-002.md | IN-PROGRESS | .gov/workflow/wp_spec_extractions/SX-WP-GOV-PORT-002.md; active execution path uses a GitHub-hosted macOS runner because the current workstation is Windows-only |

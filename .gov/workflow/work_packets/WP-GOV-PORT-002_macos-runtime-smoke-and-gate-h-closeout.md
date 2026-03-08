@@ -1,7 +1,7 @@
 # WP-GOV-PORT-002 - macOS Runtime Smoke and Gate H Closeout
 
 Date Opened: 2026-03-08
-Status: SPEC-MAPPED
+Status: IN-PROGRESS
 Iteration: All
 Workflow Version: 4.0
 Packet Class: VERIFICATION
@@ -67,6 +67,7 @@ Close the last portability debt by executing governed desktop smoke on macOS, pr
 - .gov/workflow/wp_spec_extractions/SX-WP-GOV-PORT-002.md
 - .gov/workflow/wp_checks/check-WP-GOV-PORT-002.ps1
 - .gov/repo_scripts/run_wp_checks.ps1
+- .github/workflows/wp-gov-port-002-macos-smoke.yml
 - .product/Worktrees/wt_main/scripts/runtime-smoke.mjs
 - .product/Worktrees/wt_main/src/lib/runtimeSmoke.ts
 - .product/Worktrees/wt_main/src-tauri/src/lib.rs
@@ -115,9 +116,9 @@ Close the last portability debt by executing governed desktop smoke on macOS, pr
 
 ## Change Ledger
 
-- What Became Real: The remaining portability debt is now isolated into an explicit verification packet with a concrete macOS proof target instead of a generic roadmap note.
-- What Remains Simulated: No macOS artifact-backed runtime smoke exists yet; `REQ-0018` and `GATE-H` remain open.
-- Next Blocking Real Seam: Execute governed runtime smoke on macOS and capture packet-proof artifacts suitable for Gate H promotion.
+- What Became Real: The packet now has an active execution plan that routes governed macOS smoke through a GitHub-hosted runner so proof can be produced from a Windows development workstation without relabeling Windows-only evidence as portability proof.
+- What Remains Simulated: No macOS artifact-backed runtime smoke exists yet; `REQ-0018` and `GATE-H` remain open until the hosted proof path runs successfully.
+- Next Blocking Real Seam: Land the GitHub-hosted macOS smoke workflow, dispatch it through the packet check, and copy the resulting artifact bundle into `.product/build_target/tool_artifacts/wp_runs/WP-GOV-PORT-002/`.
 
 ## Checkpoint Commit Plan
 
@@ -153,3 +154,4 @@ Close the last portability debt by executing governed desktop smoke on macOS, pr
 
 - 2026-03-08: WP scaffold created via .gov/repo_scripts/new_work_packet.ps1.
 - 2026-03-08: Successor packet established for the remaining macOS portability and Gate H proof after `WP-I1-004`.
+- 2026-03-08: Packet activated for real execution. Current environment is Windows-only, so the packet will use a GitHub-hosted macOS runner plus downloaded proof artifacts instead of pretending a local Windows smoke run satisfies `REQ-0018`.
