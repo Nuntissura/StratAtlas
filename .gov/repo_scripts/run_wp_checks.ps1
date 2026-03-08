@@ -233,6 +233,16 @@ if (-not (Test-Path $productAbs -PathType Container)) {
     throw "Product worktree not found: $productAbs"
 }
 
+if ($WpId -eq "WP-GOV-PORT-002") {
+    $portabilityRunner = Join-Path $scriptDirectory "run_wp_gov_port_002.ps1"
+    if (-not (Test-Path $portabilityRunner -PathType Leaf)) {
+        throw "Missing portability runner script: $portabilityRunner"
+    }
+
+    & $portabilityRunner -ProductWorktree $ProductWorktree
+    exit $LASTEXITCODE
+}
+
 $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
 $artifactRootRel = ".product/build_target/tool_artifacts/wp_runs/$WpId/$timestamp"
 $artifactRootAbs = Join-Path $repoRoot $artifactRootRel

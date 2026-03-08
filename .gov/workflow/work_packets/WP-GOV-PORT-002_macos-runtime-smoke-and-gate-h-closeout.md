@@ -67,6 +67,7 @@ Close the last portability debt by executing governed desktop smoke on macOS, pr
 - .gov/workflow/wp_spec_extractions/SX-WP-GOV-PORT-002.md
 - .gov/workflow/wp_checks/check-WP-GOV-PORT-002.ps1
 - .gov/repo_scripts/run_wp_checks.ps1
+- .gov/repo_scripts/run_wp_gov_port_002.ps1
 - .github/workflows/wp-gov-port-002-macos-smoke.yml
 - .product/Worktrees/wt_main/scripts/runtime-smoke.mjs
 - .product/Worktrees/wt_main/src/lib/runtimeSmoke.ts

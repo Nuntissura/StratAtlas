@@ -13,7 +13,7 @@ Validate WP delivery against linked requirements and primitives.
 
 - Linked requirements: GATE-H, REQ-0018
 - Linked primitives: PRIM-0060, PRIM-0061, PRIM-0069
-- Linked components: `.gov/repo_scripts/run_wp_checks.ps1`, `.product/Worktrees/wt_main/scripts/runtime-smoke.mjs`, `.product/Worktrees/wt_main/src/lib/runtimeSmoke.ts`, `.product/Worktrees/wt_main/src-tauri/src/lib.rs`
+- Linked components: `.gov/workflow/wp_checks/check-WP-GOV-PORT-002.ps1`, `.gov/repo_scripts/run_wp_checks.ps1`, `.gov/repo_scripts/run_wp_gov_port_002.ps1`, `.github/workflows/wp-gov-port-002-macos-smoke.yml`, `.product/Worktrees/wt_main/scripts/runtime-smoke.mjs`, `.product/Worktrees/wt_main/src/lib/runtimeSmoke.ts`, `.product/Worktrees/wt_main/src-tauri/src/lib.rs`
 
 ## Reality Boundary Assertions
 

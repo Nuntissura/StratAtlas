@@ -1,0 +1,53 @@
+name: WP-GOV-PORT-002 macOS smoke
+
+run-name: ${{ inputs.wp_id }} macOS smoke (${{ inputs.dispatch_token }})
+
+on:
+  workflow_dispatch:
+    inputs:
+      wp_id:
+        description: Packet identifier to execute on the macOS hosted runner
+        required: true
+        default: WP-GOV-PORT-002
+        type: string
+      dispatch_token:
+        description: Unique token used to correlate the hosted run with the local dispatcher
+        required: true
+        type: string
+
+jobs:
+  macos-runtime-smoke:
+    runs-on: macos-13
+    timeout-minutes: 75
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.24.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24.11.1
+          cache: pnpm
+          cache-dependency-path: .product/Worktrees/wt_main/pnpm-lock.yaml
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Execute WP-GOV-PORT-002 packet check on macOS
+        shell: pwsh
+        run: ./.gov/workflow/wp_checks/check-WP-GOV-PORT-002.ps1 -ProductWorktree ".product/Worktrees/wt_main"
+
+      - name: Upload packet proof artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp-gov-port-002-${{ inputs.dispatch_token }}
+          path: .product/build_target/tool_artifacts/wp_runs/WP-GOV-PORT-002
+          if-no-files-found: error
+          retention-days: 14
