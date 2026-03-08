@@ -17,9 +17,15 @@ const phaseFromEnv = (): RuntimeSmokePhase => {
   return isRuntimeSmokePhase(candidate) ? candidate : 'cold'
 }
 
+const wpIdFromEnv = (): string => {
+  const candidate = String(import.meta.env.VITE_STRATATLAS_RUNTIME_SMOKE_WP_ID ?? '').trim()
+  return candidate.length > 0 ? candidate : 'WP-GOV-VERIFY-001'
+}
+
 export const runtimeSmokeConfig = {
   enabled: flagFromEnv(import.meta.env.VITE_STRATATLAS_RUNTIME_SMOKE),
   phase: phaseFromEnv(),
+  wpId: wpIdFromEnv(),
   requireLiveAi: flagFromEnv(import.meta.env.VITE_STRATATLAS_RUNTIME_SMOKE_REQUIRE_LIVE_AI),
   requireMcp: flagFromEnv(import.meta.env.VITE_STRATATLAS_RUNTIME_SMOKE_REQUIRE_MCP),
 }

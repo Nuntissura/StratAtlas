@@ -5,6 +5,14 @@ export interface ContextSeriesPoint {
   value: number
 }
 
+export type DeviationInputMode = 'governed_series' | 'manual_override'
+
+export const DEFAULT_DEVIATION_INPUT_MODE: DeviationInputMode = 'governed_series'
+export const DEFAULT_DEVIATION_BASELINE_POINT_COUNT = 2
+export const DEFAULT_DEVIATION_OBSERVED_POINT_COUNT = 1
+export const DEFAULT_DEVIATION_THRESHOLD = 0.2
+export const DEFAULT_DEVIATION_TYPE: DeviationEvent['deviation_type'] = 'trade_flow'
+
 export interface DeviationEvent {
   eventId: string
   event_type: 'context.deviation'
@@ -21,8 +29,16 @@ export interface DeviationEvent {
   observed: number
   deviation_magnitude: number
   baseline_reference: string
+  baseline_start: string
+  baseline_end: string
+  observed_start: string
+  observed_end: string
+  baseline_sample_count: number
+  observed_sample_count: number
   confidence_score: number
   artifact_label: 'Curated Context'
+  source_mode: DeviationInputMode
+  source_record_ids: string[]
   summary: string
 }
 
@@ -39,8 +55,27 @@ export interface ConstraintNodeSuggestion {
   source_event_id: string
 }
 
+export interface HistoricalDeviationWindow {
+  baseline: ContextSeriesPoint[]
+  observed: ContextSeriesPoint[]
+  baselineRecords: ContextRecord[]
+  observedRecords: ContextRecord[]
+  baselineReference: string
+  baselineStart: string
+  baselineEnd: string
+  observedStart: string
+  observedEnd: string
+}
+
 export interface DeviationSnapshot {
   selectedDomainId?: string
+  inputMode: DeviationInputMode
+  baselinePointCount: number
+  observedPointCount: number
+  threshold: number
+  deviationType: DeviationEvent['deviation_type']
+  manualBaselineInput: string
+  manualObservedInput: string
   latestEvent?: DeviationEvent
   events: DeviationEvent[]
   suggestions: ConstraintNodeSuggestion[]
@@ -118,7 +153,58 @@ const buildEventId = ({
 }): string =>
   `context-deviation-${domainId}-${deviationType}-${targetId}-${observedAt.replace(/[:.]/g, '-')}`
 
+const clampWindowCount = (value: number, fallback: number): number => {
+  if (!Number.isFinite(value)) {
+    return fallback
+  }
+  return Math.max(1, Math.min(24, Math.round(value)))
+}
+
+const pointBoundary = (
+  series: ContextSeriesPoint[],
+  edge: 'start' | 'end',
+  fallback: string,
+): string => {
+  if (series.length === 0) {
+    return fallback
+  }
+  return edge === 'start' ? series[0]?.ts ?? fallback : series.at(-1)?.ts ?? fallback
+}
+
+const formatPercent = (baseline: number, observed: number): string => {
+  if (baseline === 0) {
+    return 'new signal'
+  }
+  const delta = ((observed - baseline) / baseline) * 100
+  const rounded = Math.abs(delta) >= 10 ? delta.toFixed(0) : delta.toFixed(1)
+  return `${rounded}%`
+}
+
+const manualSeriesInput = (series: ContextSeriesPoint[]): string =>
+  series.map((point) => point.value).join(',')
+
+const parseDeviationInputMode = (value: unknown): DeviationInputMode =>
+  value === 'manual_override' ? 'manual_override' : DEFAULT_DEVIATION_INPUT_MODE
+
+const parseDeviationType = (value: unknown): DeviationEvent['deviation_type'] =>
+  value === 'infrastructure' || value === 'regulatory' || value === 'trade_flow'
+    ? value
+    : DEFAULT_DEVIATION_TYPE
+
+const parseWindowCount = (value: unknown, fallback: number): number =>
+  typeof value === 'number' ? clampWindowCount(value, fallback) : fallback
+
+const parseThreshold = (value: unknown): number =>
+  typeof value === 'number' && Number.isFinite(value) ? value : DEFAULT_DEVIATION_THRESHOLD
+
 export const createDeviationSnapshot = (): DeviationSnapshot => ({
+  inputMode: DEFAULT_DEVIATION_INPUT_MODE,
+  baselinePointCount: DEFAULT_DEVIATION_BASELINE_POINT_COUNT,
+  observedPointCount: DEFAULT_DEVIATION_OBSERVED_POINT_COUNT,
+  threshold: DEFAULT_DEVIATION_THRESHOLD,
+  deviationType: DEFAULT_DEVIATION_TYPE,
+  manualBaselineInput: '',
+  manualObservedInput: '',
   events: [],
   suggestions: [],
 })
@@ -131,6 +217,58 @@ export const buildContextSeriesFromRecords = (records: ContextRecord[]): Context
       value: record.numeric_value,
     }))
 
+export const selectHistoricalDeviationWindow = ({
+  records,
+  baselinePointCount = DEFAULT_DEVIATION_BASELINE_POINT_COUNT,
+  observedPointCount = DEFAULT_DEVIATION_OBSERVED_POINT_COUNT,
+}: {
+  records: ContextRecord[]
+  baselinePointCount?: number
+  observedPointCount?: number
+}): HistoricalDeviationWindow | null => {
+  const normalizedBaselineCount = clampWindowCount(
+    baselinePointCount,
+    DEFAULT_DEVIATION_BASELINE_POINT_COUNT,
+  )
+  const normalizedObservedCount = clampWindowCount(
+    observedPointCount,
+    DEFAULT_DEVIATION_OBSERVED_POINT_COUNT,
+  )
+  const sortedRecords = [...records].sort((left, right) =>
+    left.observed_at.localeCompare(right.observed_at),
+  )
+  const requiredCount = normalizedBaselineCount + normalizedObservedCount
+
+  if (sortedRecords.length < requiredCount) {
+    return null
+  }
+
+  const observedRecords = sortedRecords.slice(-normalizedObservedCount)
+  const baselineRecords = sortedRecords.slice(
+    sortedRecords.length - requiredCount,
+    sortedRecords.length - normalizedObservedCount,
+  )
+
+  if (baselineRecords.length === 0 || observedRecords.length === 0) {
+    return null
+  }
+
+  const baseline = buildContextSeriesFromRecords(baselineRecords)
+  const observed = buildContextSeriesFromRecords(observedRecords)
+
+  return {
+    baseline,
+    observed,
+    baselineRecords,
+    observedRecords,
+    baselineReference: defaultBaselineReference(baseline, observed),
+    baselineStart: baselineRecords[0]?.observed_at ?? 'n/a',
+    baselineEnd: baselineRecords.at(-1)?.observed_at ?? 'n/a',
+    observedStart: observedRecords[0]?.observed_at ?? 'n/a',
+    observedEnd: observedRecords.at(-1)?.observed_at ?? 'n/a',
+  }
+}
+
 export const detectDeviation = (
   baseline: ContextSeriesPoint[],
   observed: ContextSeriesPoint[],
@@ -142,8 +280,18 @@ export const detectDeviation = (
     targetId?: string
     confidenceBaseline?: string
     baselineReference?: string
+    sourceMode?: DeviationInputMode
+    baselineStart?: string
+    baselineEnd?: string
+    observedStart?: string
+    observedEnd?: string
+    sourceRecordIds?: string[]
   },
 ): DeviationEvent | null => {
+  if (baseline.length === 0 || observed.length === 0) {
+    return null
+  }
+
   const baselineAvg = average(baseline)
   const observedAvg = average(observed)
   const score = scoreDeviation(baselineAvg, observedAvg)
@@ -163,6 +311,11 @@ export const detectDeviation = (
       confidenceBaselineToScore(context?.confidenceBaseline) + Math.min(score, 1) * 0.1,
     ).toFixed(2),
   )
+  const baselineStart = context?.baselineStart ?? pointBoundary(baseline, 'start', 'n/a')
+  const baselineEnd = context?.baselineEnd ?? pointBoundary(baseline, 'end', 'n/a')
+  const observedStart = context?.observedStart ?? pointBoundary(observed, 'start', 'n/a')
+  const observedEnd = context?.observedEnd ?? pointBoundary(observed, 'end', 'n/a')
+  const percentChange = formatPercent(baselineAvg, observedAvg)
 
   return {
     eventId: buildEventId({
@@ -182,9 +335,20 @@ export const detectDeviation = (
     observed: observedAvg,
     deviation_magnitude: eventMagnitude,
     baseline_reference: baselineReference,
+    baseline_start: baselineStart,
+    baseline_end: baselineEnd,
+    observed_start: observedStart,
+    observed_end: observedEnd,
+    baseline_sample_count: baseline.length,
+    observed_sample_count: observed.length,
     confidence_score: confidenceScore,
     artifact_label: 'Curated Context',
-    summary: `${defaultDomainName(deviationType, context?.domainName)} deviated by ${eventMagnitude.toFixed(2)} against ${baselineReference}.`,
+    source_mode: context?.sourceMode ?? DEFAULT_DEVIATION_INPUT_MODE,
+    source_record_ids: context?.sourceRecordIds ?? [],
+    summary: `${defaultDomainName(
+      deviationType,
+      context?.domainName,
+    )} deviated ${percentChange} against ${baselineReference}.`,
   }
 }
 
@@ -194,28 +358,50 @@ export const detectDeviationFromRecords = ({
   targetId,
   threshold,
   deviationType,
+  baselinePointCount = DEFAULT_DEVIATION_BASELINE_POINT_COUNT,
+  observedPointCount = DEFAULT_DEVIATION_OBSERVED_POINT_COUNT,
 }: {
   domain: ContextDomain
   records: ContextRecord[]
   targetId: string
   threshold: number
   deviationType: DeviationEvent['deviation_type']
+  baselinePointCount?: number
+  observedPointCount?: number
 }): DeviationEvent | null => {
-  const series = buildContextSeriesFromRecords(records)
-  if (series.length < 2) {
+  const window = selectHistoricalDeviationWindow({
+    records,
+    baselinePointCount,
+    observedPointCount,
+  })
+
+  if (!window) {
     return null
   }
-  const midpoint = Math.ceil(series.length / 2)
-  const baseline = series.slice(0, midpoint)
-  const observed = series.slice(midpoint)
 
-  return detectDeviation(baseline, observed, threshold, deviationType, {
+  return detectDeviation(window.baseline, window.observed, threshold, deviationType, {
     domainId: domain.domain_id,
     domainName: domain.domain_name,
     targetId,
     confidenceBaseline: domain.confidence_baseline,
+    baselineReference: window.baselineReference,
+    sourceMode: DEFAULT_DEVIATION_INPUT_MODE,
+    baselineStart: window.baselineStart,
+    baselineEnd: window.baselineEnd,
+    observedStart: window.observedStart,
+    observedEnd: window.observedEnd,
+    sourceRecordIds: [...window.baselineRecords, ...window.observedRecords].map(
+      (record) => record.record_id,
+    ),
   })
 }
+
+export const buildDeviationWindowPreview = (
+  window: HistoricalDeviationWindow | null,
+): { baselineInput: string; observedInput: string } => ({
+  baselineInput: window ? manualSeriesInput(window.baseline) : '',
+  observedInput: window ? manualSeriesInput(window.observed) : '',
+})
 
 export const buildConstraintNodeSuggestion = ({
   domain,
@@ -253,7 +439,11 @@ export const pushDeviationEvent = (
   const suggestions = suggestion
     ? [
         ...snapshot.suggestions.filter(
-          (entry) => !(entry.domain_id === suggestion.domain_id && entry.source_event_id === suggestion.source_event_id),
+          (entry) =>
+            !(
+              entry.domain_id === suggestion.domain_id &&
+              entry.source_event_id === suggestion.source_event_id
+            ),
         ),
         suggestion,
       ]
@@ -300,18 +490,12 @@ export const normalizeDeviationSnapshot = (value: unknown): DeviationSnapshot =>
             entry.taxonomy_key === 'context.regulatory_change'
               ? entry.taxonomy_key
               : 'context.trade_flow_deviation'
-          const deviationType: DeviationEvent['deviation_type'] =
-            entry.deviation_type === 'trade_flow' ||
-            entry.deviation_type === 'infrastructure' ||
-            entry.deviation_type === 'regulatory'
-              ? entry.deviation_type
-              : 'trade_flow'
 
           return {
             eventId: entry.eventId as string,
             event_type: 'context.deviation',
             taxonomy_key: taxonomyKey,
-            deviation_type: deviationType,
+            deviation_type: parseDeviationType(entry.deviation_type),
             domain_id: entry.domain_id as string,
             domain_name: entry.domain_name as string,
             target_id: entry.target_id as string,
@@ -320,8 +504,22 @@ export const normalizeDeviationSnapshot = (value: unknown): DeviationSnapshot =>
             observed: entry.observed as number,
             deviation_magnitude: entry.deviation_magnitude as number,
             baseline_reference: entry.baseline_reference as string,
+            baseline_start:
+              typeof entry.baseline_start === 'string' ? entry.baseline_start : 'n/a',
+            baseline_end: typeof entry.baseline_end === 'string' ? entry.baseline_end : 'n/a',
+            observed_start:
+              typeof entry.observed_start === 'string' ? entry.observed_start : 'n/a',
+            observed_end: typeof entry.observed_end === 'string' ? entry.observed_end : 'n/a',
+            baseline_sample_count:
+              typeof entry.baseline_sample_count === 'number' ? entry.baseline_sample_count : 0,
+            observed_sample_count:
+              typeof entry.observed_sample_count === 'number' ? entry.observed_sample_count : 0,
             confidence_score: entry.confidence_score as number,
             artifact_label: 'Curated Context',
+            source_mode: parseDeviationInputMode(entry.source_mode),
+            source_record_ids: Array.isArray(entry.source_record_ids)
+              ? entry.source_record_ids.filter((recordId): recordId is string => typeof recordId === 'string')
+              : [],
             summary: entry.summary as string,
           }
         })
@@ -362,9 +560,26 @@ export const normalizeDeviationSnapshot = (value: unknown): DeviationSnapshot =>
       typeof value.selectedDomainId === 'string' && value.selectedDomainId.length > 0
         ? value.selectedDomainId
         : undefined,
+    inputMode: parseDeviationInputMode(value.inputMode),
+    baselinePointCount: parseWindowCount(
+      value.baselinePointCount,
+      DEFAULT_DEVIATION_BASELINE_POINT_COUNT,
+    ),
+    observedPointCount: parseWindowCount(
+      value.observedPointCount,
+      DEFAULT_DEVIATION_OBSERVED_POINT_COUNT,
+    ),
+    threshold: parseThreshold(value.threshold),
+    deviationType: parseDeviationType(value.deviationType),
+    manualBaselineInput:
+      typeof value.manualBaselineInput === 'string' ? value.manualBaselineInput : '',
+    manualObservedInput:
+      typeof value.manualObservedInput === 'string' ? value.manualObservedInput : '',
     latestEvent:
       typeof value.latestEvent === 'object' && value.latestEvent !== null
-        ? events.find((event) => event.eventId === (value.latestEvent as Record<string, unknown>).eventId)
+        ? events.find(
+            (event) => event.eventId === (value.latestEvent as Record<string, unknown>).eventId,
+          )
         : events.at(-1),
     events,
     suggestions,

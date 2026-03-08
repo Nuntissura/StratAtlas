@@ -823,29 +823,24 @@ describe('App', () => {
   )
 
   it(
-    'records curated OSINT events with threshold-linked aggregate alerts and restores them from bundles',
+    'runs governed connectors with threshold-linked aggregate alerts and restores them from bundles',
     async () => {
       const user = userEvent.setup()
       render(<App />)
 
       await user.click(screen.getByRole('button', { name: 'Register Domain' }))
-      await user.selectOptions(screen.getByLabelText('Verification'), 'alleged')
-      await user.selectOptions(screen.getByLabelText('Category'), 'security_advisory')
-      await user.clear(screen.getByLabelText('Event Summary'))
-      await user.type(screen.getByLabelText('Event Summary'), 'Curated advisory for aggregate AOI monitoring.')
+      expect(await screen.findByTestId('osint-connector-card')).toBeInTheDocument()
       await user.clear(screen.getByLabelText('Threshold Value'))
       await user.type(screen.getByLabelText('Threshold Value'), '12')
-      await user.click(screen.getByRole('button', { name: 'Link Context Threshold' }))
+      await user.click(screen.getByRole('button', { name: 'Run Governed Connector' }))
 
-      const alertCard = screen.getByTestId('osint-alert-card')
+      const alertCard = await screen.findByTestId('osint-alert-card')
       expect(within(alertCard).getByText(/Port Throughput below 12 index/)).toBeInTheDocument()
-
-      await user.click(screen.getByRole('button', { name: 'Add OSINT Event' }))
-
+      expect(within(alertCard).getAllByText(/Logistics Disruption Watch/).length).toBeGreaterThan(0)
       const eventCard = await screen.findByTestId('osint-event-card')
       const eventScope = within(eventCard)
       expect(eventScope.getByText('ACLED')).toBeInTheDocument()
-      expect(eventScope.getByText('alleged')).toHaveClass('alleged')
+      expect(eventScope.getByText(/Mode governed_connector/)).toBeInTheDocument()
       expect(within(alertCard).getByText(/Aggregate-only alert for aoi-1: 1 curated OSINT event/)).toBeInTheDocument()
 
       await user.click(screen.getByRole('button', { name: 'Create Bundle' }))
@@ -857,6 +852,7 @@ describe('App', () => {
 
       await waitFor(() => expect(screen.getByLabelText('AOI')).toHaveValue('aoi-1'))
       expect(within(screen.getByTestId('osint-alert-card')).getByText(/Aggregate-only alert for aoi-1/)).toBeInTheDocument()
+      expect(screen.getByLabelText('OSINT Input Mode')).toHaveValue('governed_connector')
       expect(screen.getAllByTestId('osint-event-card')).toHaveLength(1)
     },
     15000,
@@ -923,29 +919,44 @@ describe('App', () => {
     const user = userEvent.setup()
     render(<App />)
 
-    await user.selectOptions(screen.getByLabelText('Presentation Type'), 'constraint_node')
+    await user.selectOptions(screen.getByLabelText('Approved Domain'), 'sanctions-regime-updates')
     await user.click(screen.getByRole('button', { name: 'Register Domain' }))
-    await user.click(screen.getByRole('button', { name: 'Create Bundle' }))
-    expect(await screen.findByText(/Bundle .* created/)).toBeInTheDocument()
 
     await user.selectOptions(screen.getByLabelText('Mode'), 'live_recent')
-    await user.click(screen.getByRole('button', { name: 'Load Active Domain Series' }))
+    expect(screen.getByLabelText('Deviation Source')).toHaveValue('governed_series')
+    await user.selectOptions(screen.getByLabelText('Deviation Domain'), 'sanctions-regime-updates')
+    await user.click(screen.getByRole('button', { name: 'Load Governed Windows' }))
     await user.click(screen.getByRole('button', { name: 'Record Deviation Event' }))
 
     const deviationCard = await screen.findByTestId('deviation-event-card')
     const deviationScope = within(deviationCard)
-    expect(deviationScope.getByText(/context\.supply_chain_shift/)).toBeInTheDocument()
-    expect(deviationScope.getByText(/^Port Throughput$/)).toBeInTheDocument()
+    expect(deviationScope.getByText(/context\.regulatory_change/)).toBeInTheDocument()
+    expect(deviationScope.getByText(/^Sanctions Regime Updates$/)).toBeInTheDocument()
+    expect(deviationScope.getByText(/Source mode: governed_series/)).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Create Bundle' }))
+    expect(await screen.findByText(/Bundle .* created/)).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Reopen Bundle' }))
+    await waitFor(() =>
+      expect(within(screen.getByTestId('deviation-event-card')).getByText(/^Sanctions Regime Updates$/)).toBeInTheDocument(),
+    )
 
     await user.selectOptions(screen.getByLabelText('Mode'), 'scenario')
-    await user.clear(screen.getByLabelText('Scenario Title'))
-    await user.type(screen.getByLabelText('Scenario Title'), 'Deviation scenario')
-    await user.click(screen.getByRole('button', { name: 'Fork Scenario' }))
+    expect(
+      await screen.findByText('Scenario Fork / Constraint Propagation / Export (I4)'),
+    ).toBeInTheDocument()
+    const scenarioTitleInput = (await screen.findAllByLabelText('Scenario Title')).find(
+      (element) => !(element as HTMLInputElement).disabled,
+    ) as HTMLInputElement
+    await user.click(scenarioTitleInput)
+    await user.clear(scenarioTitleInput)
+    await user.type(scenarioTitleInput, 'Deviation scenario')
+    await user.click(await screen.findByRole('button', { name: 'Fork Scenario' }))
     expect((await screen.findAllByText('Deviation scenario')).length).toBeGreaterThan(0)
 
-    await user.click(screen.getByRole('button', { name: 'Apply Port Throughput Constraint' }))
+    await user.click(screen.getByRole('button', { name: 'Apply Sanctions Regime Updates Constraint' }))
     expect(
-      await screen.findByText(/Applied context constraint node Port Throughput to Deviation scenario\./),
+      await screen.findByText(/Applied context constraint node Sanctions Regime Updates to Deviation scenario\./),
     ).toBeInTheDocument()
     expect(screen.getAllByText(/modeled scenario input/).length).toBeGreaterThan(0)
   }, 15000)

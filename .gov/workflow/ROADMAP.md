@@ -67,7 +67,9 @@ This file is the execution order for capability slices. It is the scheduling bri
 - `WP-I6-002` is now `E2E-VERIFIED`; proof: `.product/build_target/tool_artifacts/wp_runs/WP-I6-002/20260308_012806/`. It closes REQ-0700..REQ-0708 with a governed provider-agnostic adapter, live Codex CLI / ChatGPT-login runtime proof, OpenAI Responses fallback support, audited MCP execution, and cold/warm Tauri runtime smoke evidence including live AI and MCP assertions.
 - `WP-GOV-DEPTH-001` is now `E2E-VERIFIED`; proof: `.product/build_target/tool_artifacts/wp_runs/WP-GOV-DEPTH-001/20260308_042222/`. It establishes the depth-first workflow baseline for future work through Workflow Version 4.0 packet fields, extract snapshots, and scaffold/placeholder enforcement, and it does not change the current product blocker `WP-I8-002`.
 - `WP-I7-002` is now `E2E-VERIFIED`; proof: `.product/build_target/tool_artifacts/wp_runs/WP-I7-002/20260308_060255/`. It closes REQ-0801..REQ-0809 with governed packaged-domain ingestion, metadata-rich context registration, explicit auditable correlation storage, immediate recorder persistence, deterministic bundle capture/reopen, and cold/warm Tauri runtime smoke evidence for the context flow.
-- The next blocking implementation packet is `WP-I8-002`, now `IN-PROGRESS`, with the governed baseline-vs-observed deviation runtime as the active seam and `WP-I9-002` / `WP-I10-002` queued behind it.
+- `WP-I8-002` is now `E2E-VERIFIED`; proof: `.product/build_target/tool_artifacts/wp_runs/WP-I8-002/20260308_154423/`. It closes REQ-0900..REQ-0904 with governed historical-window deviation detection, deterministic bundle replay, map-linked deviation projection, scenario constraint-node propagation, and cold/warm Tauri runtime smoke evidence.
+- `WP-I9-002` is now `E2E-VERIFIED`; proof: `.product/build_target/tool_artifacts/wp_runs/WP-I9-002/20260308_170238/`. It closes REQ-1000..REQ-1003 with governed connector-backed aggregate AOI alert evaluation, deterministic bundle reopen, map-linked alert projection, and cold/warm Tauri runtime smoke evidence.
+- The current blocking implementation packet is now `WP-I10-002`.
 
 ---
 

@@ -270,7 +270,7 @@ const determineFocusAoi = ({
     return queryAoi || correlationAoi || 'aoi-3'
   }
   if (mode === 'live_recent') {
-    return osintAoi || correlationAoi || queryAoi || 'aoi-7'
+    return latestDeviationEvent?.target_id || osintAoi || correlationAoi || queryAoi || 'aoi-7'
   }
   if (mode === 'collaboration') {
     return correlationAoi || queryAoi || 'aoi-2'

@@ -143,28 +143,42 @@ import {
 } from './features/i7/governedDomains'
 import {
   buildConstraintNodeSuggestion,
+  buildDeviationWindowPreview,
   createDeviationSnapshot,
+  DEFAULT_DEVIATION_BASELINE_POINT_COUNT,
+  DEFAULT_DEVIATION_INPUT_MODE,
+  DEFAULT_DEVIATION_OBSERVED_POINT_COUNT,
+  DEFAULT_DEVIATION_THRESHOLD,
   detectDeviation,
   detectDeviationFromRecords,
   normalizeDeviationSnapshot,
   pushDeviationEvent,
+  selectHistoricalDeviationWindow,
   type ConstraintNodeSuggestion,
   type DeviationEvent,
+  type DeviationInputMode,
   type DeviationSnapshot,
 } from './features/i8/deviation'
 import {
   OSINT_EVENT_CATEGORIES,
   THRESHOLD_COMPARATORS,
   CURATED_OSINT_SOURCES,
+  DEFAULT_GOVERNED_FEED_CONNECTOR_ID,
+  OSINT_SOURCE_MODES,
   aggregateAlerts,
   buildContextThresholdRef,
   buildOsintEvent,
   createOsintSnapshot,
+  executeGovernedFeedConnector,
+  getGovernedFeedConnectorTemplate,
   normalizeOsintSnapshot,
   pushContextThresholdRef,
   pushOsintEvent,
+  recordGovernedFeedConnector,
   validateCuratedSource,
+  type GovernedFeedConnectorId,
   type OsintEventCategory,
+  type OsintSourceMode,
   type OsintSnapshot,
   type ThresholdComparator,
   type VerificationLevel,
@@ -949,14 +963,26 @@ function App() {
   const [domainDraft, setDomainDraft] = useState<ContextDomain>(() =>
     createDomainDraft(DEFAULT_GOVERNED_CONTEXT_DOMAIN_ID),
   )
-  const [deviationBaselineInput, setDeviationBaselineInput] = useState<string>('100,98,102,99')
-  const [deviationObservedInput, setDeviationObservedInput] = useState<string>('120,124,119,130')
-  const [deviationThreshold, setDeviationThreshold] = useState<number>(0.2)
+  const [deviationBaselineInput, setDeviationBaselineInput] = useState<string>('')
+  const [deviationObservedInput, setDeviationObservedInput] = useState<string>('')
+  const [deviationInputMode, setDeviationInputMode] =
+    useState<DeviationInputMode>(DEFAULT_DEVIATION_INPUT_MODE)
+  const [deviationBaselinePointCount, setDeviationBaselinePointCount] = useState<number>(
+    DEFAULT_DEVIATION_BASELINE_POINT_COUNT,
+  )
+  const [deviationObservedPointCount, setDeviationObservedPointCount] = useState<number>(
+    DEFAULT_DEVIATION_OBSERVED_POINT_COUNT,
+  )
+  const [deviationThreshold, setDeviationThreshold] = useState<number>(DEFAULT_DEVIATION_THRESHOLD)
   const [deviationType, setDeviationType] =
     useState<DeviationEvent['deviation_type']>('trade_flow')
   const [selectedDeviationDomainId, setSelectedDeviationDomainId] = useState<string>('')
   const [deviationSnapshot, setDeviationSnapshot] = useState<DeviationSnapshot>(() =>
     createDeviationSnapshot(),
+  )
+  const [osintInputMode, setOsintInputMode] = useState<OsintSourceMode>('governed_connector')
+  const [selectedGovernedConnectorId, setSelectedGovernedConnectorId] = useState<string>(
+    DEFAULT_GOVERNED_FEED_CONNECTOR_ID,
   )
   const [osintSource, setOsintSource] = useState<string>(CURATED_OSINT_SOURCES[0])
   const [osintVerification, setOsintVerification] = useState<VerificationLevel>('reported')
@@ -1067,6 +1093,14 @@ function App() {
     activeDomainIds: [] as string[],
     correlationAoi: DEFAULT_CORRELATION_AOI,
     contextRecords: [] as ContextRecord[],
+    selectedDeviationDomainId: '' as string,
+    deviationSnapshot: createDeviationSnapshot(),
+    mapDeviationInspectVisible: false,
+    mapOsintInspectVisible: false,
+    osintInputMode: 'governed_connector' as OsintSourceMode,
+    selectedGovernedConnectorId: DEFAULT_GOVERNED_FEED_CONNECTOR_ID as GovernedFeedConnectorId,
+    selectedOsintThresholdDomainId: '' as string,
+    osintSnapshot: createOsintSnapshot(),
     scenario: createDefaultScenarioSnapshot(),
     mapRuntime: DEFAULT_MAP_RUNTIME_TELEMETRY,
     aiProviderStatus: createBrowserSimulatedAiProviderStatus(),
@@ -1421,6 +1455,22 @@ function App() {
         .sort((left, right) => left.observed_at.localeCompare(right.observed_at)),
     [contextRecords, correlationAoi, selectedDeviationDomain?.domain_id],
   )
+  const governedDeviationType = selectedDeviationDomain
+    ? deviationTypeForDomain(selectedDeviationDomain)
+    : deviationType
+  const governedDeviationWindow = useMemo(
+    () =>
+      selectHistoricalDeviationWindow({
+        records: selectedDeviationRecords,
+        baselinePointCount: deviationBaselinePointCount,
+        observedPointCount: deviationObservedPointCount,
+      }),
+    [selectedDeviationRecords, deviationBaselinePointCount, deviationObservedPointCount],
+  )
+  const governedDeviationPreview = useMemo(
+    () => buildDeviationWindowPreview(governedDeviationWindow),
+    [governedDeviationWindow],
+  )
   const constraintNodeDomains = useMemo(
     () => domains.filter((domain) => domain.presentation_type === 'constraint_node'),
     [domains],
@@ -1429,37 +1479,76 @@ function App() {
     () => ({
       ...deviationSnapshot,
       selectedDomainId: selectedDeviationDomainKey || undefined,
+      inputMode: deviationInputMode,
+      baselinePointCount: deviationBaselinePointCount,
+      observedPointCount: deviationObservedPointCount,
+      threshold: deviationThreshold,
+      deviationType: deviationInputMode === 'manual_override' ? deviationType : governedDeviationType,
+      manualBaselineInput: deviationBaselineInput,
+      manualObservedInput: deviationObservedInput,
     }),
-    [deviationSnapshot, selectedDeviationDomainKey],
+    [
+      deviationBaselineInput,
+      deviationBaselinePointCount,
+      deviationInputMode,
+      deviationObservedInput,
+      deviationObservedPointCount,
+      deviationSnapshot,
+      deviationThreshold,
+      deviationType,
+      governedDeviationType,
+      selectedDeviationDomainKey,
+    ],
   )
   const deviationEvent = useMemo(
-    () =>
-      detectDeviation(
-        parseNumericSeries(deviationBaselineInput).map((value, index) => ({
-          ts: `b-${index}`,
-          value,
-        })),
-        parseNumericSeries(deviationObservedInput).map((value, index) => ({
-          ts: `o-${index}`,
-          value,
-        })),
-        deviationThreshold,
-        deviationType,
-        selectedDeviationDomain
-          ? {
-              domainId: selectedDeviationDomain.domain_id,
-              domainName: selectedDeviationDomain.domain_name,
-              targetId: correlationAoi,
-              confidenceBaseline: selectedDeviationDomain.confidence_baseline,
-            }
-          : undefined,
-      ),
+    () => {
+      if (!selectedDeviationDomain) {
+        return null
+      }
+
+      if (deviationInputMode === 'manual_override') {
+        return detectDeviation(
+          parseNumericSeries(deviationBaselineInput).map((value, index) => ({
+            ts: `manual-baseline-${index}`,
+            value,
+          })),
+          parseNumericSeries(deviationObservedInput).map((value, index) => ({
+            ts: `manual-observed-${index}`,
+            value,
+          })),
+          deviationThreshold,
+          deviationType,
+          {
+            domainId: selectedDeviationDomain.domain_id,
+            domainName: selectedDeviationDomain.domain_name,
+            targetId: correlationAoi,
+            confidenceBaseline: selectedDeviationDomain.confidence_baseline,
+            sourceMode: 'manual_override',
+          },
+        )
+      }
+
+      return detectDeviationFromRecords({
+        domain: selectedDeviationDomain,
+        records: selectedDeviationRecords,
+        targetId: correlationAoi,
+        threshold: deviationThreshold,
+        deviationType: governedDeviationType,
+        baselinePointCount: deviationBaselinePointCount,
+        observedPointCount: deviationObservedPointCount,
+      })
+    },
     [
       correlationAoi,
       deviationBaselineInput,
+      deviationBaselinePointCount,
+      deviationInputMode,
       deviationObservedInput,
+      deviationObservedPointCount,
       deviationThreshold,
       deviationType,
+      governedDeviationType,
+      selectedDeviationRecords,
       selectedDeviationDomain,
     ],
   )
@@ -1469,18 +1558,51 @@ function App() {
     () => domains.find((domain) => domain.domain_id === selectedOsintThresholdDomainKey),
     [domains, selectedOsintThresholdDomainKey],
   )
+  const selectedGovernedConnector = useMemo(
+    () =>
+      getGovernedFeedConnectorTemplate(
+        selectedGovernedConnectorId as GovernedFeedConnectorId,
+      ),
+    [selectedGovernedConnectorId],
+  )
   const osintSummary = useMemo(
-    () => aggregateAlerts(osintSnapshot.events, osintAoi, osintSnapshot.thresholdRefs),
-    [osintAoi, osintSnapshot.events, osintSnapshot.thresholdRefs],
+    () =>
+      aggregateAlerts(osintSnapshot.events, osintAoi, osintSnapshot.thresholdRefs, {
+        sourceMode: osintSnapshot.sourceMode,
+        connectorId: osintSnapshot.selectedConnectorId,
+        connectorLabel: osintSnapshot.latestConnectorRun?.connector_label,
+        sourceEventIds: osintSnapshot.events
+          .filter((entry) => entry.aoi === osintAoi)
+          .map((entry) => entry.event_id),
+        deviationEventId: osintSnapshot.latestConnectorRun?.deviation_event_id,
+      }),
+    [
+      osintAoi,
+      osintSnapshot.events,
+      osintSnapshot.latestConnectorRun?.connector_label,
+      osintSnapshot.latestConnectorRun?.deviation_event_id,
+      osintSnapshot.selectedConnectorId,
+      osintSnapshot.sourceMode,
+      osintSnapshot.thresholdRefs,
+    ],
   )
   const osintStateForRecorder = useMemo(
     () => ({
       ...osintSnapshot,
       selectedAoi: osintAoi,
+      sourceMode: osintInputMode,
+      selectedConnectorId: selectedGovernedConnectorId as GovernedFeedConnectorId,
       selectedThresholdDomainId: selectedOsintThresholdDomainKey || undefined,
       latestAlert: osintSummary,
     }),
-    [osintAoi, osintSnapshot, osintSummary, selectedOsintThresholdDomainKey],
+    [
+      osintAoi,
+      osintInputMode,
+      osintSnapshot,
+      osintSummary,
+      selectedGovernedConnectorId,
+      selectedOsintThresholdDomainKey,
+    ],
   )
   const selectedGameScenarioId = gameModelSnapshot.selected_scenario_id ?? scenario.selectedScenarioId
   const gameModelStateForRecorder = useMemo(() => {
@@ -1691,6 +1813,18 @@ function App() {
     activeDomainIds,
     correlationAoi,
     contextRecords,
+    selectedDeviationDomainId,
+    deviationSnapshot,
+    mapDeviationInspectVisible: mapRuntimeScene.signals.features.some(
+      (feature) => feature.properties.category === 'deviation',
+    ),
+    mapOsintInspectVisible: mapRuntimeScene.signals.features.some(
+      (feature) => feature.properties.category === 'osint',
+    ),
+    osintInputMode,
+    selectedGovernedConnectorId: selectedGovernedConnectorId as GovernedFeedConnectorId,
+    selectedOsintThresholdDomainId,
+    osintSnapshot: osintStateForRecorder,
     scenario,
     mapRuntime: mapRuntimeTelemetry,
     aiProviderStatus,
@@ -1828,8 +1962,19 @@ function App() {
       setSelectedMcpTool(DEFAULT_MCP_TOOL)
       setDeviationSnapshot(deviationState)
       setSelectedDeviationDomainId(deviationState.selectedDomainId ?? '')
+      setDeviationInputMode(deviationState.inputMode)
+      setDeviationBaselinePointCount(deviationState.baselinePointCount)
+      setDeviationObservedPointCount(deviationState.observedPointCount)
+      setDeviationThreshold(deviationState.threshold)
+      setDeviationType(deviationState.deviationType)
+      setDeviationBaselineInput(deviationState.manualBaselineInput)
+      setDeviationObservedInput(deviationState.manualObservedInput)
       setOsintSnapshot(osintState)
       setOsintAoi(osintState.selectedAoi)
+      setOsintInputMode(osintState.sourceMode)
+      setSelectedGovernedConnectorId(
+        osintState.selectedConnectorId ?? DEFAULT_GOVERNED_FEED_CONNECTOR_ID,
+      )
       setSelectedOsintThresholdDomainId(osintState.selectedThresholdDomainId ?? '')
       setOsintSource(osintState.events.at(-1)?.source ?? CURATED_OSINT_SOURCES[0])
       setOsintVerification(osintState.events.at(-1)?.verification ?? 'reported')
@@ -3239,40 +3384,31 @@ function App() {
   }
 
   const onLoadDeviationDomainSeries = () => {
-    if (!selectedDeviationDomain || selectedDeviationRecords.length < 2) {
-      setStatus('Select an active context domain with enough records to derive a deviation baseline.')
+    if (!selectedDeviationDomain || !governedDeviationWindow) {
+      setStatus(
+        'Select an active context domain with enough governed records to derive baseline and observed windows.',
+      )
       return
     }
 
-    const midpoint = Math.ceil(selectedDeviationRecords.length / 2)
-    const baselineSeries = selectedDeviationRecords
-      .slice(0, midpoint)
-      .map((record) => record.numeric_value)
-    const observedSeries = selectedDeviationRecords
-      .slice(midpoint)
-      .map((record) => record.numeric_value)
-
-    setDeviationBaselineInput(baselineSeries.join(','))
-    setDeviationObservedInput(observedSeries.join(','))
-    setDeviationType(deviationTypeForDomain(selectedDeviationDomain))
-    setStatus(`Loaded ${selectedDeviationDomain.domain_name} context records into the deviation detector.`)
+    setDeviationInputMode('governed_series')
+    setDeviationBaselineInput(governedDeviationPreview.baselineInput)
+    setDeviationObservedInput(governedDeviationPreview.observedInput)
+    setDeviationType(governedDeviationType)
+    setStatus(
+      `Loaded governed windows for ${selectedDeviationDomain.domain_name}: ${governedDeviationWindow.baselineReference}.`,
+    )
   }
 
   const onRecordDeviationEvent = () => {
-    const eventToRecord =
-      deviationEvent ??
-      (selectedDeviationDomain
-        ? detectDeviationFromRecords({
-            domain: selectedDeviationDomain,
-            records: selectedDeviationRecords,
-            targetId: correlationAoi,
-            threshold: deviationThreshold,
-            deviationType: deviationTypeForDomain(selectedDeviationDomain),
-          })
-        : null)
+    const eventToRecord = deviationEvent
 
     if (!selectedDeviationDomain || !eventToRecord) {
-      setStatus('Load a context domain series that exceeds the threshold before recording a deviation event.')
+      setStatus(
+        deviationInputMode === 'manual_override'
+          ? 'Enter manual override series that exceed the threshold before recording a deviation event.'
+          : 'Load a governed context window that exceeds the threshold before recording a deviation event.',
+      )
       return
     }
 
@@ -3352,6 +3488,56 @@ function App() {
     setStatus(`Applied context constraint node ${domain.domain_name} to ${selectedScenario.title}.`)
   }
 
+  const onRunGovernedConnector = () => {
+    const thresholdValue = Number(osintThresholdValueInput)
+    const execution = executeGovernedFeedConnector({
+      snapshot: osintStateForRecorder,
+      connectorId: selectedGovernedConnectorId as GovernedFeedConnectorId,
+      aoi: osintAoi,
+      contextDomains: domains,
+      contextRecords,
+      thresholdDomain: selectedOsintThresholdDomain,
+      thresholdComparator: osintThresholdComparator,
+      thresholdValue: Number.isFinite(thresholdValue) ? thresholdValue : undefined,
+      latestDeviationEvent: deviationSnapshot.latestEvent,
+    })
+
+    if (!execution) {
+      setStatus('Select a governed connector before running the aggregate alert runtime.')
+      return
+    }
+
+    if (execution.events.length === 0) {
+      setStatus(execution.statusLine)
+      return
+    }
+
+    const nextSnapshot = recordGovernedFeedConnector(osintStateForRecorder, execution, osintAoi)
+
+    setOsintInputMode('governed_connector')
+    setOsintSnapshot(nextSnapshot)
+    setOsintSource(execution.events.at(-1)?.source ?? CURATED_OSINT_SOURCES[0])
+    setOsintVerification(execution.events.at(-1)?.verification ?? 'reported')
+    setOsintCategory(execution.events.at(-1)?.category ?? DEFAULT_OSINT_CATEGORY)
+    setOsintSummaryInput(execution.events.at(-1)?.summary ?? DEFAULT_OSINT_SUMMARY)
+    setStatus(execution.statusLine)
+    void backend
+      .appendAudit({
+        role,
+        event_type: 'osint.connector_executed',
+        payload: {
+          connector: execution.connector,
+          events: execution.events,
+          latest_alert: nextSnapshot.latestAlert,
+          latest_connector_run: nextSnapshot.latestConnectorRun,
+        },
+      })
+      .then(() => refresh())
+      .catch(() => {
+        setStatus('Governed connector executed locally; audit append unavailable.')
+      })
+  }
+
   const onAddOsintEvent = () => {
     if (!validateCuratedSource(osintSource)) {
       setStatus(`OSINT source rejected: ${osintSource}`)
@@ -3368,10 +3554,21 @@ function App() {
       aoi: osintAoi,
       category: osintCategory,
       summary: osintSummaryInput,
-      lineage: [`aoi:${osintAoi}`, `category:${osintCategory}`],
+      lineage: [`aoi:${osintAoi}`, `category:${osintCategory}`, 'mode:manual_override'],
+      sourceMode: 'manual_override',
     })
-    const nextSnapshot = pushOsintEvent(osintStateForRecorder, event, osintAoi)
+    const nextSnapshot = pushOsintEvent(
+      {
+        ...osintStateForRecorder,
+        sourceMode: 'manual_override',
+        selectedConnectorId: undefined,
+        latestConnectorRun: undefined,
+      },
+      event,
+      osintAoi,
+    )
 
+    setOsintInputMode('manual_override')
     setOsintSnapshot(nextSnapshot)
     setStatus(`Recorded ${event.source} ${event.verification} OSINT event for ${event.aoi}.`)
     void backend
@@ -3716,6 +3913,20 @@ function App() {
       }
     }
 
+    const isWpI8RuntimeSmoke = runtimeSmokeConfig.wpId === 'WP-I8-002'
+    const isWpI9RuntimeSmoke = runtimeSmokeConfig.wpId === 'WP-I9-002'
+    const requiresGovernedDeviationForRuntimeSmoke = isWpI8RuntimeSmoke || isWpI9RuntimeSmoke
+    const runtimeSmokeFlow = {
+      governedDeviationRecorded: false,
+      governedDeviationRestored: false,
+      governedConnectorRecorded: false,
+      governedConnectorRestored: false,
+      governedConnectorId: '' as string,
+      restoredConnectorId: '' as string,
+      deviationContextConstraintApplied: false,
+      deviationConstraintId: '',
+    }
+
     const collectRegionChecks = (): RuntimeSmokeRegionCheck[] =>
       REQUIRED_UI_REGIONS.map((regionId) => ({
         id: regionId,
@@ -3730,6 +3941,18 @@ function App() {
       const exportCardVisible = Boolean(document.querySelector('[data-testid="scenario-export-card"]'))
       const governedContextDomainId = currentState.activeDomainIds.find((domainId) =>
         Boolean(getGovernedDomainTemplate(domainId)),
+      )
+      const latestDeviationEvent = currentState.deviationSnapshot.latestEvent
+      const latestOsintAlert = currentState.osintSnapshot.latestAlert
+      const latestConnectorRun = currentState.osintSnapshot.latestConnectorRun
+      const selectedScenario =
+        currentState.scenario.scenarios.find(
+          (entry) => entry.scenarioId === currentState.scenario.selectedScenarioId,
+        ) ?? currentState.scenario.scenarios.at(-1)
+      const appliedDeviationConstraint = selectedScenario?.constraints.find(
+        (constraint) =>
+          constraint.constraintId === runtimeSmokeFlow.deviationConstraintId ||
+          constraint.constraintId === latestDeviationEvent?.domain_id,
       )
       const contextRestorePassed =
         Boolean(governedContextDomainId) &&
@@ -3849,6 +4072,97 @@ function App() {
         })
       }
 
+      if (isWpI8RuntimeSmoke) {
+        assertions.push({
+          id: 'governed_deviation_recorded',
+          passed:
+            Boolean(
+              runtimeSmokeFlow.governedDeviationRecorded &&
+                latestDeviationEvent?.source_mode === 'governed_series' &&
+                latestDeviationEvent.source_record_ids.length > 0,
+            ),
+          detail: latestDeviationEvent
+            ? `Governed deviation ${latestDeviationEvent.eventId} recorded for ${latestDeviationEvent.domain_name} with ${latestDeviationEvent.source_record_ids.length} source record(s).`
+            : 'No governed deviation event was recorded during runtime smoke.',
+        })
+        assertions.push({
+          id: 'governed_deviation_bundle_restore',
+          passed:
+            Boolean(
+              runtimeSmokeFlow.governedDeviationRestored &&
+                latestDeviationEvent?.source_mode === 'governed_series' &&
+                currentState.deviationSnapshot.suggestions.length > 0,
+            ),
+          detail: runtimeSmokeFlow.governedDeviationRestored && latestDeviationEvent
+            ? `Governed deviation ${latestDeviationEvent.eventId} and ${currentState.deviationSnapshot.suggestions.length} suggestion(s) survived bundle reopen.`
+            : 'Governed deviation state was not restored from the reopened bundle.',
+        })
+        assertions.push({
+          id: 'deviation_map_projection',
+          passed: currentState.mapDeviationInspectVisible,
+          detail: currentState.mapDeviationInspectVisible && latestDeviationEvent
+            ? `Map runtime projects deviation watch ${latestDeviationEvent.domain_name} onto the live surface (focus ${currentState.mapRuntime.focusAoiId}).`
+            : 'Map runtime did not expose the governed deviation watch projection.',
+        })
+        assertions.push({
+          id: 'deviation_context_constraint_applied',
+          passed:
+            runtimeSmokeFlow.deviationContextConstraintApplied &&
+            Boolean(appliedDeviationConstraint),
+          detail: appliedDeviationConstraint
+            ? `Scenario constraint ${appliedDeviationConstraint.constraintId} applied from governed deviation output.`
+            : 'Deviation-linked context constraint was not applied to the selected scenario.',
+        })
+      }
+
+      if (isWpI9RuntimeSmoke) {
+        const governedConnectorExecuted =
+          runtimeSmokeFlow.governedConnectorRecorded &&
+          currentState.osintInputMode === 'governed_connector' &&
+          Boolean(latestConnectorRun) &&
+          latestConnectorRun?.connector_id === runtimeSmokeFlow.restoredConnectorId &&
+          (latestConnectorRun?.source_event_ids.length ?? 0) > 0
+        const governedConnectorRestored =
+          runtimeSmokeFlow.governedConnectorRestored &&
+          currentState.osintSnapshot.selectedAoi === governedContextBundleAoi &&
+          currentState.selectedGovernedConnectorId === runtimeSmokeFlow.restoredConnectorId &&
+          latestConnectorRun?.connector_id === runtimeSmokeFlow.restoredConnectorId
+        const aggregateAlertLinked =
+          latestOsintAlert?.aggregate_only === true &&
+          latestOsintAlert?.source_mode === 'governed_connector' &&
+          (latestOsintAlert?.threshold_refs.length ?? 0) > 0 &&
+          (latestOsintAlert.source_event_ids?.length ?? 0) > 0 &&
+          latestOsintAlert.deviation_event_id === latestDeviationEvent?.eventId
+        assertions.push({
+          id: 'governed_connector_executed',
+          passed: Boolean(governedConnectorExecuted),
+          detail: latestConnectorRun
+            ? `Connector ${latestConnectorRun.connector_label} produced ${latestConnectorRun.source_event_ids.length} governed event(s) for ${currentState.osintSnapshot.selectedAoi}.`
+            : 'No governed connector execution was recorded during runtime smoke.',
+        })
+        assertions.push({
+          id: 'governed_connector_bundle_restore',
+          passed: Boolean(governedConnectorRestored),
+          detail: governedConnectorRestored && latestConnectorRun
+            ? `Connector ${latestConnectorRun.connector_label} and aggregate alert state were restored from the reopened bundle for ${currentState.osintSnapshot.selectedAoi}.`
+            : 'Governed connector state was not restored from the reopened bundle.',
+        })
+        assertions.push({
+          id: 'aggregate_alert_lineage',
+          passed: Boolean(aggregateAlertLinked),
+          detail: aggregateAlertLinked && latestOsintAlert
+            ? `Aggregate alert ${latestOsintAlert.alert_id} retains ${latestOsintAlert.threshold_refs.length} threshold ref(s) and deviation ${latestOsintAlert.deviation_event_id}.`
+            : 'Aggregate alert lineage did not retain connector threshold/deviation references.',
+        })
+        assertions.push({
+          id: 'osint_map_projection',
+          passed: currentState.mapOsintInspectVisible,
+          detail: currentState.mapOsintInspectVisible && latestOsintAlert
+            ? `Map runtime projects the aggregate alert for ${latestOsintAlert.aoi} onto the live surface.`
+            : 'Map runtime did not expose the governed OSINT projection.',
+        })
+      }
+
       return assertions
     }
 
@@ -3884,12 +4198,20 @@ function App() {
         mapFocusAoiId: currentState.mapRuntime.focusAoiId,
         mapInspectCount: currentState.mapRuntime.inspectCount,
         mapRuntimeError: currentState.mapRuntime.runtimeError || undefined,
+        mapOsintInspectVisible: currentState.mapOsintInspectVisible,
         activeContextDomainCount: currentState.activeDomainIds.length,
         contextRecordCount: currentState.contextRecords.length,
         correlationAoi: currentState.correlationAoi,
         governedContextDomainId: currentState.activeDomainIds.find((domainId) =>
           Boolean(getGovernedDomainTemplate(domainId)),
         ),
+        osintSourceMode: currentState.osintInputMode,
+        osintSelectedConnectorId: currentState.selectedGovernedConnectorId,
+        osintLatestConnectorId: currentState.osintSnapshot.latestConnectorRun?.connector_id,
+        osintAlertCount: currentState.osintSnapshot.latestAlert?.count ?? 0,
+        osintEventCount: currentState.osintSnapshot.events.length,
+        osintThresholdRefCount: currentState.osintSnapshot.latestAlert?.threshold_refs.length ?? 0,
+        osintDeviationEventId: currentState.osintSnapshot.latestAlert?.deviation_event_id,
         requireLiveAi: runtimeSmokeConfig.requireLiveAi,
         requireMcp: runtimeSmokeConfig.requireMcp,
         aiProviderLabel: currentState.aiProviderStatus.providerLabel,
@@ -3983,16 +4305,81 @@ function App() {
       )
     }
 
+    const waitForPersistedDeviationState = async (
+      domainId: string,
+      targetAoi: string,
+      timeoutMs = 15000,
+    ): Promise<RecorderState> => {
+      const deadline = performance.now() + timeoutMs
+      while (performance.now() < deadline) {
+        const persisted = await backend.loadRecorderState()
+        if (persisted.state) {
+          const deviationState = normalizeDeviationSnapshot(persisted.state.deviation)
+          if (
+            deviationState.latestEvent?.domain_id === domainId &&
+            deviationState.latestEvent.target_id === targetAoi &&
+            deviationState.latestEvent.source_mode === 'governed_series' &&
+            deviationState.latestEvent.source_record_ids.length > 0
+          ) {
+            return persisted.state
+          }
+        }
+        await pause(100)
+      }
+
+      throw new Error(
+        `Runtime smoke timed out waiting for persisted governed deviation state for ${domainId} / ${targetAoi}`,
+      )
+    }
+
+    const waitForPersistedDeviationBundleState = async (
+      targetAoi: string,
+      timeoutMs = 15000,
+    ): Promise<RecorderState> => {
+      const deadline = performance.now() + timeoutMs
+      while (performance.now() < deadline) {
+        const persisted = await backend.loadRecorderState()
+        if (persisted.state) {
+          const persistedRecords = normalizeContextRecords(persisted.state.context.records)
+          const deviationState = normalizeDeviationSnapshot(persisted.state.deviation)
+          if (
+            persisted.state.context.correlationAoi === targetAoi &&
+            persisted.state.context.activeDomainIds.includes(governedContextDomainId) &&
+            persisted.state.context.activeDomainIds.includes(governedDeviationDomainId) &&
+            persistedRecords.some(
+              (record) =>
+                record.domain_id === governedContextDomainId && record.target_id === targetAoi,
+            ) &&
+            persistedRecords.some(
+              (record) =>
+                record.domain_id === governedDeviationDomainId && record.target_id === targetAoi,
+            ) &&
+            deviationState.latestEvent?.domain_id === governedDeviationDomainId &&
+            deviationState.latestEvent.target_id === targetAoi &&
+            deviationState.suggestions.some((entry) => entry.domain_id === governedDeviationDomainId)
+          ) {
+            return persisted.state
+          }
+        }
+        await pause(100)
+      }
+
+      throw new Error(
+        `Runtime smoke timed out waiting for bundle-ready governed deviation state for ${governedDeviationDomainId} / ${targetAoi}`,
+      )
+    }
+
     const createBundleForRuntimeSmoke = async (): Promise<string> => {
       const startedAt = beginMeasuredAction('Create bundle')
       setBusy(true)
       setStatus('Creating bundle...')
       try {
         const previousBundleCount = runtimeSmokeStateRef.current.bundles.length
-        const requestState = await waitForPersistedContextState(
-          governedContextBundleAoi,
-          governedContextDomainId,
-        )
+        const requestState = isWpI9RuntimeSmoke
+          ? await waitForPersistedI9BundleState(governedContextBundleAoi)
+          : requiresGovernedDeviationForRuntimeSmoke
+            ? await waitForPersistedDeviationBundleState(governedContextBundleAoi)
+            : await waitForPersistedContextState(governedContextBundleAoi, governedContextDomainId)
         const manifest = await backend.createBundle({
           role,
           marking,
@@ -4054,45 +4441,112 @@ function App() {
     }
 
     const governedContextDomainId = DEFAULT_GOVERNED_CONTEXT_DOMAIN_ID
+    const governedDeviationDomainId = 'sanctions-regime-updates'
     const governedContextBundleAoi = 'aoi-4'
     const governedContextMutationAoi = 'aoi-2'
+    const governedOsintBundleConnectorId: GovernedFeedConnectorId = 'regulatory-pressure-watch'
+    const governedOsintMutationConnectorId: GovernedFeedConnectorId = 'logistics-disruption-watch'
 
-    const registerGovernedContextForRuntimeSmoke = async (): Promise<void> => {
-      await setLabeledFieldValue('Approved Domain', governedContextDomainId)
+    const waitForPersistedOsintState = async ({
+      targetAoi,
+      connectorId,
+      thresholdDomainId,
+      requireDeviationLink = false,
+      timeoutMs = 15000,
+    }: {
+      targetAoi: string
+      connectorId: GovernedFeedConnectorId
+      thresholdDomainId: string
+      requireDeviationLink?: boolean
+      timeoutMs?: number
+    }): Promise<RecorderState> => {
+      const deadline = performance.now() + timeoutMs
+      while (performance.now() < deadline) {
+        const persisted = await backend.loadRecorderState()
+        if (persisted.state) {
+          const osintState = normalizeOsintSnapshot(persisted.state.osint)
+          const deviationState = normalizeDeviationSnapshot(persisted.state.deviation)
+          const latestRun = osintState.latestConnectorRun
+          const latestAlert = osintState.latestAlert
+          const thresholdLinked =
+            latestAlert?.threshold_refs.some((entry) => entry.domain_id === thresholdDomainId) ?? false
+          const deviationLinked = !requireDeviationLink
+            ? true
+            : Boolean(
+                latestRun?.deviation_event_id &&
+                  latestRun.deviation_event_id === deviationState.latestEvent?.eventId &&
+                  latestAlert?.deviation_event_id === deviationState.latestEvent?.eventId,
+              )
+          if (
+            osintState.selectedAoi === targetAoi &&
+            osintState.sourceMode === 'governed_connector' &&
+            osintState.selectedConnectorId === connectorId &&
+              latestRun?.connector_id === connectorId &&
+              latestRun.source_mode === 'governed_connector' &&
+              latestRun.source_event_ids.length > 0 &&
+              latestAlert?.aggregate_only === true &&
+              thresholdLinked &&
+            deviationLinked
+          ) {
+            return persisted.state
+          }
+        }
+        await pause(100)
+      }
+
+      throw new Error(
+        `Runtime smoke timed out waiting for persisted governed OSINT state for ${connectorId} / ${targetAoi}`,
+      )
+    }
+
+    const registerGovernedContextDomainForRuntimeSmoke = async (
+      domainId: string,
+      targetAoi: string,
+    ): Promise<void> => {
+      await setLabeledFieldValue('Approved Domain', domainId)
       await waitForCondition(
         'governed context draft selection',
         () =>
-          runtimeSmokeStateRef.current.selectedGovernedDomainId === governedContextDomainId &&
-          runtimeSmokeStateRef.current.domainDraft.domain_id === governedContextDomainId,
+          runtimeSmokeStateRef.current.selectedGovernedDomainId === domainId &&
+          runtimeSmokeStateRef.current.domainDraft.domain_id === domainId,
       )
-      await setLabeledFieldValue('Correlation AOI', governedContextBundleAoi)
+      await setLabeledFieldValue('Correlation AOI', targetAoi)
       await waitForCondition(
         'governed context aoi selection',
-        () => runtimeSmokeStateRef.current.correlationAoi === governedContextBundleAoi,
+        () => runtimeSmokeStateRef.current.correlationAoi === targetAoi,
       )
       clickWorkspaceButton('Register Domain')
       await waitForCondition(
         'governed context registration',
         () =>
-          runtimeSmokeStateRef.current.activeDomainIds.includes(governedContextDomainId) &&
+          runtimeSmokeStateRef.current.activeDomainIds.includes(domainId) &&
           runtimeSmokeStateRef.current.contextRecords.some(
-            (record) =>
-              record.domain_id === governedContextDomainId &&
-              record.target_id === governedContextBundleAoi,
+            (record) => record.domain_id === domainId && record.target_id === targetAoi,
           ),
       )
       clickWorkspaceButton('Save Correlation Selection')
       await waitForCondition(
         'governed context correlation save',
         () =>
-          runtimeSmokeStateRef.current.correlationAoi === governedContextBundleAoi &&
+          runtimeSmokeStateRef.current.correlationAoi === targetAoi &&
           runtimeSmokeStateRef.current.contextRecords.some(
-            (record) =>
-              record.domain_id === governedContextDomainId &&
-              record.target_id === governedContextBundleAoi,
+            (record) => record.domain_id === domainId && record.target_id === targetAoi,
           ),
       )
-      await waitForPersistedContextState(governedContextBundleAoi, governedContextDomainId)
+      await waitForPersistedContextState(targetAoi, domainId)
+    }
+
+    const registerGovernedContextForRuntimeSmoke = async (): Promise<void> => {
+      await registerGovernedContextDomainForRuntimeSmoke(
+        governedContextDomainId,
+        governedContextBundleAoi,
+      )
+      if (requiresGovernedDeviationForRuntimeSmoke) {
+        await registerGovernedContextDomainForRuntimeSmoke(
+          governedDeviationDomainId,
+          governedContextBundleAoi,
+        )
+      }
     }
 
     const mutateGovernedContextForRuntimeSmoke = async (): Promise<void> => {
@@ -4113,6 +4567,205 @@ function App() {
           ),
       )
       await waitForPersistedContextState(governedContextMutationAoi, governedContextDomainId)
+      if (requiresGovernedDeviationForRuntimeSmoke) {
+        await waitForPersistedContextState(governedContextMutationAoi, governedDeviationDomainId)
+      }
+    }
+
+    const recordGovernedDeviationForRuntimeSmoke = async (): Promise<void> => {
+      onModeChange('live_recent')
+      await waitForCondition(
+        'live/recent mode activation',
+        () => runtimeSmokeStateRef.current.mode === 'live_recent',
+      )
+      await setLabeledFieldValue('Deviation Source', 'governed_series')
+      await setLabeledFieldValue('Deviation Domain', governedDeviationDomainId)
+      await waitForCondition(
+        'governed deviation domain selection',
+        () => runtimeSmokeStateRef.current.selectedDeviationDomainId === governedDeviationDomainId,
+      )
+      clickWorkspaceButton('Load Governed Windows')
+      await pause(100)
+      clickWorkspaceButton('Record Deviation Event')
+      await waitForCondition(
+        'governed deviation event',
+        () => {
+          const latestEvent = runtimeSmokeStateRef.current.deviationSnapshot.latestEvent
+          return (
+            latestEvent?.domain_id === governedDeviationDomainId &&
+            latestEvent.target_id === governedContextBundleAoi &&
+            latestEvent.source_mode === 'governed_series' &&
+            latestEvent.source_record_ids.length > 0
+          )
+        },
+        15000,
+      )
+      await waitForPersistedDeviationState(governedDeviationDomainId, governedContextBundleAoi)
+      runtimeSmokeFlow.governedDeviationRecorded = true
+      await waitForCondition(
+        'deviation map projection',
+        () => runtimeSmokeStateRef.current.mapDeviationInspectVisible,
+        15000,
+      )
+    }
+
+    const configureGovernedConnectorForRuntimeSmoke = async ({
+      aoi,
+      connectorId,
+      thresholdDomainId,
+      thresholdComparator,
+      thresholdValue,
+    }: {
+      aoi: string
+      connectorId: GovernedFeedConnectorId
+      thresholdDomainId: string
+      thresholdComparator: ThresholdComparator
+      thresholdValue: string
+    }): Promise<void> => {
+      setOsintInputMode('governed_connector')
+      setOsintAoi(aoi)
+      setSelectedGovernedConnectorId(connectorId)
+      setSelectedOsintThresholdDomainId(thresholdDomainId)
+      setOsintThresholdComparator(thresholdComparator)
+      setOsintThresholdValueInput(thresholdValue)
+      await waitForCondition(
+        'governed osint configuration',
+        () =>
+          runtimeSmokeStateRef.current.osintInputMode === 'governed_connector' &&
+          runtimeSmokeStateRef.current.osintSnapshot.selectedAoi === aoi &&
+          runtimeSmokeStateRef.current.selectedGovernedConnectorId === connectorId &&
+          runtimeSmokeStateRef.current.selectedOsintThresholdDomainId === thresholdDomainId,
+      )
+    }
+
+    const runGovernedConnectorForRuntimeSmoke = async ({
+      aoi,
+      connectorId,
+      thresholdDomainId,
+      thresholdComparator,
+      thresholdValue,
+      expectedEventFloor,
+      requireDeviationLink = true,
+    }: {
+      aoi: string
+      connectorId: GovernedFeedConnectorId
+      thresholdDomainId: string
+      thresholdComparator: ThresholdComparator
+      thresholdValue: string
+      expectedEventFloor: number
+      requireDeviationLink?: boolean
+    }): Promise<void> => {
+      await configureGovernedConnectorForRuntimeSmoke({
+        aoi,
+        connectorId,
+        thresholdDomainId,
+        thresholdComparator,
+        thresholdValue,
+      })
+      clickWorkspaceButton('Run Governed Connector')
+      await waitForCondition(
+        'governed connector execution',
+        () => {
+          const latestRun = runtimeSmokeStateRef.current.osintSnapshot.latestConnectorRun
+          const latestAlert = runtimeSmokeStateRef.current.osintSnapshot.latestAlert
+          return Boolean(
+              latestRun?.connector_id === connectorId &&
+              latestRun.source_event_ids.length >= expectedEventFloor &&
+              latestAlert?.aggregate_only === true &&
+              (latestAlert?.threshold_refs.length ?? 0) > 0 &&
+              latestAlert?.source_mode === 'governed_connector' &&
+              (!requireDeviationLink ||
+                latestAlert?.deviation_event_id ===
+                  runtimeSmokeStateRef.current.deviationSnapshot.latestEvent?.eventId) &&
+              runtimeSmokeStateRef.current.mapOsintInspectVisible,
+          )
+        },
+        15000,
+      )
+      await waitForPersistedOsintState({
+        targetAoi: aoi,
+        connectorId,
+        thresholdDomainId,
+        requireDeviationLink,
+      })
+      runtimeSmokeFlow.governedConnectorRecorded = true
+      runtimeSmokeFlow.governedConnectorId = connectorId
+      if (requireDeviationLink) {
+        runtimeSmokeFlow.restoredConnectorId = connectorId
+      }
+    }
+
+    const waitForPersistedI9BundleState = async (
+      targetAoi: string,
+      timeoutMs = 15000,
+    ): Promise<RecorderState> => {
+      const deadline = performance.now() + timeoutMs
+      while (performance.now() < deadline) {
+        const persisted = await backend.loadRecorderState()
+        if (persisted.state) {
+          const persistedRecords = normalizeContextRecords(persisted.state.context.records)
+          const deviationState = normalizeDeviationSnapshot(persisted.state.deviation)
+          const osintState = normalizeOsintSnapshot(persisted.state.osint)
+          if (
+            persisted.state.context.correlationAoi === targetAoi &&
+            persisted.state.context.activeDomainIds.includes(governedContextDomainId) &&
+            persisted.state.context.activeDomainIds.includes(governedDeviationDomainId) &&
+            persistedRecords.some(
+              (record) =>
+                record.domain_id === governedContextDomainId && record.target_id === targetAoi,
+            ) &&
+            persistedRecords.some(
+              (record) =>
+                record.domain_id === governedDeviationDomainId && record.target_id === targetAoi,
+            ) &&
+            deviationState.latestEvent?.domain_id === governedDeviationDomainId &&
+            deviationState.latestEvent.target_id === targetAoi &&
+            deviationState.suggestions.some((entry) => entry.domain_id === governedDeviationDomainId) &&
+            osintState.selectedAoi === targetAoi &&
+            osintState.selectedConnectorId === governedOsintBundleConnectorId &&
+            osintState.latestConnectorRun?.connector_id === governedOsintBundleConnectorId &&
+            osintState.latestAlert?.aggregate_only === true &&
+            (osintState.latestAlert?.threshold_refs.length ?? 0) > 0 &&
+            osintState.latestAlert?.deviation_event_id === deviationState.latestEvent.eventId
+          ) {
+            return persisted.state
+          }
+        }
+        await pause(100)
+      }
+
+      throw new Error(
+        `Runtime smoke timed out waiting for bundle-ready governed OSINT state for ${governedOsintBundleConnectorId} / ${targetAoi}`,
+      )
+    }
+
+    const applyDeviationContextConstraintForRuntimeSmoke = async (): Promise<void> => {
+      await waitForCondition(
+        'deviation suggestion availability',
+        () =>
+          runtimeSmokeStateRef.current.deviationSnapshot.suggestions.some(
+            (entry) => entry.domain_id === governedDeviationDomainId,
+          ),
+        15000,
+      )
+      clickWorkspaceButton('Apply Sanctions Regime Updates Constraint')
+      await waitForCondition(
+        'deviation-linked context constraint application',
+        () => {
+          const snapshot = runtimeSmokeStateRef.current.scenario
+          const selectedScenario =
+            snapshot.scenarios.find((entry) => entry.scenarioId === snapshot.selectedScenarioId) ??
+            snapshot.scenarios.at(-1)
+          return Boolean(
+            selectedScenario?.constraints.find(
+              (constraint) => constraint.constraintId === governedDeviationDomainId,
+            ),
+          )
+        },
+        15000,
+      )
+      runtimeSmokeFlow.deviationContextConstraintApplied = true
+      runtimeSmokeFlow.deviationConstraintId = governedDeviationDomainId
     }
 
     const clickMapRuntimeButton = (label: '2D Situation Map' | '3D Globe'): void => {
@@ -4342,6 +4995,29 @@ function App() {
         }),
       )
 
+      if (requiresGovernedDeviationForRuntimeSmoke) {
+        metrics.push(
+          await measure('Governed deviation recording', async () => {
+            await recordGovernedDeviationForRuntimeSmoke()
+          }),
+        )
+      }
+
+      if (isWpI9RuntimeSmoke) {
+        metrics.push(
+          await measure('Governed connector execution', async () => {
+            await runGovernedConnectorForRuntimeSmoke({
+              aoi: governedContextBundleAoi,
+              connectorId: governedOsintBundleConnectorId,
+              thresholdDomainId: governedDeviationDomainId,
+              thresholdComparator: 'above',
+              thresholdValue: '1',
+              expectedEventFloor: 1,
+            })
+          }),
+        )
+      }
+
       metrics.push(
         await measure('Create bundle', async () => {
           const bundleId = await createBundleForRuntimeSmoke()
@@ -4355,12 +5031,28 @@ function App() {
         }),
       )
 
+      if (isWpI9RuntimeSmoke) {
+        metrics.push(
+          await measure('Governed connector mutation', async () => {
+            await runGovernedConnectorForRuntimeSmoke({
+              aoi: governedContextMutationAoi,
+              connectorId: governedOsintMutationConnectorId,
+              thresholdDomainId: governedContextDomainId,
+              thresholdComparator: 'below',
+              thresholdValue: '12',
+              expectedEventFloor: 1,
+              requireDeviationLink: false,
+            })
+          }),
+        )
+      }
+
       metrics.push(
         await measure('Open bundle', async () => {
           await openBundleForRuntimeSmoke()
           await waitForCondition('governed context restore', () => {
             const currentState = runtimeSmokeStateRef.current
-            return (
+            const baseRestorePassed =
               currentState.correlationAoi === governedContextBundleAoi &&
               currentState.activeDomainIds.includes(governedContextDomainId) &&
               currentState.contextRecords.some(
@@ -4368,8 +5060,48 @@ function App() {
                   record.domain_id === governedContextDomainId &&
                   record.target_id === governedContextBundleAoi,
               )
+            if (!baseRestorePassed) {
+              return false
+            }
+            if (!requiresGovernedDeviationForRuntimeSmoke) {
+              return true
+            }
+            const latestEvent = currentState.deviationSnapshot.latestEvent
+            const governedDeviationRestored = (
+              currentState.activeDomainIds.includes(governedDeviationDomainId) &&
+              latestEvent?.domain_id === governedDeviationDomainId &&
+              latestEvent.target_id === governedContextBundleAoi &&
+              latestEvent.source_mode === 'governed_series' &&
+              currentState.deviationSnapshot.suggestions.some(
+                (entry) => entry.domain_id === governedDeviationDomainId,
+              )
+            )
+            if (!governedDeviationRestored) {
+              return false
+            }
+            if (!isWpI9RuntimeSmoke) {
+              return true
+            }
+            const latestConnectorRun = currentState.osintSnapshot.latestConnectorRun
+            const latestAlert = currentState.osintSnapshot.latestAlert
+            return Boolean(
+              currentState.osintInputMode === 'governed_connector' &&
+                currentState.osintSnapshot.selectedAoi === governedContextBundleAoi &&
+                currentState.selectedGovernedConnectorId === governedOsintBundleConnectorId &&
+                latestConnectorRun?.connector_id === governedOsintBundleConnectorId &&
+                latestAlert?.aggregate_only === true &&
+                (latestAlert?.threshold_refs.length ?? 0) > 0 &&
+                latestAlert.deviation_event_id === latestEvent.eventId &&
+                currentState.mapOsintInspectVisible,
             )
           })
+          if (requiresGovernedDeviationForRuntimeSmoke) {
+            runtimeSmokeFlow.governedDeviationRestored = true
+          }
+          if (isWpI9RuntimeSmoke) {
+            runtimeSmokeFlow.governedConnectorRestored = true
+            runtimeSmokeFlow.restoredConnectorId = governedOsintBundleConnectorId
+          }
         }),
       )
 
@@ -4509,6 +5241,14 @@ function App() {
           })
         }),
       )
+
+      if (isWpI8RuntimeSmoke) {
+        metrics.push(
+          await measure('Deviation context constraint apply', async () => {
+            await applyDeviationContextConstraintForRuntimeSmoke()
+          }),
+        )
+      }
 
       metrics.push(
         await measure('Scenario compare', async () => {
@@ -6109,21 +6849,83 @@ function App() {
                 </p>
               )}
               <label className="field">
-                Baseline
-                <input
-                  type="text"
-                  value={deviationBaselineInput}
-                  onChange={(event) => setDeviationBaselineInput(event.target.value)}
-                />
+                Deviation Source
+                <select
+                  value={deviationInputMode}
+                  onChange={(event) =>
+                    setDeviationInputMode(event.target.value as DeviationInputMode)
+                  }
+                >
+                  <option value="governed_series">governed_series</option>
+                  <option value="manual_override">manual_override</option>
+                </select>
               </label>
-              <label className="field">
-                Observed
-                <input
-                  type="text"
-                  value={deviationObservedInput}
-                  onChange={(event) => setDeviationObservedInput(event.target.value)}
-                />
-              </label>
+              {deviationInputMode === 'governed_series' ? (
+                <>
+                  <label className="field">
+                    Baseline Points
+                    <input
+                      type="number"
+                      min={1}
+                      step={1}
+                      value={deviationBaselinePointCount}
+                      onChange={(event) =>
+                        setDeviationBaselinePointCount(Number(event.target.value))
+                      }
+                    />
+                  </label>
+                  <label className="field">
+                    Observed Points
+                    <input
+                      type="number"
+                      min={1}
+                      step={1}
+                      value={deviationObservedPointCount}
+                      onChange={(event) =>
+                        setDeviationObservedPointCount(Number(event.target.value))
+                      }
+                    />
+                  </label>
+                  {governedDeviationWindow ? (
+                    <article className="surface-card compact" data-testid="deviation-window-card">
+                      <div className="card-header compact">
+                        <span className="artifact-chip context">Governed Window</span>
+                        <span>{governedDeviationType}</span>
+                      </div>
+                      <p>{governedDeviationWindow.baselineReference}</p>
+                      <small>
+                        Baseline points: {governedDeviationWindow.baseline.length} | Observed points:{' '}
+                        {governedDeviationWindow.observed.length} | Source records:{' '}
+                        {governedDeviationWindow.baselineRecords.length +
+                          governedDeviationWindow.observedRecords.length}
+                      </small>
+                    </article>
+                  ) : (
+                    <p className="status-line">
+                      Governed window unavailable for the current domain/AOI with the selected point counts.
+                    </p>
+                  )}
+                </>
+              ) : (
+                <>
+                  <label className="field">
+                    Baseline Series
+                    <input
+                      type="text"
+                      value={deviationBaselineInput}
+                      onChange={(event) => setDeviationBaselineInput(event.target.value)}
+                    />
+                  </label>
+                  <label className="field">
+                    Observed Series
+                    <input
+                      type="text"
+                      value={deviationObservedInput}
+                      onChange={(event) => setDeviationObservedInput(event.target.value)}
+                    />
+                  </label>
+                </>
+              )}
               <label className="field">
                 Threshold
                 <input
@@ -6136,7 +6938,8 @@ function App() {
               <label className="field">
                 Deviation Type
                 <select
-                  value={deviationType}
+                  value={deviationInputMode === 'manual_override' ? deviationType : governedDeviationType}
+                  disabled={deviationInputMode !== 'manual_override'}
                   onChange={(event) =>
                     setDeviationType(event.target.value as DeviationEvent['deviation_type'])
                   }
@@ -6147,7 +6950,7 @@ function App() {
                 </select>
               </label>
               <div className="controls">
-                <button onClick={onLoadDeviationDomainSeries}>Load Active Domain Series</button>
+                <button onClick={onLoadDeviationDomainSeries}>Load Governed Windows</button>
                 <button onClick={onRecordDeviationEvent}>Record Deviation Event</button>
               </div>
               <p className="status-line">
@@ -6179,6 +6982,12 @@ function App() {
                     {deviationSnapshot.latestEvent.taxonomy_key} | magnitude:{' '}
                     {deviationSnapshot.latestEvent.deviation_magnitude.toFixed(2)} | target:{' '}
                     {deviationSnapshot.latestEvent.target_id}
+                  </small>
+                  <small>
+                    Source mode: {deviationSnapshot.latestEvent.source_mode} | baseline points:{' '}
+                    {deviationSnapshot.latestEvent.baseline_sample_count} | observed points:{' '}
+                    {deviationSnapshot.latestEvent.observed_sample_count} | source records:{' '}
+                    {deviationSnapshot.latestEvent.source_record_ids.length}
                   </small>
                 </article>
               )}
@@ -6411,53 +7220,113 @@ function App() {
 
           <h3>OSINT Aggregation (I9)</h3>
           <label className="field">
-            Source
-            <select value={osintSource} onChange={(event) => setOsintSource(event.target.value)}>
-              {CURATED_OSINT_SOURCES.map((source) => (
-                <option key={source} value={source}>
-                  {source}
+            OSINT Input Mode
+            <select
+              value={osintInputMode}
+              onChange={(event) => setOsintInputMode(event.target.value as OsintSourceMode)}
+            >
+              {OSINT_SOURCE_MODES.map((mode) => (
+                <option key={mode} value={mode}>
+                  {mode}
                 </option>
               ))}
             </select>
           </label>
-          <label className="field">
-            Verification
-            <select
-              value={osintVerification}
-              onChange={(event) => setOsintVerification(event.target.value as VerificationLevel)}
-            >
-              <option value="confirmed">confirmed</option>
-              <option value="reported">reported</option>
-              <option value="alleged">alleged</option>
-            </select>
-          </label>
-          <label className="field">
-            Category
-            <select
-              value={osintCategory}
-              onChange={(event) => setOsintCategory(event.target.value as OsintEventCategory)}
-            >
-              {OSINT_EVENT_CATEGORIES.map((category) => (
-                <option key={category} value={category}>
-                  {category}
-                </option>
-              ))}
-            </select>
-          </label>
+          {osintInputMode === 'governed_connector' ? (
+            <>
+              <label className="field">
+                Curated Feed Connector
+                <select
+                  value={selectedGovernedConnectorId}
+                  onChange={(event) => setSelectedGovernedConnectorId(event.target.value)}
+                >
+                  {[
+                    DEFAULT_GOVERNED_FEED_CONNECTOR_ID,
+                    'regulatory-pressure-watch',
+                    'commodity-shock-watch',
+                  ]
+                    .map((connectorId) =>
+                      getGovernedFeedConnectorTemplate(connectorId as GovernedFeedConnectorId),
+                    )
+                    .filter((connector): connector is NonNullable<typeof connector> => Boolean(connector))
+                    .map((connector) => (
+                      <option key={connector.connector_id} value={connector.connector_id}>
+                        {connector.connector_label}
+                      </option>
+                    ))}
+                </select>
+              </label>
+              <article className="surface-card compact" data-testid="osint-connector-card">
+                <div className="card-header compact">
+                  <span className="artifact-chip context">Curated Context</span>
+                  <span>{selectedGovernedConnector?.catalog_label ?? 'Governed connector'}</span>
+                </div>
+                <strong>{selectedGovernedConnector?.connector_label ?? 'Governed connector'}</strong>
+                <p>{selectedGovernedConnector?.connector_note ?? 'Select a governed connector.'}</p>
+                <small>
+                  Sources {selectedGovernedConnector?.allowed_sources.join(', ') ?? 'n/a'} | Offline{' '}
+                  {selectedGovernedConnector?.offline_behavior ?? 'n/a'} | Domains{' '}
+                  {selectedGovernedConnector?.domain_ids
+                    .map(
+                      (domainId) =>
+                        domains.find((domain) => domain.domain_id === domainId)?.domain_name ?? domainId,
+                    )
+                    .join(', ') ?? 'n/a'}
+                </small>
+              </article>
+            </>
+          ) : (
+            <>
+              <label className="field">
+                Source
+                <select value={osintSource} onChange={(event) => setOsintSource(event.target.value)}>
+                  {CURATED_OSINT_SOURCES.map((source) => (
+                    <option key={source} value={source}>
+                      {source}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="field">
+                Verification
+                <select
+                  value={osintVerification}
+                  onChange={(event) => setOsintVerification(event.target.value as VerificationLevel)}
+                >
+                  <option value="confirmed">confirmed</option>
+                  <option value="reported">reported</option>
+                  <option value="alleged">alleged</option>
+                </select>
+              </label>
+              <label className="field">
+                Category
+                <select
+                  value={osintCategory}
+                  onChange={(event) => setOsintCategory(event.target.value as OsintEventCategory)}
+                >
+                  {OSINT_EVENT_CATEGORIES.map((category) => (
+                    <option key={category} value={category}>
+                      {category}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="field">
+                Event Summary
+                <textarea
+                  value={osintSummaryInput}
+                  onChange={(event) => setOsintSummaryInput(event.target.value)}
+                  rows={3}
+                />
+              </label>
+            </>
+          )}
           <label className="field">
             AOI
             <input
               type="text"
               value={osintAoi}
               onChange={(event) => setOsintAoi(event.target.value)}
-            />
-          </label>
-          <label className="field">
-            Event Summary
-            <textarea
-              value={osintSummaryInput}
-              onChange={(event) => setOsintSummaryInput(event.target.value)}
-              rows={3}
             />
           </label>
           <label className="field">
@@ -6500,9 +7369,18 @@ function App() {
             />
           </label>
           <div className="controls">
-            <button onClick={onAddOsintEvent}>Add OSINT Event</button>
+            {osintInputMode === 'governed_connector' ? (
+              <button onClick={onRunGovernedConnector}>Run Governed Connector</button>
+            ) : (
+              <button onClick={onAddOsintEvent}>Add Manual OSINT Event</button>
+            )}
             <button onClick={onLinkOsintThreshold}>Link Context Threshold</button>
           </div>
+          <p className="status-line">
+            {osintInputMode === 'governed_connector'
+              ? 'Primary path: approved curated connectors materialize aggregate AOI alerts from governed context and deviation state.'
+              : 'Manual override remains available as an explicit analyst-entered fallback.'}
+          </p>
           <p className="status-line">
             Alerts in {osintAoi}: {osintSummary.count}
             {' '}
@@ -6520,6 +7398,13 @@ function App() {
               AOI {osintSummary.aoi} | Threshold refs {osintSummary.threshold_refs.length} | Entity
               pursuit blocked
             </small>
+            {osintSnapshot.latestConnectorRun && (
+              <small>
+                Connector {osintSnapshot.latestConnectorRun.connector_label} | Domains{' '}
+                {osintSnapshot.latestConnectorRun.domain_ids.join(', ') || 'n/a'} | Generated{' '}
+                {osintSnapshot.latestConnectorRun.generated_at}
+              </small>
+            )}
             <div className="overlay-grid">
               {osintSummary.threshold_refs.length === 0 && (
                 <article className="surface-card compact">
@@ -6563,7 +7448,8 @@ function App() {
                   <strong>{event.source}</strong>
                   <p>{event.summary}</p>
                   <small>
-                    {event.category} | AOI {event.aoi} | Retrieved {event.retrieved_at}
+                    {event.category} | AOI {event.aoi} | Mode {event.source_mode ?? 'manual_override'} |
+                    Retrieved {event.retrieved_at}
                   </small>
                 </article>
               ))}

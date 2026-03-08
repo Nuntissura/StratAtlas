@@ -1,7 +1,7 @@
 # WP-I8-002 - Historical Deviation Detection over Governed Context Series
 
 Date Opened: 2026-03-06
-Status: IN-PROGRESS
+Status: E2E-VERIFIED
 Iteration: I8
 Workflow Version: 4.0
 Packet Class: IMPLEMENTATION
@@ -31,9 +31,12 @@ Replace synthetic deviation math and manual baseline entry with a governed histo
 ## Change Ledger
 
 - 2026-03-08: Packet upgraded to Workflow Version 4.0 and moved to `IN-PROGRESS` with an explicit real seam, fallback register, and promotion guard.
-- What Became Real: governance now truthfully defines I8 as a governed time-series/runtime packet instead of a generic scaffold; product seam implementation begins from this checkpoint.
-- What Remains Simulated: the current App still relies on manually populated baseline/observed inputs as the primary analyst path until the governed windowed runtime lands.
-- Next Blocking Real Seam: derive and persist explicit baseline/observed windows from governed context records so deviation events become reproducible across map, scenario, alert, and bundle reopen flows.
+- 2026-03-08: `src/features/i8/deviation.ts` now derives explicit baseline and observed windows from governed context records, attaches window/sample metadata to deviation events, and persists replay-safe deviation config.
+- 2026-03-08: `src/App.tsx` now defaults the live deviation workspace to `governed_series`, exposes baseline/observed point counts, keeps manual entry as a labeled override, and records governed-source deviation events into the scenario workflow.
+- 2026-03-08: Packet closed as `E2E-VERIFIED` after `check-WP-I8-002.ps1` passed with full functional regression, lint/build/Rust verification, and cold/warm Tauri runtime smoke proving governed deviation recording, bundle reopen restoration, map projection, and deviation-linked scenario constraint propagation under `.product/build_target/tool_artifacts/wp_runs/WP-I8-002/20260308_154423/`.
+- What Became Real: governed historical deviation detection is now the primary runtime path, bundle capture waits for persisted deviation state, the map runtime exposes deviation-linked signals, and scenario forks can apply deviation-derived `constraint_node` suggestions after bundle reopen.
+- What Remains Simulated: the labeled `manual override` entry path remains available as an explicit analyst fallback; no hidden simulated deviation path remains in the primary runtime seam.
+- Next Blocking Real Seam: `WP-I9-002` must now consume the standardized governed deviation outputs for aggregate-only alert evaluation and connector-backed alert aggregation.
 
 ## Linked Requirements
 
@@ -147,15 +150,17 @@ Replace synthetic deviation math and manual baseline entry with a governed histo
 
 ## Evidence
 
-- Test Suite Execution:
-- Logs:
+- Test Suite Execution: `powershell -ExecutionPolicy Bypass -File .gov/workflow/wp_checks/check-WP-I8-002.ps1`
+- Logs: official closeout passed on 2026-03-08 with governed runtime smoke, full functional regression, lint, template compliance, red-team guardrail checks, build, and Rust unit verification.
 - Screenshots/Exports:
-- Build Artifacts:
-- Proof Artifact: .product/build_target/tool_artifacts/wp_runs/WP-I8-002/
-- User Sign-off:
+- Build Artifacts: `.product/build_target/tool_artifacts/wp_runs/WP-I8-002/20260308_154423/EXT-001.log`
+- Proof Artifact: `.product/build_target/tool_artifacts/wp_runs/WP-I8-002/20260308_154423/`
+- User Sign-off: Approved via 2026-03-08 instruction to start and continue `WP-I8-002`.
 
 ## Progress Log
 
 - 2026-03-06: WP scaffold created via .gov/repo_scripts/new_work_packet.ps1.
 - 2026-03-06: Packet scope refined to target real deviation detection over governed context series rather than simulated deltas.
 - 2026-03-08: Packet upgraded to Workflow Version 4.0 and started with the governed baseline/observed-window runtime seam as the primary delivery target.
+- 2026-03-08: First product slice landed governed historical-window selection, replay-safe deviation config/state, governed-first App UI wiring, and targeted App/unit/backend validation.
+- 2026-03-08: Official packet proof passed at `.product/build_target/tool_artifacts/wp_runs/WP-I8-002/20260308_154423/`, closing REQ-0900..REQ-0904 and promoting `PRIM-0062` to `E2E-VERIFIED`.

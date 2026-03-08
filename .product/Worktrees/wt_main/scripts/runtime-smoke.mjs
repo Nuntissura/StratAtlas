@@ -172,8 +172,16 @@ const writePhaseSummary = (phase, report, auditEvents, phaseDir) => {
     `- Map Focus AOI: ${report.mapFocusAoiId}`,
     `- Map Inspect Count: ${report.mapInspectCount}`,
     `- Map Runtime Error: ${report.mapRuntimeError ?? 'none'}`,
+    `- Map OSINT Projection: ${report.mapOsintInspectVisible}`,
     `- Require Live AI: ${report.requireLiveAi}`,
     `- Require MCP: ${report.requireMcp}`,
+    `- OSINT Source Mode: ${report.osintSourceMode ?? 'none'}`,
+    `- OSINT Selected Connector: ${report.osintSelectedConnectorId ?? 'none'}`,
+    `- OSINT Latest Connector: ${report.osintLatestConnectorId ?? 'none'}`,
+    `- OSINT Alert Count: ${report.osintAlertCount}`,
+    `- OSINT Event Count: ${report.osintEventCount}`,
+    `- OSINT Threshold Ref Count: ${report.osintThresholdRefCount}`,
+    `- OSINT Deviation Event: ${report.osintDeviationEventId ?? 'none'}`,
     `- AI Provider: ${report.aiProviderLabel}`,
     `- AI Provider Runtime: ${report.aiProviderRuntime}`,
     `- AI Provider Available: ${report.aiProviderAvailable}`,
@@ -269,6 +277,62 @@ const validatePhase = async (phase, phaseDir, logPath) => {
       throw new Error(`Governed context runtime evidence was incomplete for ${phase}`)
     }
   }
+  if (wpId === 'WP-I8-002') {
+    const requiredI8Assertions = [
+      'governed_deviation_recorded',
+      'governed_deviation_bundle_restore',
+      'deviation_map_projection',
+      'deviation_context_constraint_applied',
+    ]
+    for (const assertionId of requiredI8Assertions) {
+      const assertion = report.assertions.find((entry) => entry.id === assertionId)
+      if (!assertion || !assertion.passed) {
+        throw new Error(`Missing governed deviation runtime evidence ${assertionId} for ${phase}`)
+      }
+    }
+    if (!observedAuditTypes.has('context.deviation_recorded')) {
+      throw new Error(`Missing context.deviation_recorded audit evidence for ${phase}`)
+    }
+    if (!observedAuditTypes.has('scenario.context_constraint_applied')) {
+      throw new Error(`Missing scenario.context_constraint_applied audit evidence for ${phase}`)
+    }
+  }
+  if (wpId === 'WP-I9-002') {
+    const requiredI9Assertions = [
+      'governed_connector_executed',
+      'governed_connector_bundle_restore',
+      'aggregate_alert_lineage',
+      'osint_map_projection',
+    ]
+    for (const assertionId of requiredI9Assertions) {
+      const assertion = report.assertions.find((entry) => entry.id === assertionId)
+      if (!assertion || !assertion.passed) {
+        throw new Error(`Missing governed connector runtime evidence ${assertionId} for ${phase}`)
+      }
+    }
+    if (!observedAuditTypes.has('osint.connector_executed')) {
+      throw new Error(`Missing osint.connector_executed audit evidence for ${phase}`)
+    }
+    if (!observedAuditTypes.has('context.deviation_recorded')) {
+      throw new Error(`Missing context.deviation_recorded audit evidence for ${phase}`)
+    }
+    if (
+      report.osintSourceMode !== 'governed_connector' ||
+      !report.osintSelectedConnectorId ||
+      !report.osintLatestConnectorId
+    ) {
+      throw new Error(`Governed connector mode was not restored for ${phase}`)
+    }
+    if (
+      !report.mapOsintInspectVisible ||
+      report.osintAlertCount < 1 ||
+      report.osintEventCount < 1 ||
+      report.osintThresholdRefCount < 1 ||
+      !report.osintDeviationEventId
+    ) {
+      throw new Error(`Governed OSINT aggregate evidence was incomplete for ${phase}`)
+    }
+  }
   if (report.requireLiveAi) {
     if (report.aiProviderRuntime !== 'tauri-live' || !report.aiProviderAvailable) {
       throw new Error(`Live AI provider was not available for ${phase}`)
@@ -323,6 +387,7 @@ const runPhase = async (phase) => {
       ...process.env,
       VITE_STRATATLAS_RUNTIME_SMOKE: '1',
       VITE_STRATATLAS_RUNTIME_SMOKE_PHASE: phase,
+      VITE_STRATATLAS_RUNTIME_SMOKE_WP_ID: wpId,
       STRATATLAS_RUNTIME_SMOKE_ARTIFACT_DIR: artifactRoot,
     },
     stdio: ['ignore', 'pipe', 'pipe'],
