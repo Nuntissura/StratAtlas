@@ -10,12 +10,14 @@ import type {
   CreateBundleRequest,
   GovernedDeploymentProfile,
   LoadRecorderStateResult,
+  MapExportArtifact,
   OpenBundleResult,
   ProvenanceRef,
   QueryContextRecordsRequest,
   QueryContextRecordsResult,
   RecorderState,
   RuntimeSmokeEvidenceResult,
+  WriteMapExportArtifactRequest,
   WriteRuntimeSmokeEvidenceRequest,
   SaveRecorderStateRequest,
   SensitivityMarking,
@@ -34,6 +36,12 @@ import {
   type ContextDomain,
   type ContextRecord,
 } from '../features/i7/contextIntake'
+import {
+  normalizeGameModelSnapshot,
+  runGameSolver,
+  type StrategicSolverRequest,
+  type StrategicSolverResult,
+} from '../features/i10/gameModeling'
 
 const FALLBACK_BUNDLES_KEY = 'stratatlas.fallback.bundles'
 const FALLBACK_AUDIT_KEY = 'stratatlas.fallback.audit'
@@ -653,6 +661,65 @@ const fallbackSaveRecorderState = async (
 const fallbackGetAiGatewayProviderStatus = async (): Promise<AiGatewayProviderStatus> =>
   createBrowserSimulatedAiProviderStatus()
 
+const fallbackRunStrategicModelSolve = async (
+  request: StrategicSolverRequest,
+): Promise<StrategicSolverResult> => {
+  const nextSnapshot = runGameSolver(normalizeGameModelSnapshot(request.snapshot), {
+    bundle_refs: request.bundle_refs,
+    linked_scenario_ids: request.linked_scenario_ids,
+    context_targets: request.context_targets,
+    context_record_ids: request.context_record_ids,
+    context_domain_ids: request.context_domain_ids,
+    correlation_target_ids: request.correlation_target_ids,
+    threshold_ref_ids: request.threshold_ref_ids,
+    deviation_event_id: request.deviation_event_id,
+    osint_alert_id: request.osint_alert_id,
+    executed_at: request.executed_at,
+    runtime: 'browser-simulated',
+  })
+
+  const auditEvent = await fallbackAppendAudit({
+    role: request.role,
+    event_type: 'game_model.solver_run',
+    payload: {
+      runtime: 'browser-simulated',
+      solver_run: nextSnapshot.solver_runs.at(-1) ?? null,
+      experiment_bundle: nextSnapshot.experiment_bundle ?? null,
+    },
+  })
+
+  return {
+    runtime: 'browser-simulated',
+    snapshot: nextSnapshot,
+    auditEventId: auditEvent.event_id,
+  }
+}
+
+const fallbackWriteMapExportArtifact = async (
+  request: WriteMapExportArtifactRequest,
+): Promise<MapExportArtifact> => {
+  const pngBytes = new Uint8Array(request.pngBytes)
+  const digest = await crypto.subtle.digest('SHA-256', pngBytes)
+  const sha256Hash = encodeHex(new Uint8Array(digest))
+  return {
+    artifactId: request.artifactId,
+    fileName: request.fileName,
+    pngPath: `browser-simulated://map-export/${request.fileName}`,
+    metadataPath: `browser-simulated://map-export/${request.artifactId}.json`,
+    sha256: sha256Hash,
+    sizeBytes: pngBytes.byteLength,
+    width: request.width,
+    height: request.height,
+    generatedAt: request.generatedAt,
+    marking: request.marking,
+    bundleId: request.bundleId,
+    focusAoiId: request.focusAoiId,
+    surfaceMode: request.surfaceMode,
+    runtimeEngine: request.runtimeEngine,
+    visibleLayerCount: request.visibleLayerCount,
+  }
+}
+
 export const backend = {
   async createBundle(request: CreateBundleRequest): Promise<BundleManifest> {
     if (isTauriRuntime()) {
@@ -761,6 +828,24 @@ export const backend = {
       return invoke<QueryContextRecordsResult>('query_context_records', { request })
     }
     return fallbackQueryContextRecords(request)
+  },
+
+  async runStrategicModelSolve(
+    request: StrategicSolverRequest,
+  ): Promise<StrategicSolverResult> {
+    if (isTauriRuntime()) {
+      return invoke<StrategicSolverResult>('run_strategic_model_solve', { request })
+    }
+    return fallbackRunStrategicModelSolve(request)
+  },
+
+  async writeMapExportArtifact(
+    request: WriteMapExportArtifactRequest,
+  ): Promise<MapExportArtifact> {
+    if (isTauriRuntime()) {
+      return invoke<MapExportArtifact>('write_map_export_artifact', { request })
+    }
+    return fallbackWriteMapExportArtifact(request)
   },
 
   async writeRuntimeSmokeEvidence(

@@ -4,6 +4,7 @@ import { startTransition, useEffectEvent, useRef } from 'react'
 import type {
   AuditEvent,
   BundleManifest,
+  MapExportArtifact,
   RuntimeSmokeAssertion,
   RuntimeSmokeMetric,
   RuntimeSmokeRegionCheck,
@@ -21,6 +22,7 @@ import type { UiMode } from './features/i1/modes'
 import { REQUIRED_UI_MODES, REQUIRED_UI_REGIONS } from './features/i1/modes'
 import {
   MapRuntimeSurface,
+  type MapRuntimeSurfaceHandle,
 } from './features/i1/components/MapRuntimeSurface'
 import {
   DEFAULT_MAP_RUNTIME_TELEMETRY,
@@ -198,7 +200,6 @@ import {
   createGameModelSnapshot,
   normalizeGameModelSnapshot,
   renameGameModel,
-  runGameSolver,
   setGameType,
   setSelectedGameScenario,
   validateGameModel,
@@ -1020,6 +1021,7 @@ function App() {
   const [gameSolverSeedInput, setGameSolverSeedInput] = useState<string>(DEFAULT_GAME_SOLVER_SEED)
   const [gameMonteCarloSamplesInput, setGameMonteCarloSamplesInput] =
     useState<string>(DEFAULT_GAME_MONTE_CARLO_SAMPLES)
+  const [gameSolverPending, setGameSolverPending] = useState<boolean>(false)
   const [collaboration, setCollaboration] = useState<CollaborationStateSnapshot>(() =>
     createDefaultCollaborationSnapshot(),
   )
@@ -1064,6 +1066,7 @@ function App() {
   const [compareArtifact, setCompareArtifact] = useState<CompareArtifact | null>(null)
   const [briefingBundleArtifact, setBriefingBundleArtifact] = useState<BriefingBundle | null>(null)
   const [briefingArtifact, setBriefingArtifact] = useState<BriefingArtifactPreview | null>(null)
+  const [mapExportArtifact, setMapExportArtifact] = useState<MapExportArtifact | null>(null)
   const [hydrated, setHydrated] = useState<boolean>(false)
   const [stateFeedback, setStateFeedback] = useState<StateChangeFeedback>(() =>
     describeStateChangeFeedback('Shell ready', 0),
@@ -1073,8 +1076,10 @@ function App() {
   )
   const lastSavedFingerprint = useRef<string>('')
   const contextPersistenceVersionRef = useRef<number>(0)
+  const mapRuntimeSurfaceRef = useRef<MapRuntimeSurfaceHandle | null>(null)
   const runtimeSmokeStarted = useRef<boolean>(false)
   const runtimeSmokeStartMs = useRef<number>(performance.now())
+  const runtimeSmokeShellReadyMs = useRef<number | null>(null)
   const runtimeSmokeStateRef = useRef({
     mode: 'offline' as UiMode,
     selectedBundleId: '',
@@ -1097,12 +1102,19 @@ function App() {
     deviationSnapshot: createDeviationSnapshot(),
     mapDeviationInspectVisible: false,
     mapOsintInspectVisible: false,
+    mapModelInspectVisible: false,
     osintInputMode: 'governed_connector' as OsintSourceMode,
     selectedGovernedConnectorId: DEFAULT_GOVERNED_FEED_CONNECTOR_ID as GovernedFeedConnectorId,
     selectedOsintThresholdDomainId: '' as string,
     osintSnapshot: createOsintSnapshot(),
+    gameModelSnapshot: createGameModelSnapshot(),
+    gameSolverPending: false,
     scenario: createDefaultScenarioSnapshot(),
     mapRuntime: DEFAULT_MAP_RUNTIME_TELEMETRY,
+    stateFeedback: describeStateChangeFeedback('Shell ready', 0),
+    briefingArtifact: null as BriefingArtifactPreview | null,
+    briefingBundleArtifact: null as BriefingBundle | null,
+    mapExportArtifact: null as MapExportArtifact | null,
     aiProviderStatus: createBrowserSimulatedAiProviderStatus(),
     latestAiArtifact: null as AiGatewayArtifact | null,
     latestMcpInvocation: null as McpInvocationRecord | null,
@@ -1665,6 +1677,17 @@ function App() {
     () => visibleLayerCatalog.filter((entry) => entry.renderSurface === 'main_canvas'),
     [visibleLayerCatalog],
   )
+  const mapExportPolicyBlockedLayers = useMemo(
+    () => mainCanvasCatalog.filter((entry) => !entry.exportAllowed),
+    [mainCanvasCatalog],
+  )
+  const mapExportBlockedReason = !selectedBundleId
+    ? 'Select or create a bundle before exporting a 4K map image.'
+    : mapExportPolicyBlockedLayers.length > 0
+      ? `4K export blocked by visible layer policy: ${mapExportPolicyBlockedLayers
+          .map((entry) => entry.title)
+          .join(', ')}.`
+      : ''
   const rightPanelCatalog = useMemo(
     () => visibleLayerCatalog.filter((entry) => entry.renderSurface === 'right_panel'),
     [visibleLayerCatalog],
@@ -1821,12 +1844,21 @@ function App() {
     mapOsintInspectVisible: mapRuntimeScene.signals.features.some(
       (feature) => feature.properties.category === 'osint',
     ),
+    mapModelInspectVisible: mapRuntimeScene.signals.features.some(
+      (feature) => feature.properties.category === 'model',
+    ),
     osintInputMode,
     selectedGovernedConnectorId: selectedGovernedConnectorId as GovernedFeedConnectorId,
     selectedOsintThresholdDomainId,
     osintSnapshot: osintStateForRecorder,
+    gameModelSnapshot: gameModelStateForRecorder,
+    gameSolverPending,
     scenario,
     mapRuntime: mapRuntimeTelemetry,
+    stateFeedback,
+    briefingArtifact,
+    briefingBundleArtifact,
+    mapExportArtifact,
     aiProviderStatus,
     latestAiArtifact: latestAiArtifact ?? null,
     latestMcpInvocation: latestMcpInvocation ?? null,
@@ -2080,6 +2112,18 @@ function App() {
 
   const completeMeasuredAction = (action: string, startedAt: number): void => {
     setStateFeedback(describeStateChangeFeedback(action, Math.round(performance.now() - startedAt)))
+  }
+
+  const onMapSurfaceModeFeedback = (
+    surfaceMode: 'planar' | 'orbital',
+    measuredMs: number,
+  ): void => {
+    setStateFeedback(
+      describeStateChangeFeedback(
+        surfaceMode === 'planar' ? 'Planar map runtime restore' : 'Orbital map runtime mount',
+        measuredMs,
+      ),
+    )
   }
 
   const refresh = async (): Promise<void> => {
@@ -2653,6 +2697,81 @@ function App() {
     } finally {
       setBusy(false)
       completeMeasuredAction('Briefing artifact preparation', startedAt)
+    }
+  }
+
+  const onExportMapImage = async () => {
+    if (!selectedBundleId) {
+      setStatus('Select or create a bundle before exporting a 4K map image.')
+      return
+    }
+    if (mapExportBlockedReason) {
+      setStatus(mapExportBlockedReason)
+      return
+    }
+    if (!mapRuntimeSurfaceRef.current) {
+      setStatus('Map runtime export surface is not ready yet.')
+      return
+    }
+
+    const startedAt = beginMeasuredAction('4K map export')
+    setBusy(true)
+    setStatus('Preparing 4K map export...')
+    try {
+      const capture = await mapRuntimeSurfaceRef.current.capture4kMapExport({
+        marking,
+        bundleId: selectedBundleId,
+        visibleLayerCount: visibleLayerCatalog.length,
+      })
+      const artifact = await backend.writeMapExportArtifact({
+        artifactId: capture.artifactId,
+        fileName: capture.fileName,
+        pngBytes: Array.from(capture.pngBytes),
+        marking: capture.marking,
+        bundleId: capture.bundleId,
+        focusAoiId: capture.focusAoiId,
+        surfaceMode: capture.surfaceMode,
+        runtimeEngine: capture.runtimeEngine,
+        width: capture.width,
+        height: capture.height,
+        generatedAt: capture.generatedAt,
+        visibleLayerCount: capture.visibleLayerCount,
+      })
+      setMapExportArtifact(artifact)
+      setIntegrityState(
+        `4K export ${artifact.artifactId} captured for bundle ${artifact.bundleId ?? 'none'}`,
+      )
+
+      try {
+        await backend.appendAudit({
+          role,
+          event_type: 'map.image_exported',
+          payload: {
+            artifact_id: artifact.artifactId,
+            bundle_id: artifact.bundleId ?? null,
+            marking: artifact.marking,
+            surface_mode: artifact.surfaceMode,
+            runtime_engine: artifact.runtimeEngine,
+            focus_aoi_id: artifact.focusAoiId,
+            visible_layer_count: artifact.visibleLayerCount,
+            sha256: artifact.sha256,
+            width: artifact.width,
+            height: artifact.height,
+            png_path: artifact.pngPath,
+            used_source_canvas: capture.usedSourceCanvas,
+          },
+        })
+      } catch {
+        // The export file is already persisted; keep the workflow usable if audit append is unavailable.
+      }
+
+      await refresh()
+      setStatus(`4K map export ready at ${artifact.pngPath}`)
+    } catch (error) {
+      setStatus(`4K map export failed: ${String(error)}`)
+    } finally {
+      setBusy(false)
+      completeMeasuredAction('4K map export', startedAt)
     }
   }
 
@@ -3826,7 +3945,7 @@ function App() {
       })
   }
 
-  const onRunGameSolver = () => {
+  const onRunGameSolver = async () => {
     if (!selectedBundleId) {
       setStatus('Create or select a bundle before running a strategic model solve.')
       return
@@ -3840,40 +3959,37 @@ function App() {
     }
 
     const linkedScenarioIds = selectedGameScenarioId ? [selectedGameScenarioId] : []
-    const nextSnapshot = runGameSolver(
-      setSelectedGameScenario(gameModelStateForRecorder, selectedGameScenarioId),
-      {
+    setGameSolverPending(true)
+    setStatus('Running governed strategic solver...')
+    try {
+      const result = await backend.runStrategicModelSolve({
+        role,
+        snapshot: setSelectedGameScenario(gameModelStateForRecorder, selectedGameScenarioId),
         bundle_refs: [selectedBundleId],
         linked_scenario_ids: linkedScenarioIds,
         context_targets: [
-          selectedOsintThresholdDomain?.domain_name ??
-            domains[0]?.domain_name ??
-            'Port Throughput',
+          selectedOsintThresholdDomain?.domain_name ?? domains[0]?.domain_name ?? 'Port Throughput',
         ],
-        solver_config: {
-          method: gameSolverMethodInput,
-          random_seed: solverSeed,
-          monte_carlo_samples: monteCarloSamples,
-        },
+        context_record_ids: contextRecords.map((record) => record.record_id),
+        context_domain_ids: activeDomainIds,
+        correlation_target_ids: [...new Set([correlationAoi, osintAoi].filter(Boolean))],
+        threshold_ref_ids:
+          osintSnapshot.latestAlert?.threshold_refs.map((entry) => entry.threshold_id) ?? [],
+        deviation_event_id: deviationSnapshot.latestEvent?.eventId,
+        osint_alert_id: osintSnapshot.latestAlert?.alert_id,
         executed_at: new Date().toISOString(),
-      },
-    )
-
-    setGameModelSnapshot(nextSnapshot)
-    setStatus(`Strategic solver run ${nextSnapshot.solver_runs.at(-1)?.run_id ?? 'completed'} recorded.`)
-    void backend
-      .appendAudit({
-        role,
-        event_type: 'game_model.solver_run',
-        payload: {
-          solver_run: nextSnapshot.solver_runs.at(-1),
-          experiment_bundle: nextSnapshot.experiment_bundle,
-        },
       })
-      .then(() => refresh())
-      .catch(() => {
-        setStatus('Strategic solver run recorded locally; audit append unavailable.')
-      })
+      const nextSnapshot = normalizeGameModelSnapshot(result.snapshot)
+      setGameModelSnapshot(nextSnapshot)
+      setStatus(
+        `Strategic solver run ${nextSnapshot.solver_runs.at(-1)?.run_id ?? 'completed'} recorded via ${result.runtime}.`,
+      )
+      await refresh()
+    } catch (error) {
+      setStatus(`Strategic solver failed: ${String(error)}`)
+    } finally {
+      setGameSolverPending(false)
+    }
   }
 
   const runRuntimeSmoke = useEffectEvent(async () => {
@@ -3913,9 +4029,37 @@ function App() {
       }
     }
 
+    const measureFeedbackAction = async (
+      label: string,
+      action: () => Promise<void> | void,
+      expectedAction: string,
+      statePredicate: () => boolean,
+      budgetMs: number,
+      timeoutMs = 15000,
+    ): Promise<RuntimeSmokeMetric> => {
+      await action()
+      await waitForCondition(
+        `${label} feedback`,
+        () =>
+          runtimeSmokeStateRef.current.stateFeedback.action === expectedAction && statePredicate(),
+        timeoutMs,
+      )
+      const feedback = runtimeSmokeStateRef.current.stateFeedback
+      return {
+        label,
+        measuredMs: feedback.measuredMs,
+        budgetMs,
+        passed: feedback.measuredMs <= budgetMs,
+      }
+    }
+
+    const isWpI1RuntimeSmoke = runtimeSmokeConfig.wpId === 'WP-I1-004'
     const isWpI8RuntimeSmoke = runtimeSmokeConfig.wpId === 'WP-I8-002'
     const isWpI9RuntimeSmoke = runtimeSmokeConfig.wpId === 'WP-I9-002'
-    const requiresGovernedDeviationForRuntimeSmoke = isWpI8RuntimeSmoke || isWpI9RuntimeSmoke
+    const isWpI10RuntimeSmoke = runtimeSmokeConfig.wpId === 'WP-I10-002'
+    const requiresGovernedDeviationForRuntimeSmoke =
+      isWpI8RuntimeSmoke || isWpI9RuntimeSmoke || isWpI10RuntimeSmoke
+    const requiresGovernedConnectorForRuntimeSmoke = isWpI9RuntimeSmoke || isWpI10RuntimeSmoke
     const runtimeSmokeFlow = {
       governedDeviationRecorded: false,
       governedDeviationRestored: false,
@@ -3925,6 +4069,12 @@ function App() {
       restoredConnectorId: '' as string,
       deviationContextConstraintApplied: false,
       deviationConstraintId: '',
+      governedSolverRecorded: false,
+      governedSolverRestored: false,
+      solverRunId: '' as string,
+      restoredSolverRunId: '' as string,
+      experimentBundleId: '' as string,
+      restoredExperimentBundleId: '' as string,
     }
 
     const collectRegionChecks = (): RuntimeSmokeRegionCheck[] =>
@@ -3933,18 +4083,43 @@ function App() {
         present: Boolean(document.querySelector(RUNTIME_SMOKE_REGION_SELECTORS[regionId])),
       }))
 
+    const markRuntimeSmokeShellReady = (): void => {
+      if (runtimeSmokeShellReadyMs.current !== null) {
+        return
+      }
+      const regions = collectRegionChecks()
+      if (
+        regions.every((region) => region.present) &&
+        runtimeSmokeStateRef.current.mapRuntime.mapPresent &&
+        runtimeSmokeStateRef.current.mapRuntime.planarReady
+      ) {
+        runtimeSmokeShellReadyMs.current = Math.round(performance.now() - runtimeSmokeStartMs.current)
+      }
+    }
+
     const buildAssertions = (
       regions: RuntimeSmokeRegionCheck[],
       notes: string[],
     ): RuntimeSmokeAssertion[] => {
       const currentState = runtimeSmokeStateRef.current
       const exportCardVisible = Boolean(document.querySelector('[data-testid="scenario-export-card"]'))
+      const mapExportCardVisible = Boolean(document.querySelector('[data-testid="map-export-artifact-card"]'))
       const governedContextDomainId = currentState.activeDomainIds.find((domainId) =>
         Boolean(getGovernedDomainTemplate(domainId)),
       )
       const latestDeviationEvent = currentState.deviationSnapshot.latestEvent
       const latestOsintAlert = currentState.osintSnapshot.latestAlert
       const latestConnectorRun = currentState.osintSnapshot.latestConnectorRun
+      const latestSolverRun = currentState.gameModelSnapshot.solver_runs.at(-1)
+      const experimentBundle = currentState.gameModelSnapshot.experiment_bundle
+      const focusButtons = Array.from(
+        document.querySelectorAll<HTMLButtonElement>('[aria-label="AOI focus controls"] button'),
+      )
+      const inspectButtons = Array.from(
+        document.querySelectorAll<HTMLButtonElement>('.map-runtime-inspect-list button'),
+      )
+      const toneKeys = Array.from(document.querySelectorAll<HTMLElement>('[data-testid="map-runtime-tone-key"]'))
+      const briefingCardVisible = Boolean(document.querySelector('[data-testid="briefing-artifact-card"]'))
       const selectedScenario =
         currentState.scenario.scenarios.find(
           (entry) => entry.scenarioId === currentState.scenario.selectedScenarioId,
@@ -3961,6 +4136,13 @@ function App() {
           (record) =>
             record.domain_id === governedContextDomainId && record.target_id === currentState.correlationAoi,
         )
+      const bundlePersistencePassed =
+        Boolean(currentState.selectedBundleId) &&
+        (currentState.integrityState.includes('Determinism check passed') ||
+          (isWpI1RuntimeSmoke && Boolean(currentState.briefingArtifact?.artifactId)))
+      const scenarioExportSurfacePassed =
+        Boolean(currentState.scenario.exportArtifact?.artifactId) &&
+        (exportCardVisible || (isWpI1RuntimeSmoke && briefingCardVisible))
       const assertions: RuntimeSmokeAssertion[] = [
         {
           id: 'map_runtime_present',
@@ -3995,11 +4177,11 @@ function App() {
         },
         {
           id: 'bundle_persistence_reopen',
-          passed:
-            Boolean(currentState.selectedBundleId) &&
-            currentState.integrityState.includes('Determinism check passed'),
-          detail:
-            currentState.integrityState || 'Bundle create/reopen flow did not complete successfully.',
+          passed: bundlePersistencePassed,
+          detail: bundlePersistencePassed
+            ? currentState.integrityState ||
+              'Bundle create/reopen flow retained continuity through the packet-specific export step.'
+            : currentState.integrityState || 'Bundle create/reopen flow did not complete successfully.',
         },
         {
           id: 'offline_and_degraded_state',
@@ -4010,9 +4192,9 @@ function App() {
         },
         {
           id: 'scenario_export_surface',
-          passed: Boolean(currentState.scenario.exportArtifact?.artifactId) && exportCardVisible,
+          passed: scenarioExportSurfacePassed,
           detail: currentState.scenario.exportArtifact?.artifactId
-            ? `Scenario export artifact ${currentState.scenario.exportArtifact.artifactId} is visible.`
+            ? `Scenario export artifact ${currentState.scenario.exportArtifact.artifactId} remained available through the active runtime surface.`
             : 'Scenario export artifact was not produced.',
         },
         {
@@ -4040,6 +4222,45 @@ function App() {
           detail: notes.find((note) => note.includes('macOS')) ?? 'Portability note missing.',
         },
       ]
+
+      if (isWpI1RuntimeSmoke) {
+        assertions.push(
+          {
+            id: 'map_accessibility_controls',
+            passed:
+              focusButtons.length > 0 &&
+              inspectButtons.length > 0 &&
+              focusButtons.every((button) => button.hasAttribute('aria-pressed')) &&
+              inspectButtons.every((button) => button.hasAttribute('aria-pressed')),
+            detail:
+              focusButtons.length > 0 && inspectButtons.length > 0
+                ? 'Focus and inspect controls expose pressed-state semantics.'
+                : 'Required focus or inspect controls were not available for accessibility validation.',
+          },
+          {
+            id: 'non_color_semantics_present',
+            passed: toneKeys.length >= 6,
+            detail:
+              toneKeys.length >= 6
+                ? 'Tone palette includes text labels instead of color-only semantics.'
+                : 'Tone palette text labels were missing from the live map surface.',
+          },
+          {
+            id: 'briefing_artifact_surface',
+            passed: Boolean(currentState.briefingArtifact?.artifactId) && briefingCardVisible,
+            detail: currentState.briefingArtifact?.artifactId
+              ? `Briefing artifact ${currentState.briefingArtifact.artifactId} is visible in the compare surface.`
+              : 'Briefing artifact surface was not produced.',
+          },
+          {
+            id: 'map_4k_export_surface',
+            passed: Boolean(currentState.mapExportArtifact?.artifactId) && mapExportCardVisible,
+            detail: currentState.mapExportArtifact?.artifactId
+              ? `4K map export ${currentState.mapExportArtifact.artifactId} is visible with persisted artifact metadata.`
+              : '4K map export artifact was not produced.',
+          },
+        )
+      }
 
       if (runtimeSmokeConfig.requireLiveAi) {
         const latestAi = currentState.latestAiArtifact
@@ -4163,6 +4384,51 @@ function App() {
         })
       }
 
+      if (isWpI10RuntimeSmoke) {
+        const governedSolverExecuted =
+          runtimeSmokeFlow.governedSolverRecorded &&
+          latestSolverRun?.runtime === 'tauri-governed' &&
+          (latestSolverRun.scenario_evaluations.length ?? 0) > 0 &&
+          (latestSolverRun.evidence.bundle_refs.length ?? 0) > 0
+        const governedSolverRestored =
+          runtimeSmokeFlow.governedSolverRestored &&
+          latestSolverRun?.run_id === runtimeSmokeFlow.restoredSolverRunId &&
+          experimentBundle?.experiment_bundle_id === runtimeSmokeFlow.restoredExperimentBundleId
+        assertions.push({
+          id: 'governed_solver_executed',
+          passed: Boolean(governedSolverExecuted),
+          detail: latestSolverRun
+            ? `Strategic solver ${latestSolverRun.run_id} executed via ${latestSolverRun.runtime} with ${latestSolverRun.scenario_evaluations.length} scenario evaluation(s).`
+            : 'No governed strategic solver run was recorded during runtime smoke.',
+        })
+        assertions.push({
+          id: 'governed_solver_bundle_restore',
+          passed: Boolean(governedSolverRestored),
+          detail: governedSolverRestored && experimentBundle
+            ? `Strategic solver run ${runtimeSmokeFlow.restoredSolverRunId} and experiment bundle ${experimentBundle.experiment_bundle_id} were restored from the reopened bundle.`
+            : 'Governed strategic solver state was not restored from the reopened bundle.',
+        })
+        assertions.push({
+          id: 'strategic_trace_recorded',
+          passed:
+            Boolean(
+              latestSolverRun?.trace_summary &&
+                latestSolverRun.scenario_evaluations.length > 0 &&
+                experimentBundle?.trace_manifest_hash,
+            ),
+          detail: latestSolverRun && experimentBundle
+            ? `${latestSolverRun.trace_summary} Trace manifest ${experimentBundle.trace_manifest_hash}.`
+            : 'Solver trace summary or experiment-bundle trace manifest was missing.',
+        })
+        assertions.push({
+          id: 'model_map_projection',
+          passed: currentState.mapModelInspectVisible,
+          detail: currentState.mapModelInspectVisible && latestSolverRun
+            ? `Map runtime projects modeled output for ${currentState.gameModelSnapshot.model.name} onto the live surface.`
+            : 'Map runtime did not expose the governed strategic model projection.',
+        })
+      }
+
       return assertions
     }
 
@@ -4176,7 +4442,9 @@ function App() {
       return {
         phase: runtimeSmokeConfig.phase,
         capturedAt: new Date().toISOString(),
-        startupMs: Math.round(performance.now() - runtimeSmokeStartMs.current),
+        startupMs:
+          runtimeSmokeShellReadyMs.current ?? Math.round(performance.now() - runtimeSmokeStartMs.current),
+        flowDurationMs: Math.round(performance.now() - runtimeSmokeStartMs.current),
         window: await captureRuntimeSmokeWindowSnapshot(),
         mode: currentState.mode,
         selectedBundleId: currentState.selectedBundleId || undefined,
@@ -4187,6 +4455,11 @@ function App() {
         status: currentState.status,
         integrityState: currentState.integrityState,
         scenarioExportArtifactId: currentState.scenario.exportArtifact?.artifactId,
+        briefingArtifactId: currentState.briefingArtifact?.artifactId,
+        mapExportArtifactId: currentState.mapExportArtifact?.artifactId,
+        mapExportPngPath: currentState.mapExportArtifact?.pngPath,
+        mapExportMetadataPath: currentState.mapExportArtifact?.metadataPath,
+        mapExportSha256: currentState.mapExportArtifact?.sha256,
         auditEventCount: currentState.auditEvents.length,
         platform: navigator.platform,
         mapRuntimeVisible: currentState.mapRuntime.mapPresent,
@@ -4199,6 +4472,7 @@ function App() {
         mapInspectCount: currentState.mapRuntime.inspectCount,
         mapRuntimeError: currentState.mapRuntime.runtimeError || undefined,
         mapOsintInspectVisible: currentState.mapOsintInspectVisible,
+        mapModelInspectVisible: currentState.mapModelInspectVisible,
         activeContextDomainCount: currentState.activeDomainIds.length,
         contextRecordCount: currentState.contextRecords.length,
         correlationAoi: currentState.correlationAoi,
@@ -4212,6 +4486,11 @@ function App() {
         osintEventCount: currentState.osintSnapshot.events.length,
         osintThresholdRefCount: currentState.osintSnapshot.latestAlert?.threshold_refs.length ?? 0,
         osintDeviationEventId: currentState.osintSnapshot.latestAlert?.deviation_event_id,
+        gameSolverRuntime: currentState.gameModelSnapshot.solver_runs.at(-1)?.runtime,
+        gameLatestRunId: currentState.gameModelSnapshot.solver_runs.at(-1)?.run_id,
+        gameExperimentBundleId: currentState.gameModelSnapshot.experiment_bundle?.experiment_bundle_id,
+        gameScenarioEvaluationCount:
+          currentState.gameModelSnapshot.solver_runs.at(-1)?.scenario_evaluations.length ?? 0,
         requireLiveAi: runtimeSmokeConfig.requireLiveAi,
         requireMcp: runtimeSmokeConfig.requireMcp,
         aiProviderLabel: currentState.aiProviderStatus.providerLabel,
@@ -4369,17 +4648,19 @@ function App() {
       )
     }
 
-    const createBundleForRuntimeSmoke = async (): Promise<string> => {
+    const createBundleForRuntimeSmoke = async (requireGameModel = false): Promise<string> => {
       const startedAt = beginMeasuredAction('Create bundle')
       setBusy(true)
       setStatus('Creating bundle...')
       try {
         const previousBundleCount = runtimeSmokeStateRef.current.bundles.length
-        const requestState = isWpI9RuntimeSmoke
-          ? await waitForPersistedI9BundleState(governedContextBundleAoi)
-          : requiresGovernedDeviationForRuntimeSmoke
-            ? await waitForPersistedDeviationBundleState(governedContextBundleAoi)
-            : await waitForPersistedContextState(governedContextBundleAoi, governedContextDomainId)
+        const requestState = requireGameModel
+          ? await waitForPersistedGameModelState(runtimeSmokeFlow.solverRunId || undefined)
+          : requiresGovernedConnectorForRuntimeSmoke
+            ? await waitForPersistedI9BundleState(governedContextBundleAoi)
+            : requiresGovernedDeviationForRuntimeSmoke
+              ? await waitForPersistedDeviationBundleState(governedContextBundleAoi)
+              : await waitForPersistedContextState(governedContextBundleAoi, governedContextDomainId)
         const manifest = await backend.createBundle({
           role,
           marking,
@@ -4739,6 +5020,69 @@ function App() {
       )
     }
 
+    const waitForPersistedGameModelState = async (
+      expectedRunId?: string,
+      timeoutMs = 30000,
+    ): Promise<RecorderState> => {
+      const deadline = performance.now() + timeoutMs
+      while (performance.now() < deadline) {
+        const persisted = await backend.loadRecorderState()
+        if (persisted.state) {
+          const gameModelState = normalizeGameModelSnapshot(persisted.state.gameModel)
+          const latestRun = gameModelState.solver_runs.at(-1)
+          const matchedRun = expectedRunId
+            ? gameModelState.solver_runs.find((entry) => entry.run_id === expectedRunId)
+            : latestRun
+          if (
+            matchedRun?.runtime === 'tauri-governed' &&
+            matchedRun.scenario_evaluations.length > 0 &&
+            Boolean(gameModelState.experiment_bundle?.experiment_bundle_id) &&
+            (!expectedRunId ||
+              gameModelState.experiment_bundle?.solver_run_ids.includes(expectedRunId))
+          ) {
+            return persisted.state
+          }
+        }
+        await pause(100)
+      }
+
+      throw new Error('Runtime smoke timed out waiting for persisted governed strategic solver state.')
+    }
+
+    const runStrategicSolverForRuntimeSmoke = async (): Promise<void> => {
+      const previousRunId =
+        runtimeSmokeStateRef.current.gameModelSnapshot.solver_runs.at(-1)?.run_id ?? ''
+      await setLabeledFieldValue('Solver Method', 'equilibrium_exploration')
+      await setLabeledFieldValue('Solver Seed', '41')
+      await setLabeledFieldValue('Monte Carlo Samples', '28')
+      clickWorkspaceButton('Run Strategic Solver')
+      await waitForCondition(
+        'governed strategic solver execution',
+        () => {
+          const latestRun = runtimeSmokeStateRef.current.gameModelSnapshot.solver_runs.at(-1)
+          return Boolean(
+            latestRun?.runtime === 'tauri-governed' &&
+              latestRun.run_id !== previousRunId &&
+              latestRun.scenario_evaluations.length > 0 &&
+              runtimeSmokeStateRef.current.mapModelInspectVisible &&
+              !runtimeSmokeStateRef.current.gameSolverPending,
+          )
+        },
+        20000,
+      )
+      const latestRuntimeRunId =
+        runtimeSmokeStateRef.current.gameModelSnapshot.solver_runs.at(-1)?.run_id
+      if (!latestRuntimeRunId) {
+        throw new Error('Runtime smoke could not identify the governed strategic solver run id.')
+      }
+      const persisted = await waitForPersistedGameModelState(latestRuntimeRunId)
+      const gameModelState = normalizeGameModelSnapshot(persisted.gameModel)
+      runtimeSmokeFlow.governedSolverRecorded = true
+      runtimeSmokeFlow.solverRunId = latestRuntimeRunId
+      runtimeSmokeFlow.experimentBundleId =
+        gameModelState.experiment_bundle?.experiment_bundle_id ?? ''
+    }
+
     const applyDeviationContextConstraintForRuntimeSmoke = async (): Promise<void> => {
       await waitForCondition(
         'deviation suggestion availability',
@@ -4783,6 +5127,15 @@ function App() {
       actionable.click()
     }
 
+    const isMapRuntimeButtonPressed = (label: '2D Situation Map' | '3D Globe'): boolean =>
+      Array.from(
+        document.querySelectorAll<HTMLButtonElement>('[data-testid="map-runtime-surface"] button'),
+      ).some(
+        (candidate) =>
+          candidate.textContent?.includes(label) &&
+          candidate.getAttribute('aria-pressed') === 'true',
+      )
+
     const clickWorkspaceButton = (label: string): void => {
       const target = Array.from(document.querySelectorAll<HTMLButtonElement>('button')).find(
         (candidate) => candidate.textContent?.trim() === label,
@@ -4791,6 +5144,52 @@ function App() {
         throw new Error(`Runtime smoke could not find the button "${label}".`)
       }
       target.click()
+    }
+
+    const requestMapExportForRuntimeSmoke = async (): Promise<void> => {
+      await waitForCondition(
+        'map export surface handle',
+        () => Boolean(mapRuntimeSurfaceRef.current),
+        5000,
+      )
+      await waitForCondition(
+        'map export button readiness',
+        () => {
+          const button = document.querySelector<HTMLButtonElement>(
+            '[data-testid="map-runtime-export-button"]',
+          )
+          return Boolean(button && !button.disabled)
+        },
+        5000,
+      )
+
+      const button = document.querySelector<HTMLButtonElement>('[data-testid="map-runtime-export-button"]')
+      if (!button) {
+        throw new Error('Runtime smoke could not find the map export button.')
+      }
+
+      const previousStatus = runtimeSmokeStateRef.current.status
+      const previousFeedbackAction = runtimeSmokeStateRef.current.stateFeedback.action
+      button.focus()
+      button.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }))
+
+      await waitForCondition(
+        'map export request dispatch',
+        () =>
+          runtimeSmokeStateRef.current.stateFeedback.action === '4K map export' ||
+          Boolean(runtimeSmokeStateRef.current.mapExportArtifact?.artifactId) ||
+          runtimeSmokeStateRef.current.status !== previousStatus,
+        5000,
+      )
+
+      if (
+        runtimeSmokeStateRef.current.stateFeedback.action !== '4K map export' &&
+        !runtimeSmokeStateRef.current.mapExportArtifact?.artifactId
+      ) {
+        throw new Error(
+          `Map export request did not enter the governed export flow. Status: ${runtimeSmokeStateRef.current.status || previousStatus}; feedback action: ${runtimeSmokeStateRef.current.stateFeedback.action || previousFeedbackAction}`,
+        )
+      }
     }
 
     const getRuntimeSmokeScenarioSelection = () => {
@@ -4956,9 +5355,13 @@ function App() {
           await waitForCondition('map runtime visible', () =>
             Boolean(document.querySelector('[data-testid="map-runtime-surface"]')),
           )
+          await waitForCondition('required regions present', () =>
+            collectRegionChecks().every((region) => region.present),
+          )
           await waitForCondition('planar runtime ready', () =>
             runtimeSmokeStateRef.current.mapRuntime.planarReady,
           )
+          markRuntimeSmokeShellReady()
         }),
       )
 
@@ -4980,19 +5383,25 @@ function App() {
           'Planar map runtime restore',
           async () => {
             clickMapRuntimeButton('2D Situation Map')
-            await waitForCondition('planar surface mode restore', () =>
-              runtimeSmokeStateRef.current.mapRuntime.activeSurfaceMode === 'planar' &&
-              runtimeSmokeStateRef.current.mapRuntime.activeRuntimeEngine === 'maplibre',
+            await waitForCondition('planar surface toggle acknowledgement', () =>
+              isMapRuntimeButtonPressed('2D Situation Map'),
             )
           },
           I1_BUDGETS.stateChangeFeedbackP95Ms,
         ),
       )
+      await waitForCondition('planar surface mode restore', () =>
+        runtimeSmokeStateRef.current.mapRuntime.activeSurfaceMode === 'planar' &&
+        runtimeSmokeStateRef.current.mapRuntime.activeRuntimeEngine === 'maplibre',
+      )
 
       metrics.push(
-        await measure('Governed context registration', async () => {
-          await registerGovernedContextForRuntimeSmoke()
-        }),
+        await measure(
+          'Governed context registration',
+          async () => {
+            await registerGovernedContextForRuntimeSmoke()
+          },
+        ),
       )
 
       if (requiresGovernedDeviationForRuntimeSmoke) {
@@ -5003,7 +5412,7 @@ function App() {
         )
       }
 
-      if (isWpI9RuntimeSmoke) {
+      if (requiresGovernedConnectorForRuntimeSmoke) {
         metrics.push(
           await measure('Governed connector execution', async () => {
             await runGovernedConnectorForRuntimeSmoke({
@@ -5031,7 +5440,7 @@ function App() {
         }),
       )
 
-      if (isWpI9RuntimeSmoke) {
+      if (requiresGovernedConnectorForRuntimeSmoke) {
         metrics.push(
           await measure('Governed connector mutation', async () => {
             await runGovernedConnectorForRuntimeSmoke({
@@ -5079,7 +5488,7 @@ function App() {
             if (!governedDeviationRestored) {
               return false
             }
-            if (!isWpI9RuntimeSmoke) {
+            if (!requiresGovernedConnectorForRuntimeSmoke) {
               return true
             }
             const latestConnectorRun = currentState.osintSnapshot.latestConnectorRun
@@ -5098,7 +5507,7 @@ function App() {
           if (requiresGovernedDeviationForRuntimeSmoke) {
             runtimeSmokeFlow.governedDeviationRestored = true
           }
-          if (isWpI9RuntimeSmoke) {
+          if (requiresGovernedConnectorForRuntimeSmoke) {
             runtimeSmokeFlow.governedConnectorRestored = true
             runtimeSmokeFlow.restoredConnectorId = governedOsintBundleConnectorId
           }
@@ -5153,7 +5562,7 @@ function App() {
       }
 
       metrics.push(
-        await measure(
+        await measureFeedbackAction(
           'Offline mode change',
           async () => {
             if (runtimeSmokeStateRef.current.offline) {
@@ -5161,9 +5570,22 @@ function App() {
               await waitForCondition('temporary online reset', () => !runtimeSmokeStateRef.current.offline)
             }
             await setForcedOfflineForRuntimeSmoke(true)
-            await waitForCondition('forced offline enabled', () => runtimeSmokeStateRef.current.offline)
           },
+          'Offline mode change',
+          () => runtimeSmokeStateRef.current.offline,
           I1_BUDGETS.stateChangeFeedbackP95Ms,
+        ),
+      )
+
+      metrics.push(
+        await measureFeedbackAction(
+          'Replay cursor update',
+          async () => {
+            onReplayCursorChange(42)
+          },
+          'Replay cursor update',
+          () => runtimeSmokeStateRef.current.stateFeedback.action === 'Replay cursor update',
+          runtimeSmokeConfig.phase === 'warm' ? I1_BUDGETS.warmTimeScrubMs : I1_BUDGETS.coldTimeScrubMs,
         ),
       )
 
@@ -5180,14 +5602,13 @@ function App() {
       if (firstLayerId) {
         const initialLayerCount = runtimeSmokeStateRef.current.activeLayers.length
         metrics.push(
-          await measure(
+          await measureFeedbackAction(
             'Layer visibility update',
             async () => {
               toggleLayer(firstLayerId)
-              await waitForCondition('layer visibility change', () =>
-                runtimeSmokeStateRef.current.activeLayers.length !== initialLayerCount,
-              )
             },
+            'Layer visibility update',
+            () => runtimeSmokeStateRef.current.activeLayers.length !== initialLayerCount,
             I1_BUDGETS.stateChangeFeedbackP95Ms,
           ),
         )
@@ -5196,12 +5617,13 @@ function App() {
       }
 
       metrics.push(
-        await measure(
+        await measureFeedbackAction(
           'Workflow mode change',
           async () => {
             onModeChange('scenario')
-            await waitForCondition('scenario mode activation', () => runtimeSmokeStateRef.current.mode === 'scenario')
           },
+          'Workflow mode change',
+          () => runtimeSmokeStateRef.current.mode === 'scenario',
           I1_BUDGETS.stateChangeFeedbackP95Ms,
         ),
       )
@@ -5268,6 +5690,110 @@ function App() {
           )
         }),
       )
+
+      if (isWpI1RuntimeSmoke) {
+        metrics.push(
+          await measureFeedbackAction(
+            'Compare mode restore',
+            async () => {
+              onModeChange('compare')
+            },
+            'Workflow mode change',
+            () => runtimeSmokeStateRef.current.mode === 'compare',
+            I1_BUDGETS.stateChangeFeedbackP95Ms,
+          ),
+        )
+
+        metrics.push(
+          await measureFeedbackAction(
+            'Briefing artifact preparation',
+            async () => {
+              clickWorkspaceButton('Prepare Briefing Artifact')
+            },
+            'Briefing artifact preparation',
+            () =>
+              Boolean(runtimeSmokeStateRef.current.briefingArtifact?.artifactId) &&
+              Boolean(document.querySelector('[data-testid="briefing-artifact-card"]')),
+            I1_BUDGETS.briefingExportMs,
+            20000,
+          ),
+        )
+
+        metrics.push(
+          await measureFeedbackAction(
+            '4K map export',
+            async () => {
+              await requestMapExportForRuntimeSmoke()
+            },
+            '4K map export',
+            () =>
+              Boolean(runtimeSmokeStateRef.current.mapExportArtifact?.artifactId) &&
+              Boolean(document.querySelector('[data-testid="map-export-artifact-card"]')),
+            I1_BUDGETS.imageExportMs,
+            20000,
+          ),
+        )
+      }
+
+      if (isWpI10RuntimeSmoke) {
+        metrics.push(
+          await measure('Governed strategic solver execution', async () => {
+            await runStrategicSolverForRuntimeSmoke()
+          }),
+        )
+
+        metrics.push(
+          await measure('Governed strategic model bundle', async () => {
+            const bundleId = await createBundleForRuntimeSmoke(true)
+            await waitForCondition('strategic bundle creation', () => runtimeSmokeStateRef.current.selectedBundleId === bundleId)
+          }),
+        )
+
+        metrics.push(
+          await measure('Governed strategic solver mutation', async () => {
+            await setLabeledFieldValue('Solver Method', 'minimax_regret')
+            await setLabeledFieldValue('Solver Seed', '53')
+            clickWorkspaceButton('Run Strategic Solver')
+            await waitForCondition(
+              'mutated governed strategic solver execution',
+              () => {
+                const latestRun = runtimeSmokeStateRef.current.gameModelSnapshot.solver_runs.at(-1)
+                return Boolean(
+                  latestRun?.runtime === 'tauri-governed' &&
+                    latestRun.run_id !== runtimeSmokeFlow.solverRunId &&
+                    !runtimeSmokeStateRef.current.gameSolverPending,
+                )
+              },
+              20000,
+            )
+          }),
+        )
+
+        metrics.push(
+          await measure('Governed strategic model reopen', async () => {
+            await openBundleForRuntimeSmoke()
+            await waitForCondition(
+              'strategic solver bundle restore',
+              () => {
+                const latestRun = runtimeSmokeStateRef.current.gameModelSnapshot.solver_runs.at(-1)
+                const experimentBundle =
+                  runtimeSmokeStateRef.current.gameModelSnapshot.experiment_bundle
+                return Boolean(
+                  latestRun?.runtime === 'tauri-governed' &&
+                    latestRun.run_id === runtimeSmokeFlow.solverRunId &&
+                    experimentBundle?.experiment_bundle_id === runtimeSmokeFlow.experimentBundleId,
+                )
+              },
+              30000,
+            )
+            runtimeSmokeFlow.governedSolverRestored = true
+            runtimeSmokeFlow.restoredSolverRunId =
+              runtimeSmokeStateRef.current.gameModelSnapshot.solver_runs.at(-1)?.run_id ?? ''
+            runtimeSmokeFlow.restoredExperimentBundleId =
+              runtimeSmokeStateRef.current.gameModelSnapshot.experiment_bundle?.experiment_bundle_id ?? ''
+          }),
+        )
+      }
 
       await backend
         .appendAudit({
@@ -5720,12 +6246,41 @@ function App() {
         <section className="panel map-panel" data-testid="region-main-canvas">
           <h2>Main Canvas and Geospatial Runtime</h2>
           <MapRuntimeSurface
+            ref={mapRuntimeSurfaceRef}
             scene={mapRuntimeScene}
             mode={mode}
+            marking={marking}
+            visibleLayerCount={visibleLayerCatalog.length}
             degradedBudgetCount={degradedBudgetCount}
             offline={offline}
+            exportBusy={busy && stateFeedback.action === '4K map export'}
+            exportBlockedReason={mapExportBlockedReason}
+            latestExportArtifactId={mapExportArtifact?.artifactId}
             onTelemetryChange={setMapRuntimeTelemetry}
+            onRequestExport={onExportMapImage}
+            onSurfaceModeFeedback={onMapSurfaceModeFeedback}
           />
+          {mapExportArtifact && (
+            <article
+              className={`artifact-callout ${artifactTone('Observed Evidence')}`}
+              data-testid="map-export-artifact-card"
+            >
+              <div className="card-header compact">
+                <span className={`artifact-chip ${artifactTone('Observed Evidence')}`}>
+                  Observed Evidence
+                </span>
+                <span>{mapExportArtifact.artifactId}</span>
+              </div>
+              <p>4K map export persisted from the live governed runtime.</p>
+              <small>
+                {mapExportArtifact.width}x{mapExportArtifact.height} | {mapExportArtifact.surfaceMode}{' '}
+                | {mapExportArtifact.runtimeEngine} | Bundle {mapExportArtifact.bundleId ?? 'none'}
+              </small>
+              <small>
+                SHA {mapExportArtifact.sha256} | {mapExportArtifact.pngPath}
+              </small>
+            </article>
+          )}
           <div className="workspace-surface">
             <article className="surface-hero" data-testid="workspace-surface-summary">
               <p className="eyebrow">Persisted workspace surface</p>
@@ -7650,7 +8205,9 @@ function App() {
                   onChange={(event) => setGameMonteCarloSamplesInput(event.target.value)}
                 />
               </label>
-              <button onClick={onRunGameSolver}>Run Strategic Solver</button>
+              <button onClick={onRunGameSolver} disabled={gameSolverPending}>
+                {gameSolverPending ? 'Running Strategic Solver...' : 'Run Strategic Solver'}
+              </button>
             </article>
           </div>
           <p className="status-line" data-testid="game-model-status">
@@ -7693,9 +8250,12 @@ function App() {
                 <span>{gameModelStateForRecorder.solver_runs.at(-1)?.run_id}</span>
               </div>
               <p>{gameModelStateForRecorder.solver_runs.at(-1)?.robust_summary}</p>
+              <p>{gameModelStateForRecorder.solver_runs.at(-1)?.trace_summary}</p>
               <small>
                 Seed {gameModelStateForRecorder.solver_runs.at(-1)?.random_seed} | Method{' '}
-                {gameModelStateForRecorder.solver_runs.at(-1)?.method} | Result hash{' '}
+                {gameModelStateForRecorder.solver_runs.at(-1)?.method} | Runtime{' '}
+                {gameModelStateForRecorder.solver_runs.at(-1)?.runtime} | Scenario evals{' '}
+                {gameModelStateForRecorder.solver_runs.at(-1)?.scenario_evaluations.length} | Result hash{' '}
                 {gameModelStateForRecorder.solver_runs.at(-1)?.result_manifest_hash}
               </small>
             </article>
@@ -7716,7 +8276,9 @@ function App() {
               <p>{gameModelStateForRecorder.experiment_bundle.summary}</p>
               <small>
                 Bundles {gameModelStateForRecorder.experiment_bundle.snapshot_bundle_refs.join(', ') || 'none'} |
-                Solver runs {gameModelStateForRecorder.experiment_bundle.solver_run_ids.length}
+                Solver runs {gameModelStateForRecorder.experiment_bundle.solver_run_ids.length} |
+                Runtime {gameModelStateForRecorder.experiment_bundle.runtime} | Trace hash{' '}
+                {gameModelStateForRecorder.experiment_bundle.trace_manifest_hash}
               </small>
             </article>
           )}

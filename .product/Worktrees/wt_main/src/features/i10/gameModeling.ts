@@ -9,6 +9,7 @@ export type ActionCategory = (typeof ACTION_CATEGORIES)[number]
 export type GameType = (typeof GAME_TYPES)[number]
 export type ScenarioTreeNodeType = (typeof SCENARIO_TREE_NODE_TYPES)[number]
 export type SolverMethod = (typeof SOLVER_METHODS)[number]
+export type StrategicSolverRuntime = 'tauri-governed' | 'browser-simulated'
 export type GameModelMarking = 'PUBLIC' | 'INTERNAL' | 'RESTRICTED'
 export type GameModelRole = 'viewer' | 'analyst' | 'administrator' | 'auditor'
 
@@ -117,10 +118,40 @@ export interface ValueOfInformationEstimate {
   rationale: string
 }
 
+export interface ScenarioEvaluationTrace {
+  scenario_id: string
+  node_ids: string[]
+  decision_count: number
+  chance_count: number
+  information_set_count: number
+  context_record_count: number
+  aggregate_score: number
+  regret_score: number
+  recommended_action_id?: string
+  evidence_refs: string[]
+  context_domain_ids: string[]
+  correlation_target_ids: string[]
+  deviation_event_id?: string
+  osint_alert_id?: string
+  detail: string
+}
+
+export interface StrategicSolveEvidence {
+  bundle_refs: string[]
+  context_targets: string[]
+  context_record_ids: string[]
+  context_domain_ids: string[]
+  correlation_target_ids: string[]
+  threshold_ref_ids: string[]
+  deviation_event_id?: string
+  osint_alert_id?: string
+}
+
 export interface SolverRunRecord {
   run_id: string
   game_id: string
   executed_at: string
+  runtime: StrategicSolverRuntime
   method: SolverMethod
   random_seed: number
   monte_carlo_samples: number
@@ -128,6 +159,9 @@ export interface SolverRunRecord {
   linked_scenario_ids: string[]
   payoff_proxies: PayoffProxy[]
   sensitivity_ranking: string[]
+  scenario_evaluations: ScenarioEvaluationTrace[]
+  evidence: StrategicSolveEvidence
+  trace_summary: string
   robust_summary: string
   result_manifest_hash: string
   artifact_label: typeof MODELED_OUTPUT_LABEL
@@ -144,6 +178,9 @@ export interface ExperimentBundleArtifact {
   solver_methods: SolverMethod[]
   random_seeds: number[]
   parameter_ranges: string[]
+  runtime: StrategicSolverRuntime
+  trace_manifest_hash: string
+  scenario_evaluation_count: number
   result_manifest_hash: string
   created_at: string
   summary: string
@@ -159,6 +196,27 @@ export interface GameModelSnapshot {
   latest_voi_estimate?: ValueOfInformationEstimate
   experiment_bundle?: ExperimentBundleArtifact
   selected_scenario_id?: string
+}
+
+export interface StrategicSolverRequest {
+  role: GameModelRole
+  snapshot: GameModelSnapshot
+  bundle_refs: string[]
+  linked_scenario_ids: string[]
+  context_targets?: string[]
+  context_record_ids?: string[]
+  context_domain_ids?: string[]
+  correlation_target_ids?: string[]
+  threshold_ref_ids?: string[]
+  deviation_event_id?: string
+  osint_alert_id?: string
+  executed_at?: string
+}
+
+export interface StrategicSolverResult {
+  runtime: StrategicSolverRuntime
+  snapshot: GameModelSnapshot
+  auditEventId?: string
 }
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -370,6 +428,80 @@ const normalizePayoffProxy = (value: unknown): PayoffProxy => {
   }
 }
 
+const normalizeScenarioEvaluationTrace = (value: unknown): ScenarioEvaluationTrace => {
+  if (!isRecord(value)) {
+    return {
+      scenario_id: 'scenario-default',
+      node_ids: [],
+      decision_count: 0,
+      chance_count: 0,
+      information_set_count: 0,
+      context_record_count: 0,
+      aggregate_score: 0,
+      regret_score: 0,
+      evidence_refs: [],
+      context_domain_ids: [],
+      correlation_target_ids: [],
+      detail: 'No scenario evaluation recorded.',
+    }
+  }
+  return {
+    scenario_id: normalizeString(value.scenario_id, 'scenario-default'),
+    node_ids: normalizeStringArray(value.node_ids),
+    decision_count: Math.max(0, normalizeNumber(value.decision_count, 0)),
+    chance_count: Math.max(0, normalizeNumber(value.chance_count, 0)),
+    information_set_count: Math.max(0, normalizeNumber(value.information_set_count, 0)),
+    context_record_count: Math.max(0, normalizeNumber(value.context_record_count, 0)),
+    aggregate_score: normalizeNumber(value.aggregate_score, 0),
+    regret_score: normalizeNumber(value.regret_score, 0),
+    recommended_action_id:
+      typeof value.recommended_action_id === 'string' && value.recommended_action_id.trim()
+        ? value.recommended_action_id
+        : undefined,
+    evidence_refs: normalizeStringArray(value.evidence_refs),
+    context_domain_ids: normalizeStringArray(value.context_domain_ids),
+    correlation_target_ids: normalizeStringArray(value.correlation_target_ids),
+    deviation_event_id:
+      typeof value.deviation_event_id === 'string' && value.deviation_event_id.trim()
+        ? value.deviation_event_id
+        : undefined,
+    osint_alert_id:
+      typeof value.osint_alert_id === 'string' && value.osint_alert_id.trim()
+        ? value.osint_alert_id
+        : undefined,
+    detail: normalizeString(value.detail, 'No scenario evaluation recorded.'),
+  }
+}
+
+const normalizeStrategicSolveEvidence = (value: unknown): StrategicSolveEvidence => {
+  if (!isRecord(value)) {
+    return {
+      bundle_refs: [],
+      context_targets: [],
+      context_record_ids: [],
+      context_domain_ids: [],
+      correlation_target_ids: [],
+      threshold_ref_ids: [],
+    }
+  }
+  return {
+    bundle_refs: normalizeStringArray(value.bundle_refs),
+    context_targets: normalizeStringArray(value.context_targets),
+    context_record_ids: normalizeStringArray(value.context_record_ids),
+    context_domain_ids: normalizeStringArray(value.context_domain_ids),
+    correlation_target_ids: normalizeStringArray(value.correlation_target_ids),
+    threshold_ref_ids: normalizeStringArray(value.threshold_ref_ids),
+    deviation_event_id:
+      typeof value.deviation_event_id === 'string' && value.deviation_event_id.trim()
+        ? value.deviation_event_id
+        : undefined,
+    osint_alert_id:
+      typeof value.osint_alert_id === 'string' && value.osint_alert_id.trim()
+        ? value.osint_alert_id
+        : undefined,
+  }
+}
+
 const normalizeScenarioTreeNode = (value: unknown, index: number): ScenarioTreeNode => {
   if (!isRecord(value)) {
     return {
@@ -512,6 +644,8 @@ export const normalizeGameModelSnapshot = (value: unknown): GameModelSnapshot =>
             run_id: normalizeString(entry.run_id, nextId('solver-run', index)),
             game_id: normalizeString(entry.game_id, model.game_id),
             executed_at: normalizeString(entry.executed_at, model.updated_at),
+            runtime:
+              entry.runtime === 'tauri-governed' ? 'tauri-governed' : 'browser-simulated',
             method: isSolverMethod(entry.method) ? entry.method : model.solver_config.method,
             random_seed: normalizeNumber(entry.random_seed, model.solver_config.random_seed),
             monte_carlo_samples: Math.max(
@@ -524,6 +658,11 @@ export const normalizeGameModelSnapshot = (value: unknown): GameModelSnapshot =>
               ? entry.payoff_proxies.map(normalizePayoffProxy)
               : [],
             sensitivity_ranking: normalizeStringArray(entry.sensitivity_ranking),
+            scenario_evaluations: Array.isArray(entry.scenario_evaluations)
+              ? entry.scenario_evaluations.map(normalizeScenarioEvaluationTrace)
+              : [],
+            evidence: normalizeStrategicSolveEvidence(entry.evidence),
+            trace_summary: normalizeString(entry.trace_summary, 'No solver trace recorded.'),
             robust_summary: normalizeString(entry.robust_summary, 'No solver summary recorded.'),
             result_manifest_hash: normalizeString(
               entry.result_manifest_hash,
@@ -592,6 +731,18 @@ export const normalizeGameModelSnapshot = (value: unknown): GameModelSnapshot =>
               : [],
             random_seeds: normalizeNumberArray(value.experiment_bundle.random_seeds),
             parameter_ranges: normalizeStringArray(value.experiment_bundle.parameter_ranges),
+            runtime:
+              value.experiment_bundle.runtime === 'tauri-governed'
+                ? 'tauri-governed'
+                : 'browser-simulated',
+            trace_manifest_hash: normalizeString(
+              value.experiment_bundle.trace_manifest_hash,
+              stableHash(value.experiment_bundle),
+            ),
+            scenario_evaluation_count: Math.max(
+              0,
+              normalizeNumber(value.experiment_bundle.scenario_evaluation_count, 0),
+            ),
             result_manifest_hash: normalizeString(
               value.experiment_bundle.result_manifest_hash,
               stableHash(value.experiment_bundle),
@@ -826,6 +977,51 @@ const buildSensitivityRanking = (assumptions: string[]): string[] =>
     .slice(0, 3)
     .map(({ assumption }, index) => `${index + 1}. ${assumption}`)
 
+const scoreAction = ({
+  action,
+  scenarioNodes,
+  method,
+  contextRecordCount,
+  deviationMagnitude,
+  osintAlertWeight,
+  objectiveWeight,
+  randomSeed,
+}: {
+  action: GameAction
+  scenarioNodes: ScenarioTreeNode[]
+  method: SolverMethod
+  contextRecordCount: number
+  deviationMagnitude: number
+  osintAlertWeight: number
+  objectiveWeight: number
+  randomSeed: number
+}): number => {
+  const decisionCount = scenarioNodes.filter((node) => node.node_type === 'decision').length
+  const chanceCount = scenarioNodes.filter((node) => node.node_type === 'chance').length
+  const informationCount = scenarioNodes.filter((node) => node.node_type === 'information_set').length
+  const methodModifier =
+    method === 'best_response' ? 4 : method === 'equilibrium_exploration' ? 2 : 1
+  const jitter = (stableHash(`${action.action_id}:${method}:${randomSeed}`).charCodeAt(4) % 7) - 3
+  const categoryWeight =
+    action.category === 'logistics'
+      ? contextRecordCount * 1.8 + deviationMagnitude * 11
+      : action.category === 'policy'
+        ? informationCount * 3.4 + objectiveWeight * 5
+        : osintAlertWeight * 2.8 + chanceCount * 1.4
+  return Number(
+    (
+      58 +
+      objectiveWeight * 20 +
+      decisionCount * 3.5 +
+      informationCount * 2.5 -
+      chanceCount * 1.3 +
+      categoryWeight +
+      methodModifier +
+      jitter
+    ).toFixed(2),
+  )
+}
+
 export const runGameSolver = (
   snapshot: GameModelSnapshot,
   options: {
@@ -833,6 +1029,13 @@ export const runGameSolver = (
     linked_scenario_ids: string[]
     solver_config?: Partial<SolverConfig>
     context_targets?: string[]
+    context_record_ids?: string[]
+    context_domain_ids?: string[]
+    correlation_target_ids?: string[]
+    threshold_ref_ids?: string[]
+    deviation_event_id?: string
+    osint_alert_id?: string
+    runtime?: StrategicSolverRuntime
     executed_at?: string
   },
 ): GameModelSnapshot => {
@@ -841,27 +1044,90 @@ export const runGameSolver = (
     ...snapshot.model.solver_config,
     ...options.solver_config,
   }
+  const runtime = options.runtime ?? 'browser-simulated'
 
   const objectiveWeight = snapshot.model.objectives.reduce(
     (total, objective) => total + objective.weight,
     0,
   )
-  const branchFactor = snapshot.scenario_tree.nodes.length * 4
-  const scenarioFactor = options.linked_scenario_ids.length * 7
+  const scenarioIds =
+    options.linked_scenario_ids.length > 0
+      ? options.linked_scenario_ids
+      : snapshot.selected_scenario_id
+        ? [snapshot.selected_scenario_id]
+        : [snapshot.scenario_tree.nodes[0]?.scenario_fork_id ?? 'scenario-default']
+  const contextRecordCount = options.context_record_ids?.length ?? 0
+  const deviationMagnitude = options.deviation_event_id ? 0.24 : 0
+  const osintAlertWeight = options.osint_alert_id ? 1.8 : 0
+  const scenarioEvaluations = scenarioIds.map((scenarioId) => {
+    const scenarioNodes = snapshot.scenario_tree.nodes.filter((node) =>
+      scenarioId === 'scenario-default'
+        ? true
+        : (node.scenario_fork_id ?? snapshot.selected_scenario_id ?? 'scenario-default') === scenarioId,
+    )
+    const actionScores = snapshot.model.actions.map((action) => ({
+      action,
+      score: scoreAction({
+        action,
+        scenarioNodes,
+        method: solverConfig.method,
+        contextRecordCount,
+        deviationMagnitude,
+        osintAlertWeight,
+        objectiveWeight,
+        randomSeed: solverConfig.random_seed,
+      }),
+    }))
+    const sortedScores = [...actionScores].sort((left, right) => right.score - left.score)
+    const bestScore = sortedScores[0]?.score ?? 0
+    const nextScore = sortedScores[1]?.score ?? bestScore
+    return {
+      scenario_id: scenarioId,
+      node_ids: scenarioNodes.map((node) => node.node_id),
+      decision_count: scenarioNodes.filter((node) => node.node_type === 'decision').length,
+      chance_count: scenarioNodes.filter((node) => node.node_type === 'chance').length,
+      information_set_count: scenarioNodes.filter((node) => node.node_type === 'information_set').length,
+      context_record_count: contextRecordCount,
+      aggregate_score: Number(bestScore.toFixed(2)),
+      regret_score: Number(Math.max(0, bestScore - nextScore).toFixed(2)),
+      recommended_action_id: sortedScores[0]?.action.action_id,
+      evidence_refs: [
+        ...options.bundle_refs,
+        ...(options.context_record_ids ?? []).slice(0, 4),
+      ],
+      context_domain_ids: options.context_domain_ids ?? [],
+      correlation_target_ids: options.correlation_target_ids ?? [],
+      deviation_event_id: options.deviation_event_id,
+      osint_alert_id: options.osint_alert_id,
+      detail: `${solverConfig.method} evaluated ${scenarioNodes.length} node(s) and ${snapshot.model.actions.length} action(s) for ${scenarioId}.`,
+    } satisfies ScenarioEvaluationTrace
+  })
+  const dominantScenario = [...scenarioEvaluations].sort(
+    (left, right) => right.aggregate_score - left.aggregate_score,
+  )[0]
   const baseValue = Math.round(
     72 +
       snapshot.model.actors.length * 9 +
       snapshot.model.actions.length * 6 +
       objectiveWeight * 24 +
-      branchFactor +
-      scenarioFactor +
+      Math.round(dominantScenario?.aggregate_score ?? 0) +
       (solverConfig.random_seed % 11),
   )
   const spread = Math.max(8, Math.round(solverConfig.monte_carlo_samples / 2))
+  const evidence: StrategicSolveEvidence = {
+    bundle_refs: options.bundle_refs,
+    context_targets: options.context_targets ?? [],
+    context_record_ids: options.context_record_ids ?? [],
+    context_domain_ids: options.context_domain_ids ?? [],
+    correlation_target_ids: options.correlation_target_ids ?? [],
+    threshold_ref_ids: options.threshold_ref_ids ?? [],
+    deviation_event_id: options.deviation_event_id,
+    osint_alert_id: options.osint_alert_id,
+  }
   const payoffs = [
     buildPayoffProxy('throughput_resilience', baseValue, spread, [
       ...options.bundle_refs,
-      ...options.linked_scenario_ids,
+      ...scenarioIds,
     ]),
     buildPayoffProxy('policy_cohesion', baseValue - 12, Math.max(6, spread - 2), [
       snapshot.model.game_type,
@@ -884,45 +1150,60 @@ export const runGameSolver = (
   }
   const runPayload = {
     game_id: snapshot.model.game_id,
+    runtime,
     method: solverConfig.method,
     random_seed: solverConfig.random_seed,
     monte_carlo_samples: solverConfig.monte_carlo_samples,
     bundle_refs: options.bundle_refs,
-    linked_scenario_ids: options.linked_scenario_ids,
+    linked_scenario_ids: scenarioIds,
     payoffs,
     sweep,
     voi,
+    evidence,
+    scenario_evaluations: scenarioEvaluations,
   }
   const resultManifestHash = stableHash(runPayload)
   const solverRun: SolverRunRecord = {
     run_id: nextId('solver-run', snapshot.solver_runs.length),
     game_id: snapshot.model.game_id,
     executed_at: executedAt,
+    runtime,
     method: solverConfig.method,
     random_seed: solverConfig.random_seed,
     monte_carlo_samples: solverConfig.monte_carlo_samples,
     input_bundle_refs: options.bundle_refs,
-    linked_scenario_ids: options.linked_scenario_ids,
+    linked_scenario_ids: scenarioIds,
     payoff_proxies: payoffs,
     sensitivity_ranking: sensitivityRanking,
+    scenario_evaluations: scenarioEvaluations,
+    evidence,
+    trace_summary: `${scenarioEvaluations.length} scenario evaluation(s) captured via ${runtime}.`,
     robust_summary: `${solverConfig.method} run with seed ${solverConfig.random_seed} favors branch spread ${payoffs[0].uncertainty[0]}-${payoffs[0].uncertainty[1]}.`,
     result_manifest_hash: resultManifestHash,
     artifact_label: MODELED_OUTPUT_LABEL,
     non_operational_notice: NON_OPERATIONAL_NOTICE,
   }
+  const traceManifestHash = stableHash({
+    scenarioEvaluations,
+    evidence,
+    runtime,
+  })
   const experimentBundle: ExperimentBundleArtifact = {
     experiment_bundle_id: `experiment-${snapshot.model.game_id}-${snapshot.solver_runs.length + 1}`,
     game_id: snapshot.model.game_id,
     game_model_version: snapshot.model.version + 1,
     snapshot_bundle_refs: options.bundle_refs,
-    scenario_fork_ids: options.linked_scenario_ids,
+    scenario_fork_ids: scenarioIds,
     solver_run_ids: [...snapshot.solver_runs.map((run) => run.run_id), solverRun.run_id],
     solver_methods: [...snapshot.solver_runs.map((run) => run.method), solverRun.method],
     random_seeds: [...snapshot.solver_runs.map((run) => run.random_seed), solverRun.random_seed],
     parameter_ranges: solverConfig.parameter_range_notes,
+    runtime,
+    trace_manifest_hash: traceManifestHash,
+    scenario_evaluation_count: scenarioEvaluations.length,
     result_manifest_hash: resultManifestHash,
     created_at: executedAt,
-    summary: `Experiment bundle for ${snapshot.model.name} with ${options.linked_scenario_ids.length} linked scenario branches.`,
+    summary: `Experiment bundle for ${snapshot.model.name} with ${scenarioIds.length} linked scenario branches.`,
     artifact_label: MODELED_OUTPUT_LABEL,
   }
 
@@ -938,6 +1219,6 @@ export const runGameSolver = (
     latest_parameter_sweep: sweep,
     latest_voi_estimate: voi,
     experiment_bundle: experimentBundle,
-    selected_scenario_id: options.linked_scenario_ids[0] ?? snapshot.selected_scenario_id,
+    selected_scenario_id: scenarioIds[0] ?? snapshot.selected_scenario_id,
   }
 }

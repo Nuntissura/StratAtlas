@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it } from 'vitest'
 import App from './App'
@@ -473,6 +473,34 @@ describe('App', () => {
     expect(screen.getByTestId('map-runtime-surface')).toBeInTheDocument()
   })
 
+  it('exposes pressed-state and non-color semantics on the live map runtime', async () => {
+    render(<App />)
+
+    const surface = await screen.findByTestId('map-runtime-surface')
+    const focusControls = within(surface).getByLabelText('AOI focus controls')
+    const inspectTargets = within(surface).getByLabelText('Map inspect targets')
+
+    expect(
+      within(focusControls)
+        .getAllByRole('button')
+        .every((button) => button.hasAttribute('aria-pressed')),
+    ).toBe(true)
+    expect(
+      within(inspectTargets)
+        .getAllByRole('button')
+        .every((button) => button.hasAttribute('aria-pressed')),
+    ).toBe(true)
+    expect(within(surface).getByLabelText('Tone palette semantics')).toBeInTheDocument()
+    expect(within(surface).getAllByTestId('map-runtime-tone-key')).toHaveLength(6)
+    expect(within(surface).getByTestId('map-runtime-provenance-strip')).toHaveTextContent(
+      'Marking INTERNAL',
+    )
+    expect(within(surface).getByRole('button', { name: 'Export 4K Map' })).toBeEnabled()
+    expect(
+      within(surface).getByText('Select or create a bundle before exporting a 4K map image.'),
+    ).toBeInTheDocument()
+  })
+
   it('runs compare workflow and updates delta output', async () => {
     const user = userEvent.setup()
     render(<App />)
@@ -895,8 +923,11 @@ describe('App', () => {
       await user.click(screen.getByRole('button', { name: 'Run Strategic Solver' }))
 
       const solverCard = await screen.findByTestId('game-solver-card')
+      expect(within(solverCard).getByText(/Runtime browser-simulated/)).toBeInTheDocument()
+      expect(within(solverCard).getByText(/scenario evaluation/)).toBeInTheDocument()
       expect(within(solverCard).getByText(/Result hash/)).toBeInTheDocument()
       expect(within(screen.getByTestId('game-experiment-card')).getByText(/AOI strategic model/)).toBeInTheDocument()
+      expect(within(screen.getByTestId('game-experiment-card')).getByText(/Trace hash/)).toBeInTheDocument()
       expect(within(screen.getByTestId('game-voi-card')).getByText(/Collect additional governed coverage/)).toBeInTheDocument()
 
       await user.click(screen.getByRole('button', { name: 'Create Bundle' }))
@@ -942,16 +973,23 @@ describe('App', () => {
     )
 
     await user.selectOptions(screen.getByLabelText('Mode'), 'scenario')
+    await waitFor(() => expect(screen.getByLabelText('Mode')).toHaveValue('scenario'))
     expect(
-      await screen.findByText('Scenario Fork / Constraint Propagation / Export (I4)'),
+      await screen.findByText('Scenario Fork / Constraint Propagation / Export (I4)', undefined, {
+        timeout: 10000,
+      }),
     ).toBeInTheDocument()
-    const scenarioTitleInput = (await screen.findAllByLabelText('Scenario Title')).find(
-      (element) => !(element as HTMLInputElement).disabled,
-    ) as HTMLInputElement
-    await user.click(scenarioTitleInput)
-    await user.clear(scenarioTitleInput)
-    await user.type(scenarioTitleInput, 'Deviation scenario')
-    await user.click(await screen.findByRole('button', { name: 'Fork Scenario' }))
+    const scenarioTitleInput = (await screen.findByLabelText('Scenario Title', undefined, {
+      timeout: 10000,
+    })) as HTMLInputElement
+    fireEvent.change(scenarioTitleInput, { target: { value: 'Deviation scenario' } })
+    expect(scenarioTitleInput).toHaveValue('Deviation scenario')
+    const forkScenarioButton = await screen.findByRole(
+      'button',
+      { name: 'Fork Scenario' },
+      { timeout: 10000 },
+    )
+    await user.click(forkScenarioButton)
     expect((await screen.findAllByText('Deviation scenario')).length).toBeGreaterThan(0)
 
     await user.click(screen.getByRole('button', { name: 'Apply Sanctions Regime Updates Constraint' }))

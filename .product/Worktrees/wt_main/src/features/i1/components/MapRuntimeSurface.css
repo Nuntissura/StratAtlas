@@ -34,6 +34,18 @@
   justify-content: flex-end;
 }
 
+.map-runtime-export-button {
+  min-width: 9.5rem;
+  background: linear-gradient(180deg, #163b61, #0d2741);
+  border: 1px solid rgba(137, 188, 255, 0.34);
+  color: #eef6fb;
+}
+
+.map-runtime-export-button:disabled {
+  opacity: 0.58;
+  cursor: not-allowed;
+}
+
 .map-runtime-toggle-group {
   padding: 0.28rem;
   border-radius: 999px;
@@ -313,6 +325,19 @@
   border-radius: 999px;
   margin-left: 0.4rem;
   box-shadow: 0 0 12px currentColor;
+}
+
+.map-runtime-tone-key {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-left: 0.55rem;
+}
+
+.map-runtime-tone-label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
 }
 
 @media (max-width: 1120px) {

@@ -1,15 +1,25 @@
-import { useEffect, useEffectEvent, useRef, useState } from 'react'
+import {
+  forwardRef,
+  useEffect,
+  useEffectEvent,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from 'react'
+import { flushSync } from 'react-dom'
 import maplibregl from 'maplibre-gl'
 import type {
   GeoJSONSource,
   GeoJSONSourceSpecification,
   Map as MapLibreMap,
   MapGeoJSONFeature,
+  MapOptions,
   StyleSpecification,
 } from 'maplibre-gl'
 import 'cesium/Build/Cesium/Widgets/widgets.css'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import './MapRuntimeSurface.css'
+import type { SensitivityMarking } from '../../../contracts/i0'
 import {
   runtimeAoiView,
   runtimeToneColor,
@@ -20,6 +30,7 @@ import {
   type MapRuntimeTelemetry,
   type SurfaceMode,
 } from '../runtime/mapRuntimeTelemetry'
+import { buildMapRuntimeExportCapture, type MapRuntimeExportCapture } from '../runtime/mapRuntimeExport'
 import {
   focusCesiumRuntime,
   initializeCesiumRuntime,
@@ -32,9 +43,24 @@ import type { UiMode } from '../modes'
 interface MapRuntimeSurfaceProps {
   scene: MapRuntimeScene
   mode: UiMode
+  marking: SensitivityMarking
+  visibleLayerCount: number
   degradedBudgetCount: number
   offline: boolean
+  exportBusy?: boolean
+  exportBlockedReason?: string
+  latestExportArtifactId?: string
   onTelemetryChange?: (telemetry: MapRuntimeTelemetry) => void
+  onRequestExport?: () => void | Promise<void>
+  onSurfaceModeFeedback?: (surfaceMode: SurfaceMode, measuredMs: number) => void
+}
+
+export interface MapRuntimeSurfaceHandle {
+  capture4kMapExport: (options: {
+    marking: SensitivityMarking
+    bundleId?: string
+    visibleLayerCount: number
+  }) => Promise<MapRuntimeExportCapture>
 }
 
 const CARTO_TILES: string[] = [
@@ -312,13 +338,20 @@ const selectAoiId = (feature?: MapGeoJSONFeature): string | undefined => {
   return typeof candidate === 'string' ? candidate : undefined
 }
 
-export function MapRuntimeSurface({
+export const MapRuntimeSurface = forwardRef<MapRuntimeSurfaceHandle, MapRuntimeSurfaceProps>(function MapRuntimeSurface({
   scene,
   mode,
+  marking,
+  visibleLayerCount,
   degradedBudgetCount,
   offline,
+  exportBusy = false,
+  exportBlockedReason = '',
+  latestExportArtifactId = '',
   onTelemetryChange,
-}: MapRuntimeSurfaceProps) {
+  onRequestExport,
+  onSurfaceModeFeedback,
+}, ref) {
   const planarContainerRef = useRef<HTMLDivElement | null>(null)
   const orbitalContainerRef = useRef<HTMLDivElement | null>(null)
   const mapRef = useRef<MapLibreMap | null>(null)
@@ -329,6 +362,7 @@ export function MapRuntimeSurface({
   const offlineRef = useRef<boolean>(offline)
   const sceneRef = useRef<MapRuntimeScene>(scene)
   const focusAoiRef = useRef<string>(scene.focusAoiId)
+  const surfaceModeFeedbackStartRef = useRef<number | null>(null)
   const [surfaceMode, setSurfaceMode] = useState<SurfaceMode>('planar')
   const [selectedInspectId, setSelectedInspectId] = useState<string>(scene.inspectCards[0]?.id ?? '')
   const [selectedFocusAoiId, setSelectedFocusAoiId] = useState<string>(scene.focusAoiId)
@@ -370,6 +404,75 @@ export function MapRuntimeSurface({
     }
   })
 
+  const requestSurfaceModeChange = (nextMode: SurfaceMode): void => {
+    if (nextMode === surfaceMode) {
+      return
+    }
+    surfaceModeFeedbackStartRef.current = performance.now()
+    flushSync(() => {
+      setSurfaceMode(nextMode)
+    })
+  }
+
+  useEffect(() => {
+    if (surfaceModeFeedbackStartRef.current === null) {
+      return
+    }
+    onSurfaceModeFeedback?.(
+      surfaceMode,
+      Math.round(performance.now() - surfaceModeFeedbackStartRef.current),
+    )
+    surfaceModeFeedbackStartRef.current = null
+  }, [onSurfaceModeFeedback, surfaceMode])
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      capture4kMapExport: async ({ marking: exportMarking, bundleId, visibleLayerCount: exportVisibleLayerCount }) => {
+        if (!sceneRef.current.inspectCards.length) {
+          throw new Error('Map runtime export requires at least one inspect target.')
+        }
+
+        if (surfaceMode === 'orbital') {
+          cesiumRef.current?.viewer.scene.requestRender()
+        } else {
+          mapRef.current?.triggerRepaint()
+        }
+        await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()))
+        await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()))
+
+        const selectedInspectCard =
+          sceneRef.current.inspectCards.find((card) => card.id === selectedInspectId) ??
+          sceneRef.current.inspectCards[0]
+        const sourceCanvas =
+          interactiveSupportedRef.current && surfaceMode === 'orbital'
+            ? cesiumRef.current?.viewer.canvas ?? null
+            : interactiveSupportedRef.current
+              ? mapRef.current?.getCanvas() ?? null
+              : null
+
+        return buildMapRuntimeExportCapture({
+          scene: sceneRef.current,
+          mode,
+          offline: offlineRef.current,
+          marking: exportMarking,
+          bundleId,
+          focusAoiId: selectedFocusAoiId,
+          sourceSurfaceMode: surfaceMode,
+          sourceRuntimeEngine: interactiveSupportedRef.current
+            ? surfaceMode === 'orbital'
+              ? 'cesium'
+              : 'maplibre'
+            : 'fallback',
+          visibleLayerCount: exportVisibleLayerCount,
+          selectedInspectCard,
+          sourceCanvas,
+        })
+      },
+    }),
+    [mode, selectedFocusAoiId, selectedInspectId, surfaceMode],
+  )
+
   useEffect(() => {
     onTelemetryChange?.({
       interactiveSupported: interactiveSupportedRef.current,
@@ -410,7 +513,7 @@ export function MapRuntimeSurface({
 
     try {
       const initialView = runtimeAoiView(sceneRef.current.focusAoiId)
-      const map = new maplibregl.Map({
+      const map = new maplibregl.Map(({
         container: planarContainerRef.current,
         style: createBaseStyle(),
         center: initialView.center,
@@ -420,7 +523,8 @@ export function MapRuntimeSurface({
         attributionControl: false,
         cooperativeGestures: true,
         maxPitch: 75,
-      })
+        preserveDrawingBuffer: true,
+      } as MapOptions & { preserveDrawingBuffer: boolean }))
 
       mapRef.current = map
       map.addControl(new maplibregl.NavigationControl({ showCompass: true }), 'top-right')
@@ -644,7 +748,7 @@ export function MapRuntimeSurface({
               type="button"
               className={surfaceMode === 'planar' ? 'is-active' : ''}
               aria-pressed={surfaceMode === 'planar'}
-              onClick={() => setSurfaceMode('planar')}
+              onClick={() => requestSurfaceModeChange('planar')}
             >
               2D Situation Map
             </button>
@@ -652,11 +756,23 @@ export function MapRuntimeSurface({
               type="button"
               className={surfaceMode === 'orbital' ? 'is-active' : ''}
               aria-pressed={surfaceMode === 'orbital'}
-              onClick={() => setSurfaceMode('orbital')}
+              onClick={() => requestSurfaceModeChange('orbital')}
             >
               3D Globe
             </button>
           </div>
+          <button
+            type="button"
+            className="map-runtime-export-button"
+            data-testid="map-runtime-export-button"
+            disabled={!onRequestExport || exportBusy}
+            onClick={() => {
+              void onRequestExport?.()
+            }}
+            title={exportBlockedReason || 'Export a governed 4K map image'}
+          >
+            {exportBusy ? 'Exporting 4K…' : 'Export 4K Map'}
+          </button>
           <span className={degradedBudgetCount > 0 ? 'policy-pill blocked' : 'policy-pill allowed'}>
             {degradedBudgetCount > 0 ? 'Aggregation mode active' : 'Budget-safe interaction'}
           </span>
@@ -670,6 +786,7 @@ export function MapRuntimeSurface({
               key={option.aoiId}
               type="button"
               className={selectedFocusAoiId === option.aoiId ? 'is-active' : ''}
+              aria-pressed={selectedFocusAoiId === option.aoiId}
               onClick={() => setSelectedFocusAoiId(option.aoiId)}
             >
               <strong>{option.label}</strong>
@@ -700,6 +817,7 @@ export function MapRuntimeSurface({
                   key={option.aoiId}
                   type="button"
                   className={`map-runtime-fallback-node ${selectedFocusAoiId === option.aoiId ? 'is-active' : ''}`}
+                  aria-pressed={selectedFocusAoiId === option.aoiId}
                   style={{
                     left: `${18 + index * 18}%`,
                     top: `${index % 2 === 0 ? 26 : 58}%`,
@@ -747,12 +865,13 @@ export function MapRuntimeSurface({
               </article>
             )}
 
-            <div className="map-runtime-inspect-list">
+            <div className="map-runtime-inspect-list" aria-label="Map inspect targets">
               {scene.inspectCards.map((card) => (
                 <button
                   key={card.id}
                   type="button"
                   className={selectedInspectId === card.id ? 'is-active' : ''}
+                  aria-pressed={selectedInspectId === card.id}
                   onClick={() => {
                     setSelectedInspectId(card.id)
                     setSelectedFocusAoiId(card.aoiId)
@@ -775,6 +894,7 @@ export function MapRuntimeSurface({
               key={item.id}
               type="button"
               className={toneClass(item.tone)}
+              aria-pressed={selectedInspect?.label === item.label}
               onClick={() => {
                 const inspectTarget = scene.inspectCards.find((card) => card.label === item.label)
                 if (inspectTarget) {
@@ -788,17 +908,28 @@ export function MapRuntimeSurface({
             </button>
           ))}
         </div>
-        <p className="status-line">
+        <p className="status-line" data-testid="map-runtime-provenance-strip">
+          Marking {marking} | Visible governed layers {visibleLayerCount} | Bundle-linked export
+          policy enforced
+        </p>
+        <p className="status-line" aria-label="Tone palette semantics">
           Tone palette:{' '}
           {(['evidence', 'context', 'model', 'ai', 'alert', 'support'] as const).map((tone) => (
-            <span
-              key={tone}
-              className="map-runtime-tone-dot"
-              style={{ backgroundColor: runtimeToneColor(tone) }}
-            />
+            <span key={tone} className="map-runtime-tone-key" data-testid="map-runtime-tone-key">
+              <span
+                className="map-runtime-tone-dot"
+                style={{ backgroundColor: runtimeToneColor(tone) }}
+                aria-hidden="true"
+              />
+              <span className="map-runtime-tone-label">{tone}</span>
+            </span>
           ))}
         </p>
+        {exportBlockedReason && <p className="status-line warning">{exportBlockedReason}</p>}
+        {latestExportArtifactId && !exportBlockedReason && (
+          <p className="status-line">Last 4K export: {latestExportArtifactId}</p>
+        )}
       </div>
     </section>
   )
-}
+})

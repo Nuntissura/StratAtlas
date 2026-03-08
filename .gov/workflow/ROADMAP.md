@@ -69,8 +69,10 @@ This file is the execution order for capability slices. It is the scheduling bri
 - `WP-I7-002` is now `E2E-VERIFIED`; proof: `.product/build_target/tool_artifacts/wp_runs/WP-I7-002/20260308_060255/`. It closes REQ-0801..REQ-0809 with governed packaged-domain ingestion, metadata-rich context registration, explicit auditable correlation storage, immediate recorder persistence, deterministic bundle capture/reopen, and cold/warm Tauri runtime smoke evidence for the context flow.
 - `WP-I8-002` is now `E2E-VERIFIED`; proof: `.product/build_target/tool_artifacts/wp_runs/WP-I8-002/20260308_154423/`. It closes REQ-0900..REQ-0904 with governed historical-window deviation detection, deterministic bundle replay, map-linked deviation projection, scenario constraint-node propagation, and cold/warm Tauri runtime smoke evidence.
 - `WP-I9-002` is now `E2E-VERIFIED`; proof: `.product/build_target/tool_artifacts/wp_runs/WP-I9-002/20260308_170238/`. It closes REQ-1000..REQ-1003 with governed connector-backed aggregate AOI alert evaluation, deterministic bundle reopen, map-linked alert projection, and cold/warm Tauri runtime smoke evidence.
-- `WP-I10-002` is now `IN-PROGRESS`. It replaces the remaining local arithmetic strategic-model solve path with a governed backend runtime, persisted solver traces, reproducible experiment bundles, and packet-specific Tauri runtime smoke proof.
-- The current blocking implementation packet is now `WP-I10-002`.
+- `WP-I10-002` is now `E2E-VERIFIED`. It replaces the remaining local arithmetic strategic-model solve path with a governed backend runtime, persisted solver traces, reproducible experiment bundles, and packet-specific cold/warm Tauri runtime smoke proof.
+- The I0-I10 remediation queue is now fully `E2E-VERIFIED`. Remaining blockers are cross-cutting gate debts in startup/performance, export timing, accessibility, and macOS portability evidence.
+- `WP-I1-004` is now `IN-PROGRESS`. It is the current blocking packet for Gate E and the remaining reference-runtime evidence on `REQ-0014`, `REQ-0015`, `REQ-0016`, `REQ-0206`, `REQ-0207`, `REQ-0208`, `REQ-0209`, `REQ-0210`, and `REQ-0212`.
+- `WP-GOV-PORT-002` is now `SPEC-MAPPED` as the successor verification packet for `REQ-0018` and `GATE-H` once `WP-I1-004` closes.
 
 ---
 
@@ -118,5 +120,6 @@ In parallel with iteration delivery, maintain governance control packets:
 - `WP-GOV-I1-RESEARCH-001`: `E2E-VERIFIED` I1-specific governance packet for map-runtime research capture, feature-to-map integration, and source-backed runtime design direction before `WP-I1-003`; proof: `.product/build_target/tool_artifacts/wp_runs/WP-GOV-I1-RESEARCH-001/20260307_031932/`.
 - `WP-GOV-INSTALLER-002`: E2E-VERIFIED follow-on packet for version-parity and release-surface alignment after governance closeout.
 - `WP-GOV-DEPTH-001`: `E2E-VERIFIED` governance packet upgrading the packet template, generator, compliance rules, extraction snapshots, and root instructions so breadth-first work stays explicit while only real seams can advance delivery claims; proof: `.product/build_target/tool_artifacts/wp_runs/WP-GOV-DEPTH-001/20260308_042222/`.
+- `WP-GOV-PORT-002`: `SPEC-MAPPED` follow-on verification packet that will close macOS runtime smoke and Gate H portability evidence after `WP-I1-004`.
 
 Governance control packets are complete only when preflight and template-compliance checks pass with linked artifacts.

@@ -7,7 +7,7 @@ import {
 } from 'node:fs'
 import { access, readFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
-import { dirname, join, resolve } from 'node:path'
+import { basename, dirname, join, resolve } from 'node:path'
 import process from 'node:process'
 
 const scriptDir = dirname(fileURLToPath(import.meta.url))
@@ -156,6 +156,7 @@ const writePhaseSummary = (phase, report, auditEvents, phaseDir) => {
     `# Runtime Smoke - ${phase}`,
     '',
     `- Startup Ms: ${report.startupMs}`,
+    `- Flow Duration Ms: ${report.flowDurationMs}`,
     `- Selected Bundle: ${report.selectedBundleId ?? 'none'}`,
     `- Offline: ${report.offline}`,
     `- Degraded Budgets: ${report.degradedBudgetCount}`,
@@ -173,6 +174,7 @@ const writePhaseSummary = (phase, report, auditEvents, phaseDir) => {
     `- Map Inspect Count: ${report.mapInspectCount}`,
     `- Map Runtime Error: ${report.mapRuntimeError ?? 'none'}`,
     `- Map OSINT Projection: ${report.mapOsintInspectVisible}`,
+    `- Map Model Projection: ${report.mapModelInspectVisible}`,
     `- Require Live AI: ${report.requireLiveAi}`,
     `- Require MCP: ${report.requireMcp}`,
     `- OSINT Source Mode: ${report.osintSourceMode ?? 'none'}`,
@@ -182,6 +184,10 @@ const writePhaseSummary = (phase, report, auditEvents, phaseDir) => {
     `- OSINT Event Count: ${report.osintEventCount}`,
     `- OSINT Threshold Ref Count: ${report.osintThresholdRefCount}`,
     `- OSINT Deviation Event: ${report.osintDeviationEventId ?? 'none'}`,
+    `- Game Solver Runtime: ${report.gameSolverRuntime ?? 'none'}`,
+    `- Game Solver Run: ${report.gameLatestRunId ?? 'none'}`,
+    `- Game Experiment Bundle: ${report.gameExperimentBundleId ?? 'none'}`,
+    `- Game Scenario Evaluation Count: ${report.gameScenarioEvaluationCount}`,
     `- AI Provider: ${report.aiProviderLabel}`,
     `- AI Provider Runtime: ${report.aiProviderRuntime}`,
     `- AI Provider Available: ${report.aiProviderAvailable}`,
@@ -193,6 +199,9 @@ const writePhaseSummary = (phase, report, auditEvents, phaseDir) => {
     `- MCP Invocation Status: ${report.mcpInvocationStatus ?? 'none'}`,
     `- MCP Tool: ${report.mcpToolName ?? 'none'}`,
     `- Scenario Export Artifact: ${report.scenarioExportArtifactId ?? 'none'}`,
+    `- Briefing Artifact: ${report.briefingArtifactId ?? 'none'}`,
+    `- Map Export Artifact: ${report.mapExportArtifactId ?? 'none'}`,
+    `- Map Export PNG: ${report.mapExportPngPath ?? 'none'}`,
     `- Audit Events: ${auditEvents.length}`,
     '',
     '| Assertion | Passed | Detail |',
@@ -333,6 +342,71 @@ const validatePhase = async (phase, phaseDir, logPath) => {
       throw new Error(`Governed OSINT aggregate evidence was incomplete for ${phase}`)
     }
   }
+  if (wpId === 'WP-I10-002') {
+    const requiredI10Assertions = [
+      'governed_solver_executed',
+      'governed_solver_bundle_restore',
+      'strategic_trace_recorded',
+      'model_map_projection',
+    ]
+    for (const assertionId of requiredI10Assertions) {
+      const assertion = report.assertions.find((entry) => entry.id === assertionId)
+      if (!assertion || !assertion.passed) {
+        throw new Error(`Missing governed strategic runtime evidence ${assertionId} for ${phase}`)
+      }
+    }
+    if (!observedAuditTypes.has('game_model.solver_run')) {
+      throw new Error(`Missing game_model.solver_run audit evidence for ${phase}`)
+    }
+    if (
+      report.gameSolverRuntime !== 'tauri-governed' ||
+      !report.gameLatestRunId ||
+      !report.gameExperimentBundleId ||
+      report.gameScenarioEvaluationCount < 1 ||
+      !report.mapModelInspectVisible
+    ) {
+      throw new Error(`Governed strategic modeling runtime evidence was incomplete for ${phase}`)
+    }
+  }
+  if (wpId === 'WP-I1-004') {
+    const requiredI1Assertions = [
+      'map_accessibility_controls',
+      'non_color_semantics_present',
+      'briefing_artifact_surface',
+      'map_4k_export_surface',
+    ]
+    for (const assertionId of requiredI1Assertions) {
+      const assertion = report.assertions.find((entry) => entry.id === assertionId)
+      if (!assertion || !assertion.passed) {
+        throw new Error(`Missing I1 runtime evidence ${assertionId} for ${phase}`)
+      }
+    }
+    if (!report.briefingArtifactId) {
+      throw new Error(`Missing briefing artifact evidence for ${phase}`)
+    }
+    if (!report.mapExportArtifactId || !report.mapExportPngPath || !report.mapExportMetadataPath) {
+      throw new Error(`Missing 4K map export artifact evidence for ${phase}`)
+    }
+    const mapExportProofPath = join(
+      phaseDir,
+      'runtime_proof',
+      'map_exports',
+      basename(report.mapExportPngPath),
+    )
+    const mapExportMetadataProofPath = join(
+      phaseDir,
+      'runtime_proof',
+      'map_exports',
+      basename(report.mapExportMetadataPath),
+    )
+    if (!existsSync(mapExportProofPath) || !existsSync(mapExportMetadataProofPath)) {
+      throw new Error(`Runtime proof did not copy the 4K map export artifact for ${phase}`)
+    }
+    const mapExportMetric = report.metrics.find((metric) => metric.label === '4K map export')
+    if (!mapExportMetric || mapExportMetric.passed !== true) {
+      throw new Error(`4K map export timing budget failed for ${phase}`)
+    }
+  }
   if (report.requireLiveAi) {
     if (report.aiProviderRuntime !== 'tauri-live' || !report.aiProviderAvailable) {
       throw new Error(`Live AI provider was not available for ${phase}`)
@@ -370,9 +444,12 @@ const validatePhase = async (phase, phaseDir, logPath) => {
     auditLogPath,
     bundleManifestPath,
     startupMs: report.startupMs,
+    flowDurationMs: report.flowDurationMs,
     aiArtifactId: report.aiArtifactId ?? null,
     mcpToolName: report.mcpToolName ?? null,
     scenarioExportArtifactId: report.scenarioExportArtifactId ?? null,
+    briefingArtifactId: report.briefingArtifactId ?? null,
+    mapExportArtifactId: report.mapExportArtifactId ?? null,
   }
 }
 
@@ -451,15 +528,17 @@ const main = async () => {
     `- Require Live AI: ${requireLiveAi}`,
     `- Require MCP: ${requireMcp}`,
     '',
-    '| Phase | Startup Ms | AI Artifact | MCP Tool | Export Artifact | Report | Audit Log | Bundle Manifest |',
-    '|-------|------------|-------------|----------|-----------------|--------|-----------|----------------|',
+    '| Phase | Startup Ms | Flow Duration Ms | AI Artifact | MCP Tool | Scenario Export | Briefing Artifact | Map Export | Report | Audit Log | Bundle Manifest |',
+    '|-------|------------|------------------|-------------|----------|-----------------|------------------|-----------|--------|-----------|----------------|',
     ...phaseSummaries.map(
       (phase) =>
-        `| ${phase.phase} | ${phase.startupMs} | ${phase.aiArtifactId ?? 'none'} | ${
+        `| ${phase.phase} | ${phase.startupMs} | ${phase.flowDurationMs} | ${phase.aiArtifactId ?? 'none'} | ${
           phase.mcpToolName ?? 'none'
-        } | ${phase.scenarioExportArtifactId ?? 'none'} | ${phase.reportPath} | ${phase.auditLogPath} | ${
-          phase.bundleManifestPath
-        } |`,
+        } | ${phase.scenarioExportArtifactId ?? 'none'} | ${phase.briefingArtifactId ?? 'none'} | ${
+          phase.mapExportArtifactId ?? 'none'
+        } | ${
+          phase.reportPath
+        } | ${phase.auditLogPath} | ${phase.bundleManifestPath} |`,
     ),
   ]
   writeFileSync(join(artifactRoot, 'runtime_smoke_summary.md'), summaryLines.join('\n'), 'utf8')

@@ -264,6 +264,11 @@ export const initializeCesiumRuntime = async ({
     requestRenderMode: true,
     scene3DOnly: true,
     terrain: undefined,
+    contextOptions: {
+      webgl: {
+        preserveDrawingBuffer: true,
+      },
+    },
   })
 
   configureViewer(viewer, Cesium)

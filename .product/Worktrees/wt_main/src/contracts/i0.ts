@@ -183,6 +183,43 @@ export interface QueryContextRecordsResult {
   source: 'control_plane' | 'fallback'
 }
 
+export type RuntimeMapSurfaceMode = 'planar' | 'orbital'
+
+export type RuntimeMapEngine = 'fallback' | 'maplibre' | 'cesium'
+
+export interface WriteMapExportArtifactRequest {
+  artifactId: string
+  fileName: string
+  pngBytes: number[]
+  marking: SensitivityMarking
+  bundleId?: string
+  focusAoiId: string
+  surfaceMode: RuntimeMapSurfaceMode
+  runtimeEngine: RuntimeMapEngine
+  width: number
+  height: number
+  generatedAt: string
+  visibleLayerCount: number
+}
+
+export interface MapExportArtifact {
+  artifactId: string
+  fileName: string
+  pngPath: string
+  metadataPath: string
+  sha256: string
+  sizeBytes: number
+  width: number
+  height: number
+  generatedAt: string
+  marking: SensitivityMarking
+  bundleId?: string
+  focusAoiId: string
+  surfaceMode: RuntimeMapSurfaceMode
+  runtimeEngine: RuntimeMapEngine
+  visibleLayerCount: number
+}
+
 export type RuntimeSmokePhase = 'cold' | 'warm'
 
 export interface RuntimeSmokeWindowSnapshot {
@@ -213,6 +250,7 @@ export interface RuntimeSmokeReport {
   phase: RuntimeSmokePhase
   capturedAt: string
   startupMs: number
+  flowDurationMs: number
   window: RuntimeSmokeWindowSnapshot
   mode: UiMode
   selectedBundleId?: string
@@ -223,18 +261,24 @@ export interface RuntimeSmokeReport {
   status: string
   integrityState: string
   scenarioExportArtifactId?: string
+  briefingArtifactId?: string
+  mapExportArtifactId?: string
+  mapExportPngPath?: string
+  mapExportMetadataPath?: string
+  mapExportSha256?: string
   auditEventCount: number
   platform: string
   mapRuntimeVisible: boolean
   mapRuntimeInteractive: boolean
-  mapSurfaceMode: 'planar' | 'orbital'
-  mapRuntimeEngine: 'fallback' | 'maplibre' | 'cesium'
+  mapSurfaceMode: RuntimeMapSurfaceMode
+  mapRuntimeEngine: RuntimeMapEngine
   mapPlanarReady: boolean
   mapOrbitalReady: boolean
   mapFocusAoiId: string
   mapInspectCount: number
   mapRuntimeError?: string
   mapOsintInspectVisible: boolean
+  mapModelInspectVisible: boolean
   activeContextDomainCount: number
   contextRecordCount: number
   correlationAoi: string
@@ -246,6 +290,10 @@ export interface RuntimeSmokeReport {
   osintEventCount: number
   osintThresholdRefCount: number
   osintDeviationEventId?: string
+  gameSolverRuntime?: string
+  gameLatestRunId?: string
+  gameExperimentBundleId?: string
+  gameScenarioEvaluationCount: number
   requireLiveAi: boolean
   requireMcp: boolean
   aiProviderLabel: string

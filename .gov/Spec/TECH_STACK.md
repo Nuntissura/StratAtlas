@@ -2,7 +2,7 @@
 
 **Spec Version:** v1.2.4  
 **Last Updated:** 2026-03-08  
-**Status:** This document defines the governed target architecture. As of 2026-03-08, `.product/Worktrees/wt_main` has `E2E-VERIFIED` governed desktop proof for the control-plane backbone (`WP-I0-003`), the real MapLibre/Cesium runtime surface (`WP-I1-003`), comparative analytics and briefing runtime (`WP-I2-003`), DuckDB-backed query execution (`WP-I5-002`), and the live AI gateway plus audited MCP runtime (`WP-I6-002`), while later normative runtime integrations remain queued under `WP-I7-002`, `WP-I8-002`, `WP-I9-002`, and `WP-I10-002`.
+**Status:** This document defines the governed target architecture. As of 2026-03-08, `.product/Worktrees/wt_main` has `E2E-VERIFIED` governed desktop proof for the control-plane backbone (`WP-I0-003`), the real MapLibre/Cesium runtime surface (`WP-I1-003`), comparative analytics and briefing runtime (`WP-I2-003`), DuckDB-backed query execution (`WP-I5-002`), the live AI gateway plus audited MCP runtime (`WP-I6-002`), governed context ingestion (`WP-I7-002`), governed deviation detection (`WP-I8-002`), governed curated connector alerts (`WP-I9-002`), and the solver-backed strategic modeling runtime (`WP-I10-002`). Remaining open debt is now cross-cutting gate evidence in startup/performance, export timing, accessibility, and macOS portability rather than missing I0-I10 runtime seams.
 
 ---
 

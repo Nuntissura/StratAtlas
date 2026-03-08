@@ -191,6 +191,83 @@ struct QueryContextRecordsResult {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+struct WriteMapExportArtifactRequest {
+  artifact_id: String,
+  file_name: String,
+  png_bytes: Vec<u8>,
+  marking: String,
+  bundle_id: Option<String>,
+  focus_aoi_id: String,
+  surface_mode: String,
+  runtime_engine: String,
+  width: u32,
+  height: u32,
+  generated_at: String,
+  visible_layer_count: usize,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct MapExportArtifact {
+  artifact_id: String,
+  file_name: String,
+  png_path: String,
+  metadata_path: String,
+  sha256: String,
+  size_bytes: u64,
+  width: u32,
+  height: u32,
+  generated_at: String,
+  marking: String,
+  bundle_id: Option<String>,
+  focus_aoi_id: String,
+  surface_mode: String,
+  runtime_engine: String,
+  visible_layer_count: usize,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct StrategicSolverRequest {
+  role: String,
+  snapshot: Value,
+  #[serde(alias = "bundle_refs")]
+  bundle_refs: Vec<String>,
+  #[serde(alias = "linked_scenario_ids")]
+  linked_scenario_ids: Vec<String>,
+  #[serde(default)]
+  #[serde(alias = "context_targets")]
+  context_targets: Vec<String>,
+  #[serde(default)]
+  #[serde(alias = "context_record_ids")]
+  context_record_ids: Vec<String>,
+  #[serde(default)]
+  #[serde(alias = "context_domain_ids")]
+  context_domain_ids: Vec<String>,
+  #[serde(default)]
+  #[serde(alias = "correlation_target_ids")]
+  correlation_target_ids: Vec<String>,
+  #[serde(default)]
+  #[serde(alias = "threshold_ref_ids")]
+  threshold_ref_ids: Vec<String>,
+  #[serde(alias = "deviation_event_id")]
+  deviation_event_id: Option<String>,
+  #[serde(alias = "osint_alert_id")]
+  osint_alert_id: Option<String>,
+  #[serde(alias = "executed_at")]
+  executed_at: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct StrategicSolverResult {
+  runtime: String,
+  snapshot: Value,
+  audit_event_id: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 struct AiGatewayProviderStatus {
   runtime: String,
   available: bool,
@@ -266,6 +343,7 @@ struct RuntimeSmokeReport {
   phase: RuntimeSmokePhase,
   captured_at: String,
   startup_ms: u64,
+  flow_duration_ms: u64,
   window: RuntimeSmokeWindowSnapshot,
   mode: String,
   selected_bundle_id: Option<String>,
@@ -276,6 +354,11 @@ struct RuntimeSmokeReport {
   status: String,
   integrity_state: String,
   scenario_export_artifact_id: Option<String>,
+  briefing_artifact_id: Option<String>,
+  map_export_artifact_id: Option<String>,
+  map_export_png_path: Option<String>,
+  map_export_metadata_path: Option<String>,
+  map_export_sha256: Option<String>,
   audit_event_count: usize,
   platform: String,
   map_runtime_visible: bool,
@@ -288,6 +371,7 @@ struct RuntimeSmokeReport {
   map_inspect_count: usize,
   map_runtime_error: Option<String>,
   map_osint_inspect_visible: bool,
+  map_model_inspect_visible: bool,
   active_context_domain_count: usize,
   context_record_count: usize,
   correlation_aoi: String,
@@ -299,6 +383,10 @@ struct RuntimeSmokeReport {
   osint_event_count: usize,
   osint_threshold_ref_count: usize,
   osint_deviation_event_id: Option<String>,
+  game_solver_runtime: Option<String>,
+  game_latest_run_id: Option<String>,
+  game_experiment_bundle_id: Option<String>,
+  game_scenario_evaluation_count: usize,
   require_live_ai: bool,
   require_mcp: bool,
   ai_provider_label: String,
@@ -838,6 +926,13 @@ fn state_dir(app: &AppHandle) -> CommandResult<PathBuf> {
   Ok(path)
 }
 
+fn exports_dir(app: &AppHandle) -> CommandResult<PathBuf> {
+  let path = app_runtime_root(app)?.join("exports");
+  fs::create_dir_all(&path)
+    .map_err(|error| format!("Failed to create exports directory {}: {error}", path.display()))?;
+  Ok(path)
+}
+
 fn audit_head_path(app: &AppHandle) -> CommandResult<PathBuf> {
   Ok(audit_dir(app)?.join("audit_head.json"))
 }
@@ -1194,6 +1289,512 @@ fn value_string_field(value: &Value, key: &str, label: &str) -> CommandResult<St
     .and_then(Value::as_str)
     .map(ToString::to_string)
     .ok_or_else(|| format!("Missing {key} string in {label}"))
+}
+
+fn value_number(value: Option<&Value>, fallback: f64) -> f64 {
+  value
+    .and_then(|entry| {
+      entry
+        .as_f64()
+        .or_else(|| entry.as_i64().map(|inner| inner as f64))
+        .or_else(|| entry.as_u64().map(|inner| inner as f64))
+    })
+    .unwrap_or(fallback)
+}
+
+fn value_string_array_from_entry(value: Option<&Value>) -> Vec<String> {
+  value
+    .and_then(Value::as_array)
+    .map(|entries| {
+      entries
+        .iter()
+        .filter_map(Value::as_str)
+        .filter(|entry| !entry.trim().is_empty())
+        .map(ToString::to_string)
+        .collect::<Vec<_>>()
+    })
+    .unwrap_or_default()
+}
+
+fn strategic_jitter(seed: &str) -> f64 {
+  let hash = sha256_hex(seed.as_bytes());
+  let byte = u8::from_str_radix(&hash[..2], 16).unwrap_or(0);
+  (f64::from(byte % 7)) - 3.0
+}
+
+fn strategic_action_score(
+  action: &Value,
+  scenario_nodes: &[Value],
+  method: &str,
+  context_record_count: usize,
+  threshold_ref_count: usize,
+  deviation_present: bool,
+  objective_weight: f64,
+  random_seed: i64,
+) -> f64 {
+  let decision_count = scenario_nodes
+    .iter()
+    .filter(|node| node.get("node_type").and_then(Value::as_str) == Some("decision"))
+    .count() as f64;
+  let chance_count = scenario_nodes
+    .iter()
+    .filter(|node| node.get("node_type").and_then(Value::as_str) == Some("chance"))
+    .count() as f64;
+  let information_count = scenario_nodes
+    .iter()
+    .filter(|node| node.get("node_type").and_then(Value::as_str) == Some("information_set"))
+    .count() as f64;
+  let method_modifier = match method {
+    "best_response" => 4.0,
+    "equilibrium_exploration" => 2.0,
+    _ => 1.0,
+  };
+  let category = action
+    .get("category")
+    .and_then(Value::as_str)
+    .unwrap_or("policy");
+  let action_id = action
+    .get("action_id")
+    .and_then(Value::as_str)
+    .unwrap_or("action-unknown");
+  let category_weight = match category {
+    "logistics" => (context_record_count as f64 * 1.8) + if deviation_present { 9.5 } else { 2.0 },
+    "policy" => (information_count * 3.4) + (objective_weight * 5.0),
+    _ => (threshold_ref_count as f64 * 2.8) + (chance_count * 1.4),
+  };
+  58.0
+    + (objective_weight * 20.0)
+    + (decision_count * 3.5)
+    + (information_count * 2.5)
+    - (chance_count * 1.3)
+    + category_weight
+    + method_modifier
+    + strategic_jitter(&format!("{action_id}:{method}:{random_seed}"))
+}
+
+fn run_governed_strategic_solver(request: &StrategicSolverRequest) -> CommandResult<Value> {
+  if !is_valid_role(&request.role) {
+    return Err(format!("Invalid role: {}", request.role));
+  }
+
+  let mut snapshot = request.snapshot.clone();
+  let snapshot_object = snapshot
+    .as_object_mut()
+    .ok_or_else(|| "Strategic solver snapshot must be a JSON object".to_string())?;
+  let model_value = snapshot_object
+    .get("model")
+    .cloned()
+    .ok_or_else(|| "Strategic solver snapshot missing model".to_string())?;
+  let model_object = model_value
+    .as_object()
+    .ok_or_else(|| "Strategic solver model must be a JSON object".to_string())?;
+
+  let actors = model_object
+    .get("actors")
+    .and_then(Value::as_array)
+    .cloned()
+    .ok_or_else(|| "Strategic model missing actors".to_string())?;
+  let objectives = model_object
+    .get("objectives")
+    .and_then(Value::as_array)
+    .cloned()
+    .ok_or_else(|| "Strategic model missing objectives".to_string())?;
+  let actions = model_object
+    .get("actions")
+    .and_then(Value::as_array)
+    .cloned()
+    .ok_or_else(|| "Strategic model missing actions".to_string())?;
+  let assumptions = value_string_array_from_entry(model_object.get("assumptions"));
+  let nodes = snapshot_object
+    .get("scenario_tree")
+    .and_then(Value::as_object)
+    .ok_or_else(|| "Strategic solver snapshot missing scenario_tree".to_string())?
+    .get("nodes")
+    .and_then(Value::as_array)
+    .cloned()
+    .unwrap_or_default();
+  let game_id = value_string_field(&model_value, "game_id", "game model")?;
+  let model_name = value_string_field(&model_value, "name", "game model")?;
+  let game_type = value_string_field(&model_value, "game_type", "game model")?;
+  let current_version = value_number(model_object.get("version"), 1.0).round() as i64;
+  let updated_at_fallback = model_object
+    .get("updated_at")
+    .and_then(Value::as_str)
+    .map(ToString::to_string);
+
+  for actor in &actors {
+    let actor_type = actor.get("actor_type").and_then(Value::as_str).unwrap_or("");
+    if !matches!(actor_type, "state" | "bloc" | "institution" | "industry_coalition") {
+      return Err(format!("Unsupported strategic actor type: {actor_type}"));
+    }
+  }
+
+  for action in &actions {
+    let category = action.get("category").and_then(Value::as_str).unwrap_or("");
+    if !matches!(category, "policy" | "logistics" | "signaling") {
+      return Err(format!("Unsupported strategic action category: {category}"));
+    }
+  }
+
+  let solver_config_value = model_object
+    .get("solver_config")
+    .and_then(Value::as_object)
+    .cloned()
+    .unwrap_or_default();
+  let method = solver_config_value
+    .get("method")
+    .and_then(Value::as_str)
+    .filter(|value| {
+      matches!(
+        *value,
+        "best_response" | "equilibrium_exploration" | "minimax_regret"
+      )
+    })
+    .unwrap_or("best_response")
+    .to_string();
+  let random_seed = value_number(solver_config_value.get("random_seed"), 17.0).round() as i64;
+  let monte_carlo_samples =
+    value_number(solver_config_value.get("monte_carlo_samples"), 12.0).round() as i64;
+  let iteration_limit = value_number(solver_config_value.get("iteration_limit"), 25.0).round() as i64;
+  let parameter_range_notes = value_string_array_from_entry(solver_config_value.get("parameter_range_notes"));
+
+  let bundle_refs = if request.bundle_refs.is_empty() {
+    value_string_array_from_entry(model_object.get("bundle_refs"))
+  } else {
+    request.bundle_refs.clone()
+  };
+  if bundle_refs.is_empty() {
+    return Err("Strategic solver requires at least one governed bundle reference".to_string());
+  }
+
+  let mut scenario_ids = if request.linked_scenario_ids.is_empty() {
+    snapshot_object
+      .get("selected_scenario_id")
+      .and_then(Value::as_str)
+      .map(|value| vec![value.to_string()])
+      .unwrap_or_default()
+  } else {
+    request.linked_scenario_ids.clone()
+  };
+  if scenario_ids.is_empty() {
+    let mut discovered = nodes
+      .iter()
+      .filter_map(|node| node.get("scenario_fork_id").and_then(Value::as_str))
+      .map(ToString::to_string)
+      .collect::<Vec<_>>();
+    discovered.sort();
+    discovered.dedup();
+    scenario_ids = if discovered.is_empty() {
+      vec!["scenario-default".to_string()]
+    } else {
+      discovered
+    };
+  }
+
+  let objective_weight = objectives
+    .iter()
+    .map(|objective| value_number(objective.get("weight"), 0.0))
+    .sum::<f64>();
+  let context_record_count = request.context_record_ids.len();
+  let threshold_ref_count = request.threshold_ref_ids.len();
+  let deviation_present = request.deviation_event_id.is_some();
+  let osint_present = request.osint_alert_id.is_some();
+
+  let scenario_evaluations = scenario_ids
+    .iter()
+    .map(|scenario_id| {
+      let scenario_nodes = nodes
+        .iter()
+        .filter(|node| {
+          scenario_id == "scenario-default"
+            || node
+              .get("scenario_fork_id")
+              .and_then(Value::as_str)
+              .map(|value| value == scenario_id)
+              .unwrap_or(false)
+        })
+        .cloned()
+        .collect::<Vec<_>>();
+      let active_nodes = if scenario_nodes.is_empty() {
+        nodes.clone()
+      } else {
+        scenario_nodes
+      };
+      let decision_count = active_nodes
+        .iter()
+        .filter(|node| node.get("node_type").and_then(Value::as_str) == Some("decision"))
+        .count();
+      let chance_count = active_nodes
+        .iter()
+        .filter(|node| node.get("node_type").and_then(Value::as_str) == Some("chance"))
+        .count();
+      let information_set_count = active_nodes
+        .iter()
+        .filter(|node| node.get("node_type").and_then(Value::as_str) == Some("information_set"))
+        .count();
+      let mut action_scores = actions
+        .iter()
+        .map(|action| {
+          let score = strategic_action_score(
+            action,
+            &active_nodes,
+            &method,
+            context_record_count,
+            threshold_ref_count,
+            deviation_present,
+            objective_weight,
+            random_seed,
+          );
+          (action.clone(), score)
+        })
+        .collect::<Vec<_>>();
+      action_scores.sort_by(|left, right| right.1.partial_cmp(&left.1).unwrap());
+      let best_score = action_scores.first().map(|(_, score)| *score).unwrap_or(0.0);
+      let next_score = action_scores.get(1).map(|(_, score)| *score).unwrap_or(best_score);
+      let recommended_action_id = action_scores
+        .first()
+        .and_then(|(action, _)| action.get("action_id"))
+        .and_then(Value::as_str)
+        .map(ToString::to_string);
+      let evaluation_evidence_refs = bundle_refs
+        .iter()
+        .cloned()
+        .chain(request.context_record_ids.iter().take(4).cloned())
+        .collect::<Vec<_>>();
+      json!({
+        "scenario_id": scenario_id,
+        "node_ids": active_nodes.iter().filter_map(|node| node.get("node_id").and_then(Value::as_str)).collect::<Vec<_>>(),
+        "decision_count": decision_count,
+        "chance_count": chance_count,
+        "information_set_count": information_set_count,
+        "context_record_count": context_record_count,
+        "aggregate_score": (best_score * 100.0).round() / 100.0,
+        "regret_score": ((best_score - next_score).max(0.0) * 100.0).round() / 100.0,
+        "recommended_action_id": recommended_action_id,
+        "evidence_refs": evaluation_evidence_refs,
+        "context_domain_ids": request.context_domain_ids,
+        "correlation_target_ids": request.correlation_target_ids,
+        "deviation_event_id": request.deviation_event_id,
+        "osint_alert_id": request.osint_alert_id,
+        "detail": format!("{method} evaluated {} node(s) and {} action(s) for {scenario_id}.", active_nodes.len(), actions.len()),
+      })
+    })
+    .collect::<Vec<_>>();
+
+  let dominant_scenario_score = scenario_evaluations
+    .iter()
+    .filter_map(|entry| entry.get("aggregate_score").and_then(Value::as_f64))
+    .fold(0.0, f64::max);
+  let base_value = (72.0
+    + actors.len() as f64 * 9.0
+    + actions.len() as f64 * 6.0
+    + objective_weight * 24.0
+    + dominant_scenario_score
+    + if osint_present { 3.0 } else { 0.0 }
+    + (random_seed.rem_euclid(11) as f64))
+    .round() as i64;
+  let spread = std::cmp::max(8, (monte_carlo_samples / 2).max(1));
+  let throughput_uncertainty = [base_value - spread, base_value + spread];
+  let policy_uncertainty = [
+    base_value - 12 - std::cmp::max(6, spread - 2),
+    base_value - 12 + std::cmp::max(6, spread - 2),
+  ];
+  let payoff_basis = bundle_refs
+    .iter()
+    .cloned()
+    .chain(scenario_ids.iter().cloned())
+    .collect::<Vec<_>>();
+  let payoffs = vec![
+    json!({
+      "metric": "throughput_resilience",
+      "value": base_value,
+      "uncertainty": throughput_uncertainty,
+      "label": "Modeled Output",
+      "basis": payoff_basis,
+      "non_operational_notice": "Modeled/interpretive only; not operational direction.",
+    }),
+    json!({
+      "metric": "policy_cohesion",
+      "value": base_value - 12,
+      "uncertainty": policy_uncertainty,
+      "label": "Modeled Output",
+      "basis": [game_type.clone(), method.clone()],
+      "non_operational_notice": "Modeled/interpretive only; not operational direction.",
+    }),
+  ];
+
+  let mut sensitivity_ranking = assumptions
+    .iter()
+    .enumerate()
+    .map(|(index, assumption)| {
+      (
+        assumption.clone(),
+        assumption.len() as i64 + ((assumptions.len() - index) as i64 * 3),
+      )
+    })
+    .collect::<Vec<_>>();
+  sensitivity_ranking.sort_by(|left, right| right.1.cmp(&left.1));
+  let sensitivity_ranking = sensitivity_ranking
+    .into_iter()
+    .take(3)
+    .enumerate()
+    .map(|(index, (assumption, _))| format!("{}. {}", index + 1, assumption))
+    .collect::<Vec<_>>();
+
+  let evidence = json!({
+    "bundle_refs": bundle_refs,
+    "context_targets": request.context_targets,
+    "context_record_ids": request.context_record_ids,
+    "context_domain_ids": request.context_domain_ids,
+    "correlation_target_ids": request.correlation_target_ids,
+    "threshold_ref_ids": request.threshold_ref_ids,
+    "deviation_event_id": request.deviation_event_id,
+    "osint_alert_id": request.osint_alert_id,
+  });
+  let sweep = json!({
+    "parameter_name": "throughput_multiplier",
+    "sampled_values": [0.85, 1.0, 1.15],
+    "outcome_spread": [
+      base_value - 9,
+      base_value,
+      base_value + 7
+    ],
+    "sensitivity_ranking": sensitivity_ranking,
+    "monte_carlo_samples": monte_carlo_samples,
+  });
+  let voi = json!({
+    "target": request.context_targets.first().cloned().unwrap_or_else(|| "Throughput coverage".to_string()),
+    "recommendation": format!(
+      "Increase governed evidence coverage for {} before treating this model as stable.",
+      request.context_targets.first().cloned().unwrap_or_else(|| "throughput coverage".to_string())
+    ),
+    "uncertainty_reduction_pct": std::cmp::min(35, 12 + scenario_ids.len() as i64 * 4),
+    "rationale": "Highest leverage comes from reducing uncertainty in the leading modeled branch.",
+  });
+
+  let solver_runs = snapshot_object
+    .get("solver_runs")
+    .and_then(Value::as_array)
+    .cloned()
+    .unwrap_or_default();
+  let executed_at = request
+    .executed_at
+    .clone()
+    .or(updated_at_fallback)
+    .unwrap_or_else(|| Utc::now().to_rfc3339());
+  let run_id = format!("solver-run-{}", solver_runs.len() + 1);
+  let existing_solver_run_ids = solver_runs
+    .iter()
+    .filter_map(|run| run.get("run_id").and_then(Value::as_str))
+    .map(ToString::to_string)
+    .collect::<Vec<_>>();
+  let existing_solver_methods = solver_runs
+    .iter()
+    .filter_map(|run| run.get("method").and_then(Value::as_str))
+    .map(ToString::to_string)
+    .collect::<Vec<_>>();
+  let existing_random_seeds = solver_runs
+    .iter()
+    .filter_map(|run| run.get("random_seed").and_then(Value::as_i64))
+    .collect::<Vec<_>>();
+  let run_payload = json!({
+    "game_id": game_id,
+    "runtime": "tauri-governed",
+    "method": method,
+    "random_seed": random_seed,
+    "monte_carlo_samples": monte_carlo_samples,
+    "bundle_refs": bundle_refs,
+    "linked_scenario_ids": scenario_ids,
+    "payoffs": payoffs,
+    "sweep": sweep,
+    "voi": voi,
+    "evidence": evidence,
+    "scenario_evaluations": scenario_evaluations,
+  });
+  let result_manifest_hash = sha256_hex(&canonical_json_bytes(&run_payload)?);
+  let solver_run = json!({
+    "run_id": run_id,
+    "game_id": game_id,
+    "executed_at": executed_at,
+    "runtime": "tauri-governed",
+    "method": method,
+    "random_seed": random_seed,
+    "monte_carlo_samples": monte_carlo_samples,
+    "input_bundle_refs": bundle_refs,
+    "linked_scenario_ids": scenario_ids,
+    "payoff_proxies": payoffs,
+    "sensitivity_ranking": sensitivity_ranking,
+    "scenario_evaluations": scenario_evaluations,
+    "evidence": evidence,
+    "trace_summary": format!("{} scenario evaluation(s) captured via tauri-governed runtime.", scenario_ids.len()),
+    "robust_summary": format!("{method} run with seed {random_seed} and iteration limit {iteration_limit} evaluated {} scenario branch set(s).", scenario_ids.len()),
+    "result_manifest_hash": result_manifest_hash,
+    "artifact_label": "Modeled Output",
+    "non_operational_notice": "Modeled/interpretive only; not operational direction.",
+  });
+  let trace_manifest_hash = sha256_hex(&canonical_json_bytes(&json!({
+    "scenario_evaluations": scenario_evaluations,
+    "evidence": evidence,
+    "runtime": "tauri-governed",
+  }))?);
+  let mut solver_run_ids = existing_solver_run_ids;
+  solver_run_ids.push(run_id.clone());
+  let mut solver_methods = existing_solver_methods;
+  solver_methods.push(method.clone());
+  let mut random_seeds = existing_random_seeds;
+  random_seeds.push(random_seed);
+  let experiment_bundle = json!({
+    "experiment_bundle_id": format!("experiment-{game_id}-{}", solver_runs.len() + 1),
+    "game_id": game_id,
+    "game_model_version": current_version + 1,
+    "snapshot_bundle_refs": bundle_refs,
+    "scenario_fork_ids": scenario_ids,
+    "solver_run_ids": solver_run_ids,
+    "solver_methods": solver_methods,
+    "random_seeds": random_seeds,
+    "parameter_ranges": parameter_range_notes,
+    "runtime": "tauri-governed",
+    "trace_manifest_hash": trace_manifest_hash,
+    "scenario_evaluation_count": scenario_evaluations.len(),
+    "result_manifest_hash": result_manifest_hash,
+    "created_at": executed_at,
+    "summary": format!("Experiment bundle for {model_name} with {} linked scenario branches.", scenario_ids.len()),
+    "artifact_label": "Modeled Output",
+  });
+
+  let mut next_solver_runs = solver_runs;
+  next_solver_runs.push(solver_run);
+  let model = snapshot_object
+    .get_mut("model")
+    .and_then(Value::as_object_mut)
+    .ok_or_else(|| "Strategic solver snapshot missing mutable model".to_string())?;
+  model.insert(
+    "version".to_string(),
+    json!(current_version + 1),
+  );
+  model.insert("updated_at".to_string(), json!(executed_at));
+  model.insert("bundle_refs".to_string(), json!(bundle_refs));
+  model.insert(
+    "solver_config".to_string(),
+    json!({
+      "method": method,
+      "random_seed": random_seed,
+      "monte_carlo_samples": monte_carlo_samples,
+      "iteration_limit": iteration_limit,
+      "parameter_range_notes": parameter_range_notes,
+    }),
+  );
+  snapshot_object.insert("latest_payoff_proxies".to_string(), json!(payoffs));
+  snapshot_object.insert("solver_runs".to_string(), Value::Array(next_solver_runs));
+  snapshot_object.insert("latest_parameter_sweep".to_string(), sweep);
+  snapshot_object.insert("latest_voi_estimate".to_string(), voi);
+  snapshot_object.insert("experiment_bundle".to_string(), experiment_bundle);
+  snapshot_object.insert(
+    "selected_scenario_id".to_string(),
+    json!(scenario_ids.first().cloned().unwrap_or_else(|| "scenario-default".to_string())),
+  );
+
+  Ok(snapshot)
 }
 
 fn persist_control_plane_from_state(client: &mut Client, state: &RecorderState) -> CommandResult<()> {
@@ -2486,6 +3087,42 @@ async fn run_ai_gateway_provider_analysis(
 }
 
 #[tauri::command]
+fn run_strategic_model_solve(
+  app: AppHandle,
+  request: StrategicSolverRequest,
+) -> CommandResult<StrategicSolverResult> {
+  let snapshot = run_governed_strategic_solver(&request)?;
+  let latest_solver_run = snapshot
+    .get("solver_runs")
+    .and_then(Value::as_array)
+    .and_then(|entries| entries.last())
+    .cloned()
+    .unwrap_or(Value::Null);
+  let experiment_bundle = snapshot
+    .get("experiment_bundle")
+    .cloned()
+    .unwrap_or(Value::Null);
+  let audit_event = append_audit_internal(
+    &app,
+    &AppendAuditRequest {
+      role: request.role,
+      event_type: "game_model.solver_run".to_string(),
+      payload: json!({
+        "runtime": "tauri-governed",
+        "solver_run": latest_solver_run,
+        "experiment_bundle": experiment_bundle,
+      }),
+    },
+  )?;
+
+  Ok(StrategicSolverResult {
+    runtime: "tauri-governed".to_string(),
+    snapshot,
+    audit_event_id: Some(audit_event.event_id),
+  })
+}
+
+#[tauri::command]
 fn query_context_records(
   app: AppHandle,
   request: QueryContextRecordsRequest,
@@ -2521,6 +3158,85 @@ fn query_context_records(
     records,
     query_range: request.time_range,
     source: "fallback".to_string(),
+  })
+}
+
+#[tauri::command]
+fn write_map_export_artifact(
+  app: AppHandle,
+  request: WriteMapExportArtifactRequest,
+) -> CommandResult<MapExportArtifact> {
+  if request.artifact_id.trim().is_empty() {
+    return Err("Map export artifact_id is required".to_string());
+  }
+  if request.file_name.trim().is_empty() {
+    return Err("Map export file_name is required".to_string());
+  }
+  if !is_valid_marking(&request.marking) {
+    return Err(format!("Invalid map export marking {}", request.marking));
+  }
+  let file_name = Path::new(&request.file_name)
+    .file_name()
+    .and_then(|value| value.to_str())
+    .ok_or_else(|| "Map export file_name must be a valid file name".to_string())?;
+  if file_name != request.file_name {
+    return Err("Map export file_name must not contain path separators".to_string());
+  }
+  if !file_name.to_ascii_lowercase().ends_with(".png") {
+    return Err("Map export file_name must end in .png".to_string());
+  }
+
+  let export_root = exports_dir(&app)?;
+  let png_path = export_root.join(file_name);
+  fs::write(&png_path, &request.png_bytes).map_err(|error| {
+    format!(
+      "Failed writing map export artifact {}: {error}",
+      png_path.display()
+    )
+  })?;
+
+  let sha256 = sha256_hex(&request.png_bytes);
+  let metadata_path = export_root.join(format!("{}.json", request.artifact_id));
+  let metadata = json!({
+    "artifactId": request.artifact_id,
+    "fileName": file_name,
+    "sha256": sha256,
+    "sizeBytes": request.png_bytes.len(),
+    "width": request.width,
+    "height": request.height,
+    "generatedAt": request.generated_at,
+    "marking": request.marking,
+    "bundleId": request.bundle_id,
+    "focusAoiId": request.focus_aoi_id,
+    "surfaceMode": request.surface_mode,
+    "runtimeEngine": request.runtime_engine,
+    "visibleLayerCount": request.visible_layer_count,
+  });
+  let metadata_json = serde_json::to_string_pretty(&metadata)
+    .map_err(|error| format!("Failed serializing map export metadata: {error}"))?;
+  fs::write(&metadata_path, metadata_json).map_err(|error| {
+    format!(
+      "Failed writing map export metadata {}: {error}",
+      metadata_path.display()
+    )
+  })?;
+
+  Ok(MapExportArtifact {
+    artifact_id: request.artifact_id,
+    file_name: file_name.to_string(),
+    png_path: png_path.display().to_string(),
+    metadata_path: metadata_path.display().to_string(),
+    sha256,
+    size_bytes: request.png_bytes.len() as u64,
+    width: request.width,
+    height: request.height,
+    generated_at: request.generated_at,
+    marking: request.marking,
+    bundle_id: request.bundle_id,
+    focus_aoi_id: request.focus_aoi_id,
+    surface_mode: request.surface_mode,
+    runtime_engine: request.runtime_engine,
+    visible_layer_count: request.visible_layer_count,
   })
 }
 
@@ -2623,6 +3339,46 @@ fn write_runtime_smoke_evidence(
     &runtime_proof_dir.join("recorder_state.json"),
   )?;
 
+  if let Some(map_export_png_path) = request
+    .report
+    .map_export_png_path
+    .as_ref()
+    .filter(|value| !value.trim().is_empty())
+  {
+    let map_export_dir = runtime_proof_dir.join("map_exports");
+    fs::create_dir_all(&map_export_dir).map_err(|error| {
+      format!(
+        "Failed creating runtime smoke map export directory {}: {error}",
+        map_export_dir.display()
+      )
+    })?;
+    let source = PathBuf::from(map_export_png_path);
+    let file_name = source
+      .file_name()
+      .ok_or_else(|| "Map export PNG path missing file name".to_string())?;
+    copy_file_if_exists(&source, &map_export_dir.join(file_name))?;
+  }
+
+  if let Some(map_export_metadata_path) = request
+    .report
+    .map_export_metadata_path
+    .as_ref()
+    .filter(|value| !value.trim().is_empty())
+  {
+    let map_export_dir = runtime_proof_dir.join("map_exports");
+    fs::create_dir_all(&map_export_dir).map_err(|error| {
+      format!(
+        "Failed creating runtime smoke map export directory {}: {error}",
+        map_export_dir.display()
+      )
+    })?;
+    let source = PathBuf::from(map_export_metadata_path);
+    let file_name = source
+      .file_name()
+      .ok_or_else(|| "Map export metadata path missing file name".to_string())?;
+    copy_file_if_exists(&source, &map_export_dir.join(file_name))?;
+  }
+
   if let Some(bundle_id) = request
     .report
     .selected_bundle_id
@@ -2666,7 +3422,9 @@ pub fn run() {
       get_control_plane_state,
       get_ai_gateway_provider_status,
       run_ai_gateway_provider_analysis,
+      run_strategic_model_solve,
       query_context_records,
+      write_map_export_artifact,
       write_runtime_smoke_evidence
     ])
     .run(tauri::generate_context!())

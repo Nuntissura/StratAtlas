@@ -115,7 +115,14 @@ export class LayerRegistry {
     if (!layer) {
       return false
     }
-    const licenseAllowed = policy.allowedLicenses.includes(layer.license)
+    const normalizedLicense = layer.license.trim().toLowerCase()
+    const licenseAllowed = policy.allowedLicenses.some((allowedLicense) => {
+      const normalizedAllowed = allowedLicense.trim().toLowerCase()
+      return (
+        normalizedLicense === normalizedAllowed ||
+        (normalizedAllowed === 'public' && normalizedLicense.startsWith('public'))
+      )
+    })
     if (!licenseAllowed) {
       return false
     }

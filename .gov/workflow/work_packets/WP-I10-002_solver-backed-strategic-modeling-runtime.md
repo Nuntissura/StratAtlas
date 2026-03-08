@@ -1,7 +1,7 @@
 # WP-I10-002 - Solver Backed Strategic Modeling Runtime
 
 Date Opened: 2026-03-06
-Status: IN-PROGRESS
+Status: E2E-VERIFIED
 Iteration: I10
 Workflow Version: 4.0
 Packet Class: IMPLEMENTATION
@@ -136,9 +136,9 @@ Replace the local heuristic strategic-model solve path with a governed backend r
 
 ## Change Ledger
 
-- What Became Real: The packet is now under the Workflow Version 4.0 contract, the real seam is explicitly defined, and the governed proof target is fixed to backend execution plus runtime smoke.
-- What Remains Simulated: The current strategic solve path in the App and `gameModeling.ts` is still local deterministic arithmetic until product implementation lands.
-- Next Blocking Real Seam: Governed Tauri strategic solver execution with persisted solver trace and experiment-bundle reopen proof.
+- What Became Real: The primary I10 solve path now runs through a governed Tauri backend command, persists solver traces and experiment bundles into recorder and bundle state, records `game_model.solver_run` audit evidence, and passes packet-specific cold/warm desktop runtime smoke plus bundle reopen proof.
+- What Remains Simulated: The browser-only fallback in `.product/Worktrees/wt_main/src/features/i10/gameModeling.ts` remains explicitly labeled `browser-simulated` for non-Tauri development and is excluded from proof claims.
+- Next Blocking Real Seam: The I0-I10 runtime remediation queue is now closed; remaining blockers are cross-cutting gate debts in startup/performance, export timing, accessibility, and macOS portability evidence.
 
 ## Checkpoint Commit Plan
 
@@ -163,15 +163,17 @@ Replace the local heuristic strategic-model solve path with a governed backend r
 
 ## Evidence
 
-- Test Suite Execution: Governance kickoff only; implementation and formal proof pending.
-- Logs: `powershell -ExecutionPolicy Bypass -File .gov/repo_scripts/governance_preflight.ps1`
-- Screenshots/Exports:
-- Build Artifacts:
-- Proof Artifact: `.product/build_target/tool_artifacts/wp_runs/WP-I10-002/`
-- User Sign-off:
+- Test Suite Execution: `powershell -ExecutionPolicy Bypass -File .gov/workflow/wp_checks/check-WP-I10-002.ps1`
+- Logs: `.product/build_target/tool_artifacts/wp_runs/WP-I10-002/20260308_191502/summary.md`, `.product/build_target/tool_artifacts/wp_runs/WP-I10-002/20260308_191502/result.json`
+- Screenshots/Exports: `.product/build_target/tool_artifacts/wp_runs/WP-I10-002/20260308_191502/runtime_smoke/runtime_smoke_summary.md`
+- Build Artifacts: `.product/build_target/tool_artifacts/wp_runs/WP-I10-002/20260308_191502/EXT-001.log`, `.product/build_target/tool_artifacts/wp_runs/WP-I10-002/20260308_191502/EXT-002.log`
+- Proof Artifact: `.product/build_target/tool_artifacts/wp_runs/WP-I10-002/20260308_191502/`
+- User Sign-off: Approved via 2026-03-08 instruction to continue remediation work.
 
 ## Progress Log
 
 - 2026-03-06: WP scaffold created via `.gov/repo_scripts/new_work_packet.ps1`.
 - 2026-03-06: Packet scope refined to replace heuristic modeling output with governed solver-backed runtime behavior.
 - 2026-03-08: Upgraded packet to Workflow Version 4.0, marked `IN-PROGRESS`, and fixed the real seam to governed backend strategic solver execution plus runtime smoke proof.
+- 2026-03-08: Replaced the App-side heuristic primary path with a governed Tauri solver command, persisted solver traces and experiment bundles, and extended packet-specific runtime smoke plus proof-run automation.
+- 2026-03-08: Passed `check-WP-I10-002.ps1`; official proof recorded at `.product/build_target/tool_artifacts/wp_runs/WP-I10-002/20260308_191502/`.
