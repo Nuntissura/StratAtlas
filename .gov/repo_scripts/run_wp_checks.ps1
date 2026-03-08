@@ -249,6 +249,7 @@ $isGovernanceWp = $WpId -like "WP-GOV-*"
 $isRuntimeGovernanceWp = $WpId -eq "WP-GOV-VERIFY-001"
 $isWpI0 = $WpId -eq "WP-I0-003"
 $isWpI1 = $WpId -eq "WP-I1-003"
+$isWpI7 = $WpId -eq "WP-I7-002"
 $isWpI6 = $WpId -eq "WP-I6-002"
 $iterationMatch = [regex]::Match($WpId, '^WP-I(\d+)-\d{3}$')
 $iterationNumber = if ($iterationMatch.Success) { [int]$iterationMatch.Groups[1].Value } else { $null }
@@ -376,6 +377,53 @@ elseif ($isWpI1) {
     $uiLog = Join-Path $artifactRootAbs "UI-001.log"
     $runtimeSmokeArtifactAbs = Join-Path $artifactRootAbs "runtime_smoke"
     $ui = Invoke-CheckCommand -Category "UI Contract" -Name "Tauri runtime smoke harness (2D + 3D map runtime)" -Executable "pnpm" -Arguments @("smoke:runtime", "--", "--artifact-root", $runtimeSmokeArtifactAbs, "--wp-id", $WpId) -WorkingDirectory $productAbs -LogPath $uiLog
+    $results.Add($ui) | Out-Null
+
+    $funcLog = Join-Path $artifactRootAbs "FUNC-001.log"
+    $func = Invoke-CheckCommand -Category "Functionality" -Name "Full functional suite" -Executable "pnpm" -Arguments @("test") -WorkingDirectory $productAbs -LogPath $funcLog
+    $results.Add($func) | Out-Null
+
+    $corLog = Join-Path $artifactRootAbs "COR-001.log"
+    $cor = Invoke-CheckCommand -Category "Code Correctness" -Name "Lint checks" -Executable "pnpm" -Arguments @("lint") -WorkingDirectory $productAbs -LogPath $corLog
+    $results.Add($cor) | Out-Null
+
+    $corTemplateLog = Join-Path $artifactRootAbs "COR-002.log"
+    $corTemplate = Invoke-CheckCommand -Category "Code Correctness" -Name "WP template compliance" -Executable "powershell" -Arguments @("-ExecutionPolicy", "Bypass", "-File", ".gov/repo_scripts/enforce_wp_template_compliance.ps1") -WorkingDirectory $repoRoot -LogPath $corTemplateLog
+    $results.Add($corTemplate) | Out-Null
+
+    $redLog = Join-Path $artifactRootAbs "RED-001.log"
+    $redJsonRel = "$artifactRootRel/red_team_result.json"
+    $red = Invoke-CheckCommand -Category "Red-Team" -Name "Guardrail static check" -Executable "powershell" -Arguments @("-ExecutionPolicy", "Bypass", "-File", ".gov/repo_scripts/red_team_guardrail_check.ps1", "-CodeRoot", $ProductWorktree, "-OutputJsonPath", $redJsonRel) -WorkingDirectory $repoRoot -LogPath $redLog
+    $results.Add($red) | Out-Null
+
+    $extLog = Join-Path $artifactRootAbs "EXT-001.log"
+    $ext = Invoke-CheckCommand -Category "Additional" -Name "Build checks" -Executable "pnpm" -Arguments @("build") -WorkingDirectory $productAbs -LogPath $extLog
+    $results.Add($ext) | Out-Null
+
+    $cargoManifest = Join-Path $productAbs "src-tauri/Cargo.toml"
+    if (Test-Path $cargoManifest -PathType Leaf) {
+        $extCargoLog = Join-Path $artifactRootAbs "EXT-002.log"
+        $extCargo = Invoke-CheckCommand -Category "Additional" -Name "Rust unit tests" -Executable "cargo" -Arguments @("test", "--manifest-path", "src-tauri/Cargo.toml") -WorkingDirectory $productAbs -LogPath $extCargoLog
+        $results.Add($extCargo) | Out-Null
+    }
+}
+elseif ($isWpI7) {
+    $depPreflightLog = Join-Path $artifactRootAbs "DEP-001.log"
+    $depPreflight = Invoke-CheckCommand -Category "Dependency" -Name "Governance Preflight" -Executable "powershell" -Arguments @("-ExecutionPolicy", "Bypass", "-File", ".gov/repo_scripts/governance_preflight.ps1") -WorkingDirectory $repoRoot -LogPath $depPreflightLog
+    $results.Add($depPreflight) | Out-Null
+
+    if (-not $SkipDependencyInstall) {
+        $depInstallLog = Join-Path $artifactRootAbs "DEP-002.log"
+        $depInstall = Invoke-CheckCommand -Category "Dependency" -Name "Dependency install (frozen lockfile)" -Executable "pnpm" -Arguments @("install", "--frozen-lockfile") -WorkingDirectory $productAbs -LogPath $depInstallLog
+        $results.Add($depInstall) | Out-Null
+    }
+    else {
+        $results.Add((New-SkippedResult -Category "Dependency" -Name "Dependency install" -Details "Skipped by parameter.")) | Out-Null
+    }
+
+    $uiLog = Join-Path $artifactRootAbs "UI-001.log"
+    $runtimeSmokeArtifactAbs = Join-Path $artifactRootAbs "runtime_smoke"
+    $ui = Invoke-CheckCommand -Category "UI Contract" -Name "Tauri runtime smoke harness (governed context ingestion)" -Executable "pnpm" -Arguments @("smoke:runtime", "--", "--artifact-root", $runtimeSmokeArtifactAbs, "--wp-id", $WpId) -WorkingDirectory $productAbs -LogPath $uiLog
     $results.Add($ui) | Out-Null
 
     $funcLog = Join-Path $artifactRootAbs "FUNC-001.log"

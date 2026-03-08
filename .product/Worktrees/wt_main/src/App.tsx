@@ -330,6 +330,21 @@ const normalizeJson = (value: unknown): unknown => {
 const serializeRecorderFingerprint = (state: Omit<RecorderState, 'savedAt'>): string =>
   JSON.stringify(normalizeJson(state))
 
+const recorderFingerprintFromState = (state: RecorderState): string =>
+  serializeRecorderFingerprint({
+    workspace: state.workspace,
+    query: state.query,
+    context: state.context,
+    compare: state.compare,
+    collaboration: state.collaboration,
+    scenario: state.scenario,
+    ai: state.ai,
+    deviation: state.deviation,
+    osint: state.osint,
+    gameModel: state.gameModel,
+    selectedBundleId: state.selectedBundleId,
+  })
+
 const isUiMode = (value: unknown): value is UiMode =>
   typeof value === 'string' && REQUIRED_UI_MODES.includes(value as UiMode)
 
@@ -1031,6 +1046,7 @@ function App() {
     DEFAULT_MAP_RUNTIME_TELEMETRY,
   )
   const lastSavedFingerprint = useRef<string>('')
+  const contextPersistenceVersionRef = useRef<number>(0)
   const runtimeSmokeStarted = useRef<boolean>(false)
   const runtimeSmokeStartMs = useRef<number>(performance.now())
   const runtimeSmokeStateRef = useRef({
@@ -1045,6 +1061,12 @@ function App() {
     integrityState: '',
     degradedBudgetCount: 0,
     auditEvents: [] as AuditEvent[],
+    selectedGovernedDomainId: DEFAULT_GOVERNED_CONTEXT_DOMAIN_ID,
+    domainDraft: createDomainDraft(DEFAULT_GOVERNED_CONTEXT_DOMAIN_ID),
+    domains: [] as ContextDomain[],
+    activeDomainIds: [] as string[],
+    correlationAoi: DEFAULT_CORRELATION_AOI,
+    contextRecords: [] as ContextRecord[],
     scenario: createDefaultScenarioSnapshot(),
     mapRuntime: DEFAULT_MAP_RUNTIME_TELEMETRY,
     aiProviderStatus: createBrowserSimulatedAiProviderStatus(),
@@ -1663,6 +1685,12 @@ function App() {
     integrityState,
     degradedBudgetCount,
     auditEvents,
+    selectedGovernedDomainId,
+    domainDraft,
+    domains,
+    activeDomainIds,
+    correlationAoi,
+    contextRecords,
     scenario,
     mapRuntime: mapRuntimeTelemetry,
     aiProviderStatus,
@@ -1700,6 +1728,7 @@ function App() {
   )
 
   const applyRecorderState = (state: RecorderState, openedBundleId?: string): void => {
+    contextPersistenceVersionRef.current += 1
     const workspace = isRecord(state.workspace)
       ? state.workspace
       : ({} as Record<string, unknown>)
@@ -1858,6 +1887,45 @@ function App() {
           (typeof state.selectedBundleId === 'string' ? state.selectedBundleId : ''),
       )
     })
+  }
+
+  const applyContextSnapshot = (snapshot: ContextSnapshot): void => {
+    const restoredDomains = normalizeDomains(snapshot.domains)
+    const restoredActiveDomainIds = normalizeStringArray(snapshot.activeDomainIds).filter((domainId) =>
+      restoredDomains.some((domain) => domain.domain_id === domainId),
+    )
+    const restoredContextRecords = normalizeContextRecords(snapshot.records)
+    const restoredCorrelationLinks = normalizeCorrelationLinks(snapshot.correlationLinks)
+    const restoredCorrelationAoi =
+      typeof snapshot.correlationAoi === 'string'
+        ? snapshot.correlationAoi
+        : restoredCorrelationLinks[0]?.target_id ?? DEFAULT_CORRELATION_AOI
+
+    startTransition(() => {
+      setDomains(restoredDomains)
+      setActiveDomainIds(restoredActiveDomainIds)
+      setCorrelationAoi(restoredCorrelationAoi)
+      setContextRecords(restoredContextRecords)
+    })
+  }
+
+  const applySavedContextState = (state: RecorderState, requestVersion: number): void => {
+    if (requestVersion !== contextPersistenceVersionRef.current) {
+      return
+    }
+    const context = isRecord(state.context) ? state.context : ({} as Record<string, unknown>)
+    applyContextSnapshot({
+      domains: normalizeDomains(context.domains),
+      activeDomainIds: normalizeStringArray(context.activeDomainIds),
+      correlationAoi:
+        typeof context.correlationAoi === 'string'
+          ? context.correlationAoi
+          : DEFAULT_CORRELATION_AOI,
+      correlationLinks: normalizeCorrelationLinks(context.correlationLinks),
+      records: normalizeContextRecords(context.records),
+      queryRange: normalizeContextTimeRange(context.queryRange),
+    })
+    lastSavedFingerprint.current = recorderFingerprintFromState(state)
   }
 
   const beginMeasuredAction = (action: string): number => {
@@ -2990,39 +3058,59 @@ function App() {
       correlationAoi,
       timeRange: contextQueryRange,
     })
-
-    setDomains(nextDomains)
-    setActiveDomainIds(nextActiveDomainIds)
-    setContextRecords((previous) => [
-      ...previous.filter((record) => record.domain_id !== domain.domain_id),
+    const nextContextRecords = [
+      ...contextRecords.filter((record) => record.domain_id !== domain.domain_id),
       ...ingestedRecords,
-    ])
-    setSelectedDeviationDomainId((previous) => previous || domain.domain_id)
-    setSelectedOsintThresholdDomainId((previous) => previous || domain.domain_id)
-    setDomainDraft(createDomainDraft(selectedGovernedDomainId))
-    setStatus(
-      `Ingested ${describeGovernedDomainIngestion(domain.domain_id)} for ${correlationAoi}. Correlated context only; not causal evidence.`,
-    )
+    ]
+    const nextContextSnapshot = buildContextSnapshot({
+      domains: nextDomains,
+      activeDomainIds: nextActiveDomainIds,
+      correlationAoi,
+      correlationLinks: nextLinks,
+      records: nextContextRecords,
+      queryRange: contextQueryRange,
+    })
+    applyContextSnapshot(nextContextSnapshot)
+    const requestVersion = contextPersistenceVersionRef.current + 1
+    contextPersistenceVersionRef.current = requestVersion
+
     void backend
-      .appendAudit({
+      .saveRecorderState({
         role,
-        event_type: 'context.domain_registered',
-        payload: {
-          domain_id: domain.domain_id,
-          domain_name: domain.domain_name,
-          source_url: domain.source_url,
-          sensitivity_class: domain.sensitivity_class,
-          governed_ingestion_label: describeGovernedDomainIngestion(domain.domain_id),
-          correlation_links: nextLinks,
-          record_count: ingestedRecords.length,
+        state: {
+          ...recorderStateCore,
+          context: nextContextSnapshot,
+          savedAt: new Date().toISOString(),
         },
+      })
+      .then((savedState) => {
+        applySavedContextState(savedState, requestVersion)
+        setSelectedDeviationDomainId((previous) => previous || domain.domain_id)
+        setSelectedOsintThresholdDomainId((previous) => previous || domain.domain_id)
+        setDomainDraft(createDomainDraft(selectedGovernedDomainId))
+        setStatus(
+          `Ingested ${describeGovernedDomainIngestion(domain.domain_id)} for ${correlationAoi}. Correlated context only; not causal evidence.`,
+        )
+        return backend.appendAudit({
+          role,
+          event_type: 'context.domain_registered',
+          payload: {
+            domain_id: domain.domain_id,
+            domain_name: domain.domain_name,
+            source_url: domain.source_url,
+            sensitivity_class: domain.sensitivity_class,
+            governed_ingestion_label: describeGovernedDomainIngestion(domain.domain_id),
+            correlation_links: nextLinks,
+            record_count: ingestedRecords.length,
+          },
+        })
       })
       .then(() => refresh())
       .then(() => {
         completeMeasuredAction('Context domain registration', startedAt)
       })
-      .catch(() => {
-        setStatus('Domain registered locally; audit append unavailable.')
+      .catch((error) => {
+        setStatus(`Context domain registration failed: ${String(error)}`)
         completeMeasuredAction('Context domain registration', startedAt)
       })
   }
@@ -3038,23 +3126,45 @@ function App() {
       correlationAoi,
       timeRange: contextQueryRange,
     })
-    setActiveDomainIds(nextActiveDomainIds)
+    const nextContextSnapshot = buildContextSnapshot({
+      domains,
+      activeDomainIds: nextActiveDomainIds,
+      correlationAoi,
+      correlationLinks: nextLinks,
+      records: contextRecords,
+      queryRange: contextQueryRange,
+    })
+    applyContextSnapshot(nextContextSnapshot)
+    const requestVersion = contextPersistenceVersionRef.current + 1
+    contextPersistenceVersionRef.current = requestVersion
+
     void backend
-      .appendAudit({
+      .saveRecorderState({
         role,
-        event_type: 'context.selection_changed',
-        payload: {
-          active_domain_ids: nextActiveDomainIds,
-          correlation_aoi: correlationAoi,
-          correlation_links: nextLinks,
+        state: {
+          ...recorderStateCore,
+          context: nextContextSnapshot,
+          savedAt: new Date().toISOString(),
         },
+      })
+      .then((savedState) => {
+        applySavedContextState(savedState, requestVersion)
+        return backend.appendAudit({
+          role,
+          event_type: 'context.selection_changed',
+          payload: {
+            active_domain_ids: nextActiveDomainIds,
+            correlation_aoi: correlationAoi,
+            correlation_links: nextLinks,
+          },
+        })
       })
       .then(() => refresh())
       .then(() => {
         completeMeasuredAction('Context selection change', startedAt)
       })
-      .catch(() => {
-        setStatus('Context selection updated locally; audit append unavailable.')
+      .catch((error) => {
+        setStatus(`Context selection change failed: ${String(error)}`)
         completeMeasuredAction('Context selection change', startedAt)
       })
   }
@@ -3082,26 +3192,48 @@ function App() {
           timeRange: contextQueryRange,
         }),
       )
-    if (missingRecords.length > 0) {
-      setContextRecords((previous) => [...previous, ...missingRecords])
-    }
+    const nextContextRecords =
+      missingRecords.length > 0 ? [...contextRecords, ...missingRecords] : contextRecords
+    const nextContextSnapshot = buildContextSnapshot({
+      domains,
+      activeDomainIds,
+      correlationAoi,
+      correlationLinks: nextLinks,
+      records: nextContextRecords,
+      queryRange: contextQueryRange,
+    })
+    applyContextSnapshot(nextContextSnapshot)
+    const requestVersion = contextPersistenceVersionRef.current + 1
+    contextPersistenceVersionRef.current = requestVersion
+
     void backend
-      .appendAudit({
+      .saveRecorderState({
         role,
-        event_type: 'context.correlation_updated',
-        payload: {
-          active_domain_ids: activeDomainIds,
-          correlation_aoi: correlationAoi,
-          correlation_links: nextLinks,
-          record_count: visibleContextRecords.length + missingRecords.length,
+        state: {
+          ...recorderStateCore,
+          context: nextContextSnapshot,
+          savedAt: new Date().toISOString(),
         },
+      })
+      .then((savedState) => {
+        applySavedContextState(savedState, requestVersion)
+        return backend.appendAudit({
+          role,
+          event_type: 'context.correlation_updated',
+          payload: {
+            active_domain_ids: activeDomainIds,
+            correlation_aoi: correlationAoi,
+            correlation_links: nextLinks,
+            record_count: visibleContextRecords.length + missingRecords.length,
+          },
+        })
       })
       .then(() => refresh())
       .then(() => {
         completeMeasuredAction('Correlation selection save', startedAt)
       })
-      .catch(() => {
-        setStatus('Correlation selection updated locally; audit append unavailable.')
+      .catch((error) => {
+        setStatus(`Correlation selection update failed: ${String(error)}`)
         completeMeasuredAction('Correlation selection save', startedAt)
       })
   }
@@ -3596,6 +3728,16 @@ function App() {
     ): RuntimeSmokeAssertion[] => {
       const currentState = runtimeSmokeStateRef.current
       const exportCardVisible = Boolean(document.querySelector('[data-testid="scenario-export-card"]'))
+      const governedContextDomainId = currentState.activeDomainIds.find((domainId) =>
+        Boolean(getGovernedDomainTemplate(domainId)),
+      )
+      const contextRestorePassed =
+        Boolean(governedContextDomainId) &&
+        currentState.correlationAoi === 'aoi-4' &&
+        currentState.contextRecords.some(
+          (record) =>
+            record.domain_id === governedContextDomainId && record.target_id === currentState.correlationAoi,
+        )
       const assertions: RuntimeSmokeAssertion[] = [
         {
           id: 'map_runtime_present',
@@ -3649,6 +3791,25 @@ function App() {
           detail: currentState.scenario.exportArtifact?.artifactId
             ? `Scenario export artifact ${currentState.scenario.exportArtifact.artifactId} is visible.`
             : 'Scenario export artifact was not produced.',
+        },
+        {
+          id: 'governed_context_registration',
+          passed:
+            Boolean(governedContextDomainId) &&
+            currentState.contextRecords.some(
+              (record) =>
+                record.domain_id === governedContextDomainId && record.target_id === currentState.correlationAoi,
+            ),
+          detail: governedContextDomainId
+            ? `Governed context domain ${governedContextDomainId} captured ${currentState.contextRecords.length} record(s) for ${currentState.correlationAoi}.`
+            : 'No governed context domain was active in the runtime smoke state.',
+        },
+        {
+          id: 'governed_context_bundle_restore',
+          passed: contextRestorePassed,
+          detail: contextRestorePassed
+            ? `Context AOI ${currentState.correlationAoi} restored from the reopened bundle with governed records intact.`
+            : `Context AOI restore did not converge on the governed bundle snapshot (current AOI: ${currentState.correlationAoi}).`,
         },
         {
           id: 'portability_note_recorded',
@@ -3723,6 +3884,12 @@ function App() {
         mapFocusAoiId: currentState.mapRuntime.focusAoiId,
         mapInspectCount: currentState.mapRuntime.inspectCount,
         mapRuntimeError: currentState.mapRuntime.runtimeError || undefined,
+        activeContextDomainCount: currentState.activeDomainIds.length,
+        contextRecordCount: currentState.contextRecords.length,
+        correlationAoi: currentState.correlationAoi,
+        governedContextDomainId: currentState.activeDomainIds.find((domainId) =>
+          Boolean(getGovernedDomainTemplate(domainId)),
+        ),
         requireLiveAi: runtimeSmokeConfig.requireLiveAi,
         requireMcp: runtimeSmokeConfig.requireMcp,
         aiProviderLabel: currentState.aiProviderStatus.providerLabel,
@@ -3754,19 +3921,85 @@ function App() {
       await refresh()
     }
 
+    const findLabeledControl = (labelText: string): HTMLInputElement | HTMLSelectElement => {
+      const label = Array.from(document.querySelectorAll<HTMLLabelElement>('label')).find((candidate) =>
+        candidate.textContent?.replace(/\s+/g, ' ').includes(labelText),
+      )
+      const control = label?.querySelector<HTMLInputElement | HTMLSelectElement>('input, select')
+      if (!control) {
+        throw new Error(`Runtime smoke could not find the field "${labelText}".`)
+      }
+      return control
+    }
+
+    const setLabeledFieldValue = async (labelText: string, value: string): Promise<void> => {
+      const control = findLabeledControl(labelText)
+      if (control instanceof HTMLSelectElement) {
+        const valueSetter = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value')?.set
+        if (!valueSetter) {
+          throw new Error(`Runtime smoke could not update select "${labelText}".`)
+        }
+        valueSetter.call(control, value)
+        control.dispatchEvent(new Event('change', { bubbles: true }))
+        await pause(50)
+        return
+      }
+
+      const valueSetter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set
+      if (!valueSetter) {
+        throw new Error(`Runtime smoke could not update input "${labelText}".`)
+      }
+      valueSetter.call(control, value)
+      control.dispatchEvent(new Event('input', { bubbles: true }))
+      control.dispatchEvent(new Event('change', { bubbles: true }))
+      await pause(50)
+    }
+
+    const waitForPersistedContextState = async (
+      targetAoi: string,
+      domainId: string,
+      timeoutMs = 15000,
+    ): Promise<RecorderState> => {
+      const deadline = performance.now() + timeoutMs
+      while (performance.now() < deadline) {
+        const persisted = await backend.loadRecorderState()
+        if (persisted.state) {
+          const persistedRecords = normalizeContextRecords(persisted.state.context.records)
+          if (
+            persisted.state.context.correlationAoi === targetAoi &&
+            persisted.state.context.activeDomainIds.includes(domainId) &&
+            persistedRecords.some(
+              (record) => record.domain_id === domainId && record.target_id === targetAoi,
+            )
+          ) {
+            return persisted.state
+          }
+        }
+        await pause(100)
+      }
+
+      throw new Error(
+        `Runtime smoke timed out waiting for persisted governed context state for ${domainId} / ${targetAoi}`,
+      )
+    }
+
     const createBundleForRuntimeSmoke = async (): Promise<string> => {
       const startedAt = beginMeasuredAction('Create bundle')
       setBusy(true)
       setStatus('Creating bundle...')
       try {
-        const requestState: RecorderState = {
-          ...recorderStateCore,
-          savedAt: new Date().toISOString(),
-        }
+        const previousBundleCount = runtimeSmokeStateRef.current.bundles.length
+        const requestState = await waitForPersistedContextState(
+          governedContextBundleAoi,
+          governedContextDomainId,
+        )
         const manifest = await backend.createBundle({
           role,
           marking,
-          state: requestState,
+          state: {
+            ...requestState,
+            savedAt: new Date().toISOString(),
+          },
           provenance_refs: [
             {
               source: 'workspace.session',
@@ -3778,6 +4011,12 @@ function App() {
         })
         setSelectedBundleId(manifest.bundle_id)
         await refresh()
+        await waitForCondition(
+          'bundle creation',
+          () =>
+            runtimeSmokeStateRef.current.selectedBundleId === manifest.bundle_id &&
+            runtimeSmokeStateRef.current.bundles.length >= previousBundleCount + 1,
+        )
         setStatus(`Bundle ${manifest.bundle_id} created`)
         setIntegrityState('Bundle created; deterministic reopen pending')
         return manifest.bundle_id
@@ -3791,37 +4030,14 @@ function App() {
       }
     }
 
-    const openBundleForRuntimeSmoke = async (bundleId: string): Promise<void> => {
-      const startedAt = beginMeasuredAction('Open bundle')
-      setBusy(true)
-      setStatus('Opening bundle...')
-      try {
-        const result = await backend.openBundle(bundleId, role)
-        applyRecorderState(result.state, result.manifest.bundle_id)
-        lastSavedFingerprint.current = serializeRecorderFingerprint({
-          workspace: result.state.workspace,
-          query: result.state.query,
-          context: result.state.context,
-          compare: result.state.compare,
-          collaboration: result.state.collaboration,
-          scenario: result.state.scenario,
-          ai: result.state.ai,
-          deviation: result.state.deviation,
-          osint: result.state.osint,
-          gameModel: result.state.gameModel,
-          selectedBundleId: result.manifest.bundle_id,
-        })
-        await refresh()
-        setStatus(`Bundle ${result.manifest.bundle_id} reopened`)
-        setIntegrityState('Determinism check passed during reopen')
-      } catch (error) {
-        setStatus(`Open failed: ${String(error)}`)
-        setIntegrityState('Determinism check failed')
-        throw error
-      } finally {
-        completeMeasuredAction('Open bundle', startedAt)
-        setBusy(false)
-      }
+    const openBundleForRuntimeSmoke = async (): Promise<void> => {
+      clickWorkspaceButton('Reopen Bundle')
+      await waitForCondition(
+        'bundle reopen',
+        () =>
+          runtimeSmokeStateRef.current.status.includes('reopened') &&
+          runtimeSmokeStateRef.current.integrityState.includes('Determinism check passed'),
+      )
     }
 
     const setForcedOfflineForRuntimeSmoke = async (nextForcedOffline: boolean): Promise<void> => {
@@ -3835,6 +4051,68 @@ function App() {
       } finally {
         completeMeasuredAction('Offline mode change', startedAt)
       }
+    }
+
+    const governedContextDomainId = DEFAULT_GOVERNED_CONTEXT_DOMAIN_ID
+    const governedContextBundleAoi = 'aoi-4'
+    const governedContextMutationAoi = 'aoi-2'
+
+    const registerGovernedContextForRuntimeSmoke = async (): Promise<void> => {
+      await setLabeledFieldValue('Approved Domain', governedContextDomainId)
+      await waitForCondition(
+        'governed context draft selection',
+        () =>
+          runtimeSmokeStateRef.current.selectedGovernedDomainId === governedContextDomainId &&
+          runtimeSmokeStateRef.current.domainDraft.domain_id === governedContextDomainId,
+      )
+      await setLabeledFieldValue('Correlation AOI', governedContextBundleAoi)
+      await waitForCondition(
+        'governed context aoi selection',
+        () => runtimeSmokeStateRef.current.correlationAoi === governedContextBundleAoi,
+      )
+      clickWorkspaceButton('Register Domain')
+      await waitForCondition(
+        'governed context registration',
+        () =>
+          runtimeSmokeStateRef.current.activeDomainIds.includes(governedContextDomainId) &&
+          runtimeSmokeStateRef.current.contextRecords.some(
+            (record) =>
+              record.domain_id === governedContextDomainId &&
+              record.target_id === governedContextBundleAoi,
+          ),
+      )
+      clickWorkspaceButton('Save Correlation Selection')
+      await waitForCondition(
+        'governed context correlation save',
+        () =>
+          runtimeSmokeStateRef.current.correlationAoi === governedContextBundleAoi &&
+          runtimeSmokeStateRef.current.contextRecords.some(
+            (record) =>
+              record.domain_id === governedContextDomainId &&
+              record.target_id === governedContextBundleAoi,
+          ),
+      )
+      await waitForPersistedContextState(governedContextBundleAoi, governedContextDomainId)
+    }
+
+    const mutateGovernedContextForRuntimeSmoke = async (): Promise<void> => {
+      await setLabeledFieldValue('Correlation AOI', governedContextMutationAoi)
+      await waitForCondition(
+        'governed context mutation selection',
+        () => runtimeSmokeStateRef.current.correlationAoi === governedContextMutationAoi,
+      )
+      clickWorkspaceButton('Save Correlation Selection')
+      await waitForCondition(
+        'governed context mutation save',
+        () =>
+          runtimeSmokeStateRef.current.correlationAoi === governedContextMutationAoi &&
+          runtimeSmokeStateRef.current.contextRecords.some(
+            (record) =>
+              record.domain_id === governedContextDomainId &&
+              record.target_id === governedContextMutationAoi,
+          ),
+      )
+      await waitForPersistedContextState(governedContextMutationAoi, governedContextDomainId)
     }
 
     const clickMapRuntimeButton = (label: '2D Situation Map' | '3D Globe'): void => {
@@ -4059,6 +4337,12 @@ function App() {
       )
 
       metrics.push(
+        await measure('Governed context registration', async () => {
+          await registerGovernedContextForRuntimeSmoke()
+        }),
+      )
+
+      metrics.push(
         await measure('Create bundle', async () => {
           const bundleId = await createBundleForRuntimeSmoke()
           await waitForCondition('bundle creation', () => runtimeSmokeStateRef.current.selectedBundleId === bundleId)
@@ -4066,11 +4350,26 @@ function App() {
       )
 
       metrics.push(
+        await measure('Governed context mutation', async () => {
+          await mutateGovernedContextForRuntimeSmoke()
+        }),
+      )
+
+      metrics.push(
         await measure('Open bundle', async () => {
-          await openBundleForRuntimeSmoke(runtimeSmokeStateRef.current.selectedBundleId)
-          await waitForCondition('bundle reopen integrity state', () =>
-            runtimeSmokeStateRef.current.integrityState.includes('Determinism check passed'),
-          )
+          await openBundleForRuntimeSmoke()
+          await waitForCondition('governed context restore', () => {
+            const currentState = runtimeSmokeStateRef.current
+            return (
+              currentState.correlationAoi === governedContextBundleAoi &&
+              currentState.activeDomainIds.includes(governedContextDomainId) &&
+              currentState.contextRecords.some(
+                (record) =>
+                  record.domain_id === governedContextDomainId &&
+                  record.target_id === governedContextBundleAoi,
+              )
+            )
+          })
         }),
       )
 

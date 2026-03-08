@@ -1,7 +1,7 @@
 # WP-I7-002 - Real Context Ingestion and Correlation Runtime
 
 Date Opened: 2026-03-06
-Status: IN-PROGRESS
+Status: E2E-VERIFIED
 Iteration: I7
 Workflow Version: 4.0
 Packet Class: IMPLEMENTATION
@@ -17,25 +17,26 @@ Replace synthetic context seeding with the governed ingestion and correlation ru
 
 - Real Seam: context domain registration in the product runtime now ingests approved packaged domain snapshots through a governed catalog instead of generating seeded records in the UI.
 - User-Visible Win: the analyst chooses an approved context domain, sees locked source metadata, and every downstream surface (query, compare, OSINT thresholding, deviation, scenario) runs against the ingested governed records.
-- Proof Target: targeted Vitest coverage for governed catalog ingestion and App workflows, plus lint/build and the eventual `check-WP-I7-002.ps1` evidence bundle.
-- Allowed Temporary Fallbacks: packaged curated snapshots remain the data source for this slice; live external connectors and runtime smoke proof remain follow-on work inside this packet.
-- Promotion Guard: do not promote beyond `IN-PROGRESS` until the packet has formal WP-check artifacts and desktop/runtime evidence for the full context ingestion flow.
+- Proof Target: `check-WP-I7-002.ps1` plus the attached cold/warm Tauri runtime smoke bundle under `.product/build_target/tool_artifacts/wp_runs/WP-I7-002/20260308_060255/runtime_smoke/`.
+- Allowed Temporary Fallbacks: packaged curated snapshots remain the governed source for this slice; live external connector expansion is deferred to future connector work and does not block packet closure.
+- Promotion Guard: satisfied on 2026-03-08 by the passing `.product/build_target/tool_artifacts/wp_runs/WP-I7-002/20260308_060255/` proof bundle.
 
 ## Fallback Register
 
 - Explicit simulated/mock/sample paths: packaged governed snapshots stand in for live connector pulls, and legacy `buildSampleContextRecords` remains only as a test fixture helper.
 - Required labels in code/UI/governance: App and packet text must keep saying `governed`, `curated`, and `correlated context only; not causal evidence` for this slice.
-- Successor packet or debt owner: this packet retains ownership until live connectors, runtime smoke, and formal WP proof are complete.
-- Exit condition to remove fallback: connector-backed ingestion and packet-level runtime proof exist, and the App no longer depends on packaged snapshots for normative delivery claims.
+- Successor packet or debt owner: future connector expansion moves to follow-on connector work; this packet closes the governed packaged-domain/runtime seam.
+- Exit condition to remove fallback: connector-backed ingestion is proven in a dedicated follow-on packet; for this packet, runtime proof and deterministic bundle/reopen evidence are the closure bar.
 
 ## Change Ledger
 
 - 2026-03-08: Packet upgraded to Workflow Version 4.0 and moved to `IN-PROGRESS` with an explicit real seam, fallback register, and promotion guard.
 - 2026-03-08: Product runtime switched from registration-time synthetic seeding to governed catalog ingestion backed by packaged domain snapshots in `src/features/i7/governedDomains.ts`.
 - 2026-03-08: App surfaces now reuse the governed ingested context records across query, deviation, OSINT thresholding, scenario constraint nodes, and bundle persistence.
-- What Became Real: approved domain registration now resolves to governed catalog metadata plus packaged curated records instead of UI-generated seeded samples.
-- What Remains Simulated: packaged curated snapshots remain the active source, and formal packet proof/runtime smoke are still outstanding.
-- Next Blocking Real Seam: finish live connector/runtime proof and close the packet with a formal `check-WP-I7-002.ps1` evidence bundle.
+- 2026-03-08: Immediate recorder-state persistence, Tauri runtime-smoke context assertions, Rust runtime-proof serialization, and formal `check-WP-I7-002.ps1` artifacts landed; closure proof is `.product/build_target/tool_artifacts/wp_runs/WP-I7-002/20260308_060255/`.
+- What Became Real: approved domain registration, correlation updates, bundle capture, and bundle reopen now persist and restore governed context state through the real desktop runtime with attached proof artifacts.
+- What Remains Simulated: packaged curated snapshots remain the governed source for this closed slice; live external connector expansion is future work, not a blocker for this packet.
+- Next Blocking Real Seam: `WP-I8-002` must now consume the restored governed context series for historical deviation detection and downstream propagation.
 
 ## Linked Requirements
 
@@ -155,19 +156,22 @@ Replace synthetic context seeding with the governed ingestion and correlation ru
 
 ## Evidence
 
-- Test Suite Execution:
-- Logs:
-- Screenshots/Exports:
-- Build Artifacts:
-- Proof Artifact: .product/build_target/tool_artifacts/wp_runs/WP-I7-002/
-- User Sign-off:
+- Test Suite Execution: `powershell -ExecutionPolicy Bypass -File .gov/workflow/wp_checks/check-WP-I7-002.ps1`
+- Logs: `.product/build_target/tool_artifacts/wp_runs/WP-I7-002/20260308_060255/summary.md`; `.product/build_target/tool_artifacts/wp_runs/WP-I7-002/20260308_060255/result.json`; `.product/build_target/tool_artifacts/wp_runs/WP-I7-002/20260308_060255/UI-001.log`
+- Screenshots/Exports: `.product/build_target/tool_artifacts/wp_runs/WP-I7-002/20260308_060255/runtime_smoke/cold/runtime_smoke_summary.md`; `.product/build_target/tool_artifacts/wp_runs/WP-I7-002/20260308_060255/runtime_smoke/warm/runtime_smoke_summary.md`
+- Build Artifacts: `.product/build_target/tool_artifacts/wp_runs/WP-I7-002/20260308_060255/EXT-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I7-002/20260308_060255/EXT-002.log`
+- Proof Artifact: `.product/build_target/tool_artifacts/wp_runs/WP-I7-002/20260308_060255/`
+- User Sign-off: approved via 2026-03-08 instruction to continue `WP-I7-002` and complete the packet.
 
-- What Became Real: the App runtime now materializes approved governed context records from a packaged domain catalog instead of generating seeded records during registration and AOI correlation updates.
-- What Remains Simulated: live external connector pulls and formal WP proof capture remain outstanding; curated packaged snapshots are still the operative source for this slice.
-- Next Blocking Real Seam: persist and verify governed context ingestion end to end through the formal WP check flow, including runtime proof and packet-level evidence capture.
+- What Became Real: the App runtime now materializes, persists, captures, and reopens approved governed context records from the packaged domain catalog instead of generating seeded samples during registration and AOI updates.
+- What Remains Simulated: curated packaged snapshots remain the governed source for this slice; live external connector expansion is future work.
+- Next Blocking Real Seam: `WP-I8-002` must detect governed deviations over the now-restored context series and propagate those outputs downstream.
 
 ## Progress Log
 
 - 2026-03-06: WP scaffold created via .gov/repo_scripts/new_work_packet.ps1.
 - 2026-03-06: Packet scope refined to replace seeded context simulation with governed ingestion and correlation runtime behavior.
 - 2026-03-08: Started implementation under Workflow Version 4.0; first slice landed governed domain catalog ingestion and removed App-side registration seeding.
+- 2026-03-08: Added immediate recorder persistence and async-guarded context reconciliation so correlation changes survive bundle capture and reopen deterministically.
+- 2026-03-08: Extended the Tauri runtime smoke harness and WP runner to prove governed context registration, mutation, capture, and reopen in the real desktop runtime.
+- 2026-03-08: Closed as `E2E-VERIFIED` with `.product/build_target/tool_artifacts/wp_runs/WP-I7-002/20260308_060255/`.

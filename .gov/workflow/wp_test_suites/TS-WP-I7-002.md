@@ -1,7 +1,7 @@
 # TS-WP-I7-002 - Spec vs Code Test Suite
 
 Date Opened: 2026-03-06
-Status: IN-PROGRESS
+Status: E2E-VERIFIED
 Linked Work Packet: WP-I7-002
 Iteration: I7
 
@@ -19,9 +19,9 @@ Validate WP delivery against linked requirements and primitives.
 
 - Packet Class: IMPLEMENTATION
 - Real Seam: approved context-domain registration now ingests governed packaged records instead of creating seeded runtime records in the UI.
-- Proof Target: `pnpm lint`, `pnpm test -- --run src/features/i7/i7.test.ts src/App.test.tsx`, `pnpm build`, and the later `check-WP-I7-002.ps1` proof bundle.
-- Allowed Fallbacks: packaged governed snapshots are allowed in this slice; live external connectors and runtime proof are not complete yet.
-- Promotion Guard: keep the packet below `E2E-VERIFIED` until WP-check artifacts and desktop/runtime proof exist.
+- Proof Target: `powershell -ExecutionPolicy Bypass -File .gov/workflow/wp_checks/check-WP-I7-002.ps1` with passing cold/warm Tauri runtime smoke artifacts under `.product/build_target/tool_artifacts/wp_runs/WP-I7-002/20260308_060255/runtime_smoke/`.
+- Allowed Fallbacks: packaged governed snapshots remain allowed as the governed source for this closed slice; live external connectors are future work and not part of this packet’s proof target.
+- Promotion Guard: satisfied by the passing `.product/build_target/tool_artifacts/wp_runs/WP-I7-002/20260308_060255/` artifact bundle.
 
 ## Test Case Matrix
 
@@ -78,13 +78,13 @@ Validate WP delivery against linked requirements and primitives.
 
 ## Execution Summary
 
-- Last Run Date:
-- Result: Initial governed-catalog slice passed targeted lint/test/build verification; formal WP-check evidence still pending.
-- Blocking Failures: No current test failures. Outstanding gap is missing `check-WP-I7-002.ps1` proof capture and runtime smoke evidence.
-- Evidence Paths: `pnpm test -- --run src/features/i7/i7.test.ts`; `pnpm test -- --run src/features/i7/i7.test.ts src/App.test.tsx`; `pnpm lint`; `pnpm build`
-- Reviewer:
-- User Sign-off:
+- Last Run Date: 2026-03-08
+- Result: Passed. `check-WP-I7-002.ps1` completed with `Overall Passed: True` and `Failed Checks: 0`.
+- Blocking Failures: None.
+- Evidence Paths: `.product/build_target/tool_artifacts/wp_runs/WP-I7-002/20260308_060255/summary.md`; `.product/build_target/tool_artifacts/wp_runs/WP-I7-002/20260308_060255/result.json`; `.product/build_target/tool_artifacts/wp_runs/WP-I7-002/20260308_060255/runtime_smoke/cold/runtime_smoke_report.json`; `.product/build_target/tool_artifacts/wp_runs/WP-I7-002/20260308_060255/runtime_smoke/warm/runtime_smoke_report.json`
+- Reviewer: Codex
+- User Sign-off: approved via 2026-03-08 instruction to continue `WP-I7-002` and complete the packet.
 
-- What Became Real: App registration and AOI rematerialization now use governed catalog records rather than seeded UI-generated records.
-- What Remains Simulated: packaged curated snapshots still stand in for live connectors, and no packet proof artifact exists yet.
-- Next Blocking Real Seam: close the loop with packet-level proof capture and any remaining backend/runtime ingestion gaps.
+- What Became Real: App registration, correlation updates, recorder persistence, bundle capture, and bundle reopen now use governed catalog records rather than seeded UI-generated records and are proved in the real Tauri runtime.
+- What Remains Simulated: packaged curated snapshots remain the governed source for this closed slice; live external connectors are future work.
+- Next Blocking Real Seam: `WP-I8-002` must consume the restored governed context series for deviation detection and propagation.

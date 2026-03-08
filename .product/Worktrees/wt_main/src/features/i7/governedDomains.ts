@@ -252,7 +252,7 @@ export const GOVERNED_CONTEXT_DOMAIN_TEMPLATES: GovernedContextDomainTemplate[] 
         'Curated sanctions snapshot normalized into aggregate AOI-linked constraint signals. Context is explicit correlation input and never individual targeting.',
       offline_behavior: 'pre_cacheable',
       presentation_type: 'constraint_node',
-      prohibited_uses: ['MUST NOT be used for covert affiliation inference'],
+      prohibited_uses: ['MUST NOT be used to infer hidden organizational ties'],
     },
     'Tier 1 approved domain',
     'Curated sanctions snapshot',

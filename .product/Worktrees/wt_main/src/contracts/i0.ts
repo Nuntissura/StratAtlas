@@ -234,6 +234,10 @@ export interface RuntimeSmokeReport {
   mapFocusAoiId: string
   mapInspectCount: number
   mapRuntimeError?: string
+  activeContextDomainCount: number
+  contextRecordCount: number
+  correlationAoi: string
+  governedContextDomainId?: string
   requireLiveAi: boolean
   requireMcp: boolean
   aiProviderLabel: string

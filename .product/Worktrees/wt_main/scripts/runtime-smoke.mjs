@@ -159,6 +159,10 @@ const writePhaseSummary = (phase, report, auditEvents, phaseDir) => {
     `- Selected Bundle: ${report.selectedBundleId ?? 'none'}`,
     `- Offline: ${report.offline}`,
     `- Degraded Budgets: ${report.degradedBudgetCount}`,
+    `- Active Context Domains: ${report.activeContextDomainCount}`,
+    `- Context Record Count: ${report.contextRecordCount}`,
+    `- Correlation AOI: ${report.correlationAoi}`,
+    `- Governed Context Domain: ${report.governedContextDomainId ?? 'none'}`,
     `- Map Runtime Visible: ${report.mapRuntimeVisible}`,
     `- Map Runtime Interactive: ${report.mapRuntimeInteractive}`,
     `- Map Surface Mode: ${report.mapSurfaceMode}`,
@@ -252,6 +256,18 @@ const validatePhase = async (phase, phaseDir, logPath) => {
   }
   if (report.mapInspectCount < 4) {
     throw new Error(`Runtime smoke captured too few map inspect targets for ${phase}`)
+  }
+  if (wpId === 'WP-I7-002') {
+    const requiredI7Assertions = ['governed_context_registration', 'governed_context_bundle_restore']
+    for (const assertionId of requiredI7Assertions) {
+      const assertion = report.assertions.find((entry) => entry.id === assertionId)
+      if (!assertion || !assertion.passed) {
+        throw new Error(`Missing governed context runtime evidence ${assertionId} for ${phase}`)
+      }
+    }
+    if (report.activeContextDomainCount < 1 || report.contextRecordCount < 1) {
+      throw new Error(`Governed context runtime evidence was incomplete for ${phase}`)
+    }
   }
   if (report.requireLiveAi) {
     if (report.aiProviderRuntime !== 'tauri-live' || !report.aiProviderAvailable) {
