@@ -329,7 +329,7 @@ For quick lookup: "What requirements does this component implement?"
 
 | WP-I10-002 | I10 | REQ-1100, REQ-1101, REQ-1102, REQ-1103, REQ-1104, REQ-1105, REQ-1106, REQ-1107, REQ-1108, REQ-1109, REQ-1110, REQ-1111, REQ-1112, REQ-1113 | PRIM-0058, PRIM-0059 | .gov/workflow/wp_test_suites/TS-WP-I10-002.md | SPEC-MAPPED | .gov/workflow/wp_spec_extractions/SX-WP-I10-002.md |
 
-| WP-I8-002 | I8 | REQ-0900, REQ-0901, REQ-0902, REQ-0903, REQ-0904 | PRIM-0062 | .gov/workflow/wp_test_suites/TS-WP-I8-002.md | SPEC-MAPPED | .gov/workflow/wp_spec_extractions/SX-WP-I8-002.md |
+| WP-I8-002 | I8 | REQ-0900, REQ-0901, REQ-0902, REQ-0903, REQ-0904 | PRIM-0062 | .gov/workflow/wp_test_suites/TS-WP-I8-002.md | IN-PROGRESS | .gov/workflow/wp_spec_extractions/SX-WP-I8-002.md; Workflow Version 4.0 kickoff set the active seam to governed baseline-vs-observed context-series detection |
 
 | WP-I9-002 | I9 | REQ-1000, REQ-1001, REQ-1002, REQ-1003 | PRIM-0056, PRIM-0057 | .gov/workflow/wp_test_suites/TS-WP-I9-002.md | SPEC-MAPPED | .gov/workflow/wp_spec_extractions/SX-WP-I9-002.md |
 
