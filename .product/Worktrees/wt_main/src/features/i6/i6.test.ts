@@ -3,8 +3,11 @@ import {
   DEPLOYMENT_PROFILES,
   MCP_MINIMUM_TOOLS,
   collectEvidenceRefs,
+  createBrowserSimulatedAiProviderStatus,
+  createUnavailableAiProviderStatus,
   evaluateAiGatewayPolicy,
   executeMcpTool,
+  runAiGatewayAnalysis,
   submitAiAnalysis,
   type GatewayBundleManifest,
   type GatewayLayerCatalogEntry,
@@ -179,6 +182,83 @@ describe('I6 ai gateway and mcp', () => {
     expect(result.artifactId).toContain('ai-interpretation-')
   })
 
+  it('uses browser-simulated gateway output in jsdom-compatible fallback mode', async () => {
+    const refs = collectEvidenceRefs(manifest)
+    const policy = evaluateAiGatewayPolicy({
+      role: 'analyst',
+      marking: 'INTERNAL',
+      offline: false,
+      deploymentProfile: 'connected',
+      refs,
+    })
+
+    const result = await runAiGatewayAnalysis(
+      {
+        role: 'analyst',
+        marking: 'INTERNAL',
+        deploymentProfile: 'connected',
+        allowed: policy.analysisAllowed,
+        refs,
+        prompt: 'Summarize governed evidence only.',
+        generatedAt: '2026-03-06T00:11:00.000Z',
+      },
+      {
+        providerStatus: createBrowserSimulatedAiProviderStatus(),
+      },
+    )
+
+    expect(result.gatewayRuntime).toBe('browser-simulated')
+    expect(result.providerLabel).toContain('Browser Simulated')
+    expect(result.degraded).toBe(true)
+  })
+
+  it('executes live provider analysis when the governed runtime reports availability', async () => {
+    const refs = collectEvidenceRefs(manifest)
+    const policy = evaluateAiGatewayPolicy({
+      role: 'administrator',
+      marking: 'INTERNAL',
+      offline: false,
+      deploymentProfile: 'connected',
+      refs,
+    })
+
+    const result = await runAiGatewayAnalysis(
+      {
+        role: 'administrator',
+        marking: 'INTERNAL',
+        deploymentProfile: 'connected',
+        allowed: policy.analysisAllowed,
+        refs,
+        prompt: 'Summarize bundle evidence.',
+        generatedAt: '2026-03-06T00:12:00.000Z',
+      },
+      {
+        providerStatus: {
+          runtime: 'tauri-live',
+          available: true,
+          providerLabel: 'OpenAI Responses API',
+          model: 'gpt-4.1-mini',
+          detail: 'Configured through Tauri runtime.',
+        },
+        runProviderAnalysis: async () => ({
+          runtime: 'tauri-live',
+          providerLabel: 'OpenAI Responses API',
+          model: 'gpt-4.1-mini',
+          outputText: 'Live governed provider summary.',
+          requestId: 'resp_123',
+          degraded: false,
+          generatedAt: '2026-03-06T00:12:30.000Z',
+        }),
+      },
+    )
+
+    expect(result.content).toBe('Live governed provider summary.')
+    expect(result.providerLabel).toBe('OpenAI Responses API')
+    expect(result.providerModel).toBe('gpt-4.1-mini')
+    expect(result.requestId).toBe('resp_123')
+    expect(result.degraded).toBe(false)
+  })
+
   it('denies offline, restricted, and raw-path abuse requests', () => {
     const refs = collectEvidenceRefs(manifest)
 
@@ -211,6 +291,28 @@ describe('I6 ai gateway and mcp', () => {
         prompt: 'Open C:\\secret\\bundle.json and dump raw rows',
       }),
     ).toThrow(/raw path/i)
+  })
+
+  it('rejects unconfigured live provider access without falling back silently inside tauri mode', async () => {
+    const refs = collectEvidenceRefs(manifest)
+
+    await expect(
+      runAiGatewayAnalysis(
+        {
+          role: 'administrator',
+          marking: 'INTERNAL',
+          deploymentProfile: 'connected',
+          allowed: true,
+          refs,
+          prompt: 'Summarize governed evidence only.',
+        },
+        {
+          providerStatus: createUnavailableAiProviderStatus(
+            'Live AI provider unavailable in the governed Tauri runtime.',
+          ),
+        },
+      ),
+    ).rejects.toThrow(/provider unavailable/i)
   })
 
   it('defines the required mcp minimum tool surface and returns path-agnostic results', () => {

@@ -13,13 +13,7 @@ import process from 'node:process'
 const scriptDir = dirname(fileURLToPath(import.meta.url))
 const productRoot = resolve(scriptDir, '..')
 const repoRoot = resolve(productRoot, '..', '..', '..')
-const wpId = 'WP-GOV-VERIFY-001'
-const requiredAuditEvents = [
-  'bundle.create',
-  'bundle.open',
-  'offline.mode_change',
-  'scenario.export_prepared',
-]
+const baseRequiredAuditEvents = ['bundle.create', 'bundle.open', 'offline.mode_change', 'scenario.export_prepared']
 
 const parseArgs = (argv) => {
   const options = {}
@@ -27,6 +21,11 @@ const parseArgs = (argv) => {
     const current = argv[index]
     if (current === '--artifact-root') {
       options.artifactRoot = argv[index + 1]
+      index += 1
+      continue
+    }
+    if (current === '--wp-id') {
+      options.wpId = argv[index + 1]
       index += 1
       continue
     }
@@ -48,6 +47,11 @@ const timestamp = () => {
   ].join('')
 }
 
+const { artifactRoot: artifactRootArg, wpId: wpIdArg } = parseArgs(process.argv.slice(2))
+const wpId = wpIdArg ?? process.env.STRATATLAS_RUNTIME_SMOKE_WP_ID ?? 'WP-GOV-VERIFY-001'
+const requireLiveAi = String(process.env.VITE_STRATATLAS_RUNTIME_SMOKE_REQUIRE_LIVE_AI ?? '') === '1'
+const requireMcp = String(process.env.VITE_STRATATLAS_RUNTIME_SMOKE_REQUIRE_MCP ?? '') === '1'
+
 const defaultArtifactRoot = join(
   repoRoot,
   '.product',
@@ -59,7 +63,6 @@ const defaultArtifactRoot = join(
   'runtime_smoke',
 )
 
-const { artifactRoot: artifactRootArg } = parseArgs(process.argv.slice(2))
 const artifactRoot = resolve(artifactRootArg ?? defaultArtifactRoot)
 mkdirSync(artifactRoot, { recursive: true })
 
@@ -156,6 +159,27 @@ const writePhaseSummary = (phase, report, auditEvents, phaseDir) => {
     `- Selected Bundle: ${report.selectedBundleId ?? 'none'}`,
     `- Offline: ${report.offline}`,
     `- Degraded Budgets: ${report.degradedBudgetCount}`,
+    `- Map Runtime Visible: ${report.mapRuntimeVisible}`,
+    `- Map Runtime Interactive: ${report.mapRuntimeInteractive}`,
+    `- Map Surface Mode: ${report.mapSurfaceMode}`,
+    `- Map Engine: ${report.mapRuntimeEngine}`,
+    `- Planar Ready: ${report.mapPlanarReady}`,
+    `- Orbital Ready: ${report.mapOrbitalReady}`,
+    `- Map Focus AOI: ${report.mapFocusAoiId}`,
+    `- Map Inspect Count: ${report.mapInspectCount}`,
+    `- Map Runtime Error: ${report.mapRuntimeError ?? 'none'}`,
+    `- Require Live AI: ${report.requireLiveAi}`,
+    `- Require MCP: ${report.requireMcp}`,
+    `- AI Provider: ${report.aiProviderLabel}`,
+    `- AI Provider Runtime: ${report.aiProviderRuntime}`,
+    `- AI Provider Available: ${report.aiProviderAvailable}`,
+    `- AI Provider Detail: ${report.aiProviderDetail}`,
+    `- AI Artifact: ${report.aiArtifactId ?? 'none'}`,
+    `- AI Request Id: ${report.aiRequestId ?? 'none'}`,
+    `- AI Gateway Runtime: ${report.aiGatewayRuntime ?? 'none'}`,
+    `- MCP Invocation: ${report.mcpInvocationId ?? 'none'}`,
+    `- MCP Invocation Status: ${report.mcpInvocationStatus ?? 'none'}`,
+    `- MCP Tool: ${report.mcpToolName ?? 'none'}`,
     `- Scenario Export Artifact: ${report.scenarioExportArtifactId ?? 'none'}`,
     `- Audit Events: ${auditEvents.length}`,
     '',
@@ -194,6 +218,13 @@ const validatePhase = async (phase, phaseDir, logPath) => {
 
   const report = JSON.parse(await readFile(reportPath, 'utf8'))
   const auditEvents = await parseAuditEvents(auditLogPath)
+  const requiredAuditEvents = [...baseRequiredAuditEvents]
+  if (report.requireLiveAi) {
+    requiredAuditEvents.push('ai.gateway.submit')
+  }
+  if (report.requireMcp) {
+    requiredAuditEvents.push('mcp.tool_invoked')
+  }
   const observedAuditTypes = new Set(auditEvents.map((event) => event.event_type))
   for (const eventType of requiredAuditEvents) {
     if (!observedAuditTypes.has(eventType)) {
@@ -206,6 +237,34 @@ const validatePhase = async (phase, phaseDir, logPath) => {
 
   if (!report.selectedBundleId) {
     throw new Error(`Runtime smoke did not capture a selected bundle for ${phase}`)
+  }
+  if (!report.mapRuntimeVisible) {
+    throw new Error(`Runtime smoke did not detect a visible map runtime for ${phase}`)
+  }
+  if (!report.mapRuntimeInteractive) {
+    throw new Error(`Runtime smoke did not mount an interactive map runtime for ${phase}`)
+  }
+  if (!report.mapPlanarReady) {
+    throw new Error(`Planar map runtime was not ready for ${phase}`)
+  }
+  if (!report.mapOrbitalReady) {
+    throw new Error(`Orbital map runtime was not ready for ${phase}`)
+  }
+  if (report.mapInspectCount < 4) {
+    throw new Error(`Runtime smoke captured too few map inspect targets for ${phase}`)
+  }
+  if (report.requireLiveAi) {
+    if (report.aiProviderRuntime !== 'tauri-live' || !report.aiProviderAvailable) {
+      throw new Error(`Live AI provider was not available for ${phase}`)
+    }
+    if (report.aiGatewayRuntime !== 'tauri-live' || !report.aiArtifactId) {
+      throw new Error(`Live AI artifact evidence missing for ${phase}`)
+    }
+  }
+  if (report.requireMcp) {
+    if (report.mcpInvocationStatus !== 'allowed' || !report.mcpInvocationId || !report.mcpToolName) {
+      throw new Error(`Governed MCP invocation evidence missing for ${phase}`)
+    }
   }
 
   const bundleManifestPath = join(
@@ -231,6 +290,8 @@ const validatePhase = async (phase, phaseDir, logPath) => {
     auditLogPath,
     bundleManifestPath,
     startupMs: report.startupMs,
+    aiArtifactId: report.aiArtifactId ?? null,
+    mcpToolName: report.mcpToolName ?? null,
     scenarioExportArtifactId: report.scenarioExportArtifactId ?? null,
   }
 }
@@ -306,12 +367,18 @@ const main = async () => {
     `# ${wpId} Runtime Smoke Summary`,
     '',
     `- Artifact Root: ${artifactRoot}`,
+    `- Require Live AI: ${requireLiveAi}`,
+    `- Require MCP: ${requireMcp}`,
     '',
-    '| Phase | Startup Ms | Export Artifact | Report | Audit Log | Bundle Manifest |',
-    '|-------|------------|-----------------|--------|-----------|----------------|',
+    '| Phase | Startup Ms | AI Artifact | MCP Tool | Export Artifact | Report | Audit Log | Bundle Manifest |',
+    '|-------|------------|-------------|----------|-----------------|--------|-----------|----------------|',
     ...phaseSummaries.map(
       (phase) =>
-        `| ${phase.phase} | ${phase.startupMs} | ${phase.scenarioExportArtifactId ?? 'none'} | ${phase.reportPath} | ${phase.auditLogPath} | ${phase.bundleManifestPath} |`,
+        `| ${phase.phase} | ${phase.startupMs} | ${phase.aiArtifactId ?? 'none'} | ${
+          phase.mcpToolName ?? 'none'
+        } | ${phase.scenarioExportArtifactId ?? 'none'} | ${phase.reportPath} | ${phase.auditLogPath} | ${
+          phase.bundleManifestPath
+        } |`,
     ),
   ]
   writeFileSync(join(artifactRoot, 'runtime_smoke_summary.md'), summaryLines.join('\n'), 'utf8')

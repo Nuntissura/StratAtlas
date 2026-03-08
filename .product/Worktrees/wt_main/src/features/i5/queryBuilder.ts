@@ -57,6 +57,11 @@ type QueryRow = Record<string, unknown> & {
   context_domains?: string[]
 }
 
+export interface QueryMatchSnapshot {
+  resultCount: number
+  matchedRowIds: number[]
+}
+
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
 
@@ -190,14 +195,23 @@ export const bumpQueryVersion = (
 export const buildQueryRenderLayer = (
   query: VersionedQuery,
   rows: QueryRow[],
+): QueryRenderLayer =>
+  buildQueryRenderLayerFromMatches(query, {
+    resultCount: rows.length,
+    matchedRowIds: rows
+      .map((row) => row.id)
+      .filter((entry): entry is number => typeof entry === 'number'),
+  })
+
+export const buildQueryRenderLayerFromMatches = (
+  query: VersionedQuery,
+  match: QueryMatchSnapshot,
 ): QueryRenderLayer => ({
   layerId: `query-layer-${query.queryId}-v${query.version}`,
   label: 'Observed Evidence',
-  summary: `${rows.length} rows rendered for ${query.title} in ${query.aoi || 'all AOIs'}`,
-  resultCount: rows.length,
-  matchedRowIds: rows
-    .map((row) => row.id)
-    .filter((entry): entry is number => typeof entry === 'number'),
+  summary: `${match.resultCount} rows rendered for ${query.title} in ${query.aoi || 'all AOIs'}`,
+  resultCount: match.resultCount,
+  matchedRowIds: [...match.matchedRowIds],
   aoi: query.aoi,
   contextDomainIds: [...query.contextDomainIds],
   ephemeral: true,

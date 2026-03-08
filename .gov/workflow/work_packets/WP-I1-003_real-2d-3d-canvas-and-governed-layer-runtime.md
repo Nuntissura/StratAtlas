@@ -1,7 +1,7 @@
 # WP-I1-003 - Real 2D 3D Canvas and Governed Layer Runtime
 
 Date Opened: 2026-03-06
-Status: SPEC-MAPPED
+Status: E2E-VERIFIED
 Iteration: I1
 Workflow Version: 3.0
 Linked Test Suite: .gov/workflow/wp_test_suites/TS-WP-I1-003.md
@@ -146,15 +146,18 @@ Replace the current summary-card canvas surrogate with the real governed 2D and 
 
 ## Evidence
 
-- Test Suite Execution:
-- Logs:
-- Screenshots/Exports:
-- Build Artifacts:
+- Test Suite Execution: Passed `powershell -ExecutionPolicy Bypass -File .gov/workflow/wp_checks/check-WP-I1-003.ps1`.
+- Logs: `.product/build_target/tool_artifacts/wp_runs/WP-I1-003/20260307_045256/summary.md`, `.product/build_target/tool_artifacts/wp_runs/WP-I1-003/20260307_045256/result.json`, `.product/build_target/tool_artifacts/wp_runs/WP-I1-003/20260307_045256/UI-001.log`, `.product/build_target/tool_artifacts/wp_runs/WP-I1-003/20260307_045256/FUNC-001.log`, `.product/build_target/tool_artifacts/wp_runs/WP-I1-003/20260307_045256/COR-001.log`, `.product/build_target/tool_artifacts/wp_runs/WP-I1-003/20260307_045256/COR-002.log`, `.product/build_target/tool_artifacts/wp_runs/WP-I1-003/20260307_045256/RED-001.log`, `.product/build_target/tool_artifacts/wp_runs/WP-I1-003/20260307_045256/EXT-001.log`, `.product/build_target/tool_artifacts/wp_runs/WP-I1-003/20260307_045256/EXT-002.log`
+- Screenshots/Exports: `.product/build_target/tool_artifacts/wp_runs/WP-I1-003/20260307_045256/runtime_smoke/cold/runtime_smoke_summary.md`, `.product/build_target/tool_artifacts/wp_runs/WP-I1-003/20260307_045256/runtime_smoke/warm/runtime_smoke_summary.md`
+- Build Artifacts: `.product/build_target/tool_artifacts/wp_runs/WP-I1-003/20260307_045256/runtime_smoke/`, `.product/build_target/tool_artifacts/wp_runs/WP-I1-003/20260307_045256/red_team_result.json`
 - Proof Artifact: .product/build_target/tool_artifacts/wp_runs/WP-I1-003/
-- User Sign-off:
+- User Sign-off: Approved via 2026-03-07 instruction to perform the outstanding `WP-I1-003` closeout tasks.
 
 ## Progress Log
 
 - 2026-03-06: WP scaffold created via .gov/repo_scripts/new_work_packet.ps1.
 - 2026-03-06: Packet scope refined to define the real canvas runtime and performance-budget remediation required after the audit.
 - 2026-03-07: Packet scope updated to follow the source-backed map-first contract from `WP-GOV-I1-RESEARCH-001`.
+- 2026-03-07: Execution started. The main canvas now mounts a real MapLibre-driven map runtime with planar and orbital modes, map-linked feature overlays for query/context/compare/collaboration/scenario/AI/alerts/modeling, and a jsdom-safe fallback surface for automated tests.
+- 2026-03-07: Local implementation verification passed in `.product/Worktrees/wt_main` with `pnpm lint`, `pnpm test`, and `pnpm build`. Packet remains `IN-PROGRESS` pending full packet-proof closure, broader desktop smoke evidence, and final 3D runtime closure scope.
+- 2026-03-07: Packet closed as `E2E-VERIFIED` after `check-WP-I1-003.ps1` passed with governed Tauri cold/warm runtime smoke, full functional suite coverage, lint/build/cargo verification, and artifact-backed proof under `.product/build_target/tool_artifacts/wp_runs/WP-I1-003/20260307_045256/`.

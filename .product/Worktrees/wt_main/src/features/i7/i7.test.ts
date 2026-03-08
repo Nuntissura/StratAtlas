@@ -10,6 +10,11 @@ import {
   validateDomainRegistration,
   type ContextDomain,
 } from './contextIntake'
+import {
+  buildGovernedDomainDraft,
+  materializeGovernedContextRecords,
+  resolveGovernedDomainRegistration,
+} from './governedDomains'
 
 const baseDomain: ContextDomain = {
   domain_id: 'ctx-1',
@@ -141,5 +146,40 @@ describe('I7 context intake', () => {
     expect(preCacheable.status_line).toContain('Offline cached domain available')
     expect(onlineOnly.status).toBe('stale_offline')
     expect(onlineOnly.staleness_line).toContain('Stale until live refresh')
+  })
+
+  it('materializes governed catalog records instead of registration-time synthetic records', () => {
+    const draft = buildGovernedDomainDraft('port-throughput-monthly')
+    const resolved = resolveGovernedDomainRegistration({
+      ...draft,
+      presentation_type: 'constraint_node',
+      offline_behavior: 'online_only',
+    })
+
+    expect(resolved).not.toBeNull()
+    expect(resolved?.domain_name).toBe('Port Throughput')
+    expect(resolved?.presentation_type).toBe('constraint_node')
+    expect(resolved?.offline_behavior).toBe('online_only')
+
+    const timeRange = buildContextTimeRange({
+      startHour: 8,
+      endHour: 18,
+    })
+    const records = materializeGovernedContextRecords({
+      domain: resolved as ContextDomain,
+      targetId: 'aoi-9',
+      timeRange,
+    })
+
+    expect(records).toHaveLength(3)
+    expect(records[0].record_id).toContain('port-throughput-monthly-aoi-9')
+    expect(records[0].lineage).toEqual(
+      expect.arrayContaining([
+        'governed.catalog:port-throughput-monthly',
+        'pipeline:wp-i7-002',
+        'target:aoi-9',
+      ]),
+    )
+    expect(records.at(-1)?.value_label).toBe('11 index')
   })
 })

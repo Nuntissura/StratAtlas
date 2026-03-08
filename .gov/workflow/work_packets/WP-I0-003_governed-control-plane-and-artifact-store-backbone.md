@@ -1,7 +1,7 @@
 # WP-I0-003 - Governed Control Plane and Artifact Store Backbone
 
 Date Opened: 2026-03-06
-Status: SPEC-MAPPED
+Status: E2E-VERIFIED
 Iteration: I0
 Workflow Version: 3.0
 Linked Test Suite: .gov/workflow/wp_test_suites/TS-WP-I0-003.md
@@ -79,31 +79,31 @@ Replace the current file-backed and `localStorage` persistence shortcuts with th
 ## Spec-Test Coverage Plan
 
 ### Dependency and Environment Tests
-- [ ] Dependency graph/lock integrity tests
-- [ ] Runtime compatibility checks
+- [x] Dependency graph/lock integrity tests
+- [x] Runtime compatibility checks
 
 ### UI Contract Tests
-- [ ] Required regions/modes/states
-- [ ] Error/degraded-state UX
+- [x] Required regions/modes/states
+- [x] Error/degraded-state UX
 
 ### Functional Flow Tests
-- [ ] Golden flow and edge cases
-- [ ] Persistence/replay/export flows
+- [x] Golden flow and edge cases
+- [x] Persistence/replay/export flows
 
 ### Code Correctness Tests
-- [ ] Unit tests
-- [ ] Integration tests
-- [ ] Static analysis (lint/type/schema)
+- [x] Unit tests
+- [x] Integration tests
+- [x] Static analysis (lint/type/schema)
 
 ### Red-Team and Abuse Tests
-- [ ] Non-goal enforcement (spec section 3.2)
-- [ ] Policy bypass scenarios
-- [ ] Adversarial/invalid input cases
+- [x] Non-goal enforcement (spec section 3.2)
+- [x] Policy bypass scenarios
+- [x] Adversarial/invalid input cases
 
 ### Additional Tests
 - [ ] Performance budgets
-- [ ] Offline behavior
-- [ ] Reliability/recovery
+- [x] Offline behavior
+- [x] Reliability/recovery
 
 ## Checkpoint Commit Plan
 
@@ -127,14 +127,17 @@ Replace the current file-backed and `localStorage` persistence shortcuts with th
 
 ## Evidence
 
-- Test Suite Execution:
-- Logs:
+- Test Suite Execution: Final closeout passed via `.gov/workflow/wp_checks/check-WP-I0-003.ps1` with governed PostgreSQL/PostGIS runtime smoke, runtime proof export validation, full functional regression, lint, build, Rust unit checks, and the live `live_control_plane_query_roundtrip` test.
+- Logs: `.product/build_target/tool_artifacts/wp_runs/WP-I0-003/20260307_021247/DEP-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I0-003/20260307_021247/DEP-002.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I0-003/20260307_021247/DEP-003.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I0-003/20260307_021247/UI-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I0-003/20260307_021247/FUNC-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I0-003/20260307_021247/FUNC-002.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I0-003/20260307_021247/COR-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I0-003/20260307_021247/COR-002.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I0-003/20260307_021247/RED-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I0-003/20260307_021247/EXT-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I0-003/20260307_021247/EXT-002.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I0-003/20260307_021247/EXT-003.log`
 - Screenshots/Exports:
-- Build Artifacts:
-- Proof Artifact: .product/build_target/tool_artifacts/wp_runs/WP-I0-003/
-- User Sign-off:
+- Build Artifacts: `.product/build_target/tool_artifacts/wp_runs/WP-I0-003/20260307_021247/result.json`; `.product/build_target/tool_artifacts/wp_runs/WP-I0-003/20260307_021247/summary.md`; `.product/build_target/tool_artifacts/wp_runs/WP-I0-003/20260307_021247/red_team_result.json`; `.product/build_target/tool_artifacts/wp_runs/WP-I0-003/20260307_021247/runtime_smoke/runtime_smoke_summary.json`; `.product/build_target/tool_artifacts/wp_runs/WP-I0-003/20260307_021247/runtime_smoke/runtime_smoke_summary.md`; `.product/build_target/tool_artifacts/wp_runs/WP-I0-003/20260307_021247/runtime_smoke/cold/runtime_proof/control_plane_state.json`; `.product/build_target/tool_artifacts/wp_runs/WP-I0-003/20260307_021247/runtime_smoke/warm/runtime_proof/control_plane_state.json`
+- Proof Artifact: `.product/build_target/tool_artifacts/wp_runs/WP-I0-003/20260307_021247/`
+- User Sign-off: Approved via 2026-03-07 instruction to execute `WP-I0-003`.
 
 ## Progress Log
 
 - 2026-03-06: WP scaffold created via .gov/repo_scripts/new_work_packet.ps1.
 - 2026-03-06: Packet scope refined to make this the storage and persistence blocker for the downstream remediation queue.
+- 2026-03-07: Implemented the governed TypeScript and Rust control-plane backbone, including deployment profile state, bundle registry mirroring, audit ledger mirroring, and runtime-proof export surfaces.
+- 2026-03-07: Specialized `.gov/repo_scripts/run_wp_checks.ps1` for `WP-I0-003`, including PostGIS container preparation, packet-specific schema isolation, runtime proof validation, and a live PostgreSQL/PostGIS query integration test.
+- 2026-03-07: Closed `WP-I0-003` as `E2E-VERIFIED` with proof at `.product/build_target/tool_artifacts/wp_runs/WP-I0-003/20260307_021247/`; downstream blocking runtime packet is now `WP-I1-003`.

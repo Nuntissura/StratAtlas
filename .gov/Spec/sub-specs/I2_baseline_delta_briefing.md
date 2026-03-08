@@ -4,7 +4,7 @@ Date: 2026-03-05
 Status: APPROVED
 Iteration: I2
 Parent Spec: .gov/Spec/stratatlas_spec_v1_2.md
-Linked Work Packet(s): WP-I2-001
+Linked Work Packet(s): WP-I2-001, WP-I2-002, WP-I2-003
 Linked Requirements: REQ-0300..REQ-0302
 
 ## 1) UX Contract

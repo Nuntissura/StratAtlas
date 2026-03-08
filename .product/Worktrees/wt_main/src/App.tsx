@@ -20,11 +20,19 @@ import type {
 import type { UiMode } from './features/i1/modes'
 import { REQUIRED_UI_MODES, REQUIRED_UI_REGIONS } from './features/i1/modes'
 import {
+  MapRuntimeSurface,
+} from './features/i1/components/MapRuntimeSurface'
+import {
+  DEFAULT_MAP_RUNTIME_TELEMETRY,
+  type MapRuntimeTelemetry,
+} from './features/i1/runtime/mapRuntimeTelemetry'
+import {
   ARTIFACT_LABELS,
   artifactTone,
   buildWorkspaceLayerCatalog,
   type LayerCatalogEntry,
 } from './features/i1/layers'
+import { buildMapRuntimeScene } from './features/i1/runtime/mapRuntimeScene'
 import {
   I1_BUDGETS,
   buildBudgetTelemetry,
@@ -33,13 +41,17 @@ import {
   type StateChangeFeedback,
 } from './features/i1/performance'
 import {
+  buildCompareArtifact,
   buildBriefingArtifactPreview,
   buildBriefingBundle,
   buildCompareDashboard,
+  buildCompareStateSnapshot,
   buildComparisonWindow,
   buildContextOverlaySummaries,
   computeDensityDelta,
+  type BriefingBundle,
   type BriefingArtifactPreview,
+  type CompareArtifact,
   type CompareStateSnapshot,
 } from './features/i2/baselineDelta'
 import {
@@ -72,27 +84,37 @@ import {
 } from './features/i4/scenarios'
 import {
   addQueryCondition,
-  buildQueryRenderLayer,
+  buildQueryRenderLayerFromMatches,
   buildSavedQueryArtifact,
   bumpQueryVersion,
   removeQueryCondition,
-  runQuery,
   type QueryCondition,
   type QueryConditionScope,
+  type QueryMatchSnapshot,
   type QueryOperator,
   type QueryRenderLayer,
   type SavedQueryArtifact,
   type VersionedQuery,
 } from './features/i5/queryBuilder'
+import { executeQuery } from './features/i5/queryExecution'
 import {
+  buildGovernedQuerySource,
+  buildLocalQuerySourceRecords,
+  describeGovernedQuerySource,
+  resolveQueryDomainIds,
+} from './features/i5/queryRuntime'
+import {
+  createBrowserSimulatedAiProviderStatus,
+  createUnavailableAiProviderStatus,
   DEPLOYMENT_PROFILES,
   MCP_MINIMUM_TOOLS,
   collectEvidenceRefs,
   evaluateAiGatewayPolicy,
   executeMcpTool,
   normalizeAiGatewaySnapshot,
-  submitAiAnalysis,
+  runAiGatewayAnalysis,
   type AiGatewayArtifact,
+  type AiGatewayProviderStatus,
   type AiGatewaySnapshot,
   type DeploymentProfileId,
   type McpInvocationRecord,
@@ -101,7 +123,6 @@ import {
 import {
   buildContextTimeRange,
   buildCorrelationLinks,
-  buildSampleContextRecords,
   collectDomainRegistrationErrors,
   queryContextRecords,
   summarizeContextAvailability,
@@ -111,6 +132,15 @@ import {
   type ContextRecord,
   type ContextTimeRange,
 } from './features/i7/contextIntake'
+import {
+  buildGovernedDomainDraft,
+  DEFAULT_GOVERNED_CONTEXT_DOMAIN_ID,
+  describeGovernedDomainIngestion,
+  getGovernedDomainTemplate,
+  GOVERNED_CONTEXT_DOMAIN_TEMPLATES,
+  materializeGovernedContextRecords,
+  resolveGovernedDomainRegistration,
+} from './features/i7/governedDomains'
 import {
   buildConstraintNodeSuggestion,
   createDeviationSnapshot,
@@ -226,6 +256,9 @@ const DEFAULT_QUERY_SCOPE: QueryConditionScope = 'geospatial'
 const DEFAULT_QUERY_FIELD = 'speed'
 const DEFAULT_QUERY_OPERATOR: QueryOperator = 'greater_than'
 const DEFAULT_QUERY_VALUE = '20'
+const DEFAULT_QUERY_SOURCE_SUMMARY =
+  'Query source: register or restore a governed context domain to run governed queries.'
+const DEFAULT_QUERY_EXECUTION_SUMMARY = 'Execution: waiting for a governed DuckDB run.'
 const DEFAULT_DEPLOYMENT_PROFILE: DeploymentProfileId = 'connected'
 const DEFAULT_MCP_TOOL: McpToolName = 'get_bundle_manifest'
 const QUERY_OPERATORS: QueryOperator[] = ['equals', 'greater_than', 'less_than', 'contains']
@@ -269,23 +302,13 @@ const parseNumericSeries = (value: string): number[] =>
     .map((entry) => Number(entry.trim()))
     .filter((entry) => Number.isFinite(entry))
 
-const createDomainDraft = (): ContextDomain => ({
-  domain_id: `ctx-${Date.now()}`,
-  domain_name: 'Port Throughput',
-  domain_class: 'economic_indicator',
-  source_name: 'UNCTAD',
-  source_url: 'https://example.test/context',
-  license: 'public',
-  update_cadence: 'monthly',
-  spatial_binding: 'point',
-  temporal_resolution: 'monthly',
-  sensitivity_class: 'PUBLIC',
-  confidence_baseline: 'A',
-  methodology_notes: 'Official aggregation',
-  offline_behavior: 'pre_cacheable',
-  presentation_type: 'map_overlay',
-  prohibited_uses: DEFAULT_CONTEXT_PROHIBITED_USES,
-})
+const createDomainDraft = (domainId = DEFAULT_GOVERNED_CONTEXT_DOMAIN_ID): ContextDomain => {
+  const draft = buildGovernedDomainDraft(domainId)
+  return {
+    ...draft,
+    prohibited_uses: draft.prohibited_uses ?? DEFAULT_CONTEXT_PROHIBITED_USES,
+  }
+}
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -541,6 +564,12 @@ const normalizeCorrelationLinks = (value: unknown): ContextCorrelationLink[] => 
       label: 'Correlated Context',
       enabled: Boolean(entry.enabled),
       time_range: normalizeContextTimeRange(entry.time_range),
+      summary: typeof entry.summary === 'string' ? entry.summary : undefined,
+      lineage: Array.isArray(entry.lineage)
+        ? (entry.lineage as unknown[]).filter(
+            (lineageEntry): lineageEntry is string => typeof lineageEntry === 'string',
+          )
+        : undefined,
     }))
 }
 
@@ -562,6 +591,153 @@ const normalizeComparisonWindow = (
   return { start, end, label }
 }
 
+const normalizeCompareArtifact = (value: unknown): CompareArtifact | undefined => {
+  if (!isRecord(value)) {
+    return undefined
+  }
+
+  const artifactId = typeof value.artifactId === 'string' ? value.artifactId : ''
+  if (!artifactId) {
+    return undefined
+  }
+
+  return {
+    artifactId,
+    bundleId: typeof value.bundleId === 'string' ? value.bundleId : undefined,
+    marking:
+      value.marking === 'PUBLIC' || value.marking === 'INTERNAL' || value.marking === 'RESTRICTED'
+        ? value.marking
+        : 'INTERNAL',
+    summary: typeof value.summary === 'string' ? value.summary : '',
+    baselineWindow: normalizeComparisonWindow(
+      value.baselineWindow,
+      'Baseline',
+      DEFAULT_BASELINE_WINDOW_LABEL,
+    ),
+    eventWindow: normalizeComparisonWindow(value.eventWindow, 'Event', DEFAULT_EVENT_WINDOW_LABEL),
+    totalDelta: normalizeNumber(value.totalDelta, 0),
+    focusAoiId: typeof value.focusAoiId === 'string' ? value.focusAoiId : DEFAULT_CORRELATION_AOI,
+    focusAoiLabel:
+      typeof value.focusAoiLabel === 'string' ? value.focusAoiLabel : 'Singapore Strait',
+    deltaCellIds: normalizeStringArray(value.deltaCellIds),
+    overlayDomainIds: normalizeStringArray(value.overlayDomainIds),
+    generatedAt:
+      typeof value.generatedAt === 'string' ? value.generatedAt : '1970-01-01T00:00:00.000Z',
+    exportFingerprint:
+      typeof value.exportFingerprint === 'string' ? value.exportFingerprint : 'compare-pending',
+    offline: Boolean(value.offline),
+  }
+}
+
+const normalizeBriefingBundle = (value: unknown): BriefingBundle | undefined => {
+  if (!isRecord(value)) {
+    return undefined
+  }
+
+  const artifactId = typeof value.artifactId === 'string' ? value.artifactId : ''
+  const compareArtifactId =
+    typeof value.compareArtifactId === 'string' ? value.compareArtifactId : ''
+  if (!artifactId || !compareArtifactId) {
+    return undefined
+  }
+
+  const sections = Array.isArray(value.sections)
+    ? value.sections
+        .filter((entry): entry is Record<string, unknown> => isRecord(entry))
+        .filter(
+          (entry) =>
+            typeof entry.sectionId === 'string' &&
+            typeof entry.title === 'string' &&
+            (entry.artifactLabel === 'Observed Evidence' ||
+              entry.artifactLabel === 'Curated Context') &&
+            typeof entry.summary === 'string' &&
+            typeof entry.aoiId === 'string',
+        )
+        .map((entry) => ({
+          sectionId: entry.sectionId as string,
+          title: entry.title as string,
+          artifactLabel: entry.artifactLabel as 'Observed Evidence' | 'Curated Context',
+          summary: entry.summary as string,
+          aoiId: entry.aoiId as string,
+        }))
+    : []
+
+  return {
+    artifactId,
+    compareArtifactId,
+    bundleId: typeof value.bundleId === 'string' ? value.bundleId : undefined,
+    marking:
+      value.marking === 'PUBLIC' || value.marking === 'INTERNAL' || value.marking === 'RESTRICTED'
+        ? value.marking
+        : 'INTERNAL',
+    baselineWindow:
+      typeof value.baselineWindow === 'string'
+        ? value.baselineWindow
+        : DEFAULT_BASELINE_WINDOW_LABEL,
+    eventWindow:
+      typeof value.eventWindow === 'string' ? value.eventWindow : DEFAULT_EVENT_WINDOW_LABEL,
+    summary: typeof value.summary === 'string' ? value.summary : '',
+    totalDelta: normalizeNumber(value.totalDelta, 0),
+    focusAoiId: typeof value.focusAoiId === 'string' ? value.focusAoiId : DEFAULT_CORRELATION_AOI,
+    focusAoiLabel:
+      typeof value.focusAoiLabel === 'string' ? value.focusAoiLabel : 'Singapore Strait',
+    delta: normalizeNumberArray(value.delta),
+    deltaCellIds: normalizeStringArray(value.deltaCellIds),
+    overlayDomainIds: normalizeStringArray(value.overlayDomainIds),
+    sections,
+    exportFingerprint:
+      typeof value.exportFingerprint === 'string' ? value.exportFingerprint : 'briefing-pending',
+    generatedAt:
+      typeof value.generatedAt === 'string' ? value.generatedAt : '1970-01-01T00:00:00.000Z',
+    offline: Boolean(value.offline),
+    exportStatus: value.exportStatus === 'ready' ? 'ready' : 'bundle_required',
+  }
+}
+
+const normalizeBriefingArtifact = (value: unknown): BriefingArtifactPreview | undefined => {
+  if (!isRecord(value)) {
+    return undefined
+  }
+
+  const artifactId = typeof value.artifactId === 'string' ? value.artifactId : ''
+  const compareArtifactId =
+    typeof value.compareArtifactId === 'string' ? value.compareArtifactId : ''
+  if (!artifactId || !compareArtifactId) {
+    return undefined
+  }
+
+  return {
+    artifactId,
+    label: 'Observed Evidence',
+    summary: typeof value.summary === 'string' ? value.summary : '',
+    bundleId: typeof value.bundleId === 'string' ? value.bundleId : undefined,
+    compareArtifactId,
+    marking:
+      value.marking === 'PUBLIC' || value.marking === 'INTERNAL' || value.marking === 'RESTRICTED'
+        ? value.marking
+        : 'INTERNAL',
+    baselineWindow: normalizeComparisonWindow(
+      value.baselineWindow,
+      'Baseline',
+      DEFAULT_BASELINE_WINDOW_LABEL,
+    ),
+    eventWindow: normalizeComparisonWindow(value.eventWindow, 'Event', DEFAULT_EVENT_WINDOW_LABEL),
+    deltaCellCount: normalizeNumber(value.deltaCellCount, 0),
+    totalDelta: normalizeNumber(value.totalDelta, 0),
+    focusAoiId: typeof value.focusAoiId === 'string' ? value.focusAoiId : DEFAULT_CORRELATION_AOI,
+    focusAoiLabel:
+      typeof value.focusAoiLabel === 'string' ? value.focusAoiLabel : 'Singapore Strait',
+    overlayDomainIds: normalizeStringArray(value.overlayDomainIds),
+    exportStatus: value.exportStatus === 'ready' ? 'ready' : 'bundle_required',
+    offline: Boolean(value.offline),
+    generatedAt:
+      typeof value.generatedAt === 'string' ? value.generatedAt : '1970-01-01T00:00:00.000Z',
+    exportFingerprint:
+      typeof value.exportFingerprint === 'string' ? value.exportFingerprint : 'briefing-pending',
+    sectionTitles: normalizeStringArray(value.sectionTitles),
+  }
+}
+
 const normalizeCompareSnapshot = (value: unknown): CompareStateSnapshot | undefined => {
   if (!isRecord(value)) {
     return undefined
@@ -576,6 +752,9 @@ const normalizeCompareSnapshot = (value: unknown): CompareStateSnapshot | undefi
     eventWindow: normalizeComparisonWindow(value.eventWindow, 'Event', DEFAULT_EVENT_WINDOW_LABEL),
     baselineSeries: normalizeNumberArray(value.baselineSeries),
     eventSeries: normalizeNumberArray(value.eventSeries),
+    compareArtifact: normalizeCompareArtifact(value.compareArtifact),
+    briefingArtifact: normalizeBriefingArtifact(value.briefingArtifact),
+    briefingBundle: normalizeBriefingBundle(value.briefingBundle),
   }
 }
 
@@ -603,25 +782,23 @@ const buildWorkspaceStateSnapshot = ({
 
 const buildQueryStateSnapshot = ({
   definition,
-  queryResult,
+  result,
   sourceRowCount,
   savedVersions,
   renderLayer,
   savedArtifact,
 }: {
   definition: VersionedQuery
-  queryResult: Record<string, unknown>[]
+  result: QueryMatchSnapshot
   sourceRowCount: number
   savedVersions: VersionedQuery[]
   renderLayer?: QueryRenderLayer
   savedArtifact?: SavedQueryArtifact
 }): QueryStateSnapshot => ({
   definition,
-  resultCount: queryResult.length,
+  resultCount: result.resultCount,
   sourceRowCount,
-  matchedRowIds: queryResult
-    .map((row) => row.id)
-    .filter((value): value is number => typeof value === 'number'),
+  matchedRowIds: [...result.matchedRowIds],
   savedVersions,
   renderLayer,
   savedArtifact,
@@ -726,6 +903,13 @@ function App() {
   const [savedQueryArtifact, setSavedQueryArtifact] = useState<SavedQueryArtifact | undefined>(
     undefined,
   )
+  const [queryRows, setQueryRows] = useState<Record<string, unknown>[]>([])
+  const [queryResultCount, setQueryResultCount] = useState<number>(0)
+  const [queryMatchedRowIds, setQueryMatchedRowIds] = useState<number[]>([])
+  const [querySourceRowCount, setQuerySourceRowCount] = useState<number>(0)
+  const [querySourceSummary, setQuerySourceSummary] = useState<string>(DEFAULT_QUERY_SOURCE_SUMMARY)
+  const [queryExecutionSummary, setQueryExecutionSummary] =
+    useState<string>(DEFAULT_QUERY_EXECUTION_SUMMARY)
   const [deploymentProfileId, setDeploymentProfileId] =
     useState<DeploymentProfileId>(DEFAULT_DEPLOYMENT_PROFILE)
   const [selectedMcpTool, setSelectedMcpTool] = useState<McpToolName>(DEFAULT_MCP_TOOL)
@@ -737,11 +921,19 @@ function App() {
   )
   const [aiPrompt, setAiPrompt] = useState<string>('Summarize this selected bundle.')
   const [aiSummary, setAiSummary] = useState<string>('')
+  const [aiProviderStatus, setAiProviderStatus] = useState<AiGatewayProviderStatus>(
+    createBrowserSimulatedAiProviderStatus(),
+  )
   const [domains, setDomains] = useState<ContextDomain[]>([])
   const [activeDomainIds, setActiveDomainIds] = useState<string[]>([])
   const [correlationAoi, setCorrelationAoi] = useState<string>(DEFAULT_CORRELATION_AOI)
   const [contextRecords, setContextRecords] = useState<ContextRecord[]>([])
-  const [domainDraft, setDomainDraft] = useState<ContextDomain>(createDomainDraft)
+  const [selectedGovernedDomainId, setSelectedGovernedDomainId] = useState<string>(
+    DEFAULT_GOVERNED_CONTEXT_DOMAIN_ID,
+  )
+  const [domainDraft, setDomainDraft] = useState<ContextDomain>(() =>
+    createDomainDraft(DEFAULT_GOVERNED_CONTEXT_DOMAIN_ID),
+  )
   const [deviationBaselineInput, setDeviationBaselineInput] = useState<string>('100,98,102,99')
   const [deviationObservedInput, setDeviationObservedInput] = useState<string>('120,124,119,130')
   const [deviationThreshold, setDeviationThreshold] = useState<number>(0.2)
@@ -828,10 +1020,15 @@ function App() {
     useState<string>(DEFAULT_HYPOTHETICAL_ENTITY_SOURCE)
   const [scenarioEntityConfidenceInput, setScenarioEntityConfidenceInput] =
     useState<EntityConfidence>(DEFAULT_HYPOTHETICAL_ENTITY_CONFIDENCE)
+  const [compareArtifact, setCompareArtifact] = useState<CompareArtifact | null>(null)
+  const [briefingBundleArtifact, setBriefingBundleArtifact] = useState<BriefingBundle | null>(null)
   const [briefingArtifact, setBriefingArtifact] = useState<BriefingArtifactPreview | null>(null)
   const [hydrated, setHydrated] = useState<boolean>(false)
   const [stateFeedback, setStateFeedback] = useState<StateChangeFeedback>(() =>
     describeStateChangeFeedback('Shell ready', 0),
+  )
+  const [mapRuntimeTelemetry, setMapRuntimeTelemetry] = useState<MapRuntimeTelemetry>(
+    DEFAULT_MAP_RUNTIME_TELEMETRY,
   )
   const lastSavedFingerprint = useRef<string>('')
   const runtimeSmokeStarted = useRef<boolean>(false)
@@ -839,6 +1036,7 @@ function App() {
   const runtimeSmokeStateRef = useRef({
     mode: 'offline' as UiMode,
     selectedBundleId: '',
+    selectedBundle: null as BundleManifest | null,
     bundles: [] as BundleManifest[],
     activeLayers: [] as string[],
     toggleableLayerCatalog: [] as LayerCatalogEntry[],
@@ -848,6 +1046,10 @@ function App() {
     degradedBudgetCount: 0,
     auditEvents: [] as AuditEvent[],
     scenario: createDefaultScenarioSnapshot(),
+    mapRuntime: DEFAULT_MAP_RUNTIME_TELEMETRY,
+    aiProviderStatus: createBrowserSimulatedAiProviderStatus(),
+    latestAiArtifact: null as AiGatewayArtifact | null,
+    latestMcpInvocation: null as McpInvocationRecord | null,
   })
 
   const offline = forcedOffline || !navigator.onLine
@@ -864,35 +1066,38 @@ function App() {
     [activeLayers, analystNote, forcedOffline, mode, replayCursor],
   )
 
-  const queryRows = useMemo(
-    () => [
-      { id: 1, speed: 14, type: 'vessel', region: 'aoi-1', hour: 7, context_domains: ['ctx-1'] },
-      { id: 2, speed: 37, type: 'vessel', region: 'aoi-1', hour: 10, context_domains: ['ctx-1'] },
-      {
-        id: 3,
-        speed: 48,
-        type: 'aircraft',
-        region: 'aoi-2',
-        hour: 11,
-        context_domains: ['ctx-1', 'ctx-2'],
-      },
-      { id: 4, speed: 61, type: 'vessel', region: 'aoi-3', hour: 15, context_domains: ['ctx-2'] },
-    ],
-    [],
+  const resolvedQueryDomainIds = useMemo(
+    () =>
+      resolveQueryDomainIds({
+        queryContextDomainIds: versionedQuery.contextDomainIds,
+        activeDomainIds,
+        domains,
+      }),
+    [activeDomainIds, domains, versionedQuery.contextDomainIds],
   )
 
-  const queryResult = useMemo(() => runQuery(versionedQuery, queryRows), [queryRows, versionedQuery])
   const querySnapshot = useMemo(
     () =>
       buildQueryStateSnapshot({
         definition: versionedQuery,
-        queryResult,
-        sourceRowCount: queryRows.length,
+        result: {
+          resultCount: queryResultCount,
+          matchedRowIds: queryMatchedRowIds,
+        },
+        sourceRowCount: querySourceRowCount,
         savedVersions: savedQueryVersions,
         renderLayer: queryRenderLayer,
         savedArtifact: savedQueryArtifact,
       }),
-    [queryRenderLayer, queryResult, queryRows.length, savedQueryArtifact, savedQueryVersions, versionedQuery],
+    [
+      queryMatchedRowIds,
+      queryRenderLayer,
+      queryResultCount,
+      querySourceRowCount,
+      savedQueryArtifact,
+      savedQueryVersions,
+      versionedQuery,
+    ],
   )
   const contextQueryRange = useMemo(
     () =>
@@ -925,6 +1130,86 @@ function App() {
       ),
     [contextRecords, correlationLinks],
   )
+
+  useEffect(() => {
+    let cancelled = false
+
+    const syncQueryRows = async () => {
+      if (!hydrated) {
+        return
+      }
+
+      if (!versionedQuery.aoi || resolvedQueryDomainIds.length === 0) {
+        if (!cancelled) {
+          setQueryRows([])
+          setQueryResultCount(0)
+          setQueryMatchedRowIds([])
+          setQuerySourceRowCount(0)
+          setQuerySourceSummary(DEFAULT_QUERY_SOURCE_SUMMARY)
+          setQueryExecutionSummary(DEFAULT_QUERY_EXECUTION_SUMMARY)
+        }
+        return
+      }
+
+      const localRecords = buildLocalQuerySourceRecords({
+        records: contextRecords,
+        domainIds: resolvedQueryDomainIds,
+        targetId: versionedQuery.aoi,
+        timeRange: contextQueryRange,
+      })
+
+      try {
+        const authoritativeResult = await backend.queryContextRecords({
+          domainIds: resolvedQueryDomainIds,
+          targetId: versionedQuery.aoi,
+          timeRange: contextQueryRange,
+          limit: 500,
+        })
+        if (cancelled) {
+          return
+        }
+
+        const governedSource = buildGovernedQuerySource({
+          authoritativeResult,
+          localRecords,
+          domains,
+          domainIds: resolvedQueryDomainIds,
+        })
+        setQueryRows(governedSource.rows)
+        setQuerySourceRowCount(governedSource.sourceRowCount)
+        setQuerySourceSummary(describeGovernedQuerySource(governedSource))
+      } catch (error) {
+        if (cancelled) {
+          return
+        }
+
+        const governedSource = buildGovernedQuerySource({
+          localRecords,
+          domains,
+          domainIds: resolvedQueryDomainIds,
+        })
+        setQueryRows(governedSource.rows)
+        setQuerySourceRowCount(governedSource.sourceRowCount)
+        setQuerySourceSummary(
+          governedSource.source === 'none'
+            ? DEFAULT_QUERY_SOURCE_SUMMARY
+            : `${describeGovernedQuerySource(governedSource)} | Backend sync unavailable: ${String(error)}`,
+        )
+      }
+    }
+
+    void syncQueryRows()
+    return () => {
+      cancelled = true
+    }
+  }, [
+    contextQueryRange,
+    contextRecords,
+    domains,
+    hydrated,
+    resolvedQueryDomainIds,
+    versionedQuery.aoi,
+  ])
   const contextAvailabilitySummaries = useMemo(
     () =>
       domains
@@ -972,22 +1257,59 @@ function App() {
     () => buildCompareDashboard(baselineWindow, eventWindow, baselineSeries, eventSeries),
     [baselineSeries, baselineWindow, eventSeries, eventWindow],
   )
+  const contextOverlaySummaries = useMemo(
+    () => buildContextOverlaySummaries(domains, activeDomainIds, compareDashboard),
+    [activeDomainIds, compareDashboard, domains],
+  )
+  const selectedBundle = useMemo(
+    () => bundles.find((bundle) => bundle.bundle_id === selectedBundleId),
+    [bundles, selectedBundleId],
+  )
+  const activeCompareBundleId = (selectedBundle?.supersedes_bundle_id ?? selectedBundleId) || undefined
+  const compareArtifactDraft = useMemo(
+    () =>
+      buildCompareArtifact({
+        bundleId: activeCompareBundleId,
+        marking,
+        dashboard: compareDashboard,
+        overlaySummaries: contextOverlaySummaries,
+        offline,
+        generatedAt: 'pending',
+      }),
+    [activeCompareBundleId, compareDashboard, contextOverlaySummaries, marking, offline],
+  )
+  const briefingBundleDraft = useMemo(
+    () =>
+      buildBriefingBundle({
+        bundleId: activeCompareBundleId,
+        marking,
+        dashboard: compareDashboard,
+        overlaySummaries: contextOverlaySummaries,
+        compareArtifact: compareArtifactDraft,
+        offline,
+        generatedAt: 'pending',
+      }),
+    [activeCompareBundleId, compareArtifactDraft, compareDashboard, contextOverlaySummaries, marking, offline],
+  )
   const compareSnapshot = useMemo<CompareStateSnapshot>(
     () => ({
       baselineWindow,
       eventWindow,
       baselineSeries,
       eventSeries,
+      compareArtifact: compareArtifact ?? undefined,
+      briefingArtifact: briefingArtifact ?? undefined,
+      briefingBundle: briefingBundleArtifact ?? undefined,
     }),
-    [baselineSeries, baselineWindow, eventSeries, eventWindow],
-  )
-  const briefingBundle = useMemo(
-    () => buildBriefingBundle(baselineWindowLabel, eventWindowLabel, densityDelta.delta),
-    [baselineWindowLabel, densityDelta.delta, eventWindowLabel],
-  )
-  const contextOverlaySummaries = useMemo(
-    () => buildContextOverlaySummaries(domains, activeDomainIds, compareDashboard.totalDelta),
-    [activeDomainIds, compareDashboard.totalDelta, domains],
+    [
+      baselineSeries,
+      baselineWindow,
+      briefingArtifact,
+      briefingBundleArtifact,
+      compareArtifact,
+      eventSeries,
+      eventWindow,
+    ],
   )
   const collaborationArtifact = useMemo(
     () =>
@@ -1223,10 +1545,6 @@ function App() {
     () => layerCatalog.find((entry) => entry.layerId === 'ai-interpretation'),
     [layerCatalog],
   )
-  const selectedBundle = useMemo(
-    () => bundles.find((bundle) => bundle.bundle_id === selectedBundleId),
-    [bundles, selectedBundleId],
-  )
   const aiEvidenceRefs = useMemo(
     () => (selectedBundle ? collectEvidenceRefs(selectedBundle) : []),
     [selectedBundle],
@@ -1271,9 +1589,72 @@ function App() {
     () => budgetTelemetry.filter((probe) => probe.degraded).length,
     [budgetTelemetry],
   )
+  const mapRuntimeScene = useMemo(
+    () =>
+      buildMapRuntimeScene({
+        mode,
+        offline,
+        replayCursor,
+        activeLayers,
+        visibleLayerCatalog,
+        mainCanvasCatalog,
+        rightPanelCatalog,
+        dashboardCatalog,
+        versionedQuery,
+        queryRenderLayer,
+        contextDomains: domains,
+        activeDomainIds,
+        correlationAoi,
+        contextRecords: visibleContextRecords,
+        correlationLinks,
+        compareDashboard,
+        contextOverlaySummaries,
+        collaboration,
+        selectedScenario,
+        scenarioComparison,
+        latestAiArtifact,
+        latestDeviationEvent: deviationEvent ?? deviationSnapshot.latestEvent,
+        osintSummary,
+        osintEvents: osintSnapshot.events,
+        osintAoi,
+        gameModelSnapshot: gameModelStateForRecorder,
+        payoffProxy,
+      }),
+    [
+      activeDomainIds,
+      activeLayers,
+      collaboration,
+      compareDashboard,
+      contextOverlaySummaries,
+      correlationAoi,
+      correlationLinks,
+      dashboardCatalog,
+      deviationEvent,
+      deviationSnapshot.latestEvent,
+      domains,
+      gameModelStateForRecorder,
+      latestAiArtifact,
+      mainCanvasCatalog,
+      mode,
+      offline,
+      osintAoi,
+      osintSnapshot.events,
+      osintSummary,
+      payoffProxy,
+      queryRenderLayer,
+      replayCursor,
+      rightPanelCatalog,
+      scenarioComparison,
+      selectedScenario,
+      versionedQuery,
+      visibleContextRecords,
+      visibleLayerCatalog,
+    ],
+  )
   runtimeSmokeStateRef.current = {
     mode,
     selectedBundleId,
+    selectedBundle: selectedBundle ?? null,
     bundles,
     activeLayers,
     toggleableLayerCatalog,
@@ -1283,6 +1664,10 @@ function App() {
     degradedBudgetCount,
     auditEvents,
     scenario,
+    mapRuntime: mapRuntimeTelemetry,
+    aiProviderStatus,
+    latestAiArtifact: latestAiArtifact ?? null,
+    latestMcpInvocation: latestMcpInvocation ?? null,
   }
 
   const recorderStateCore = useMemo(
@@ -1391,6 +1776,20 @@ function App() {
       setQueryOperatorInput(DEFAULT_QUERY_OPERATOR)
       setQueryValueInput(DEFAULT_QUERY_VALUE)
       setSavedQueryVersions(normalizeSavedQueryVersions(query.savedVersions))
+      setQueryRows([])
+      setQueryResultCount(normalizeNumber(query.resultCount, 0))
+      setQueryMatchedRowIds(normalizeNumberArray(query.matchedRowIds))
+      setQuerySourceRowCount(normalizeNumber(query.sourceRowCount, 0))
+      setQuerySourceSummary(
+        normalizeNumber(query.sourceRowCount, 0) > 0
+          ? `Query source: restored snapshot with ${normalizeNumber(query.sourceRowCount, 0)} source row(s); governed refresh pending.`
+          : DEFAULT_QUERY_SOURCE_SUMMARY,
+      )
+      setQueryExecutionSummary(
+        normalizeNumber(query.resultCount, 0) > 0
+          ? 'Execution: restored snapshot; rerun for fresh DuckDB materialization.'
+          : DEFAULT_QUERY_EXECUTION_SUMMARY,
+      )
       setQueryRenderLayer(normalizeQueryRenderLayer(query.renderLayer))
       setSavedQueryArtifact(normalizeSavedQueryArtifact(query.savedArtifact))
       setDeploymentProfileId(aiState.deploymentProfile)
@@ -1446,7 +1845,14 @@ function App() {
       setActiveDomainIds(restoredActiveDomainIds)
       setCorrelationAoi(restoredCorrelationAoi)
       setContextRecords(restoredContextRecords)
-      setBriefingArtifact(null)
+      const restoredGovernedDomainId =
+        restoredDomains.find((domain) => Boolean(getGovernedDomainTemplate(domain.domain_id)))?.domain_id ??
+        DEFAULT_GOVERNED_CONTEXT_DOMAIN_ID
+      setSelectedGovernedDomainId(restoredGovernedDomainId)
+      setDomainDraft(createDomainDraft(restoredGovernedDomainId))
+      setCompareArtifact(compare?.compareArtifact ?? null)
+      setBriefingBundleArtifact(compare?.briefingBundle ?? null)
+      setBriefingArtifact(compare?.briefingArtifact ?? null)
       setSelectedBundleId(
         openedBundleId ??
           (typeof state.selectedBundleId === 'string' ? state.selectedBundleId : ''),
@@ -1479,11 +1885,17 @@ function App() {
     const load = async (): Promise<void> => {
       const startedAt = beginMeasuredAction('Recorder hydration')
       try {
-        const [bundleList, events, head, persisted] = await Promise.all([
+        const [bundleList, events, head, persisted, controlPlane, providerStatus] = await Promise.all([
           backend.listBundles(),
           backend.listAuditEvents(),
           backend.getAuditHead(),
           backend.loadRecorderState(),
+          backend.getControlPlaneState(),
+          backend.getAiGatewayProviderStatus().catch((error) =>
+            createUnavailableAiProviderStatus(
+              `Failed to inspect governed AI provider status: ${String(error)}`,
+            ),
+          ),
         ])
         if (cancelled) {
           return
@@ -1504,7 +1916,10 @@ function App() {
             selectedBundleId: persisted.state.selectedBundleId,
           })
           setStatus('Recorder state restored')
+        } else {
+          setDeploymentProfileId(controlPlane.activeDeploymentProfileId)
         }
+        setAiProviderStatus(providerStatus)
         setBundles(bundleList)
         setAuditEvents(events)
         setAuditHead(head.event_hash ?? '')
@@ -1575,15 +1990,36 @@ function App() {
   }, [hydrated, recorderStateCore, role])
 
   useEffect(() => {
+    if (!briefingArtifact && !compareArtifact && !briefingBundleArtifact) {
+      return
+    }
+
+    const compareOutOfDate =
+      compareArtifact?.exportFingerprint &&
+      compareArtifact.exportFingerprint !== compareArtifactDraft.exportFingerprint
+    const briefingOutOfDate =
+      briefingArtifact?.exportFingerprint &&
+      briefingArtifact.exportFingerprint !== briefingBundleDraft.exportFingerprint
+
+    if (!compareOutOfDate && !briefingOutOfDate) {
+      return
+    }
+
+    setCompareArtifact(null)
+    setBriefingBundleArtifact(null)
     setBriefingArtifact(null)
   }, [
     activeDomainIds,
     baselineInput,
     baselineWindowLabel,
+    briefingArtifact,
+    briefingBundleArtifact,
+    briefingBundleDraft.exportFingerprint,
+    compareArtifact,
+    compareArtifactDraft.exportFingerprint,
     domains,
     eventInput,
     eventWindowLabel,
-    selectedBundleId,
   ])
 
   useEffect(() => {
@@ -1729,8 +2165,11 @@ function App() {
     updater: (previous: VersionedQuery) => VersionedQuery,
   ): void => {
     setVersionedQuery((previous) => updater(previous))
+    setQueryResultCount(0)
+    setQueryMatchedRowIds([])
     setQueryRenderLayer(undefined)
     setSavedQueryArtifact(undefined)
+    setQueryExecutionSummary(DEFAULT_QUERY_EXECUTION_SUMMARY)
   }
 
   const appendQueryAudit = (eventType: string, payload: Record<string, unknown>): void => {
@@ -1807,27 +2246,77 @@ function App() {
     completeMeasuredAction('Query context link update', startedAt)
   }
 
-  const onRunVersionedQuery = () => {
+  const onRunVersionedQuery = async () => {
     const startedAt = beginMeasuredAction('Query run and render')
-    const renderLayer = buildQueryRenderLayer(versionedQuery, queryResult)
-    setQueryRenderLayer(renderLayer)
-    setSavedQueryArtifact(undefined)
-    setStatus(renderLayer.summary)
-    appendQueryAudit('query.run', {
-      query_id: versionedQuery.queryId,
-      version: versionedQuery.version,
-      result_count: renderLayer.resultCount,
-      matched_row_ids: renderLayer.matchedRowIds,
-      context_domain_ids: versionedQuery.contextDomainIds,
-    })
-    completeMeasuredAction('Query run and render', startedAt)
+    if (querySourceRowCount === 0) {
+      setQueryResultCount(0)
+      setQueryMatchedRowIds([])
+      setQueryRenderLayer(undefined)
+      setSavedQueryArtifact(undefined)
+      setStatus(querySourceSummary)
+      setQueryExecutionSummary(DEFAULT_QUERY_EXECUTION_SUMMARY)
+      appendQueryAudit('query.run_blocked', {
+        query_id: versionedQuery.queryId,
+        version: versionedQuery.version,
+        source_row_count: querySourceRowCount,
+        resolved_domain_ids: resolvedQueryDomainIds,
+      })
+      completeMeasuredAction('Query run and render', startedAt)
+      return
+    }
+
+    try {
+      setBusy(true)
+      setStatus('Running governed DuckDB query...')
+
+      const execution = await executeQuery(versionedQuery, queryRows)
+      const renderLayer = buildQueryRenderLayerFromMatches(versionedQuery, {
+        resultCount: execution.resultCount,
+        matchedRowIds: execution.matchedRowIds,
+      })
+
+      setQueryResultCount(execution.resultCount)
+      setQueryMatchedRowIds(execution.matchedRowIds)
+      setQueryRenderLayer(renderLayer)
+      setSavedQueryArtifact(undefined)
+      setQueryExecutionSummary(
+        `${execution.summary} | SQL fingerprint ${execution.sqlFingerprint}`,
+      )
+      setStatus(renderLayer.summary)
+      appendQueryAudit('query.run', {
+        query_id: versionedQuery.queryId,
+        version: versionedQuery.version,
+        result_count: execution.resultCount,
+        matched_row_ids: execution.matchedRowIds,
+        context_domain_ids: versionedQuery.contextDomainIds,
+        resolved_domain_ids: resolvedQueryDomainIds,
+        source_row_count: querySourceRowCount,
+        query_source: querySourceSummary,
+        query_engine: execution.engine,
+        query_runtime: execution.runtime,
+        query_sql_fingerprint: execution.sqlFingerprint,
+        predicate_count: execution.predicateCount,
+      })
+    } finally {
+      setBusy(false)
+      completeMeasuredAction('Query run and render', startedAt)
+    }
   }
 
   const onSaveQueryVersion = () => {
     const startedAt = beginMeasuredAction('Query version save')
+    if (!queryRenderLayer || querySourceRowCount === 0) {
+      setStatus('Run a governed query before saving a version.')
+      completeMeasuredAction('Query version save', startedAt)
+      return
+    }
+
     const savedAt = new Date().toISOString()
     const next = bumpQueryVersion(versionedQuery, { savedAt })
-    const renderLayer = buildQueryRenderLayer(next, queryResult)
+    const renderLayer = buildQueryRenderLayerFromMatches(next, {
+      resultCount: queryResultCount,
+      matchedRowIds: queryMatchedRowIds,
+    })
     const artifact = buildSavedQueryArtifact(next, renderLayer, { savedAt })
     setVersionedQuery(next)
     setSavedQueryVersions((previous) => [next, ...previous])
@@ -1840,46 +2329,118 @@ function App() {
       conditions_count: next.conditions.length,
       artifact_id: artifact.artifactId,
       result_layer_id: renderLayer.layerId,
+      source_row_count: querySourceRowCount,
+      query_source: querySourceSummary,
+      query_execution: queryExecutionSummary,
     })
     completeMeasuredAction('Query version save', startedAt)
   }
 
-  const onPrepareBriefingArtifact = () => {
+  const onPrepareBriefingArtifact = async () => {
     if (!selectedBundleId) {
       setStatus('Select or create a bundle before preparing a briefing artifact.')
       return
     }
 
+    const sourceBundleId = selectedBundleId
     const startedAt = beginMeasuredAction('Briefing artifact preparation')
-    const artifact = buildBriefingArtifactPreview({
-      bundleId: selectedBundleId,
+    setBusy(true)
+    const generatedAt = new Date().toISOString()
+    const nextCompareArtifact = buildCompareArtifact({
+      bundleId: sourceBundleId,
       marking,
       dashboard: compareDashboard,
       overlaySummaries: contextOverlaySummaries,
       offline,
+      generatedAt,
     })
-    setBriefingArtifact(artifact)
-    setStatus(`Briefing artifact prepared for bundle ${selectedBundleId}`)
-    void backend
-      .appendAudit({
+    const nextBriefingBundle = buildBriefingBundle({
+      bundleId: sourceBundleId,
+      marking,
+      dashboard: compareDashboard,
+      overlaySummaries: contextOverlaySummaries,
+      compareArtifact: nextCompareArtifact,
+      offline,
+      generatedAt,
+    })
+    const artifact = buildBriefingArtifactPreview({
+      bundleId: sourceBundleId,
+      marking,
+      dashboard: compareDashboard,
+      compareArtifact: nextCompareArtifact,
+      briefingBundle: nextBriefingBundle,
+      offline,
+    })
+
+    try {
+      const exportManifest = await backend.createBundle({
         role,
-        event_type: 'briefing.artifact_prepared',
-        payload: {
-          bundle_id: selectedBundleId,
-          baseline_window: baselineWindowLabel,
-          event_window: eventWindowLabel,
-          delta_cells: compareDashboard.cells.length,
-          context_overlays: contextOverlaySummaries.length,
+        marking,
+        state: {
+          ...recorderStateCore,
+          compare: buildCompareStateSnapshot({
+            baselineWindow,
+            eventWindow,
+            baselineSeries,
+            eventSeries,
+            compareArtifact: nextCompareArtifact,
+            briefingArtifact: artifact,
+            briefingBundle: nextBriefingBundle,
+          }),
+          selectedBundleId: sourceBundleId,
+          savedAt: generatedAt,
         },
+        provenance_refs: [
+          {
+            source: 'briefing.export',
+            license: 'internal',
+            retrievedAt: generatedAt,
+            pipelineVersion: 'i2-003',
+          },
+        ],
+        supersedes_bundle_id: sourceBundleId,
       })
-      .then(() => refresh())
-      .then(() => {
-        completeMeasuredAction('Briefing artifact preparation', startedAt)
-      })
-      .catch(() => {
-        setStatus('Briefing artifact prepared locally; audit append unavailable.')
-        completeMeasuredAction('Briefing artifact preparation', startedAt)
-      })
+
+      setCompareArtifact(nextCompareArtifact)
+      setBriefingBundleArtifact(nextBriefingBundle)
+      setBriefingArtifact(artifact)
+      setIntegrityState(
+        `Briefing export captured in derived bundle ${exportManifest.bundle_id} (supersedes ${sourceBundleId})`,
+      )
+
+      try {
+        await backend.appendAudit({
+          role,
+          event_type: 'briefing.artifact_prepared',
+          payload: {
+            bundle_id: sourceBundleId,
+            export_bundle_id: exportManifest.bundle_id,
+            compare_artifact_id: nextCompareArtifact.artifactId,
+            compare_focus_aoi_id: nextCompareArtifact.focusAoiId,
+            compare_export_fingerprint: nextCompareArtifact.exportFingerprint,
+            briefing_bundle_id: nextBriefingBundle.artifactId,
+            briefing_export_fingerprint: nextBriefingBundle.exportFingerprint,
+            baseline_window: compareDashboard.baselineWindow.label,
+            event_window: compareDashboard.eventWindow.label,
+            delta_cells: compareDashboard.cells.length,
+            context_overlays: contextOverlaySummaries.length,
+            supersedes_bundle_id: sourceBundleId,
+          },
+        })
+      } catch {
+        // The export bundle has already been captured; keep the workflow usable if audit append is unavailable.
+      }
+
+      await refresh()
+      setStatus(
+        `Briefing export bundle ${exportManifest.bundle_id} captured from snapshot ${sourceBundleId}`,
+      )
+    } catch (error) {
+      setStatus(`Briefing export failed: ${String(error)}`)
+    } finally {
+      setBusy(false)
+      completeMeasuredAction('Briefing artifact preparation', startedAt)
+    }
   }
 
   const syncCollaborationSnapshot = (snapshot: CollaborationStateSnapshot): void => {
@@ -2223,7 +2784,7 @@ function App() {
       })
   }
 
-  const onSubmitAiSummary = () => {
+  const onSubmitAiSummary = async () => {
     const startedAt = beginMeasuredAction('AI interpretation update')
     if (!selectedBundle) {
       const message = 'Select a bundle before AI analysis.'
@@ -2239,17 +2800,20 @@ function App() {
     }
 
     try {
-      const result = submitAiAnalysis({
+      const result = await runAiGatewayAnalysis({
         role,
         marking,
         deploymentProfile: deploymentProfileId,
         allowed: aiPolicy.analysisAllowed,
         prompt: aiPrompt,
         refs: aiEvidenceRefs,
+      }, {
+        providerStatus: aiProviderStatus,
+        runProviderAnalysis: (request) => backend.runAiGatewayProviderAnalysis(request),
       })
       setLatestAiArtifact(result)
       setAiSummary(result.content)
-      setStatus(`AI gateway produced ${result.artifactId}`)
+      setStatus(`AI gateway produced ${result.artifactId} via ${result.providerLabel ?? 'gateway runtime'}`)
       appendAiAudit('ai.gateway.submit', {
         status: 'allowed',
         bundle_id: selectedBundle.bundle_id,
@@ -2258,6 +2822,11 @@ function App() {
         marking: result.marking,
         ref_count: result.refs.length,
         citations: result.citations,
+        gateway_runtime: result.gatewayRuntime,
+        provider_label: result.providerLabel,
+        provider_model: result.providerModel,
+        provider_request_id: result.requestId,
+        degraded: result.degraded ?? false,
       })
       completeMeasuredAction('AI interpretation update', startedAt)
     } catch (error) {
@@ -2270,6 +2839,8 @@ function App() {
         deployment_profile: deploymentProfileId,
         reason: message,
         ref_count: aiEvidenceRefs.length,
+        provider_runtime: aiProviderStatus.runtime,
+        provider_detail: aiProviderStatus.detail,
       })
       completeMeasuredAction('AI interpretation update', startedAt)
     }
@@ -2392,14 +2963,19 @@ function App() {
   }
 
   const onRegisterDomain = () => {
-    const registrationIssues = collectDomainRegistrationErrors(domainDraft)
-    if (!validateDomainRegistration(domainDraft)) {
+    const domain = resolveGovernedDomainRegistration(domainDraft)
+    if (!domain) {
+      setStatus('Select an approved governed context domain before registration.')
+      return
+    }
+
+    const registrationIssues = collectDomainRegistrationErrors(domain)
+    if (!validateDomainRegistration(domain)) {
       setStatus(`Context domain registration rejected: ${registrationIssues.join('; ')}`)
       return
     }
     const startedAt = beginMeasuredAction('Context domain registration')
-    const domain = domainDraft
-    const seededRecords = buildSampleContextRecords({
+    const ingestedRecords = materializeGovernedContextRecords({
       domain,
       targetId: correlationAoi,
       timeRange: contextQueryRange,
@@ -2407,7 +2983,7 @@ function App() {
     const nextActiveDomainIds = activeDomainIds.includes(domain.domain_id)
       ? activeDomainIds
       : [domain.domain_id, ...activeDomainIds]
-    const nextDomains = [domain, ...domains]
+    const nextDomains = [domain, ...domains.filter((entry) => entry.domain_id !== domain.domain_id)]
     const nextLinks = buildCorrelationLinks({
       domains: nextDomains,
       activeDomainIds: nextActiveDomainIds,
@@ -2419,11 +2995,14 @@ function App() {
     setActiveDomainIds(nextActiveDomainIds)
     setContextRecords((previous) => [
       ...previous.filter((record) => record.domain_id !== domain.domain_id),
-      ...seededRecords,
+      ...ingestedRecords,
     ])
     setSelectedDeviationDomainId((previous) => previous || domain.domain_id)
     setSelectedOsintThresholdDomainId((previous) => previous || domain.domain_id)
-    setDomainDraft(createDomainDraft())
+    setDomainDraft(createDomainDraft(selectedGovernedDomainId))
+    setStatus(
+      `Ingested ${describeGovernedDomainIngestion(domain.domain_id)} for ${correlationAoi}. Correlated context only; not causal evidence.`,
+    )
     void backend
       .appendAudit({
         role,
@@ -2433,8 +3012,9 @@ function App() {
           domain_name: domain.domain_name,
           source_url: domain.source_url,
           sensitivity_class: domain.sensitivity_class,
+          governed_ingestion_label: describeGovernedDomainIngestion(domain.domain_id),
           correlation_links: nextLinks,
-          record_count: seededRecords.length,
+          record_count: ingestedRecords.length,
         },
       })
       .then(() => refresh())
@@ -2496,7 +3076,7 @@ function App() {
           ),
       )
       .flatMap((domain) =>
-        buildSampleContextRecords({
+        materializeGovernedContextRecords({
           domain,
           targetId: correlationAoi,
           timeRange: contextQueryRange,
@@ -3016,7 +3596,28 @@ function App() {
     ): RuntimeSmokeAssertion[] => {
       const currentState = runtimeSmokeStateRef.current
       const exportCardVisible = Boolean(document.querySelector('[data-testid="scenario-export-card"]'))
-      return [
+      const assertions: RuntimeSmokeAssertion[] = [
+        {
+          id: 'map_runtime_present',
+          passed: currentState.mapRuntime.mapPresent,
+          detail: currentState.mapRuntime.mapPresent
+            ? `Map runtime visible with ${currentState.mapRuntime.inspectCount} inspect target(s).`
+            : 'Map runtime surface was not detected.',
+        },
+        {
+          id: 'planar_surface_ready',
+          passed: currentState.mapRuntime.planarReady,
+          detail: currentState.mapRuntime.planarReady
+            ? 'Planar MapLibre runtime mounted successfully.'
+            : 'Planar MapLibre runtime did not report ready state.',
+        },
+        {
+          id: 'orbital_surface_ready',
+          passed: currentState.mapRuntime.orbitalReady,
+          detail: currentState.mapRuntime.orbitalReady
+            ? 'Orbital Cesium runtime mounted successfully.'
+            : 'Orbital Cesium runtime did not report ready state.',
+        },
         {
           id: 'required_regions_present',
           passed: regions.every((region) => region.present),
@@ -3055,6 +3656,39 @@ function App() {
           detail: notes.find((note) => note.includes('macOS')) ?? 'Portability note missing.',
         },
       ]
+
+      if (runtimeSmokeConfig.requireLiveAi) {
+        const latestAi = currentState.latestAiArtifact
+        assertions.push({
+          id: 'live_ai_gateway_completed',
+          passed:
+            currentState.aiProviderStatus.runtime === 'tauri-live' &&
+            currentState.aiProviderStatus.available &&
+            latestAi?.gatewayRuntime === 'tauri-live' &&
+            latestAi?.degraded === false &&
+            Boolean(latestAi?.artifactId),
+          detail:
+            latestAi?.artifactId
+              ? `Live AI artifact ${latestAi.artifactId} completed via ${latestAi.providerLabel}.`
+              : `AI provider runtime ${currentState.aiProviderStatus.runtime} | ${currentState.aiProviderStatus.detail}`,
+        })
+      }
+
+      if (runtimeSmokeConfig.requireMcp) {
+        const latestMcp = currentState.latestMcpInvocation
+        assertions.push({
+          id: 'governed_mcp_invocation_recorded',
+          passed:
+            latestMcp?.status === 'allowed' &&
+            Boolean(latestMcp.invocationId) &&
+            Boolean(latestMcp.toolName),
+          detail: latestMcp?.invocationId
+            ? `MCP tool ${latestMcp.toolName} recorded as ${latestMcp.status} (${latestMcp.invocationId}).`
+            : 'No governed MCP invocation was recorded.',
+        })
+      }
+
+      return assertions
     }
 
     const buildReport = async (
@@ -3080,6 +3714,27 @@ function App() {
         scenarioExportArtifactId: currentState.scenario.exportArtifact?.artifactId,
         auditEventCount: currentState.auditEvents.length,
         platform: navigator.platform,
+        mapRuntimeVisible: currentState.mapRuntime.mapPresent,
+        mapRuntimeInteractive: currentState.mapRuntime.interactiveSupported,
+        mapSurfaceMode: currentState.mapRuntime.activeSurfaceMode,
+        mapRuntimeEngine: currentState.mapRuntime.activeRuntimeEngine,
+        mapPlanarReady: currentState.mapRuntime.planarReady,
+        mapOrbitalReady: currentState.mapRuntime.orbitalReady,
+        mapFocusAoiId: currentState.mapRuntime.focusAoiId,
+        mapInspectCount: currentState.mapRuntime.inspectCount,
+        mapRuntimeError: currentState.mapRuntime.runtimeError || undefined,
+        requireLiveAi: runtimeSmokeConfig.requireLiveAi,
+        requireMcp: runtimeSmokeConfig.requireMcp,
+        aiProviderLabel: currentState.aiProviderStatus.providerLabel,
+        aiProviderRuntime: currentState.aiProviderStatus.runtime,
+        aiProviderAvailable: currentState.aiProviderStatus.available,
+        aiProviderDetail: currentState.aiProviderStatus.detail,
+        aiArtifactId: currentState.latestAiArtifact?.artifactId,
+        aiRequestId: currentState.latestAiArtifact?.requestId,
+        aiGatewayRuntime: currentState.latestAiArtifact?.gatewayRuntime,
+        mcpInvocationId: currentState.latestMcpInvocation?.invocationId,
+        mcpInvocationStatus: currentState.latestMcpInvocation?.status,
+        mcpToolName: currentState.latestMcpInvocation?.toolName,
         regions,
         assertions,
         metrics,
@@ -3180,6 +3835,31 @@ function App() {
       } finally {
         completeMeasuredAction('Offline mode change', startedAt)
       }
+    }
+
+    const clickMapRuntimeButton = (label: '2D Situation Map' | '3D Globe'): void => {
+      const button = document.querySelector<HTMLButtonElement>(
+        `[data-testid="map-runtime-surface"] button`,
+      )
+      const candidates = Array.from(
+        document.querySelectorAll<HTMLButtonElement>('[data-testid="map-runtime-surface"] button'),
+      )
+      const target = candidates.find((candidate) => candidate.textContent?.includes(label))
+      const actionable = target ?? button
+      if (!actionable) {
+        throw new Error(`Runtime smoke could not find the map-runtime button "${label}".`)
+      }
+      actionable.click()
+    }
+
+    const clickWorkspaceButton = (label: string): void => {
+      const target = Array.from(document.querySelectorAll<HTMLButtonElement>('button')).find(
+        (candidate) => candidate.textContent?.trim() === label,
+      )
+      if (!target) {
+        throw new Error(`Runtime smoke could not find the button "${label}".`)
+      }
+      target.click()
     }
 
     const getRuntimeSmokeScenarioSelection = () => {
@@ -3341,6 +4021,44 @@ function App() {
       await pause(250)
 
       metrics.push(
+        await measure('Planar map runtime mount', async () => {
+          await waitForCondition('map runtime visible', () =>
+            Boolean(document.querySelector('[data-testid="map-runtime-surface"]')),
+          )
+          await waitForCondition('planar runtime ready', () =>
+            runtimeSmokeStateRef.current.mapRuntime.planarReady,
+          )
+        }),
+      )
+
+      metrics.push(
+        await measure('Orbital map runtime mount', async () => {
+          clickMapRuntimeButton('3D Globe')
+          await waitForCondition('orbital surface mode', () =>
+            runtimeSmokeStateRef.current.mapRuntime.activeSurfaceMode === 'orbital',
+          )
+          await waitForCondition('orbital runtime ready', () =>
+            runtimeSmokeStateRef.current.mapRuntime.orbitalReady &&
+            runtimeSmokeStateRef.current.mapRuntime.activeRuntimeEngine === 'cesium',
+          )
+        }),
+      )
+
+      metrics.push(
+        await measure(
+          'Planar map runtime restore',
+          async () => {
+            clickMapRuntimeButton('2D Situation Map')
+            await waitForCondition('planar surface mode restore', () =>
+              runtimeSmokeStateRef.current.mapRuntime.activeSurfaceMode === 'planar' &&
+              runtimeSmokeStateRef.current.mapRuntime.activeRuntimeEngine === 'maplibre',
+            )
+          },
+          I1_BUDGETS.stateChangeFeedbackP95Ms,
+        ),
+      )
+
+      metrics.push(
         await measure('Create bundle', async () => {
           const bundleId = await createBundleForRuntimeSmoke()
           await waitForCondition('bundle creation', () => runtimeSmokeStateRef.current.selectedBundleId === bundleId)
@@ -3355,6 +4073,53 @@ function App() {
           )
         }),
       )
+
+      if (runtimeSmokeConfig.requireLiveAi) {
+        metrics.push(
+          await measure('Governed AI analysis', async () => {
+            await waitForCondition(
+              'selected bundle availability',
+              () =>
+                runtimeSmokeStateRef.current.selectedBundle?.bundle_id ===
+                runtimeSmokeStateRef.current.selectedBundleId,
+              15000,
+            )
+            await waitForCondition(
+              'live AI provider status',
+              () =>
+                runtimeSmokeStateRef.current.aiProviderStatus.runtime === 'tauri-live' &&
+                runtimeSmokeStateRef.current.aiProviderStatus.available,
+              120000,
+            )
+            clickWorkspaceButton('Submit AI Analysis')
+            await waitForCondition(
+              'governed AI artifact',
+              () => {
+                const currentState = runtimeSmokeStateRef.current
+                return (
+                  currentState.latestAiArtifact?.gatewayRuntime === 'tauri-live' &&
+                  currentState.latestAiArtifact?.degraded === false &&
+                  Boolean(currentState.latestAiArtifact?.artifactId)
+                )
+              },
+              240000,
+            )
+          }),
+        )
+      }
+
+      if (runtimeSmokeConfig.requireMcp) {
+        metrics.push(
+          await measure('Governed MCP invocation', async () => {
+            clickWorkspaceButton('Run MCP Tool')
+            await waitForCondition(
+              'governed MCP invocation',
+              () => runtimeSmokeStateRef.current.latestMcpInvocation?.status === 'allowed',
+              15000,
+            )
+          }),
+        )
+      }
 
       metrics.push(
         await measure(
@@ -3752,12 +4517,15 @@ function App() {
             <button onClick={onSaveQueryVersion}>Save Query Version</button>
           </div>
           <p className="status-line">
-            Query matches: {queryResult.length} | Active saved versions: {savedQueryVersions.length}
+            Query matches: {queryResultCount} | Source rows: {querySourceRowCount} | Active saved
+            versions: {savedQueryVersions.length}
           </p>
           <p className="status-line">
             Context-linked domains: {versionedQuery.contextDomainIds.length} | Render layer:{' '}
             {queryRenderLayer?.layerId ?? 'pending run'}
           </p>
+          <p className="status-line">{querySourceSummary}</p>
+          <p className="status-line">{queryExecutionSummary}</p>
           <div className="overlay-grid">
             {versionedQuery.conditions.map((condition) => (
               <article key={condition.conditionId} className="surface-card compact">
@@ -3846,6 +4614,11 @@ function App() {
               ? aiPolicy.reasons.join(' | ')
               : 'Gateway ready for governed hash-addressed evidence refs.'}
           </p>
+          <p className="status-line">
+            Provider: {aiProviderStatus.providerLabel} | Runtime: {aiProviderStatus.runtime} |{' '}
+            {aiProviderStatus.available ? 'live-ready' : 'degraded/unavailable'}
+          </p>
+          <p className="status-line">Provider detail: {aiProviderStatus.detail}</p>
           <article className={`artifact-callout ${artifactTone('AI-Derived Interpretation')}`}>
             <div className="card-header compact">
               <span className={`artifact-chip ${artifactTone('AI-Derived Interpretation')}`}>
@@ -3875,6 +4648,12 @@ function App() {
                 Marking {latestAiArtifact.marking} | Refs {latestAiArtifact.refs.length} | Bundle{' '}
                 {latestAiArtifact.bundleId}
               </small>
+              <small>
+                Runtime {latestAiArtifact.gatewayRuntime ?? 'unknown'} | Provider{' '}
+                {latestAiArtifact.providerLabel ?? 'unknown'} | Model{' '}
+                {latestAiArtifact.providerModel ?? 'unknown'}
+              </small>
+              {latestAiArtifact.requestId && <small>Provider request {latestAiArtifact.requestId}</small>}
               <small>Citations: {latestAiArtifact.citations.join(' | ')}</small>
             </article>
           )}
@@ -3900,7 +4679,14 @@ function App() {
         </section>
 
         <section className="panel map-panel" data-testid="region-main-canvas">
-          <h2>Main Canvas and Workflow Surface</h2>
+          <h2>Main Canvas and Geospatial Runtime</h2>
+          <MapRuntimeSurface
+            scene={mapRuntimeScene}
+            mode={mode}
+            degradedBudgetCount={degradedBudgetCount}
+            offline={offline}
+            onTelemetryChange={setMapRuntimeTelemetry}
+          />
           <div className="workspace-surface">
             <article className="surface-hero" data-testid="workspace-surface-summary">
               <p className="eyebrow">Persisted workspace surface</p>
@@ -4088,8 +4874,8 @@ function App() {
               <p>{queryRenderLayer.summary}</p>
               <small>
                 Matched rows: [{queryRenderLayer.matchedRowIds.join(', ')}] | AOI:{' '}
-                {queryRenderLayer.aoi} | Context domains:{' '}
-                {queryRenderLayer.contextDomainIds.length}
+                {queryRenderLayer.aoi} | Context domains: {queryRenderLayer.contextDomainIds.length} |
+                Source rows: {querySourceRowCount}
               </small>
             </article>
           )}
@@ -4839,32 +5625,28 @@ function App() {
                   <article className="telemetry-card">
                     <span className="metric-label">Baseline window</span>
                     <strong>{baselineWindowLabel}</strong>
-                    <p>{baselineSeries.length} cells in the reference window.</p>
+                    <p>{baselineSeries.length} AOI cells in the reference window.</p>
                   </article>
                   <article className="telemetry-card">
                     <span className="metric-label">Event window</span>
                     <strong>{eventWindowLabel}</strong>
-                    <p>{eventSeries.length} cells in the event window.</p>
+                    <p>{eventSeries.length} AOI cells in the event window.</p>
                   </article>
                   <article className="telemetry-card">
                     <span className="metric-label">Total delta</span>
                     <strong>{compareDashboard.totalDelta}</strong>
                     <p>
-                      {
-                        compareDashboard.cells.filter((cell) => cell.severity === 'increase').length
-                      }{' '}
-                      increases,
-                      {' '}
-                      {
-                        compareDashboard.cells.filter((cell) => cell.severity === 'decrease').length
-                      }{' '}
+                      {compareDashboard.increaseCount} increases, {compareDashboard.decreaseCount}{' '}
                       decreases.
                     </p>
                   </article>
                   <article className="telemetry-card">
-                    <span className="metric-label">Largest swing</span>
-                    <strong>{compareDashboard.maxAbsoluteDelta}</strong>
-                    <p>{contextOverlaySummaries.length} active context overlays.</p>
+                    <span className="metric-label">Focus AOI</span>
+                    <strong>{compareDashboard.focusAoiLabel}</strong>
+                    <p>
+                      Swing {compareDashboard.maxAbsoluteDelta} with {contextOverlaySummaries.length}{' '}
+                      active context overlays.
+                    </p>
                   </article>
                 </div>
 
@@ -4872,16 +5654,16 @@ function App() {
                   {compareDashboard.cells.map((cell) => (
                     <article key={cell.cell_id} className={`delta-cell ${cell.severity}`}>
                       <div className="card-header compact">
-                        <strong>{cell.cell_id}</strong>
+                        <strong>{cell.aoiLabel}</strong>
                         <span className={`policy-pill ${cell.severity === 'decrease' ? 'blocked' : 'allowed'}`}>
                           {cell.severity}
                         </span>
                       </div>
                       <p>
-                        Baseline {cell.baseline} | Event {cell.event}
+                        AOI {cell.aoiId} | Baseline {cell.baseline} | Event {cell.event}
                       </p>
                       <small>
-                        Delta {cell.delta} | Severity {cell.severity}
+                        Delta {cell.delta} | Share {cell.shareOfDelta} | Cell {cell.cell_id}
                       </small>
                     </article>
                   ))}
@@ -4923,9 +5705,35 @@ function App() {
                     : 'Select or create a bundle before briefing export.'}
                 </p>
                 <p className="status-line">Delta: [{densityDelta.delta.join(', ')}]</p>
-                <p className="status-line">{briefingBundle.summary}</p>
+                <p className="status-line">{briefingBundleDraft.summary}</p>
+                <p className="status-line">
+                  Draft export fingerprint: {briefingBundleDraft.exportFingerprint}
+                </p>
 
-                {briefingArtifact && (
+                {compareArtifact && (
+                  <article className="artifact-callout evidence" data-testid="compare-artifact-card">
+                    <div className="card-header">
+                      <div>
+                        <span className={`artifact-chip ${artifactTone('Observed Evidence')}`}>
+                          Observed Evidence
+                        </span>
+                        <h3>{compareArtifact.summary}</h3>
+                      </div>
+                      <span>{compareArtifact.artifactId}</span>
+                    </div>
+                    <p>
+                      Focus AOI: {compareArtifact.focusAoiLabel} ({compareArtifact.focusAoiId}) |
+                      Bundle reference: {compareArtifact.bundleId ?? 'none'}
+                    </p>
+                    <ul className="finding-list">
+                      <li>Export fingerprint: {compareArtifact.exportFingerprint}</li>
+                      <li>Delta cell IDs: {compareArtifact.deltaCellIds.join(', ')}</li>
+                      <li>Overlay domains: {compareArtifact.overlayDomainIds.join(', ') || 'none'}</li>
+                    </ul>
+                  </article>
+                )}
+
+                {briefingArtifact && briefingBundleArtifact && (
                   <article className="artifact-callout evidence" data-testid="briefing-artifact-card">
                     <div className="card-header">
                       <div>
@@ -4951,23 +5759,22 @@ function App() {
                     <ul className="finding-list">
                       <li>Delta cells: {briefingArtifact.deltaCellCount}</li>
                       <li>Total delta: {briefingArtifact.totalDelta}</li>
+                      <li>
+                        Focus AOI: {briefingArtifact.focusAoiLabel} ({briefingArtifact.focusAoiId})
+                      </li>
                       <li>Overlay domains: {briefingArtifact.overlayDomainIds.join(', ') || 'none'}</li>
+                      <li>Compare artifact: {briefingArtifact.compareArtifactId}</li>
+                      <li>Export fingerprint: {briefingArtifact.exportFingerprint}</li>
                     </ul>
                     <div className="briefing-element-list">
-                      <article className="surface-card compact">
-                        <span className={`artifact-chip ${artifactTone('Observed Evidence')}`}>
-                          Observed Evidence
-                        </span>
-                        <strong>Density Delta Grid</strong>
-                        <p>{compareDashboard.summary}</p>
-                      </article>
-                      {contextOverlaySummaries.map((overlay) => (
-                        <article key={`briefing-${overlay.domain_id}`} className="surface-card compact">
-                          <span className={`artifact-chip ${artifactTone('Curated Context')}`}>
-                            Curated Context
+                      {briefingBundleArtifact.sections.map((section) => (
+                        <article key={section.sectionId} className="surface-card compact">
+                          <span className={`artifact-chip ${artifactTone(section.artifactLabel)}`}>
+                            {section.artifactLabel}
                           </span>
-                          <strong>{overlay.domain_name}</strong>
-                          <p>{overlay.relationship}</p>
+                          <strong>{section.title}</strong>
+                          <p>{section.summary}</p>
+                          <small>AOI {section.aoiId}</small>
                         </article>
                       ))}
                     </div>
@@ -5127,16 +5934,28 @@ function App() {
             <p className="status-line">Context unavailable; geospatial workspace remains active.</p>
           )}
           <label className="field">
+            Approved Domain
+            <select
+              value={selectedGovernedDomainId}
+              onChange={(event) => {
+                const nextDomainId = event.target.value
+                setSelectedGovernedDomainId(nextDomainId)
+                setDomainDraft(createDomainDraft(nextDomainId))
+              }}
+            >
+              {GOVERNED_CONTEXT_DOMAIN_TEMPLATES.map((template) => (
+                <option key={template.domain.domain_id} value={template.domain.domain_id}>
+                  {template.domain.domain_name} | {template.catalogLabel}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="field">
             Domain Name
             <input
               type="text"
               value={domainDraft.domain_name}
-              onChange={(event) =>
-                setDomainDraft((previous) => ({
-                  ...previous,
-                  domain_name: event.target.value,
-                }))
-              }
+              readOnly
             />
           </label>
           <label className="field">
@@ -5144,12 +5963,7 @@ function App() {
             <input
               type="text"
               value={domainDraft.source_url}
-              onChange={(event) =>
-                setDomainDraft((previous) => ({
-                  ...previous,
-                  source_url: event.target.value,
-                }))
-              }
+              readOnly
             />
           </label>
           <label className="field">
@@ -5196,6 +6010,10 @@ function App() {
             <button onClick={onRegisterDomain}>Register Domain</button>
             <button onClick={onPersistCorrelationSelection}>Save Correlation Selection</button>
           </div>
+          <p className="status-line">
+            Governed intake only: source metadata comes from the approved domain registry; presentation
+            routing and offline treatment remain analyst-configurable within governed enums.
+          </p>
           <p className="status-line">Registered domains: {domains.length}</p>
           <p className="status-line">
             Active context domains: {activeDomainIds.length} | Correlation AOI: {correlationAoi}
@@ -5209,6 +6027,8 @@ function App() {
               const availability = contextAvailabilitySummaries.find(
                 (summary) => summary.domain_id === domain.domain_id,
               )
+              const correlationLink = correlationLinks.find((link) => link.domain_id === domain.domain_id)
+              const governedTemplate = getGovernedDomainTemplate(domain.domain_id)
               return (
                 <article
                   key={domain.domain_id}
@@ -5237,7 +6057,14 @@ function App() {
                   </p>
                   <p className="status-line">Correlated context only.</p>
                   <p className="status-line">
+                    {correlationLink?.summary ?? 'AOI-correlated governed context link active.'}
+                  </p>
+                  <p className="status-line">
                     Offline policy: {domain.offline_behavior} | Correlation target: {correlationAoi}
+                  </p>
+                  <p className="status-line">
+                    Snapshot: {governedTemplate?.snapshot.snapshotId ?? 'restored bundle context'} |
+                    Retrieved {governedTemplate?.snapshot.retrievedAt ?? 'from bundle'}
                   </p>
                   <dl className="meta-grid">
                     <div>
@@ -5729,7 +6556,7 @@ function App() {
       <footer className="panel footer-panel" data-testid="region-bottom-panel">
         <strong>Bottom Panel</strong>
         <span>
-          {`Mode=${mode} | Connectivity=${offline ? 'offline' : 'online'} | Audit events=${auditEvents.length} | Query matches=${queryResult.length} | Degraded budgets=${degradedBudgetCount}`}
+          {`Mode=${mode} | Connectivity=${offline ? 'offline' : 'online'} | Audit events=${auditEvents.length} | Query matches=${queryResultCount} | Degraded budgets=${degradedBudgetCount}`}
         </span>
       </footer>
     </div>

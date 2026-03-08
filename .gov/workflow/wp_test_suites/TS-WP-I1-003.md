@@ -1,7 +1,7 @@
 # TS-WP-I1-003 - Spec vs Code Test Suite
 
 Date Opened: 2026-03-06
-Status: PLANNED
+Status: E2E-VERIFIED
 Linked Work Packet: WP-I1-003
 Iteration: I1
 
@@ -78,9 +78,9 @@ Validate that `WP-I1-003` replaces the faux main canvas with a real governed 2D/
 
 ## Execution Summary
 
-- Last Run Date:
-- Result:
-- Blocking Failures:
-- Evidence Paths:
-- Reviewer:
-- User Sign-off:
+- Last Run Date: 2026-03-07
+- Result: Passed `powershell -ExecutionPolicy Bypass -File .gov/workflow/wp_checks/check-WP-I1-003.ps1`
+- Blocking Failures: None
+- Evidence Paths: `.product/build_target/tool_artifacts/wp_runs/WP-I1-003/20260307_045256/`, `.product/build_target/tool_artifacts/wp_runs/WP-I1-003/20260307_045256/runtime_smoke/`, `.product/build_target/tool_artifacts/wp_runs/WP-I1-003/20260307_045256/runtime_smoke/cold/runtime_smoke_summary.md`, `.product/build_target/tool_artifacts/wp_runs/WP-I1-003/20260307_045256/runtime_smoke/warm/runtime_smoke_summary.md`
+- Reviewer: Codex
+- User Sign-off: Approved via 2026-03-07 instruction to perform the outstanding `WP-I1-003` closeout tasks.

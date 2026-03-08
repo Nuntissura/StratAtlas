@@ -477,6 +477,57 @@ describe('backend fallback', () => {
     expect(restored.state?.gameModel?.solver_runs[0]?.method).toBe('minimax_regret')
   })
 
+  it('mirrors governed control-plane state and time-range context queries', async () => {
+    await backend.saveRecorderState({
+      role: 'analyst',
+      state: request.state,
+    })
+    const manifest = await backend.createBundle(request)
+
+    const controlPlane = await backend.getControlPlaneState()
+    expect(controlPlane.activeDeploymentProfileId).toBe('connected')
+    expect(controlPlane.storageBackend).toBe('postgresql-postgis')
+    expect(controlPlane.contextStoreBackend).toBe('postgresql-indexed')
+    expect(controlPlane.deploymentProfiles.map((profile) => profile.id)).toEqual([
+      'connected',
+      'restricted',
+      'air_gapped',
+    ])
+    expect(controlPlane.bundleRegistry[0]?.bundleId).toBe(manifest.bundle_id)
+    expect(controlPlane.contextDomainRegistry[0]).toMatchObject({
+      domain_id: 'ctx-1',
+      domain_name: 'Port Throughput',
+    })
+    expect(controlPlane.correlationLinks[0]).toMatchObject({
+      domain_id: 'ctx-1',
+      target_id: 'aoi-1',
+    })
+
+    const queryResult = await backend.queryContextRecords({
+      domainIds: ['ctx-1'],
+      targetId: 'aoi-1',
+      timeRange: {
+        start: '2026-03-06T08:00:00.000Z',
+        end: '2026-03-06T18:00:00.000Z',
+      },
+      limit: 10,
+    })
+    expect(queryResult.source).toBe('fallback')
+    expect(queryResult.totalRecords).toBe(3)
+    expect(queryResult.records.map((record) => record.record_id)).toEqual([
+      'ctx-1-record-2',
+      'ctx-1-record-3',
+      'ctx-1-record-4',
+    ])
+  })
+
+  it('reports browser-simulated AI provider status outside the Tauri runtime', async () => {
+    const providerStatus = await backend.getAiGatewayProviderStatus()
+    expect(providerStatus.runtime).toBe('browser-simulated')
+    expect(providerStatus.available).toBe(false)
+    expect(providerStatus.providerLabel).toContain('Browser Simulated')
+  })
+
   it('maintains an append-only hash chain in audit events', async () => {
     const first = await backend.appendAudit({
       role: 'analyst',

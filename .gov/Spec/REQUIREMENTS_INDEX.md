@@ -1,7 +1,7 @@
 # StratAtlas - Requirements Index
 
 **Spec Version:** v1.2.4  
-**Last Updated:** 2026-03-06  
+**Last Updated:** 2026-03-08  
 **Governance:** See `SPEC_GOVERNANCE.md` for maintenance rules.
 
 ---
@@ -70,9 +70,9 @@ REQ-NNNN | LEVEL | Ã‚Â§Section | Description | Iteration Target | Status
 | REQ-0106 | MUST | Ã‚Â§8.1 | Audit trail: immutable, append-only | I0 | E2E-VERIFIED |
 | REQ-0107 | SHOULD | Ã‚Â§8.2 | Audit logs tamper-evident (hash chaining), exportable for compliance | I0 | E2E-VERIFIED |
 | REQ-0108 | MUST | Ã‚Â§10.1 | Full offline mode for air-gapped environments | I0 | E2E-VERIFIED |
-| REQ-0109 | MUST | Ã‚Â§6.3 | Control plane DB is PostgreSQL with PostGIS | I0 | SPEC-MAPPED |
-| REQ-0110 | MUST | Ã‚Â§6.3 | Artifact store: immutable artifacts with append-only supersedes links | I0 | IN-PROGRESS |
-| REQ-0111 | MUST | Ã‚Â§5 | Deployment profiles each specify: identity, key management, storage, audit retention, AI access | I0 | SPEC-MAPPED |
+| REQ-0109 | MUST | Ã‚Â§6.3 | Control plane DB is PostgreSQL with PostGIS | I0 | E2E-VERIFIED |
+| REQ-0110 | MUST | Ã‚Â§6.3 | Artifact store: immutable artifacts with append-only supersedes links | I0 | E2E-VERIFIED |
+| REQ-0111 | MUST | Ã‚Â§5 | Deployment profiles each specify: identity, key management, storage, audit retention, AI access | I0 | E2E-VERIFIED |
 | REQ-0112 | MUST | Ã‚Â§11.5 | Bundle open (local): Ã¢â€°Â¤5.0s to interactive | I0 | E2E-VERIFIED |
 
 ---
@@ -84,7 +84,7 @@ REQ-NNNN | LEVEL | Ã‚Â§Section | Description | Iteration Target | Status
 | REQ-0200 | MUST | Ã‚Â§11.1 | UI stable regions: header, left panel, right panel, bottom panel, main canvas | I1 | E2E-VERIFIED |
 | REQ-0201 | MUST | Ã‚Â§11.2 | UI modes: Live/Recent, Replay, Compare, Scenario, Collaboration, Offline | I1 | E2E-VERIFIED |
 | REQ-0202 | MUST | Ã‚Â§12.1 | Every layer declares: source, license, cadence, geometry type, sensitivity class, caching policy | I1 | E2E-VERIFIED |
-| REQ-0203 | MUST | Ã‚Â§12.1 | System surfaces licensing constraints and prevents violating exports | I1 | IN-PROGRESS |
+| REQ-0203 | MUST | Ã‚Â§12.1 | System surfaces licensing constraints and prevents violating exports | I1 | E2E-VERIFIED |
 | REQ-0204 | MUST | Ã‚Â§12.2 | Plugins MUST NOT run arbitrary code in main process without sandboxing | I1 | E2E-VERIFIED |
 | REQ-0205 | MUST | Ã‚Â§12.2 | Plugin network egress controllable | I1 | E2E-VERIFIED |
 | REQ-0206 | MUST | Ã‚Â§11.5 | 2D pan/zoom: Ã¢â€°Â¤50ms frame time with aggregated rendering | I1 | IN-PROGRESS |
@@ -92,7 +92,7 @@ REQ-NNNN | LEVEL | Ã‚Â§Section | Description | Iteration Target | Status
 | REQ-0208 | MUST | Ã‚Â§11.5 | Time scrub (cold cache): Ã¢â€°Â¤2.0s end-to-end | I1 | IN-PROGRESS |
 | REQ-0209 | MUST | Ã‚Â§11.5 | 4K image export: Ã¢â€°Â¤3.0s | I1 | IN-PROGRESS |
 | REQ-0210 | MUST | Ã‚Â§11.5 | Briefing bundle export: Ã¢â€°Â¤15s | I1 | IN-PROGRESS |
-| REQ-0211 | MUST | Ã‚Â§11.5 | Graceful degradation via aggregation when budget cannot be met; UI indicates aggregation | I1 | IN-PROGRESS |
+| REQ-0211 | MUST | Ã‚Â§11.5 | Graceful degradation via aggregation when budget cannot be met; UI indicates aggregation | I1 | E2E-VERIFIED |
 | REQ-0212 | SHOULD | Ã‚Â§11.6 | WCAG/508 accessibility (keyboard, non-color-only semantics) | I1 | IN-PROGRESS |
 
 ---
@@ -101,9 +101,9 @@ REQ-NNNN | LEVEL | Ã‚Â§Section | Description | Iteration Target | Status
 
 | ID | Level | Section | Description | Target | Status |
 |----|-------|---------|-------------|--------|--------|
-| REQ-0300 | MUST | Ã‚Â§13.1 | Baseline vs event delta analysis: at minimum density delta grids | I2 | IN-PROGRESS |
-| REQ-0301 | SHOULD | Ã‚Â§13.1 | Comparative dashboard with context domain time-series overlay | I2 | IN-PROGRESS |
-| REQ-0302 | MUST | Ã‚Â§11.3 | Golden flow: Baseline Ã¢â€ â€™ Delta Ã¢â€ â€™ Snapshot Bundle Ã¢â€ â€™ Briefing Export | I2 | IN-PROGRESS |
+| REQ-0300 | MUST | Ã‚Â§13.1 | Baseline vs event delta analysis: at minimum density delta grids | I2 | E2E-VERIFIED |
+| REQ-0301 | SHOULD | Ã‚Â§13.1 | Comparative dashboard with context domain time-series overlay | I2 | E2E-VERIFIED |
+| REQ-0302 | MUST | Ã‚Â§11.3 | Golden flow: Baseline Ã¢â€ â€™ Delta Ã¢â€ â€™ Snapshot Bundle Ã¢â€ â€™ Briefing Export | I2 | E2E-VERIFIED |
 
 ---
 
@@ -134,11 +134,11 @@ REQ-NNNN | LEVEL | Ã‚Â§Section | Description | Iteration Target | Status
 
 | ID | Level | Section | Description | Target | Status |
 |----|-------|---------|-------------|--------|--------|
-| REQ-0600 | MUST | Ã‚Â§13.2 | Composable spatio-temporal query builder | I5 | IN-PROGRESS |
-| REQ-0601 | MUST | Ã‚Â§13.2 | Query results render as ephemeral layers | I5 | IN-PROGRESS |
-| REQ-0602 | MUST | Ã‚Â§13.2 | Saved queries version-controlled | I5 | IN-PROGRESS |
-| REQ-0603 | SHOULD | Ã‚Â§13.2 | Context-aware queries combining geospatial + context domain conditions | I5 | IN-PROGRESS |
-| REQ-0604 | MUST | Ã‚Â§11.3 | Golden flow: Query Builder Ã¢â€ â€™ Run Ã¢â€ â€™ Render Ã¢â€ â€™ Save/version | I5 | IN-PROGRESS |
+| REQ-0600 | MUST | Ã‚Â§13.2 | Composable spatio-temporal query builder | I5 | E2E-VERIFIED |
+| REQ-0601 | MUST | Ã‚Â§13.2 | Query results render as ephemeral layers | I5 | E2E-VERIFIED |
+| REQ-0602 | MUST | Ã‚Â§13.2 | Saved queries version-controlled | I5 | E2E-VERIFIED |
+| REQ-0603 | SHOULD | Ã‚Â§13.2 | Context-aware queries combining geospatial + context domain conditions | I5 | E2E-VERIFIED |
+| REQ-0604 | MUST | Ã‚Â§11.3 | Golden flow: Query Builder Ã¢â€ â€™ Run Ã¢â€ â€™ Render Ã¢â€ â€™ Save/version | I5 | E2E-VERIFIED |
 
 ---
 
@@ -146,15 +146,15 @@ REQ-NNNN | LEVEL | Ã‚Â§Section | Description | Iteration Target | Status
 
 | ID | Level | Section | Description | Target | Status |
 |----|-------|---------|-------------|--------|--------|
-| REQ-0700 | MUST | Ã‚Â§15.1 | AI access mediated through gateway: authn/authz, RBAC, marking policy, licensing, audit | I6 | IN-PROGRESS |
-| REQ-0701 | MUST | Ã‚Â§15.2 | AI outputs labeled derived/interpretive, cite evidence by (bundle_id, asset_id, sha256), inherit markings | I6 | IN-PROGRESS |
-| REQ-0702 | SHOULD | Ã‚Â§15.3 | MCP server: policy-gated, audited tools | I6 | IN-PROGRESS |
-| REQ-0703 | MUST | Ã‚Â§15.3 | MCP tools operate on bundle IDs and content hashes, not file paths | I6 | IN-PROGRESS |
-| REQ-0704 | MUST | Ã‚Â§15.3 | MCP minimum tool surface: get_bundle_manifest, get_bundle_slice, get_context_values, submit_analysis, list_layers, get_scenario_delta | I6 | IN-PROGRESS |
-| REQ-0705 | MUST | Ã‚Â§15.3 | Every MCP invocation audit-logged | I6 | IN-PROGRESS |
-| REQ-0706 | MUST | Ã‚Â§15.3 | MCP enforces same RBAC/marking/export policies as UI gateway | I6 | IN-PROGRESS |
-| REQ-0707 | MUST | Ã‚Â§15.3 | MCP MUST NOT expose raw DB queries, file paths, or internal endpoints | I6 | IN-PROGRESS |
-| REQ-0708 | MUST | Ã‚Â§15.3 | MCP disable-able per deployment profile | I6 | IN-PROGRESS |
+| REQ-0700 | MUST | Ã‚Â§15.1 | AI access mediated through gateway: authn/authz, RBAC, marking policy, licensing, audit | I6 | E2E-VERIFIED |
+| REQ-0701 | MUST | Ã‚Â§15.2 | AI outputs labeled derived/interpretive, cite evidence by (bundle_id, asset_id, sha256), inherit markings | I6 | E2E-VERIFIED |
+| REQ-0702 | SHOULD | Ã‚Â§15.3 | MCP server: policy-gated, audited tools | I6 | E2E-VERIFIED |
+| REQ-0703 | MUST | Ã‚Â§15.3 | MCP tools operate on bundle IDs and content hashes, not file paths | I6 | E2E-VERIFIED |
+| REQ-0704 | MUST | Ã‚Â§15.3 | MCP minimum tool surface: get_bundle_manifest, get_bundle_slice, get_context_values, submit_analysis, list_layers, get_scenario_delta | I6 | E2E-VERIFIED |
+| REQ-0705 | MUST | Ã‚Â§15.3 | Every MCP invocation audit-logged | I6 | E2E-VERIFIED |
+| REQ-0706 | MUST | Ã‚Â§15.3 | MCP enforces same RBAC/marking/export policies as UI gateway | I6 | E2E-VERIFIED |
+| REQ-0707 | MUST | Ã‚Â§15.3 | MCP MUST NOT expose raw DB queries, file paths, or internal endpoints | I6 | E2E-VERIFIED |
+| REQ-0708 | MUST | Ã‚Â§15.3 | MCP disable-able per deployment profile | I6 | E2E-VERIFIED |
 
 ---
 
@@ -172,7 +172,7 @@ REQ-NNNN | LEVEL | Ã‚Â§Section | Description | Iteration Target | Status
 | REQ-0807 | MUST | Ã‚Â§7.4.8 | online_only domains degrade gracefully with staleness indicator | I7 | IN-PROGRESS |
 | REQ-0808 | MUST | Ã‚Â§7.4.8 | Snapshot bundles include context values at capture time | I7 | IN-PROGRESS |
 | REQ-0809 | MUST | Ã‚Â§11.3 | Golden flow: Context Correlation Ã¢â€ â€™ Enable Ã¢â€ â€™ Observe Ã¢â€ â€™ Capture in bundle | I7 | IN-PROGRESS |
-| REQ-0810 | MUST | Ã‚Â§6.3 | Context Store supports efficient time-range queries | I7 | SPEC-MAPPED |
+| REQ-0810 | MUST | Ã‚Â§6.3 | Context Store supports efficient time-range queries | I7 | E2E-VERIFIED |
 
 ---
 
@@ -230,7 +230,7 @@ REQ-NNNN | LEVEL | Ã‚Â§Section | Description | Iteration Target | Status
 | GATE-D | MUST | Ã‚Â§18 | Core analysis on saved projects/bundles functions offline with explicit UI state | D | E2E-VERIFIED |
 | GATE-E | MUST | Ã‚Â§18 | Performance budgets met on reference hardware/datasets | E | IN-PROGRESS |
 | GATE-F | MUST | Ã‚Â§18 | Context domain provenance, graceful degradation, not presented as primary evidence | F | IN-PROGRESS |
-| GATE-G | MUST | Ã‚Â§18 | AI safety controls operational whenever AI integration is enabled | G | IN-PROGRESS |
+| GATE-G | MUST | Ã‚Â§18 | AI safety controls operational whenever AI integration is enabled | G | E2E-VERIFIED |
 | GATE-H | MUST | Ã‚Â§18 | Desktop startup/portability controls met, installer lifecycle operations validated, and installer/exe version contract enforced | H | IN-PROGRESS |
 
 ---

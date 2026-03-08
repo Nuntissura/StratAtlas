@@ -66,7 +66,7 @@ This file is the execution order for capability slices. It is the scheduling bri
 - `WP-I5-002` is now `E2E-VERIFIED`; proof: `.product/build_target/tool_artifacts/wp_runs/WP-I5-002/20260307_232719/`. It closes REQ-0600..REQ-0604 with DuckDB-backed governed query execution, SQL fingerprint capture, context-aware predicates, deterministic matched-row layer materialization, and bundle reopen proof.
 - `WP-I6-002` is now `E2E-VERIFIED`; proof: `.product/build_target/tool_artifacts/wp_runs/WP-I6-002/20260308_012806/`. It closes REQ-0700..REQ-0708 with a governed provider-agnostic adapter, live Codex CLI / ChatGPT-login runtime proof, OpenAI Responses fallback support, audited MCP execution, and cold/warm Tauri runtime smoke evidence including live AI and MCP assertions.
 - `WP-GOV-DEPTH-001` is now `E2E-VERIFIED`; proof: `.product/build_target/tool_artifacts/wp_runs/WP-GOV-DEPTH-001/20260308_042222/`. It establishes the depth-first workflow baseline for future work through Workflow Version 4.0 packet fields, extract snapshots, and scaffold/placeholder enforcement, and it does not change the current product blocker `WP-I7-002`.
-- The next blocking implementation packet is `WP-I7-002`, currently `SPEC-MAPPED`.
+- The next blocking implementation packet is `WP-I7-002`, now `IN-PROGRESS`. First slice landed governed catalog ingestion in the product runtime; formal WP proof capture and any remaining connector/runtime gaps are still open.
 
 ---
 

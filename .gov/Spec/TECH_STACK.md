@@ -1,8 +1,8 @@
-﻿# StratAtlas - Technology Stack
+# StratAtlas - Technology Stack
 
 **Spec Version:** v1.2.4  
-**Last Updated:** 2026-03-06  
-**Status:** This document defines the governed target architecture. As of 2026-03-06, `.product/Worktrees/wt_main` is a buildable desktop prototype with many target dependencies installed. `WP-GOV-VERIFY-001` has now established governed desktop runtime smoke proof for the existing shell, while major normative runtime integrations remain queued under `WP-I0-003`, `WP-I1-003`, `WP-I2-003`, `WP-I5-002`, `WP-I6-002`, `WP-I7-002`, `WP-I8-002`, `WP-I9-002`, and `WP-I10-002`.
+**Last Updated:** 2026-03-08  
+**Status:** This document defines the governed target architecture. As of 2026-03-08, `.product/Worktrees/wt_main` has `E2E-VERIFIED` governed desktop proof for the control-plane backbone (`WP-I0-003`), the real MapLibre/Cesium runtime surface (`WP-I1-003`), comparative analytics and briefing runtime (`WP-I2-003`), DuckDB-backed query execution (`WP-I5-002`), and the live AI gateway plus audited MCP runtime (`WP-I6-002`), while later normative runtime integrations remain queued under `WP-I7-002`, `WP-I8-002`, `WP-I9-002`, and `WP-I10-002`.
 
 ---
 
@@ -76,8 +76,8 @@ Shared viewport state → switching 2D ↔ 3D preserves camera position and laye
 
 ### I1 Execution Profile (2026-03-07)
 
-- `WP-I1-003` will treat MapLibre GL JS as the default analyst surface and CesiumJS as the purposeful 3D mode.
-- deck.gl is mandatory for the first 2D analytic overlay pass and optional for selected shared geometry preparation in 3D; `WP-I1-003` MUST NOT block 3D delivery on full deck.gl/Cesium feature parity.
+- `WP-I1-003` now treats MapLibre GL JS as the default analyst surface and CesiumJS as the purposeful 3D mode, with governed cold/warm Tauri smoke proof recorded under `.product/build_target/tool_artifacts/wp_runs/WP-I1-003/20260307_045256/runtime_smoke/`.
+- deck.gl remains an optional follow-on for denser analytic overlay passes, but the current verified runtime does not block 3D delivery on full deck.gl/Cesium feature parity.
 - Current approved map-polish candidates after the core runtime are Terra Draw for AOI editing and measurement, and `maplibre-gl-compare`-style split comparison behavior, both drawn from the governance research packet rather than adopted blindly.
 - Borrowed UX references such as kepler.gl, TerriaJS, and MapStore2 are guidance inputs only; they are not runtime dependencies.
 
@@ -235,6 +235,29 @@ Shared viewport state → switching 2D ↔ 3D preserves camera position and laye
 | Alternatives considered | Electron (heavier, larger attack surface), native desktop (too expensive to build cross-platform) |
 | Risks | Smaller ecosystem than Electron; some web APIs may need Rust bridges |
 | Spec alignment | §5 deployment profiles (air-gapped workstation, on-prem), §12 Open Points recommendation for desktop-first |
+
+---
+
+## AI Gateway and Provider Adapters
+
+### Governed Provider Adapter — Tauri-Only Live AI Boundary
+
+| Attribute | Value |
+|-----------|-------|
+| Role | Live AI analysis boundary for the governed desktop runtime |
+| Current implementation note | `WP-I6-002` closes the initial live-provider packet with a provider-agnostic Tauri adapter that prefers local Codex CLI on an existing ChatGPT login when available and supports OpenAI Responses API as a governed fallback when configured with valid quota; browser and jsdom contexts remain in explicit simulated mode rather than pretending to be live. |
+| Why chosen | Keeps secrets out of the frontend, preserves offline-safe degradation, lets local operators use an existing ChatGPT/Codex login when available instead of forcing API billing, and leaves room for additional provider adapters without changing the UI or MCP contract. |
+| Risks | The currently verified live adapters are still OpenAI-owned surfaces, so broader provider diversity remains future work even though the contract is now adapter-driven. |
+| Spec alignment | §15.1 gateway mediation, §15.2 evidence-linked labeling and marking inheritance |
+
+### Governed MCP Adapter — Minimum Tool Surface
+
+| Attribute | Value |
+|-----------|-------|
+| Role | Policy-gated tool surface for AI analysis over bundles and derived artifacts |
+| Current implementation note | `WP-I6-002` verifies the minimum MCP surface, audited invocation capture, deployment-profile disablement, and path-agnostic operation over bundle IDs and content hashes in the Tauri runtime. |
+| Why chosen | Preserves the same RBAC, marking, export, and audit rules used by the UI gateway while preventing raw file-path or raw-database escape hatches. |
+| Spec alignment | §15.3 MCP interface, §8.1 audit coverage, §18 Gate G |
 
 ---
 

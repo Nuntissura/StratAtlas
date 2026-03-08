@@ -66,6 +66,8 @@ export interface ContextCorrelationLink {
   label: 'Correlated Context'
   enabled: boolean
   time_range: ContextTimeRange
+  summary?: string
+  lineage?: string[]
 }
 
 export interface ContextRecord {
@@ -277,6 +279,13 @@ export const buildCorrelationLinks = ({
       label: 'Correlated Context',
       enabled: true,
       time_range: timeRange,
+      summary: `${domain.domain_name} is correlated context for ${correlationAoi}; it is not a causal explanation.`,
+      lineage: [
+        `domain:${domain.domain_id}`,
+        `target:${correlationAoi}`,
+        `binding:${domain.spatial_binding}`,
+        `presentation:${domain.presentation_type}`,
+      ],
     }))
 
 export const queryContextRecords = ({

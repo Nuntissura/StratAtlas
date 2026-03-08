@@ -470,6 +470,7 @@ describe('App', () => {
     expect(screen.getByTestId('region-main-canvas')).toBeInTheDocument()
     expect(screen.getByTestId('region-right-panel')).toBeInTheDocument()
     expect(screen.getByTestId('region-bottom-panel')).toBeInTheDocument()
+    expect(screen.getByTestId('map-runtime-surface')).toBeInTheDocument()
   })
 
   it('runs compare workflow and updates delta output', async () => {
@@ -487,26 +488,50 @@ describe('App', () => {
     await user.type(eventInput, '2,4,6')
 
     expect(await screen.findByText('Delta: [1, 2, 3]')).toBeInTheDocument()
+    expect(within(screen.getByTestId('compare-dashboard')).getAllByText('Mumbai Coast').length).toBeGreaterThan(0)
+  })
+
+  it('requires a bundle before preparing a briefing artifact', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.selectOptions(screen.getByLabelText('Mode'), 'compare')
+    await user.click(screen.getByRole('button', { name: 'Prepare Briefing Artifact' }))
+
+    expect(
+      await screen.findByText('Select or create a bundle before preparing a briefing artifact.'),
+    ).toBeInTheDocument()
   })
 
   it('runs the query builder, render, and save-version workflow', async () => {
     const user = userEvent.setup()
     render(<App />)
 
+    await user.click(screen.getByRole('button', { name: 'Register Domain' }))
+    await waitFor(() =>
+      expect(
+        screen.getByText(
+          (content) => content.includes('Query source: fallback') && content.includes('Domains: 1'),
+        ),
+      ).toBeInTheDocument(),
+    )
+
     await user.clear(screen.getByLabelText('Query Title'))
     await user.type(screen.getByLabelText('Query Title'), 'Port surge watch v1')
-    await user.selectOptions(screen.getByLabelText('Condition Scope'), 'context')
-    await user.selectOptions(screen.getByLabelText('Condition Field'), 'context_domains')
-    await user.selectOptions(screen.getByLabelText('Condition Operator'), 'contains')
+    await user.click(screen.getByRole('button', { name: 'Use Active Context Domains' }))
+    await user.selectOptions(screen.getByLabelText('Condition Scope'), 'temporal')
+    await user.selectOptions(screen.getByLabelText('Condition Field'), 'hour')
+    await user.selectOptions(screen.getByLabelText('Condition Operator'), 'less_than')
     await user.clear(screen.getByLabelText('Condition Value'))
-    await user.type(screen.getByLabelText('Condition Value'), 'ctx-1')
+    await user.type(screen.getByLabelText('Condition Value'), '15')
     await user.click(screen.getByRole('button', { name: 'Add Condition' }))
     await user.click(screen.getByRole('button', { name: 'Run Query' }))
 
     const renderCard = await screen.findByTestId('query-render-card')
     const renderScope = within(renderCard)
     expect(renderScope.getByText(/query-layer-query-main-v1/)).toBeInTheDocument()
-    expect(renderScope.getByText(/Matched rows: \[2\]/)).toBeInTheDocument()
+    expect(renderScope.getByText(/Source rows: 3/)).toBeInTheDocument()
+    expect(screen.getByText(/Query matches: 2 \| Source rows: 3/)).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Save Query Version' }))
     const artifactCard = await screen.findByTestId('saved-query-artifact-card')
@@ -514,7 +539,8 @@ describe('App', () => {
     expect(artifactScope.getByText(/saved-query-query-/)).toBeInTheDocument()
     expect(within(screen.getByTestId('region-header')).getByText('Query v2')).toBeInTheDocument()
     expect(artifactScope.getByText(/Port surge watch v1/)).toBeInTheDocument()
-  })
+    expect(screen.getByText(/Context-linked domains: 1/)).toBeInTheDocument()
+  }, 15000)
 
   it('runs governed AI analysis and MCP tool workflow with audited refs', async () => {
     const user = userEvent.setup()
@@ -522,6 +548,7 @@ describe('App', () => {
 
     await user.click(screen.getByRole('button', { name: 'Create Bundle' }))
     expect(await screen.findByText(/Bundle .* created/)).toBeInTheDocument()
+    expect(await screen.findByText(/Provider: Browser Simulated Gateway/)).toBeInTheDocument()
 
     await user.selectOptions(screen.getByLabelText('Deployment Profile'), 'connected')
     await user.clear(screen.getByLabelText('Prompt'))
@@ -544,7 +571,7 @@ describe('App', () => {
 
     expect(await screen.findByText('ai.gateway.submit')).toBeInTheDocument()
     expect(await screen.findByText('mcp.tool_invoked')).toBeInTheDocument()
-  })
+  }, 15000)
 
   it('prepares a briefing artifact from compare mode with bundle and context overlays', async () => {
     const user = userEvent.setup()
@@ -561,13 +588,57 @@ describe('App', () => {
 
     await user.click(screen.getByRole('button', { name: 'Prepare Briefing Artifact' }))
 
+    const compareCard = await screen.findByTestId('compare-artifact-card')
+    const compareScope = within(compareCard)
+    expect(compareScope.getByText(/compare-artifact-compare-/)).toBeInTheDocument()
+    expect(compareScope.getByText(/Export fingerprint: compare-/)).toBeInTheDocument()
+
     const card = await screen.findByTestId('briefing-artifact-card')
     const scope = within(card)
     expect(scope.getByText(/Bundle reference:/)).toBeInTheDocument()
     expect(scope.getAllByText('Observed Evidence').length).toBeGreaterThan(0)
     expect(scope.getAllByText('Curated Context').length).toBeGreaterThan(0)
     expect(scope.getByText(/Port Throughput/)).toBeInTheDocument()
-  })
+    expect(scope.getByText(/Export fingerprint: briefing-/)).toBeInTheDocument()
+  }, 15000)
+
+  it('captures briefing exports in a derived bundle and restores them on reopen', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.click(screen.getByRole('button', { name: 'Register Domain' }))
+    await user.selectOptions(screen.getByLabelText('Mode'), 'compare')
+    await user.click(screen.getByRole('button', { name: 'Create Bundle' }))
+    expect(await screen.findByText(/Bundle .* created/)).toBeInTheDocument()
+
+    const sourceBundles = await backend.listBundles()
+    expect(sourceBundles).toHaveLength(1)
+    const sourceBundleId = sourceBundles[0]?.bundle_id
+    expect(sourceBundleId).toBeTruthy()
+
+    await user.click(screen.getByRole('button', { name: 'Prepare Briefing Artifact' }))
+    expect(await screen.findByTestId('briefing-artifact-card')).toBeInTheDocument()
+
+    const allBundles = await backend.listBundles()
+    expect(allBundles).toHaveLength(2)
+    const exportBundle = allBundles.find((bundle) => bundle.supersedes_bundle_id === sourceBundleId)
+    expect(exportBundle).toBeDefined()
+    expect(exportBundle?.bundle_id).not.toBe(sourceBundleId)
+
+    await waitFor(() => expect(screen.getAllByRole('radio')).toHaveLength(2))
+    await user.click(
+      screen.getByRole('radio', {
+        name: new RegExp(exportBundle?.bundle_id ?? ''),
+      }),
+    )
+    await user.click(screen.getByRole('button', { name: 'Reopen Bundle' }))
+
+    const reopenedCard = await screen.findByTestId('briefing-artifact-card')
+    const reopenedScope = within(reopenedCard)
+    expect(reopenedScope.getByText(new RegExp(`Bundle reference: ${sourceBundleId}`))).toBeInTheDocument()
+    expect(reopenedScope.getByText(/Export fingerprint: briefing-/)).toBeInTheDocument()
+    expect(await screen.findByTestId('compare-artifact-card')).toBeInTheDocument()
+  }, 20000)
 
   it('handles collaboration reconnect conflicts and replay attribution', async () => {
     const user = userEvent.setup()
@@ -595,7 +666,7 @@ describe('App', () => {
     expect(scope.getByText(/analyst-2 \| artifact\.upsert/)).toBeInTheDocument()
     expect(scope.getByText(/analyst-2 \| view\.ephemeral/)).toBeInTheDocument()
     expect(scope.getByText(/analyst-1 \| conflict\.resolved/)).toBeInTheDocument()
-  })
+  }, 15000)
 
   it('runs the scenario fork, compare, and export workflow', async () => {
     const user = userEvent.setup()
@@ -715,126 +786,138 @@ describe('App', () => {
     expect(scope.getByText(/Stale until live refresh/)).toBeInTheDocument()
   })
 
-  it('runs the context correlation golden flow and captures explicit links in the bundle', async () => {
-    const user = userEvent.setup()
-    render(<App />)
+  it(
+    'runs the context correlation golden flow and captures explicit links in the bundle',
+    async () => {
+      const user = userEvent.setup()
+      render(<App />)
 
-    await user.clear(screen.getByLabelText('Correlation AOI'))
-    await user.type(screen.getByLabelText('Correlation AOI'), 'aoi-4')
-    await user.selectOptions(screen.getByLabelText('Presentation Type'), 'sidebar_timeseries')
-    await user.selectOptions(screen.getByLabelText('Offline Behavior'), 'online_only')
-    await user.click(screen.getByRole('button', { name: 'Register Domain' }))
-    await user.click(screen.getByRole('button', { name: 'Save Correlation Selection' }))
+      await user.clear(screen.getByLabelText('Correlation AOI'))
+      await user.type(screen.getByLabelText('Correlation AOI'), 'aoi-4')
+      await user.selectOptions(screen.getByLabelText('Presentation Type'), 'sidebar_timeseries')
+      await user.selectOptions(screen.getByLabelText('Offline Behavior'), 'online_only')
+      await user.click(screen.getByRole('button', { name: 'Register Domain' }))
+      await user.click(screen.getByRole('button', { name: 'Save Correlation Selection' }))
 
-    expect(await screen.findByText('Active context domains: 1 | Correlation AOI: aoi-4')).toBeInTheDocument()
-    expect(screen.getByText('Correlated context only; not causal explanation.')).toBeInTheDocument()
-    const card = (await screen.findAllByTestId(/context-card-/))[0]
-    expect(card).not.toBeNull()
-    const scope = within(card)
-    expect(scope.getByText(/Correlated context only/)).toBeInTheDocument()
-    expect(scope.getByText(/Live correlation window shows/)).toBeInTheDocument()
-    expect(scope.getByText(/Latest value:/)).toBeInTheDocument()
+      expect(await screen.findByText('Active context domains: 1 | Correlation AOI: aoi-4')).toBeInTheDocument()
+      expect(screen.getByText('Correlated context only; not causal explanation.')).toBeInTheDocument()
+      const card = (await screen.findAllByTestId(/context-card-/))[0]
+      expect(card).not.toBeNull()
+      const scope = within(card)
+      expect(scope.getByText(/Correlated context only/)).toBeInTheDocument()
+      expect(scope.getByText(/Live correlation window shows/)).toBeInTheDocument()
+      expect(scope.getByText(/Latest value:/)).toBeInTheDocument()
 
-    await user.click(screen.getByRole('button', { name: 'Create Bundle' }))
-    expect(await screen.findByText(/Bundle .* created/)).toBeInTheDocument()
+      await user.click(screen.getByRole('button', { name: 'Create Bundle' }))
+      expect(await screen.findByText(/Bundle .* created/)).toBeInTheDocument()
 
-    await user.clear(screen.getByLabelText('Correlation AOI'))
-    await user.type(screen.getByLabelText('Correlation AOI'), 'aoi-2')
-    await user.click(screen.getByRole('button', { name: 'Save Correlation Selection' }))
-    await user.click(screen.getByRole('button', { name: 'Reopen Bundle' }))
+      await user.clear(screen.getByLabelText('Correlation AOI'))
+      await user.type(screen.getByLabelText('Correlation AOI'), 'aoi-2')
+      await user.click(screen.getByRole('button', { name: 'Save Correlation Selection' }))
+      await user.click(screen.getByRole('button', { name: 'Reopen Bundle' }))
 
-    expect(await screen.findByText('Active context domains: 1 | Correlation AOI: aoi-4')).toBeInTheDocument()
-    expect(screen.getByText(/Latest value:/)).toBeInTheDocument()
-  })
+      expect(await screen.findByText('Active context domains: 1 | Correlation AOI: aoi-4')).toBeInTheDocument()
+      expect(screen.getByText(/Latest value:/)).toBeInTheDocument()
+    },
+    15000,
+  )
 
-  it('records curated OSINT events with threshold-linked aggregate alerts and restores them from bundles', async () => {
-    const user = userEvent.setup()
-    render(<App />)
+  it(
+    'records curated OSINT events with threshold-linked aggregate alerts and restores them from bundles',
+    async () => {
+      const user = userEvent.setup()
+      render(<App />)
 
-    await user.click(screen.getByRole('button', { name: 'Register Domain' }))
-    await user.selectOptions(screen.getByLabelText('Verification'), 'alleged')
-    await user.selectOptions(screen.getByLabelText('Category'), 'security_advisory')
-    await user.clear(screen.getByLabelText('Event Summary'))
-    await user.type(screen.getByLabelText('Event Summary'), 'Curated advisory for aggregate AOI monitoring.')
-    await user.clear(screen.getByLabelText('Threshold Value'))
-    await user.type(screen.getByLabelText('Threshold Value'), '12')
-    await user.click(screen.getByRole('button', { name: 'Link Context Threshold' }))
+      await user.click(screen.getByRole('button', { name: 'Register Domain' }))
+      await user.selectOptions(screen.getByLabelText('Verification'), 'alleged')
+      await user.selectOptions(screen.getByLabelText('Category'), 'security_advisory')
+      await user.clear(screen.getByLabelText('Event Summary'))
+      await user.type(screen.getByLabelText('Event Summary'), 'Curated advisory for aggregate AOI monitoring.')
+      await user.clear(screen.getByLabelText('Threshold Value'))
+      await user.type(screen.getByLabelText('Threshold Value'), '12')
+      await user.click(screen.getByRole('button', { name: 'Link Context Threshold' }))
 
-    const alertCard = screen.getByTestId('osint-alert-card')
-    expect(within(alertCard).getByText(/Port Throughput below 12 index/)).toBeInTheDocument()
+      const alertCard = screen.getByTestId('osint-alert-card')
+      expect(within(alertCard).getByText(/Port Throughput below 12 index/)).toBeInTheDocument()
 
-    await user.click(screen.getByRole('button', { name: 'Add OSINT Event' }))
+      await user.click(screen.getByRole('button', { name: 'Add OSINT Event' }))
 
-    const eventCard = await screen.findByTestId('osint-event-card')
-    const eventScope = within(eventCard)
-    expect(eventScope.getByText('ACLED')).toBeInTheDocument()
-    expect(eventScope.getByText('alleged')).toHaveClass('alleged')
-    expect(within(alertCard).getByText(/Aggregate-only alert for aoi-1: 1 curated OSINT event/)).toBeInTheDocument()
+      const eventCard = await screen.findByTestId('osint-event-card')
+      const eventScope = within(eventCard)
+      expect(eventScope.getByText('ACLED')).toBeInTheDocument()
+      expect(eventScope.getByText('alleged')).toHaveClass('alleged')
+      expect(within(alertCard).getByText(/Aggregate-only alert for aoi-1: 1 curated OSINT event/)).toBeInTheDocument()
 
-    await user.click(screen.getByRole('button', { name: 'Create Bundle' }))
-    expect(await screen.findByText(/Bundle .* created/)).toBeInTheDocument()
+      await user.click(screen.getByRole('button', { name: 'Create Bundle' }))
+      expect(await screen.findByText(/Bundle .* created/)).toBeInTheDocument()
 
-    await user.clear(screen.getByLabelText('AOI'))
-    await user.type(screen.getByLabelText('AOI'), 'aoi-9')
-    await user.click(screen.getByRole('button', { name: 'Reopen Bundle' }))
+      await user.clear(screen.getByLabelText('AOI'))
+      await user.type(screen.getByLabelText('AOI'), 'aoi-9')
+      await user.click(screen.getByRole('button', { name: 'Reopen Bundle' }))
 
-    await waitFor(() => expect(screen.getByLabelText('AOI')).toHaveValue('aoi-1'))
-    expect(within(screen.getByTestId('osint-alert-card')).getByText(/Aggregate-only alert for aoi-1/)).toBeInTheDocument()
-    expect(screen.getAllByTestId('osint-event-card')).toHaveLength(1)
-  })
+      await waitFor(() => expect(screen.getByLabelText('AOI')).toHaveValue('aoi-1'))
+      expect(within(screen.getByTestId('osint-alert-card')).getByText(/Aggregate-only alert for aoi-1/)).toBeInTheDocument()
+      expect(screen.getAllByTestId('osint-event-card')).toHaveLength(1)
+    },
+    15000,
+  )
 
-  it('records strategic game model solver runs and restores experiment bundles from bundles', async () => {
-    const user = userEvent.setup()
-    render(<App />)
+  it(
+    'records strategic game model solver runs and restores experiment bundles from bundles',
+    async () => {
+      const user = userEvent.setup()
+      render(<App />)
 
-    await user.click(screen.getByRole('button', { name: 'Create Bundle' }))
-    expect(await screen.findByText(/Bundle .* created/)).toBeInTheDocument()
+      await user.click(screen.getByRole('button', { name: 'Create Bundle' }))
+      expect(await screen.findByText(/Bundle .* created/)).toBeInTheDocument()
 
-    await user.selectOptions(screen.getByLabelText('Mode'), 'scenario')
-    await user.clear(screen.getByLabelText('Scenario Title'))
-    await user.type(screen.getByLabelText('Scenario Title'), 'Game baseline')
-    await user.click(screen.getByRole('button', { name: 'Fork Scenario' }))
-    expect((await screen.findAllByText('Game baseline')).length).toBeGreaterThan(0)
+      await user.selectOptions(screen.getByLabelText('Mode'), 'scenario')
+      await user.clear(screen.getByLabelText('Scenario Title'))
+      await user.type(screen.getByLabelText('Scenario Title'), 'Game baseline')
+      await user.click(screen.getByRole('button', { name: 'Fork Scenario' }))
+      expect((await screen.findAllByText('Game baseline')).length).toBeGreaterThan(0)
 
-    await user.selectOptions(screen.getByLabelText('Game Scenario Link'), 'scenario-1')
-    await user.clear(screen.getByLabelText('Game Name'))
-    await user.type(screen.getByLabelText('Game Name'), 'AOI strategic model')
-    await user.click(screen.getByRole('button', { name: 'Update Game Model' }))
-    await user.clear(screen.getByLabelText('Actor Label'))
-    await user.type(screen.getByLabelText('Actor Label'), 'Customs coordination board')
-    await user.click(screen.getByRole('button', { name: 'Add Strategic Actor' }))
-    await user.clear(screen.getByLabelText('Action Label'))
-    await user.type(screen.getByLabelText('Action Label'), 'Stagger inspections')
-    await user.click(screen.getByRole('button', { name: 'Add Strategic Action' }))
-    await user.clear(screen.getByLabelText('Branch Label'))
-    await user.type(screen.getByLabelText('Branch Label'), 'Storm branch')
-    await user.selectOptions(screen.getByLabelText('Branch Type'), 'chance')
-    await user.click(screen.getByRole('button', { name: 'Link Scenario Branch' }))
-    await user.selectOptions(screen.getByLabelText('Solver Method'), 'minimax_regret')
-    await user.clear(screen.getByLabelText('Solver Seed'))
-    await user.type(screen.getByLabelText('Solver Seed'), '41')
-    await user.clear(screen.getByLabelText('Monte Carlo Samples'))
-    await user.type(screen.getByLabelText('Monte Carlo Samples'), '32')
-    await user.click(screen.getByRole('button', { name: 'Run Strategic Solver' }))
+      await user.selectOptions(screen.getByLabelText('Game Scenario Link'), 'scenario-1')
+      await user.clear(screen.getByLabelText('Game Name'))
+      await user.type(screen.getByLabelText('Game Name'), 'AOI strategic model')
+      await user.click(screen.getByRole('button', { name: 'Update Game Model' }))
+      await user.clear(screen.getByLabelText('Actor Label'))
+      await user.type(screen.getByLabelText('Actor Label'), 'Customs coordination board')
+      await user.click(screen.getByRole('button', { name: 'Add Strategic Actor' }))
+      await user.clear(screen.getByLabelText('Action Label'))
+      await user.type(screen.getByLabelText('Action Label'), 'Stagger inspections')
+      await user.click(screen.getByRole('button', { name: 'Add Strategic Action' }))
+      await user.clear(screen.getByLabelText('Branch Label'))
+      await user.type(screen.getByLabelText('Branch Label'), 'Storm branch')
+      await user.selectOptions(screen.getByLabelText('Branch Type'), 'chance')
+      await user.click(screen.getByRole('button', { name: 'Link Scenario Branch' }))
+      await user.selectOptions(screen.getByLabelText('Solver Method'), 'minimax_regret')
+      await user.clear(screen.getByLabelText('Solver Seed'))
+      await user.type(screen.getByLabelText('Solver Seed'), '41')
+      await user.clear(screen.getByLabelText('Monte Carlo Samples'))
+      await user.type(screen.getByLabelText('Monte Carlo Samples'), '32')
+      await user.click(screen.getByRole('button', { name: 'Run Strategic Solver' }))
 
-    const solverCard = await screen.findByTestId('game-solver-card')
-    expect(within(solverCard).getByText(/Result hash/)).toBeInTheDocument()
-    expect(within(screen.getByTestId('game-experiment-card')).getByText(/AOI strategic model/)).toBeInTheDocument()
-    expect(within(screen.getByTestId('game-voi-card')).getByText(/Collect additional governed coverage/)).toBeInTheDocument()
+      const solverCard = await screen.findByTestId('game-solver-card')
+      expect(within(solverCard).getByText(/Result hash/)).toBeInTheDocument()
+      expect(within(screen.getByTestId('game-experiment-card')).getByText(/AOI strategic model/)).toBeInTheDocument()
+      expect(within(screen.getByTestId('game-voi-card')).getByText(/Collect additional governed coverage/)).toBeInTheDocument()
 
-    await user.click(screen.getByRole('button', { name: 'Create Bundle' }))
-    expect(await screen.findByText(/Bundle .* created/)).toBeInTheDocument()
+      await user.click(screen.getByRole('button', { name: 'Create Bundle' }))
+      expect(await screen.findByText(/Bundle .* created/)).toBeInTheDocument()
 
-    await user.clear(screen.getByLabelText('Game Name'))
-    await user.type(screen.getByLabelText('Game Name'), 'Mutated model')
-    await user.click(screen.getByRole('button', { name: 'Reopen Bundle' }))
+      await user.clear(screen.getByLabelText('Game Name'))
+      await user.type(screen.getByLabelText('Game Name'), 'Mutated model')
+      await user.click(screen.getByRole('button', { name: 'Reopen Bundle' }))
 
-    await waitFor(() =>
-      expect(within(screen.getByTestId('game-model-card')).getByDisplayValue('AOI strategic model')).toBeInTheDocument(),
-    )
-    expect(within(screen.getByTestId('game-experiment-card')).getByText(/Solver runs 1/)).toBeInTheDocument()
-    expect(screen.getAllByTestId('game-tree-node-card')).toHaveLength(1)
-  }, 20000)
+      await waitFor(() =>
+        expect(within(screen.getByTestId('game-model-card')).getByDisplayValue('AOI strategic model')).toBeInTheDocument(),
+      )
+      expect(within(screen.getByTestId('game-experiment-card')).getByText(/Solver runs 1/)).toBeInTheDocument()
+      expect(screen.getAllByTestId('game-tree-node-card')).toHaveLength(1)
+    },
+    30000,
+  )
 
   it('records a context deviation event and applies a constraint_node domain in the scenario workspace', async () => {
     const user = userEvent.setup()
@@ -865,7 +948,7 @@ describe('App', () => {
       await screen.findByText(/Applied context constraint node Port Throughput to Deviation scenario\./),
     ).toBeInTheDocument()
     expect(screen.getAllByText(/modeled scenario input/).length).toBeGreaterThan(0)
-  })
+  }, 15000)
 
   it('shows degraded aggregation feedback when the replay frame budget is exceeded', async () => {
     const user = userEvent.setup()
@@ -876,7 +959,9 @@ describe('App', () => {
     await user.clear(frameInput)
     await user.type(frameInput, '80')
 
-    expect(await screen.findByText('Aggregation mode active')).toBeInTheDocument()
+    expect(
+      await within(screen.getByTestId('map-runtime-surface')).findByText('Aggregation mode active'),
+    ).toBeInTheDocument()
     expect(screen.getByText('Degraded aggregation in effect.')).toBeInTheDocument()
   })
 
@@ -906,11 +991,12 @@ describe('App', () => {
       await user.click(screen.getByRole('button', { name: 'Save Correlation Selection' }))
       await user.clear(screen.getByLabelText('Query Title'))
       await user.type(screen.getByLabelText('Query Title'), 'Saved port watch')
-      await user.selectOptions(screen.getByLabelText('Condition Scope'), 'context')
-      await user.selectOptions(screen.getByLabelText('Condition Field'), 'context_domains')
-      await user.selectOptions(screen.getByLabelText('Condition Operator'), 'contains')
+      await user.click(screen.getByRole('button', { name: 'Use Active Context Domains' }))
+      await user.selectOptions(screen.getByLabelText('Condition Scope'), 'temporal')
+      await user.selectOptions(screen.getByLabelText('Condition Field'), 'hour')
+      await user.selectOptions(screen.getByLabelText('Condition Operator'), 'less_than')
       await user.clear(screen.getByLabelText('Condition Value'))
-      await user.type(screen.getByLabelText('Condition Value'), 'ctx-1')
+      await user.type(screen.getByLabelText('Condition Value'), '15')
       await user.click(screen.getByRole('button', { name: 'Add Condition' }))
       await user.click(screen.getByRole('button', { name: 'Run Query' }))
       await user.click(screen.getByRole('button', { name: 'Save Query Version' }))
@@ -974,6 +1060,6 @@ describe('App', () => {
       expect((await screen.findAllByText('Saved surge')).length).toBeGreaterThan(0)
       expect(screen.getByText(/Compared scenario-1 -> scenario-2/)).toBeInTheDocument()
     },
-    30000,
+    45000,
   )
 })

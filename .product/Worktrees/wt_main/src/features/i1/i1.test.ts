@@ -3,6 +3,25 @@ import { LayerRegistry, buildWorkspaceLayerCatalog } from './layers'
 import { REQUIRED_UI_MODES, REQUIRED_UI_REGIONS } from './modes'
 import { I1_BUDGETS, describeStateChangeFeedback, shouldDegradeRendering } from './performance'
 import { validatePluginAgainstPolicy } from './plugins'
+import {
+  buildCompareDashboard,
+  buildComparisonWindow,
+  buildContextOverlaySummaries,
+} from '../i2/baselineDelta'
+import { createCollaborationSnapshot } from '../i3/collaboration'
+import { addHypotheticalEntity, createScenarioFork, createScenarioState, setConstraint } from '../i4/scenarios'
+import { buildQueryRenderLayer, type VersionedQuery } from '../i5/queryBuilder'
+import type { AiGatewayArtifact } from '../i6/aiGateway'
+import {
+  buildContextTimeRange,
+  buildCorrelationLinks,
+  buildSampleContextRecords,
+  type ContextDomain,
+} from '../i7/contextIntake'
+import { detectDeviation } from '../i8/deviation'
+import { aggregateAlerts, buildOsintEvent } from '../i9/osint'
+import { buildPayoffProxy, createGameModelSnapshot } from '../i10/gameModeling'
+import { buildMapRuntimeScene } from './runtime/mapRuntimeScene'
 
 describe('I1 contracts', () => {
   it('defines required stable UI regions and modes', () => {
@@ -110,5 +129,200 @@ describe('I1 contracts', () => {
     expect(modelEntry?.artifactLabel).toBe('Modeled Output')
     expect(modelEntry?.uncertaintyText).toContain('Range')
     expect(aiEntry?.artifactLabel).toBe('AI-Derived Interpretation')
+  })
+
+  it('spatializes the cross-feature runtime state onto the governed map scene', () => {
+    const domains: ContextDomain[] = [
+      {
+        domain_id: 'ctx-1',
+        domain_name: 'Port Throughput',
+        domain_class: 'economic_indicator',
+        source_name: 'UNCTAD',
+        source_url: 'https://example.test/context',
+        license: 'public',
+        update_cadence: 'monthly',
+        spatial_binding: 'aoi_correlated',
+        temporal_resolution: 'monthly',
+        sensitivity_class: 'PUBLIC',
+        confidence_baseline: 'A',
+        methodology_notes: 'Official aggregation',
+        offline_behavior: 'pre_cacheable',
+        presentation_type: 'map_overlay',
+        prohibited_uses: ['MUST NOT be used for individual entity tracking'],
+      },
+    ]
+    const visibleLayerCatalog = buildWorkspaceLayerCatalog({
+      activeLayerIds: ['base-map', 'audit-overlay'],
+      activeDomainIds: ['ctx-1'],
+      domains,
+      allowRestrictedExport: false,
+      allowedLicenses: ['public', 'internal'],
+      aiSummaryAvailable: true,
+      degradeRendering: false,
+      modelUncertaintyText: 'Range +/- 14%',
+    }).filter((entry) => entry.visible)
+    const versionedQuery: VersionedQuery = {
+      queryId: 'query-main',
+      title: 'Port surge watch',
+      version: 2,
+      aoi: 'aoi-1',
+      timeWindow: {
+        startHour: 8,
+        endHour: 18,
+      },
+      contextDomainIds: ['ctx-1'],
+      provenanceSource: 'Analyst-authored',
+      conditions: [
+        {
+          conditionId: 'condition-1',
+          scope: 'geospatial',
+          field: 'speed',
+          operator: 'greater_than',
+          value: 20,
+        },
+      ],
+    }
+    const queryRenderLayer = buildQueryRenderLayer(versionedQuery, [
+      {
+        id: 2,
+        speed: 37,
+        region: 'aoi-1',
+        hour: 10,
+        context_domains: ['ctx-1'],
+      },
+    ])
+    const compareDashboard = buildCompareDashboard(
+      buildComparisonWindow('Baseline', '2026-Q1 baseline', '2026-Q1 baseline'),
+      buildComparisonWindow('Event', '2026-Q2 event', '2026-Q2 event'),
+      [10, 12, 16],
+      [14, 18, 21],
+    )
+    const contextTimeRange = buildContextTimeRange({
+      startHour: 8,
+      endHour: 18,
+    })
+    const contextRecords = buildSampleContextRecords({
+      domain: domains[0],
+      targetId: 'aoi-7',
+      timeRange: contextTimeRange,
+    })
+    let scenario = createScenarioState('bundle-test')
+    scenario = createScenarioFork(scenario, {
+      title: 'Surge response',
+      parentBundleId: 'bundle-test',
+      now: '2026-03-06T00:00:00.000Z',
+      provenanceSummary: 'Scenario packet',
+    })
+    scenario = setConstraint(scenario, scenario.selectedScenarioId, {
+      constraintId: 'port_capacity',
+      label: 'Port Capacity',
+      value: 64,
+      unit: 'index',
+      rationale: 'Capacity compression',
+      propagationWeight: 1.7,
+      now: '2026-03-06T00:05:00.000Z',
+    })
+    scenario = addHypotheticalEntity(scenario, scenario.selectedScenarioId, {
+      entityId: 'floating-depot',
+      name: 'Floating depot',
+      entityType: 'asset',
+      changeSummary: 'Adds surge buffer storage',
+      provenanceSource: 'Analyst note',
+      confidence: 'B',
+      now: '2026-03-06T00:06:00.000Z',
+    })
+    const latestAiArtifact: AiGatewayArtifact = {
+      artifactId: 'ai-1',
+      bundleId: 'bundle-test',
+      label: 'AI-Derived Interpretation',
+      marking: 'INTERNAL',
+      refs: [],
+      citations: ['bundle-test / workspace-state'],
+      prompt: 'Summarize governed evidence only.',
+      content: 'Container throughput remains stressed around the primary AOI.',
+      generatedAt: '2026-03-06T00:07:00.000Z',
+      confidenceText: 'Derived interpretation; analyst validation required',
+      uncertaintyText: 'Inference only; do not treat as observed evidence.',
+      lineage: ['gateway:restricted'],
+    }
+    const latestDeviationEvent =
+      detectDeviation(
+        [
+          { ts: '2026-03-06T08:00:00.000Z', value: 100 },
+          { ts: '2026-03-06T10:00:00.000Z', value: 102 },
+        ],
+        [
+          { ts: '2026-03-06T12:00:00.000Z', value: 64 },
+          { ts: '2026-03-06T14:00:00.000Z', value: 59 },
+        ],
+        0.2,
+        'infrastructure',
+        {
+          domainId: 'ctx-1',
+          domainName: 'Port Throughput',
+          targetId: 'aoi-7',
+          confidenceBaseline: 'A',
+        },
+      ) ?? undefined
+    const osintEvents = [
+      buildOsintEvent({
+        source: 'ACLED',
+        verification: 'reported',
+        aoi: 'aoi-7',
+        category: 'conflict_event',
+        summary: 'Curated disruption summary.',
+        retrievedAt: '2026-03-06T18:00:00.000Z',
+      }),
+    ]
+    const scene = buildMapRuntimeScene({
+      mode: 'scenario',
+      offline: false,
+      replayCursor: 42,
+      activeLayers: ['base-map', 'audit-overlay'],
+      visibleLayerCatalog,
+      mainCanvasCatalog: visibleLayerCatalog.filter((entry) => entry.renderSurface === 'main_canvas'),
+      rightPanelCatalog: visibleLayerCatalog.filter((entry) => entry.renderSurface === 'right_panel'),
+      dashboardCatalog: visibleLayerCatalog.filter((entry) => entry.renderSurface === 'dashboard_widget'),
+      versionedQuery,
+      queryRenderLayer,
+      contextDomains: domains,
+      activeDomainIds: ['ctx-1'],
+      correlationAoi: 'aoi-7',
+      contextRecords,
+      correlationLinks: buildCorrelationLinks({
+        domains,
+        activeDomainIds: ['ctx-1'],
+        correlationAoi: 'aoi-7',
+        timeRange: contextTimeRange,
+      }),
+      compareDashboard,
+      contextOverlaySummaries: buildContextOverlaySummaries(domains, ['ctx-1'], compareDashboard),
+      collaboration: createCollaborationSnapshot('collab-main', 'analyst-1'),
+      selectedScenario: scenario.scenarios[0],
+      scenarioComparison: null,
+      latestAiArtifact,
+      latestDeviationEvent,
+      osintSummary: aggregateAlerts(osintEvents, 'aoi-7'),
+      osintEvents,
+      osintAoi: 'aoi-7',
+      gameModelSnapshot: createGameModelSnapshot('bundle-test'),
+      payoffProxy: buildPayoffProxy('throughput_resilience', 112, 14),
+    })
+
+    expect(scene.focusOptions.length).toBeGreaterThan(2)
+    expect(scene.signals.features.some((feature) => feature.properties.category === 'query')).toBe(true)
+    expect(scene.signals.features.some((feature) => feature.properties.category === 'context')).toBe(true)
+    expect(scene.signals.features.some((feature) => feature.properties.category === 'scenario')).toBe(true)
+    expect(scene.signals.features.some((feature) => feature.properties.category === 'ai')).toBe(true)
+    expect(scene.signals.features.some((feature) => feature.properties.category === 'osint')).toBe(true)
+    expect(
+      scene.signals.features.some(
+        (feature) =>
+          feature.properties.category === 'compare' &&
+          feature.properties.label.includes('delta'),
+      ),
+    ).toBe(true)
+    expect(scene.corridors.features.some((feature) => feature.properties.category === 'model')).toBe(true)
+    expect(scene.metrics.find((metric) => metric.label === 'Mapped Features')?.value).not.toBe('0')
   })
 })

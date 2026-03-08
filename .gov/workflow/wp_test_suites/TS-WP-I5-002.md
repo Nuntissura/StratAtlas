@@ -1,7 +1,7 @@
 # TS-WP-I5-002 - Spec vs Code Test Suite
 
 Date Opened: 2026-03-06
-Status: IN-PROGRESS
+Status: E2E-VERIFIED
 Linked Work Packet: WP-I5-002
 Iteration: I5
 
@@ -17,6 +17,8 @@ Validate WP delivery against linked requirements and primitives.
   - `.product/Worktrees/wt_main/src/App.tsx`
   - `.product/Worktrees/wt_main/src/App.test.tsx`
   - `.product/Worktrees/wt_main/src/features/i5/queryBuilder.ts`
+  - `.product/Worktrees/wt_main/src/features/i5/queryExecution.ts`
+  - `.product/Worktrees/wt_main/src/features/i5/queryRuntime.ts`
   - `.product/Worktrees/wt_main/src/features/i5/i5.test.ts`
   - `.product/Worktrees/wt_main/src/lib/backend.ts`
   - `.product/Worktrees/wt_main/src-tauri/src/lib.rs`
@@ -25,49 +27,50 @@ Validate WP delivery against linked requirements and primitives.
 
 | Case ID | Requirement | Primitive | Category | Target | Command/Test | Expected |
 |--------|-------------|-----------|----------|--------|--------------|----------|
-| DEP-001 | REQ-0600 | PRIM-0050 | Dependency | wt_main workspace | `pnpm lint` | Query runtime compiles cleanly with no new dependency or policy regressions. |
-| UI-001 | REQ-0601 | PRIM-0051 | UI Contract | query builder surface and render/save cards | `.product/Worktrees/wt_main/src/App.test.tsx` | Query mode renders governed result-layer and saved-artifact surfaces with honest runtime state. |
-| FUNC-001 | REQ-0604 | PRIM-0051 | Functionality | compose -> run -> render -> save/version flow | `.product/Worktrees/wt_main/src/App.test.tsx` | Golden flow runs deterministically against the governed execution adapter and bundle-linked saved artifacts. |
-| COR-001 | REQ-0600 | PRIM-0050 | Code Correctness | query builder and execution adapter modules | `.product/Worktrees/wt_main/src/features/i5/i5.test.ts` | Query composition, runtime row materialization, and deterministic saved-query packaging stay stable under regression tests. |
-| RED-001 | REQ-0603 | PRIM-0050 | Red Team / Abuse | invalid domain/filter linkage and offline fallback | `.product/Worktrees/wt_main/src/App.test.tsx` | Query execution degrades safely when no governed query source is available and does not bypass domain scoping. |
+| DEP-001 | REQ-0600 | PRIM-0050 | Dependency | wt_main workspace | `pnpm install --frozen-lockfile` | DuckDB-backed query execution dependencies resolve cleanly with no lock drift or unsupported package changes. |
+| UI-001 | REQ-0601 | PRIM-0051 | UI Contract | query builder surface and render/save cards | `pnpm exec vitest run src/App.test.tsx` | Query mode renders governed result-layer and saved-artifact surfaces with honest execution state and reopen behavior. |
+| FUNC-001 | REQ-0604 | PRIM-0051 | Functionality | query execution adapter and saved-result flow | `pnpm exec vitest run src/features/i5/i5.test.ts` | DuckDB-backed query execution, context-aware predicates, and deterministic saved-query snapshots remain stable. |
+| COR-001 | REQ-0600 | PRIM-0050 | Code Correctness | TypeScript workspace | `pnpm lint` | Query execution modules compile cleanly with no new type, import, or policy regressions. |
+| RED-001 | REQ-0603 | PRIM-0050 | Red Team / Abuse | governed code root | `powershell -ExecutionPolicy Bypass -File .gov/repo_scripts/red_team_guardrail_check.ps1 -CodeRoot .product/Worktrees/wt_main` | No new guardrail regression or policy-bypass pattern is introduced by the query runtime slice. |
 | EXT-001 | REQ-0108 | PRIM-0050 | Additional | production compile/build | `pnpm build` | Query runtime remains offline-safe and does not break the governed desktop build. |
+| EXT-002 | REQ-0602 | PRIM-0051 | Additional | Tauri persistence boundary | `cargo test --manifest-path src-tauri/Cargo.toml` | Saved query artifacts remain compatible with the governed desktop persistence boundary. |
 
 ## Dependency and Environment Tests
 
-- [ ] Runtime dependency install/lock integrity
-- [ ] Platform portability constraints checked
+- [x] Runtime dependency install/lock integrity
+- [x] Platform portability constraints checked
 - [ ] Required services/adapters available
 
 ## UI Contract Tests
 
-- [ ] Required regions
-- [ ] Required modes/states
-- [ ] Error and degraded-state UX
+- [x] Required regions
+- [x] Required modes/states
+- [x] Error and degraded-state UX
 
 ## Functional Flow Tests
 
-- [ ] Golden flow
-- [ ] Deterministic replay path
-- [ ] Export/import or persistence flow
+- [x] Golden flow
+- [x] Deterministic replay path
+- [x] Export/import or persistence flow
 
 ## Code Correctness Tests
 
-- [ ] Unit tests
-- [ ] Integration tests
-- [ ] Static checks (lint/type/schema)
+- [x] Unit tests
+- [x] Integration tests
+- [x] Static checks (lint/type/schema)
 
 ## Red-Team and Abuse Tests
 
 - [ ] Non-goal enforcement (spec section 3.2)
-- [ ] Policy bypass attempts
-- [ ] Invalid input and path abuse cases
+- [x] Policy bypass attempts
+- [x] Invalid input and path abuse cases
 
 ## Additional Tests
 
 - [ ] Performance budget checks
 - [ ] Offline behavior
 - [ ] Accessibility/usability checks
-- [ ] Reliability/recovery checks
+- [x] Reliability/recovery checks
 
 ## Automation Hook
 
@@ -77,8 +80,8 @@ Validate WP delivery against linked requirements and primitives.
 ## Execution Summary
 
 - Last Run Date: 2026-03-07
-- Result: Packet activated; implementation and verification pending
-- Blocking Failures: Governed query execution is still frontend-local simulation at kickoff and must be replaced before status promotion.
-- Evidence Paths: `powershell -ExecutionPolicy Bypass -File .gov/repo_scripts/governance_preflight.ps1`
+- Result: PASS (official closeout verification)
+- Blocking Failures: None for packet closeout. REQ-0108 and REQ-0810 remain covered by retained `WP-I0-003` proof while this packet closes REQ-0600..REQ-0604.
+- Evidence Paths: `.product/build_target/tool_artifacts/wp_runs/WP-I5-002/20260307_232719/result.json`; `.product/build_target/tool_artifacts/wp_runs/WP-I5-002/20260307_232719/summary.md`; `.product/build_target/tool_artifacts/wp_runs/WP-I5-002/20260307_232719/UI-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I5-002/20260307_232719/FUNC-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I5-002/20260307_232719/COR-001.log`
 - Reviewer: Codex
 - User Sign-off: Approved via 2026-03-07 instruction to start `WP-I5-002`.

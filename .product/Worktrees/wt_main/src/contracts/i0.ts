@@ -3,7 +3,7 @@ import type { CompareStateSnapshot } from '../features/i2/baselineDelta'
 import type { CollaborationStateSnapshot } from '../features/i3/collaboration'
 import type { ScenarioStateSnapshot } from '../features/i4/scenarios'
 import type { QueryRenderLayer, SavedQueryArtifact, VersionedQuery } from '../features/i5/queryBuilder'
-import type { AiGatewaySnapshot } from '../features/i6/aiGateway'
+import type { AiGatewaySnapshot, DeploymentProfileId } from '../features/i6/aiGateway'
 import type {
   ContextCorrelationLink,
   ContextDomain,
@@ -46,6 +46,41 @@ export interface BundleManifest {
   derived_artifact_hashes: string[]
   provenance_refs: ProvenanceRef[]
   supersedes_bundle_id?: string
+}
+
+export interface BundleRegistryEntry {
+  bundleId: string
+  createdAt: string
+  createdByRole: UserRole
+  marking: SensitivityMarking
+  uiStateHash: string
+  manifestArtifactHash: string
+  assetCount: number
+  supersedesBundleId?: string
+}
+
+export interface GovernedDeploymentProfile {
+  id: DeploymentProfileId
+  label: string
+  identityMode: string
+  keyManagement: string
+  storagePlacement: string
+  auditRetention: string
+  aiEnabled: boolean
+  mcpEnabled: boolean
+  externalAiAccessEnabled: boolean
+}
+
+export interface ControlPlaneState {
+  activeDeploymentProfileId: DeploymentProfileId
+  deploymentProfiles: GovernedDeploymentProfile[]
+  bundleRegistry: BundleRegistryEntry[]
+  contextDomainRegistry: ContextDomain[]
+  correlationLinks: ContextCorrelationLink[]
+  storageBackend: 'postgresql-postgis'
+  contextStoreBackend: 'postgresql-indexed'
+  artifactStorePath: string
+  updatedAt: string
 }
 
 export interface WorkspaceStateSnapshot {
@@ -134,6 +169,20 @@ export interface SaveRecorderStateRequest {
   state: RecorderState
 }
 
+export interface QueryContextRecordsRequest {
+  domainIds: string[]
+  targetId: string
+  timeRange: ContextTimeRange
+  limit?: number
+}
+
+export interface QueryContextRecordsResult {
+  records: ContextRecord[]
+  queryRange: ContextTimeRange
+  totalRecords: number
+  source: 'control_plane' | 'fallback'
+}
+
 export type RuntimeSmokePhase = 'cold' | 'warm'
 
 export interface RuntimeSmokeWindowSnapshot {
@@ -176,6 +225,27 @@ export interface RuntimeSmokeReport {
   scenarioExportArtifactId?: string
   auditEventCount: number
   platform: string
+  mapRuntimeVisible: boolean
+  mapRuntimeInteractive: boolean
+  mapSurfaceMode: 'planar' | 'orbital'
+  mapRuntimeEngine: 'fallback' | 'maplibre' | 'cesium'
+  mapPlanarReady: boolean
+  mapOrbitalReady: boolean
+  mapFocusAoiId: string
+  mapInspectCount: number
+  mapRuntimeError?: string
+  requireLiveAi: boolean
+  requireMcp: boolean
+  aiProviderLabel: string
+  aiProviderRuntime: string
+  aiProviderAvailable: boolean
+  aiProviderDetail: string
+  aiArtifactId?: string
+  aiRequestId?: string
+  aiGatewayRuntime?: string
+  mcpInvocationId?: string
+  mcpInvocationStatus?: 'allowed' | 'denied'
+  mcpToolName?: string
   regions: RuntimeSmokeRegionCheck[]
   assertions: RuntimeSmokeAssertion[]
   metrics: RuntimeSmokeMetric[]

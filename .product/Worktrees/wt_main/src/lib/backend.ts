@@ -5,24 +5,52 @@ import type {
   AuditHead,
   BundleAsset,
   BundleManifest,
+  BundleRegistryEntry,
+  ControlPlaneState,
   CreateBundleRequest,
+  GovernedDeploymentProfile,
   LoadRecorderStateResult,
   OpenBundleResult,
   ProvenanceRef,
+  QueryContextRecordsRequest,
+  QueryContextRecordsResult,
   RecorderState,
   RuntimeSmokeEvidenceResult,
   WriteRuntimeSmokeEvidenceRequest,
   SaveRecorderStateRequest,
   SensitivityMarking,
 } from '../contracts/i0'
+import {
+  DEPLOYMENT_PROFILES,
+  createBrowserSimulatedAiProviderStatus,
+  type AiGatewayProviderAnalysisRequest,
+  type AiGatewayProviderAnalysisResult,
+  type AiGatewayProviderStatus,
+  type DeploymentProfileId,
+} from '../features/i6/aiGateway'
+import {
+  queryContextRecords as queryGovernedContextRecords,
+  type ContextCorrelationLink,
+  type ContextDomain,
+  type ContextRecord,
+} from '../features/i7/contextIntake'
 
 const FALLBACK_BUNDLES_KEY = 'stratatlas.fallback.bundles'
 const FALLBACK_AUDIT_KEY = 'stratatlas.fallback.audit'
 const FALLBACK_RECORDER_STATE_KEY = 'stratatlas.fallback.recorder-state'
+const FALLBACK_CONTROL_PLANE_KEY = 'stratatlas.fallback.control-plane'
+const FALLBACK_CONTEXT_STORE_KEY = 'stratatlas.fallback.context-store'
 
 type StoredBundle = {
   manifest: BundleManifest
   assets: Record<string, unknown>
+}
+
+type FallbackContextStore = {
+  domains: ContextDomain[]
+  correlationLinks: ContextCorrelationLink[]
+  records: ContextRecord[]
+  updatedAt: string
 }
 
 const isTauriRuntime = (): boolean =>
@@ -76,6 +104,223 @@ const writeJson = (key: string, value: unknown): void => {
 }
 
 const canonicalize = (value: unknown): string => JSON.stringify(normalizeJson(value))
+
+const GOVERNED_DEPLOYMENT_PROFILES: GovernedDeploymentProfile[] = [
+  {
+    id: 'connected',
+    label: 'Connected Analyst',
+    identityMode: 'interactive_rbac',
+    keyManagement: 'platform_keystore',
+    storagePlacement: 'local_postgresql_postgis_plus_artifact_store',
+    auditRetention: '365 days rolling',
+    aiEnabled: true,
+    mcpEnabled: true,
+    externalAiAccessEnabled: true,
+  },
+  {
+    id: 'restricted',
+    label: 'Restricted Review',
+    identityMode: 'interactive_rbac_with_review_controls',
+    keyManagement: 'platform_keystore_with_review_gate',
+    storagePlacement: 'local_postgresql_postgis_plus_artifact_store',
+    auditRetention: '730 days rolling',
+    aiEnabled: true,
+    mcpEnabled: true,
+    externalAiAccessEnabled: true,
+  },
+  {
+    id: 'air_gapped',
+    label: 'Air-Gapped',
+    identityMode: 'local_offline_rbac',
+    keyManagement: 'local_offline_keystore',
+    storagePlacement: 'local_postgresql_postgis_plus_artifact_store',
+    auditRetention: 'indefinite_local_retention',
+    aiEnabled: false,
+    mcpEnabled: false,
+    externalAiAccessEnabled: false,
+  },
+]
+
+const DEFAULT_GOVERNED_DEPLOYMENT_PROFILE: DeploymentProfileId =
+  DEPLOYMENT_PROFILES[0]?.id ?? 'connected'
+
+const buildBundleRegistryEntry = (manifest: BundleManifest): BundleRegistryEntry => ({
+  bundleId: manifest.bundle_id,
+  createdAt: manifest.created_at,
+  createdByRole: manifest.created_by_role,
+  marking: manifest.marking,
+  uiStateHash: manifest.ui_state_hash,
+  manifestArtifactHash: manifest.ui_state_hash,
+  assetCount: manifest.assets.length,
+  supersedesBundleId: manifest.supersedes_bundle_id,
+})
+
+const buildDefaultControlPlaneState = (): ControlPlaneState => ({
+  activeDeploymentProfileId: DEFAULT_GOVERNED_DEPLOYMENT_PROFILE,
+  deploymentProfiles: GOVERNED_DEPLOYMENT_PROFILES,
+  bundleRegistry: [],
+  contextDomainRegistry: [],
+  correlationLinks: [],
+  storageBackend: 'postgresql-postgis',
+  contextStoreBackend: 'postgresql-indexed',
+  artifactStorePath: 'localStorage://stratatlas.fallback.bundles',
+  updatedAt: nowIso(),
+})
+
+const buildDefaultContextStore = (): FallbackContextStore => ({
+  domains: [],
+  correlationLinks: [],
+  records: [],
+  updatedAt: nowIso(),
+})
+
+const readControlPlaneState = (): ControlPlaneState =>
+  readJson<ControlPlaneState>(FALLBACK_CONTROL_PLANE_KEY, buildDefaultControlPlaneState())
+
+const writeControlPlaneState = (state: ControlPlaneState): void => {
+  writeJson(FALLBACK_CONTROL_PLANE_KEY, state)
+}
+
+const readContextStore = (): FallbackContextStore =>
+  readJson<FallbackContextStore>(FALLBACK_CONTEXT_STORE_KEY, buildDefaultContextStore())
+
+const writeContextStore = (state: FallbackContextStore): void => {
+  writeJson(FALLBACK_CONTEXT_STORE_KEY, state)
+}
+
+const isDeploymentProfileId = (value: unknown): value is DeploymentProfileId =>
+  value === 'connected' || value === 'restricted' || value === 'air_gapped'
+
+const deploymentProfileFromState = (state: RecorderState): DeploymentProfileId => {
+  const candidate = state.ai?.deploymentProfile
+  return isDeploymentProfileId(candidate) ? candidate : DEFAULT_GOVERNED_DEPLOYMENT_PROFILE
+}
+
+const mergeContextRecords = (records: ContextRecord[]): ContextRecord[] => {
+  const byId = new Map<string, ContextRecord>()
+  for (const record of records) {
+    byId.set(record.record_id, record)
+  }
+  return [...byId.values()].sort((left, right) => left.observed_at.localeCompare(right.observed_at))
+}
+
+const syncFallbackGovernedState = ({
+  state,
+  bundleRegistryEntry,
+}: {
+  state: RecorderState
+  bundleRegistryEntry?: BundleRegistryEntry
+}): ControlPlaneState => {
+  const previousControlPlane = readControlPlaneState()
+  const previousContextStore = readContextStore()
+  const bundleRegistry = bundleRegistryEntry
+    ? [
+        bundleRegistryEntry,
+        ...previousControlPlane.bundleRegistry.filter(
+          (entry) => entry.bundleId !== bundleRegistryEntry.bundleId,
+        ),
+      ]
+    : previousControlPlane.bundleRegistry
+
+  const nextContextStore: FallbackContextStore = {
+    domains:
+      state.context.domains.length > 0 ? state.context.domains : previousContextStore.domains,
+    correlationLinks:
+      (state.context.correlationLinks?.length ?? 0) > 0
+        ? (state.context.correlationLinks ?? [])
+        : previousContextStore.correlationLinks,
+    records: mergeContextRecords([
+      ...previousContextStore.records,
+      ...(state.context.records ?? []),
+    ]),
+    updatedAt: nowIso(),
+  }
+  writeContextStore(nextContextStore)
+
+  const nextControlPlane: ControlPlaneState = {
+    ...previousControlPlane,
+    activeDeploymentProfileId: deploymentProfileFromState(state),
+    deploymentProfiles: GOVERNED_DEPLOYMENT_PROFILES,
+    bundleRegistry,
+    contextDomainRegistry: nextContextStore.domains,
+    correlationLinks: nextContextStore.correlationLinks,
+    updatedAt: nowIso(),
+  }
+  writeControlPlaneState(nextControlPlane)
+  return nextControlPlane
+}
+
+const buildHydratedRecorderState = (state: RecorderState): RecorderState => {
+  const controlPlane = readControlPlaneState()
+  const contextStore = readContextStore()
+  const activeDomainIds =
+    state.context.activeDomainIds.length > 0
+      ? state.context.activeDomainIds
+      : controlPlane.correlationLinks.map((link) => link.domain_id)
+  const queryRange = state.context.queryRange
+  const targetId =
+    state.context.correlationAoi ||
+    controlPlane.correlationLinks[0]?.target_id ||
+    state.context.correlationLinks?.[0]?.target_id
+
+  const visibleRecords =
+    queryRange && targetId && activeDomainIds.length > 0
+      ? activeDomainIds.flatMap((domainId) =>
+          queryGovernedContextRecords({
+            records: contextStore.records,
+            domainId,
+            targetId,
+            timeRange: queryRange,
+          }),
+        )
+      : state.context.records ?? contextStore.records
+
+  return {
+    ...state,
+    ai: {
+      deploymentProfile: controlPlane.activeDeploymentProfileId,
+      latestAnalysis: state.ai?.latestAnalysis,
+      latestMcpInvocation: state.ai?.latestMcpInvocation,
+    },
+    context: {
+      ...state.context,
+      domains: contextStore.domains.length > 0 ? contextStore.domains : state.context.domains,
+      correlationLinks:
+        contextStore.correlationLinks.length > 0
+          ? contextStore.correlationLinks
+          : state.context.correlationLinks,
+      records: visibleRecords,
+    },
+  }
+}
+
+const fallbackQueryContextRecords = async (
+  request: QueryContextRecordsRequest,
+): Promise<QueryContextRecordsResult> => {
+  const contextStore = readContextStore()
+  const records = request.domainIds
+    .flatMap((domainId) =>
+      queryGovernedContextRecords({
+        records: contextStore.records,
+        domainId,
+        targetId: request.targetId,
+        timeRange: request.timeRange,
+      }),
+    )
+    .sort((left, right) => left.observed_at.localeCompare(right.observed_at))
+
+  const limited =
+    typeof request.limit === 'number' && request.limit >= 0
+      ? records.slice(0, request.limit)
+      : records
+
+  return {
+    records: limited,
+    queryRange: request.timeRange,
+    totalRecords: records.length,
+    source: 'fallback',
+  }
+}
 
 const BUNDLE_ASSET_PATHS = {
   'workspace-state': 'assets/workspace_state.json',
@@ -265,6 +510,10 @@ const createFallbackBundle = async (
   })
   writeJson(FALLBACK_BUNDLES_KEY, bundles)
   writeJson(FALLBACK_RECORDER_STATE_KEY, normalizeJson(request.state))
+  syncFallbackGovernedState({
+    state: request.state,
+    bundleRegistryEntry: buildBundleRegistryEntry(manifest),
+  })
   await fallbackAppendAudit({
     role: request.role,
     event_type: 'bundle.create',
@@ -377,6 +626,9 @@ const fallbackOpenBundle = async (bundleId: string, role: string): Promise<OpenB
     },
   })
   writeJson(FALLBACK_RECORDER_STATE_KEY, normalizeJson(recorderState))
+  syncFallbackGovernedState({
+    state: recorderState as unknown as RecorderState,
+  })
 
   return {
     manifest: selected.manifest,
@@ -386,7 +638,7 @@ const fallbackOpenBundle = async (bundleId: string, role: string): Promise<OpenB
 
 const fallbackLoadRecorderState = async (): Promise<LoadRecorderStateResult> => {
   const state = readJson<RecorderState | undefined>(FALLBACK_RECORDER_STATE_KEY, undefined)
-  return { state }
+  return { state: state ? buildHydratedRecorderState(state) : state }
 }
 
 const fallbackSaveRecorderState = async (
@@ -394,8 +646,12 @@ const fallbackSaveRecorderState = async (
 ): Promise<RecorderState> => {
   const normalized = normalizeJson(request.state) as RecorderState
   writeJson(FALLBACK_RECORDER_STATE_KEY, normalized)
-  return normalized
+  syncFallbackGovernedState({ state: normalized })
+  return buildHydratedRecorderState(normalized)
 }
+
+const fallbackGetAiGatewayProviderStatus = async (): Promise<AiGatewayProviderStatus> =>
+  createBrowserSimulatedAiProviderStatus()
 
 export const backend = {
   async createBundle(request: CreateBundleRequest): Promise<BundleManifest> {
@@ -416,7 +672,19 @@ export const backend = {
     if (isTauriRuntime()) {
       return invoke<BundleManifest[]>('list_bundles')
     }
-    return readJson<StoredBundle[]>(FALLBACK_BUNDLES_KEY, []).map((b) => b.manifest)
+    const controlPlane = readControlPlaneState()
+    const manifests = readJson<StoredBundle[]>(FALLBACK_BUNDLES_KEY, []).map((b) => b.manifest)
+    if (controlPlane.bundleRegistry.length === 0) {
+      return manifests
+    }
+    const order = new Map(
+      controlPlane.bundleRegistry.map((entry, index) => [entry.bundleId, index]),
+    )
+    return manifests.sort(
+      (left, right) =>
+        (order.get(left.bundle_id) ?? Number.MAX_SAFE_INTEGER) -
+        (order.get(right.bundle_id) ?? Number.MAX_SAFE_INTEGER),
+    )
   },
 
   async appendAudit(request: AppendAuditRequest): Promise<AuditEvent> {
@@ -454,6 +722,45 @@ export const backend = {
       return invoke<RecorderState>('save_recorder_state', { request })
     }
     return fallbackSaveRecorderState(request)
+  },
+
+  async getControlPlaneState(): Promise<ControlPlaneState> {
+    if (isTauriRuntime()) {
+      return invoke<ControlPlaneState>('get_control_plane_state')
+    }
+
+    const stored = readJson<RecorderState | undefined>(FALLBACK_RECORDER_STATE_KEY, undefined)
+    if (stored) {
+      syncFallbackGovernedState({ state: stored })
+    }
+    return readControlPlaneState()
+  },
+
+  async getAiGatewayProviderStatus(): Promise<AiGatewayProviderStatus> {
+    if (isTauriRuntime()) {
+      return invoke<AiGatewayProviderStatus>('get_ai_gateway_provider_status')
+    }
+    return fallbackGetAiGatewayProviderStatus()
+  },
+
+  async runAiGatewayProviderAnalysis(
+    request: AiGatewayProviderAnalysisRequest,
+  ): Promise<AiGatewayProviderAnalysisResult> {
+    if (isTauriRuntime()) {
+      return invoke<AiGatewayProviderAnalysisResult>('run_ai_gateway_provider_analysis', {
+        request,
+      })
+    }
+    throw new Error('Live AI provider analysis requires the Tauri runtime')
+  },
+
+  async queryContextRecords(
+    request: QueryContextRecordsRequest,
+  ): Promise<QueryContextRecordsResult> {
+    if (isTauriRuntime()) {
+      return invoke<QueryContextRecordsResult>('query_context_records', { request })
+    }
+    return fallbackQueryContextRecords(request)
   },
 
   async writeRuntimeSmokeEvidence(

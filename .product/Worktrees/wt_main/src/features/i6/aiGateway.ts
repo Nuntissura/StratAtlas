@@ -85,6 +85,41 @@ export interface AiGatewayPolicy {
   reasons: string[]
 }
 
+export type AiGatewayProviderRuntime =
+  | 'browser-simulated'
+  | 'tauri-live'
+  | 'tauri-unconfigured'
+
+export type AiGatewayExecutionRuntime =
+  | 'local-simulated'
+  | AiGatewayProviderRuntime
+
+export interface AiGatewayProviderStatus {
+  runtime: AiGatewayProviderRuntime
+  available: boolean
+  providerLabel: string
+  model: string
+  detail: string
+}
+
+export interface AiGatewayProviderAnalysisRequest {
+  deploymentProfile: DeploymentProfileId
+  marking: AiGatewayMarking
+  prompt: string
+  refs: AiEvidenceRef[]
+  citations: string[]
+}
+
+export interface AiGatewayProviderAnalysisResult {
+  runtime: AiGatewayProviderRuntime
+  providerLabel: string
+  model: string
+  outputText: string
+  requestId?: string
+  degraded: boolean
+  generatedAt?: string
+}
+
 export interface AiAnalysisRequest {
   role: AiGatewayRole
   marking: AiGatewayMarking
@@ -108,6 +143,11 @@ export interface AiGatewayArtifact {
   confidenceText: string
   uncertaintyText: string
   lineage: string[]
+  providerLabel?: string
+  providerModel?: string
+  requestId?: string
+  gatewayRuntime?: AiGatewayExecutionRuntime
+  degraded?: boolean
 }
 
 export interface McpInvocationRecord {
@@ -181,6 +221,15 @@ export const DEPLOYMENT_PROFILES: DeploymentProfile[] = [
 
 const DEFAULT_DEPLOYMENT_PROFILE: DeploymentProfileId = 'connected'
 
+const DEFAULT_BROWSER_SIMULATED_PROVIDER_STATUS: AiGatewayProviderStatus = {
+  runtime: 'browser-simulated',
+  available: false,
+  providerLabel: 'Browser Simulated Gateway',
+  model: 'local-simulated',
+  detail:
+    'Browser and jsdom fallback uses a local simulated gateway; live external provider access requires the Tauri runtime and approved environment configuration.',
+}
+
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
 
@@ -218,6 +267,9 @@ const isMarking = (value: unknown): value is AiGatewayMarking =>
 
 const isMcpToolName = (value: unknown): value is McpToolName =>
   typeof value === 'string' && MCP_MINIMUM_TOOLS.includes(value as McpToolName)
+
+const isProviderRuntime = (value: unknown): value is AiGatewayProviderRuntime =>
+  value === 'browser-simulated' || value === 'tauri-live' || value === 'tauri-unconfigured'
 
 const isPathAbuseText = (value: string): boolean =>
   /([A-Za-z]:\\|\\\\|(?:^|[\s'"])\.\.[\\/]|bundle_relative_path|select\s+.+\s+from|drop\s+table)/i.test(
@@ -308,6 +360,14 @@ const normalizeAiGatewayArtifact = (value: unknown): AiGatewayArtifact | undefin
     lineage: Array.isArray(value.lineage)
       ? value.lineage.filter((entry): entry is string => typeof entry === 'string')
       : [],
+    providerLabel: typeof value.providerLabel === 'string' ? value.providerLabel : undefined,
+    providerModel: typeof value.providerModel === 'string' ? value.providerModel : undefined,
+    requestId: typeof value.requestId === 'string' ? value.requestId : undefined,
+    gatewayRuntime:
+      typeof value.gatewayRuntime === 'string'
+        ? (value.gatewayRuntime as AiGatewayExecutionRuntime)
+        : undefined,
+    degraded: value.degraded === true,
   }
 }
 
@@ -360,6 +420,44 @@ export const createAiGatewaySnapshot = (
 ): AiGatewaySnapshot => ({
   deploymentProfile,
 })
+
+export const createBrowserSimulatedAiProviderStatus = (): AiGatewayProviderStatus => ({
+  ...DEFAULT_BROWSER_SIMULATED_PROVIDER_STATUS,
+})
+
+export const createUnavailableAiProviderStatus = (
+  detail: string,
+  providerLabel = 'OpenAI Responses API',
+): AiGatewayProviderStatus => ({
+  runtime: 'tauri-unconfigured',
+  available: false,
+  providerLabel,
+  model: 'unconfigured',
+  detail,
+})
+
+export const normalizeAiGatewayProviderStatus = (value: unknown): AiGatewayProviderStatus => {
+  if (!isRecord(value)) {
+    return createBrowserSimulatedAiProviderStatus()
+  }
+
+  return {
+    runtime: isProviderRuntime(value.runtime) ? value.runtime : 'browser-simulated',
+    available: value.available === true,
+    providerLabel:
+      typeof value.providerLabel === 'string'
+        ? value.providerLabel
+        : DEFAULT_BROWSER_SIMULATED_PROVIDER_STATUS.providerLabel,
+    model:
+      typeof value.model === 'string'
+        ? value.model
+        : DEFAULT_BROWSER_SIMULATED_PROVIDER_STATUS.model,
+    detail:
+      typeof value.detail === 'string'
+        ? value.detail
+        : DEFAULT_BROWSER_SIMULATED_PROVIDER_STATUS.detail,
+  }
+}
 
 export const normalizeAiGatewaySnapshot = (value: unknown): AiGatewaySnapshot => {
   if (!isRecord(value)) {
@@ -465,7 +563,7 @@ export const evaluateAiGatewayPolicy = ({
   }
 }
 
-export const submitAiAnalysis = (request: AiAnalysisRequest): AiGatewayArtifact => {
+const validateAiAnalysisRequest = (request: AiAnalysisRequest): void => {
   if (!request.allowed) {
     throw new Error('AI gateway policy denied request')
   }
@@ -485,14 +583,36 @@ export const submitAiAnalysis = (request: AiAnalysisRequest): AiGatewayArtifact 
   if (invalidRef) {
     throw new Error('AI analysis requires valid bundle_id, asset_id, and sha256 references')
   }
+}
 
-  const generatedAt = request.generatedAt ?? new Date().toISOString()
+const buildAiGatewayArtifact = ({
+  request,
+  generatedAt,
+  content,
+  providerLabel,
+  providerModel,
+  requestId,
+  gatewayRuntime,
+  degraded,
+}: {
+  request: AiAnalysisRequest
+  generatedAt: string
+  content: string
+  providerLabel: string
+  providerModel: string
+  requestId?: string
+  gatewayRuntime: AiGatewayExecutionRuntime
+  degraded: boolean
+}): AiGatewayArtifact => {
   const citations = request.refs.map((ref) => buildCitation(ref))
   const fingerprint = stableFingerprint({
     deploymentProfile: request.deploymentProfile,
+    gatewayRuntime,
     marking: request.marking,
+    model: providerModel,
     prompt: request.prompt,
     refs: request.refs,
+    requestId,
   })
 
   return {
@@ -503,16 +623,107 @@ export const submitAiAnalysis = (request: AiAnalysisRequest): AiGatewayArtifact 
     refs: request.refs,
     citations,
     prompt: request.prompt,
-    content: `Interpreted ${request.refs.length} cited bundle artifacts under ${request.deploymentProfile} policy: ${request.prompt.slice(0, 160)}`,
+    content,
     generatedAt,
-    confidenceText: 'Derived interpretation; analyst validation required',
-    uncertaintyText: 'Inference only; do not treat as observed evidence.',
+    confidenceText: `Derived interpretation via ${providerLabel}; analyst validation required`,
+    uncertaintyText: degraded
+      ? 'Gateway is running in a degraded or simulated mode; do not treat as observed evidence.'
+      : 'Inference only; provider output requires analyst validation.',
     lineage: [
       `gateway:${request.deploymentProfile}`,
+      `provider:${providerLabel}`,
+      `model:${providerModel}`,
+      `runtime:${gatewayRuntime}`,
       `prompt:${request.prompt.slice(0, 60)}`,
       `refs:${request.refs.length}`,
+      ...(requestId ? [`request:${requestId}`] : []),
     ],
+    providerLabel,
+    providerModel,
+    requestId,
+    gatewayRuntime,
+    degraded,
   }
+}
+
+export const submitAiAnalysis = (request: AiAnalysisRequest): AiGatewayArtifact => {
+  validateAiAnalysisRequest(request)
+  const generatedAt = request.generatedAt ?? new Date().toISOString()
+  return buildAiGatewayArtifact({
+    request,
+    generatedAt,
+    content: `Interpreted ${request.refs.length} cited bundle artifacts under ${request.deploymentProfile} policy: ${request.prompt.slice(0, 160)}`,
+    providerLabel: 'Local Governed Simulation',
+    providerModel: 'simulated-template',
+    gatewayRuntime: 'local-simulated',
+    degraded: true,
+  })
+}
+
+export const runAiGatewayAnalysis = async (
+  request: AiAnalysisRequest,
+  {
+    providerStatus = createBrowserSimulatedAiProviderStatus(),
+    runProviderAnalysis,
+  }: {
+    providerStatus?: AiGatewayProviderStatus
+    runProviderAnalysis?: (
+      request: AiGatewayProviderAnalysisRequest,
+    ) => Promise<AiGatewayProviderAnalysisResult>
+  } = {},
+): Promise<AiGatewayArtifact> => {
+  validateAiAnalysisRequest(request)
+
+  if (providerStatus.runtime === 'browser-simulated') {
+    const simulated = submitAiAnalysis({
+      ...request,
+      generatedAt: request.generatedAt ?? new Date().toISOString(),
+    })
+    return {
+      ...simulated,
+      confidenceText: `Derived interpretation via ${providerStatus.providerLabel}; analyst validation required`,
+      uncertaintyText:
+        'Browser-simulated gateway output is in use because live provider access requires the governed Tauri runtime.',
+      lineage: [
+        ...simulated.lineage.filter(
+          (entry) =>
+            entry !== 'provider:Local Governed Simulation' &&
+            entry !== 'model:simulated-template' &&
+            entry !== 'runtime:local-simulated',
+        ),
+        `provider:${providerStatus.providerLabel}`,
+        `model:${providerStatus.model}`,
+        `runtime:${providerStatus.runtime}`,
+      ],
+      providerLabel: providerStatus.providerLabel,
+      providerModel: providerStatus.model,
+      gatewayRuntime: providerStatus.runtime,
+      degraded: true,
+    }
+  }
+
+  if (!providerStatus.available || !runProviderAnalysis) {
+    throw new Error(providerStatus.detail || 'Live AI provider unavailable')
+  }
+
+  const providerResult = await runProviderAnalysis({
+    deploymentProfile: request.deploymentProfile,
+    marking: request.marking,
+    prompt: request.prompt,
+    refs: request.refs,
+    citations: request.refs.map((ref) => buildCitation(ref)),
+  })
+
+  return buildAiGatewayArtifact({
+    request,
+    generatedAt: providerResult.generatedAt ?? request.generatedAt ?? new Date().toISOString(),
+    content: providerResult.outputText,
+    providerLabel: providerResult.providerLabel,
+    providerModel: providerResult.model,
+    requestId: providerResult.requestId,
+    gatewayRuntime: providerResult.runtime,
+    degraded: providerResult.degraded,
+  })
 }
 
 const buildInvocationRecord = ({
