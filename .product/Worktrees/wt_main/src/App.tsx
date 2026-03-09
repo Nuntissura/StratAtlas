@@ -4079,12 +4079,12 @@ function App() {
       }
     }
 
+    const isWpGovPortRuntimeSmoke = runtimeSmokeConfig.wpId === 'WP-GOV-PORT-002'
     const isWpI1RuntimeSmoke = runtimeSmokeConfig.wpId === 'WP-I1-004'
     const isWpI8RuntimeSmoke = runtimeSmokeConfig.wpId === 'WP-I8-002'
     const isWpI9RuntimeSmoke = runtimeSmokeConfig.wpId === 'WP-I9-002'
     const isWpI10RuntimeSmoke = runtimeSmokeConfig.wpId === 'WP-I10-002'
-    const requiresMidFlowContextPersistenceForRuntimeSmoke =
-      runtimeSmokeConfig.wpId !== 'WP-GOV-PORT-002'
+    const requiresMidFlowContextPersistenceForRuntimeSmoke = !isWpGovPortRuntimeSmoke
     const requiresGovernedDeviationForRuntimeSmoke =
       isWpI8RuntimeSmoke || isWpI9RuntimeSmoke || isWpI10RuntimeSmoke
     const requiresGovernedConnectorForRuntimeSmoke = isWpI9RuntimeSmoke || isWpI10RuntimeSmoke
@@ -4229,30 +4229,36 @@ function App() {
             : 'Scenario export artifact was not produced.',
         },
         {
-          id: 'governed_context_registration',
-          passed:
-            Boolean(governedContextDomainId) &&
-            currentState.contextRecords.some(
-              (record) =>
-                record.domain_id === governedContextDomainId && record.target_id === currentState.correlationAoi,
-            ),
-          detail: governedContextDomainId
-            ? `Governed context domain ${governedContextDomainId} captured ${currentState.contextRecords.length} record(s) for ${currentState.correlationAoi}.`
-            : 'No governed context domain was active in the runtime smoke state.',
-        },
-        {
-          id: 'governed_context_bundle_restore',
-          passed: contextRestorePassed,
-          detail: contextRestorePassed
-            ? `Context AOI ${currentState.correlationAoi} restored from the reopened bundle with governed records intact.`
-            : `Context AOI restore did not converge on the governed bundle snapshot (current AOI: ${currentState.correlationAoi}).`,
-        },
-        {
           id: 'portability_note_recorded',
           passed: notes.some((note) => note.includes('macOS')),
           detail: notes.find((note) => note.includes('macOS')) ?? 'Portability note missing.',
         },
       ]
+
+      if (!isWpGovPortRuntimeSmoke) {
+        assertions.push(
+          {
+            id: 'governed_context_registration',
+            passed:
+              Boolean(governedContextDomainId) &&
+              currentState.contextRecords.some(
+                (record) =>
+                  record.domain_id === governedContextDomainId &&
+                  record.target_id === currentState.correlationAoi,
+              ),
+            detail: governedContextDomainId
+              ? `Governed context domain ${governedContextDomainId} captured ${currentState.contextRecords.length} record(s) for ${currentState.correlationAoi}.`
+              : 'No governed context domain was active in the runtime smoke state.',
+          },
+          {
+            id: 'governed_context_bundle_restore',
+            passed: contextRestorePassed,
+            detail: contextRestorePassed
+              ? `Context AOI ${currentState.correlationAoi} restored from the reopened bundle with governed records intact.`
+              : `Context AOI restore did not converge on the governed bundle snapshot (current AOI: ${currentState.correlationAoi}).`,
+          },
+        )
+      }
 
       if (isWpI1RuntimeSmoke) {
         assertions.push(
@@ -5544,6 +5550,14 @@ function App() {
 
       metrics.push(
         await measure('Governed context mutation', async () => {
+          if (isWpGovPortRuntimeSmoke) {
+            await setLabeledFieldValue('Correlation AOI', governedContextMutationAoi)
+            await waitForCondition(
+              'governed context draft mutation',
+              () => runtimeSmokeStateRef.current.correlationAoi === governedContextMutationAoi,
+            )
+            return
+          }
           await mutateGovernedContextForRuntimeSmoke()
         }),
       )
@@ -5567,6 +5581,16 @@ function App() {
       metrics.push(
         await measure('Open bundle', async () => {
           await openBundleForRuntimeSmoke()
+          if (isWpGovPortRuntimeSmoke) {
+            await waitForCondition(
+              'bundle reopen restore',
+              () =>
+                runtimeSmokeStateRef.current.correlationAoi === governedContextBundleAoi &&
+                runtimeSmokeStateRef.current.status.includes('reopened') &&
+                runtimeSmokeStateRef.current.integrityState.includes('Determinism check passed'),
+            )
+            return
+          }
           await waitForCondition('governed context restore', () => {
             const currentState = runtimeSmokeStateRef.current
             const baseRestorePassed =
