@@ -140,7 +140,26 @@ const terminateProcessTree = async (child) => {
     })
     return
   }
-  child.kill('SIGTERM')
+  const killSignal = (signal) => {
+    if (process.platform !== 'win32') {
+      try {
+        process.kill(-child.pid, signal)
+        return
+      } catch {
+        // Fall back to signaling the direct child when process-group termination is unavailable.
+      }
+    }
+    child.kill(signal)
+  }
+
+  killSignal('SIGTERM')
+  const terminateResult = await waitForExitOrTimeout(child, 5000)
+  if (!terminateResult.timedOut) {
+    return
+  }
+
+  killSignal('SIGKILL')
+  await waitForExitOrTimeout(child, 5000)
 }
 
 const parseAuditEvents = async (auditLogPath) => {
@@ -490,6 +509,7 @@ const runPhase = async (phase) => {
 
   const child = spawn('pnpm', ['tauri', 'dev', '--no-watch'], {
     cwd: productRoot,
+    detached: process.platform !== 'win32',
     env: {
       ...process.env,
       VITE_STRATATLAS_RUNTIME_SMOKE: '1',
