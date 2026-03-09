@@ -365,9 +365,15 @@ function Copy-RemoteProofIntoRepo {
         [string]$WpArtifactDirAbs
     )
 
-    $downloadedWpRoot = Get-ChildItem -Path $DownloadRoot -Recurse -Directory | Where-Object {
-        $_.Name -eq "WP-GOV-PORT-002" -and (Test-Path (Join-Path $_.FullName "latest_result.json") -PathType Leaf)
-    } | Select-Object -First 1
+    $downloadedWpRoot = $null
+    if (Test-Path (Join-Path $DownloadRoot "latest_result.json") -PathType Leaf) {
+        $downloadedWpRoot = Get-Item $DownloadRoot
+    }
+    else {
+        $downloadedWpRoot = Get-ChildItem -Path $DownloadRoot -Recurse -Directory | Where-Object {
+            $_.Name -eq "WP-GOV-PORT-002" -and (Test-Path (Join-Path $_.FullName "latest_result.json") -PathType Leaf)
+        } | Select-Object -First 1
+    }
 
     if (-not $downloadedWpRoot) {
         throw "Downloaded artifact did not contain a WP-GOV-PORT-002 proof directory."

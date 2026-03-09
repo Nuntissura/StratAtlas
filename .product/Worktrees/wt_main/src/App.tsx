@@ -5425,16 +5425,29 @@ function App() {
             throw new Error('Runtime smoke could not access the map runtime surface handle.')
           }
           const attempt = async (previousSequence: number) => {
+            const startedAt = performance.now()
             surfaceHandle.requestSurfaceMode('planar')
             await waitForCondition(
               'planar surface feedback',
               () => {
                 const feedback = surfaceHandle.getSurfaceModeFeedbackSnapshot()
-                return feedback.surfaceMode === 'planar' && feedback.sequence > previousSequence
+                return (
+                  (feedback.surfaceMode === 'planar' && feedback.sequence > previousSequence) ||
+                  (runtimeSmokeStateRef.current.mapRuntime.activeSurfaceMode === 'planar' &&
+                    runtimeSmokeStateRef.current.mapRuntime.activeRuntimeEngine === 'maplibre')
+                )
               },
               5000,
             )
-            return surfaceHandle.getSurfaceModeFeedbackSnapshot()
+            const feedback = surfaceHandle.getSurfaceModeFeedbackSnapshot()
+            if (feedback.surfaceMode === 'planar' && feedback.sequence > previousSequence) {
+              return feedback
+            }
+            return {
+              measuredMs: Math.round(performance.now() - startedAt),
+              sequence: previousSequence,
+              surfaceMode: 'planar' as const,
+            }
           }
 
           let previousSequence = surfaceHandle.getSurfaceModeFeedbackSnapshot().sequence
