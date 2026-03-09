@@ -1,7 +1,7 @@
 # WP-GOV-PORT-002 - macOS Runtime Smoke and Gate H Closeout
 
 Date Opened: 2026-03-08
-Status: IN-PROGRESS
+Status: E2E-VERIFIED
 Iteration: All
 Workflow Version: 4.0
 Packet Class: VERIFICATION
@@ -40,7 +40,7 @@ Close the last portability debt by executing governed desktop smoke on macOS, pr
 - Real Seam: The governed desktop smoke harness must run on macOS and produce the same class of cold/warm runtime artifacts used on Windows, while runtime-critical paths remain free of Windows-only assumptions.
 - User-Visible Win: Operators can trust that the desktop runtime still launches and executes core smoke flows on macOS rather than only on Windows development machines.
 - Proof Target: `check-WP-GOV-PORT-002.ps1` plus macOS cold/warm runtime smoke artifacts, portability ledger updates, and Gate H evidence under `.product/build_target/tool_artifacts/wp_runs/WP-GOV-PORT-002/`.
-- Allowed Temporary Fallbacks: Windows-only smoke remains the development baseline while this packet is open, but it must stay labeled as incomplete portability proof and cannot promote `REQ-0018` or `GATE-H`.
+- Allowed Temporary Fallbacks: None for portability proof. Windows-only smoke may still be used for day-to-day development, but `REQ-0018` / `GATE-H` now point to the hosted macOS artifact bundle instead of any Windows-only evidence.
 - Promotion Guard: Do not promote `REQ-0018` or `GATE-H` without a real macOS runtime smoke artifact set and synchronized governance evidence.
 
 ## In Scope
@@ -110,16 +110,16 @@ Close the last portability debt by executing governed desktop smoke on macOS, pr
 
 ## Fallback Register
 
-- Explicit simulated/mock/sample paths: Current portability proof is Windows-only; no macOS smoke artifact exists yet for `REQ-0018` or `GATE-H`.
-- Required labels in code/UI/governance: Any portability claim must stay labeled as incomplete until macOS artifacts are linked in the packet evidence and governance ledgers.
+- Explicit simulated/mock/sample paths: None. The packet now has artifact-backed cold/warm macOS smoke evidence recorded under `.product/build_target/tool_artifacts/wp_runs/WP-GOV-PORT-002/20260309_005735/`.
+- Required labels in code/UI/governance: Portability claims now point to the hosted macOS proof bundle and may no longer rely on Windows-only smoke artifacts.
 - Successor packet or debt owner: None authorized yet; this packet owns the remaining Gate H portability closure after `WP-I1-004`.
 - Exit condition to remove fallback: A real macOS runtime smoke run is recorded under `.product/build_target/tool_artifacts/wp_runs/WP-GOV-PORT-002/` and linked across the ledgers.
 
 ## Change Ledger
 
-- What Became Real: The packet now has an active execution plan that routes governed macOS smoke through a GitHub-hosted runner so proof can be produced from a Windows development workstation without relabeling Windows-only evidence as portability proof.
-- What Remains Simulated: No macOS artifact-backed runtime smoke exists yet; `REQ-0018` and `GATE-H` remain open until the hosted proof path runs successfully.
-- Next Blocking Real Seam: Land the GitHub-hosted macOS smoke workflow, dispatch it through the packet check, and copy the resulting artifact bundle into `.product/build_target/tool_artifacts/wp_runs/WP-GOV-PORT-002/`.
+- What Became Real: The governed desktop smoke harness now executes on GitHub-hosted macOS runners, captures cold/warm runtime artifacts, relays those artifacts back into the packet proof path, and closes `REQ-0018` / `GATE-H` with artifact-backed evidence from run `22834012147`.
+- What Remains Simulated: None for this packet. Windows development machines still dispatch the portability proof remotely, but the proof itself is now real macOS runtime evidence.
+- Next Blocking Real Seam: None. Gate H portability proof is closed; follow-on work can focus on new scope rather than remediation debt.
 
 ## Checkpoint Commit Plan
 
@@ -144,15 +144,16 @@ Close the last portability debt by executing governed desktop smoke on macOS, pr
 
 ## Evidence
 
-- Test Suite Execution:
-- Logs:
-- Screenshots/Exports:
-- Build Artifacts:
-- Proof Artifact: .product/build_target/tool_artifacts/wp_runs/WP-GOV-PORT-002/
-- User Sign-off:
+- Test Suite Execution: `powershell -ExecutionPolicy Bypass -File .gov/workflow/wp_checks/check-WP-GOV-PORT-002.ps1`
+- Logs: `.product/build_target/tool_artifacts/wp_runs/WP-GOV-PORT-002/20260309_005735/UI-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-GOV-PORT-002/20260309_005735/FUNC-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-GOV-PORT-002/20260309_005735/COR-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-GOV-PORT-002/20260309_005735/RED-001.log`
+- Screenshots/Exports: `.product/build_target/tool_artifacts/wp_runs/WP-GOV-PORT-002/20260309_005735/runtime_smoke/cold/runtime_smoke_summary.md`; `.product/build_target/tool_artifacts/wp_runs/WP-GOV-PORT-002/20260309_005735/runtime_smoke/warm/runtime_smoke_summary.md`
+- Build Artifacts: `.product/build_target/tool_artifacts/wp_runs/WP-GOV-PORT-002/20260309_005735/summary.md`; `.product/build_target/tool_artifacts/wp_runs/WP-GOV-PORT-002/20260309_005735/result.json`
+- Proof Artifact: `.product/build_target/tool_artifacts/wp_runs/WP-GOV-PORT-002/20260309_005735/`
+- User Sign-off: Approved via 2026-03-08 instruction to repair the requirements ledger, finish `WP-I1-004`, and then run `WP-GOV-PORT-002`.
 
 ## Progress Log
 
 - 2026-03-08: WP scaffold created via .gov/repo_scripts/new_work_packet.ps1.
 - 2026-03-08: Successor packet established for the remaining macOS portability and Gate H proof after `WP-I1-004`.
 - 2026-03-08: Packet activated for real execution. Current environment is Windows-only, so the packet will use a GitHub-hosted macOS runner plus downloaded proof artifacts instead of pretending a local Windows smoke run satisfies `REQ-0018`.
+- 2026-03-09: Hosted macOS proof passed via GitHub Actions run `22834012147`; synced artifact bundle `.product/build_target/tool_artifacts/wp_runs/WP-GOV-PORT-002/20260309_005735/` now closes `REQ-0018` and `GATE-H`.

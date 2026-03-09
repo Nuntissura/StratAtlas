@@ -40,7 +40,7 @@ REQ-NNNN | LEVEL | Section | Description | Iteration Target | Status
 | REQ-0015 | MUST | Section 11.5 | Desktop app startup (warm relaunch) MUST be <= 3.0 s to interactive shell on reference workstation | All | E2E-VERIFIED |
 | REQ-0016 | MUST | Section 11.5 | Analyst state-change actions (layer/filter/apply) MUST provide feedback <= 300 ms P95; if exceeded, UI MUST show non-blocking progress | All | E2E-VERIFIED |
 | REQ-0017 | MUST | Section 5.1 | Runtime path/process/environment handling MUST remain platform-neutral without hard-coded Windows-only assumptions in core paths | All | E2E-VERIFIED |
-| REQ-0018 | SHOULD | Section 5.1 | Desktop packaging/runtime SHOULD be smoke-tested on macOS during development to preserve portability | All | IN-PROGRESS |
+| REQ-0018 | SHOULD | Section 5.1 | Desktop packaging/runtime SHOULD be smoke-tested on macOS during development to preserve portability | All | E2E-VERIFIED |
 | REQ-0019 | MUST | Section 17 | Every WP MUST maintain linked test suite, spec extraction, and WP check script artifacts | All | E2E-VERIFIED |
 | REQ-0020 | MUST | Section 17 | WP status claims MUST include proof artifact paths and command evidence | All | E2E-VERIFIED |
 | REQ-0021 | MUST | Section 18 | Governance preflight MUST enforce WP template compliance to prevent shortcut execution | All | E2E-VERIFIED |
@@ -231,7 +231,7 @@ REQ-NNNN | LEVEL | Section | Description | Iteration Target | Status
 | GATE-E | MUST | Section 18 | Performance budgets met on reference hardware/datasets | E | E2E-VERIFIED |
 | GATE-F | MUST | Section 18 | Context domain provenance, graceful degradation, not presented as primary evidence | F | IN-PROGRESS |
 | GATE-G | MUST | Section 18 | AI safety controls operational whenever AI integration is enabled | G | E2E-VERIFIED |
-| GATE-H | MUST | Section 18 | Desktop startup/portability controls met, installer lifecycle operations validated, and installer/exe version contract enforced | H | IN-PROGRESS |
+| GATE-H | MUST | Section 18 | Desktop startup/portability controls met, installer lifecycle operations validated, and installer/exe version contract enforced | H | E2E-VERIFIED |
 
 ---
 

@@ -72,7 +72,7 @@ This file is the execution order for capability slices. It is the scheduling bri
 - `WP-I10-002` is now `E2E-VERIFIED`. It replaces the remaining local arithmetic strategic-model solve path with a governed backend runtime, persisted solver traces, reproducible experiment bundles, and packet-specific cold/warm Tauri runtime smoke proof.
 - The I0-I10 remediation queue is now fully `E2E-VERIFIED`. Remaining blockers are cross-cutting gate debts in startup/performance, export timing, accessibility, and macOS portability evidence.
 - `WP-I1-004` is now `E2E-VERIFIED`; proof: `.product/build_target/tool_artifacts/wp_runs/WP-I1-004/20260308_232056/`. It closes `GATE-E`, `REQ-0014`, `REQ-0015`, `REQ-0016`, `REQ-0206`, `REQ-0207`, `REQ-0208`, `REQ-0209`, `REQ-0210`, and `REQ-0212` with packet-grade cold/warm startup, state-change, pan/zoom, scrub, briefing-export, 4K export, and accessibility evidence in the governed Tauri runtime.
-- `WP-GOV-PORT-002` is now `IN-PROGRESS` as the remaining blocker for `REQ-0018` and `GATE-H` after the Windows/reference-runtime budget closure in `WP-I1-004`. Because the active workstation is Windows-only, the packet is using a GitHub-hosted macOS smoke path instead of relabeling Windows artifacts as portability proof.
+- `WP-GOV-PORT-002` is now `E2E-VERIFIED`; proof: `.product/build_target/tool_artifacts/wp_runs/WP-GOV-PORT-002/20260309_005735/`. GitHub-hosted macOS run `22834012147` closed the remaining portability evidence from a Windows development workstation without relabeling Windows-only smoke as `REQ-0018` / `GATE-H` proof.
 
 ---
 
@@ -120,6 +120,6 @@ In parallel with iteration delivery, maintain governance control packets:
 - `WP-GOV-I1-RESEARCH-001`: `E2E-VERIFIED` I1-specific governance packet for map-runtime research capture, feature-to-map integration, and source-backed runtime design direction before `WP-I1-003`; proof: `.product/build_target/tool_artifacts/wp_runs/WP-GOV-I1-RESEARCH-001/20260307_031932/`.
 - `WP-GOV-INSTALLER-002`: E2E-VERIFIED follow-on packet for version-parity and release-surface alignment after governance closeout.
 - `WP-GOV-DEPTH-001`: `E2E-VERIFIED` governance packet upgrading the packet template, generator, compliance rules, extraction snapshots, and root instructions so breadth-first work stays explicit while only real seams can advance delivery claims; proof: `.product/build_target/tool_artifacts/wp_runs/WP-GOV-DEPTH-001/20260308_042222/`.
-- `WP-GOV-PORT-002`: `IN-PROGRESS` follow-on verification packet closing macOS runtime smoke and Gate H portability evidence after `WP-I1-004` via a hosted macOS runner and downloaded packet-proof artifacts.
+- `WP-GOV-PORT-002`: `E2E-VERIFIED` follow-on verification packet closing macOS runtime smoke and Gate H portability evidence after `WP-I1-004` via a hosted macOS runner and downloaded packet-proof artifacts; proof: `.product/build_target/tool_artifacts/wp_runs/WP-GOV-PORT-002/20260309_005735/`.
 
 Governance control packets are complete only when preflight and template-compliance checks pass with linked artifacts.

@@ -1,7 +1,7 @@
 # TS-WP-GOV-PORT-002 - Spec vs Code Test Suite
 
 Date Opened: 2026-03-08
-Status: IN-PROGRESS
+Status: E2E-VERIFIED
 Linked Work Packet: WP-GOV-PORT-002
 Iteration: All
 
@@ -20,7 +20,7 @@ Validate WP delivery against linked requirements and primitives.
 - Packet Class: VERIFICATION
 - Real Seam: The governed runtime smoke harness must execute on macOS and record portable cold/warm artifacts for the same desktop flow class already proven on Windows.
 - Proof Target: `check-WP-GOV-PORT-002.ps1` plus macOS runtime smoke artifacts and synchronized Gate H/REQ-0018 ledger evidence under `.product/build_target/tool_artifacts/wp_runs/WP-GOV-PORT-002/`.
-- Allowed Fallbacks: Windows-only smoke remains acceptable for ongoing development but is not valid portability proof while this packet is open.
+- Allowed Fallbacks: None for portability proof. Windows-only smoke may remain part of ongoing development, but `REQ-0018` / `GATE-H` now rely on the hosted macOS packet artifacts.
 - Promotion Guard: Do not promote `REQ-0018` or `GATE-H` without artifact-backed macOS execution evidence.
 
 ## Test Case Matrix
@@ -78,12 +78,12 @@ Validate WP delivery against linked requirements and primitives.
 
 ## Execution Summary
 
-- Last Run Date:
-- Result:
-- Blocking Failures:
-- Evidence Paths:
-- What Became Real: The remaining portability debt is now mapped to an active hosted-macOS proof plan rather than a passive placeholder.
-- What Remains Simulated: No macOS artifact-backed runtime smoke evidence exists yet.
-- Next Blocking Real Seam: Execute the governed smoke harness on macOS and capture promotable artifacts.
-- Reviewer:
-- User Sign-off:
+- Last Run Date: 2026-03-09
+- Result: Passed (`Overall Passed: True`, `Failed Checks: 0`)
+- Blocking Failures: None
+- Evidence Paths: `.product/build_target/tool_artifacts/wp_runs/WP-GOV-PORT-002/20260309_005735/`; `.product/build_target/tool_artifacts/wp_runs/WP-GOV-PORT-002/20260309_005735/runtime_smoke/cold/runtime_smoke_report.json`; `.product/build_target/tool_artifacts/wp_runs/WP-GOV-PORT-002/20260309_005735/runtime_smoke/warm/runtime_smoke_report.json`
+- What Became Real: Hosted macOS smoke now executes the governed Tauri runtime, records cold/warm artifacts, and relays the proof back into the packet artifact path for Windows-based governance closeout.
+- What Remains Simulated: None for Gate H portability proof.
+- Next Blocking Real Seam: None. Packet is closed.
+- Reviewer: Codex
+- User Sign-off: Approved via 2026-03-08 instruction to repair the requirements ledger, finish `WP-I1-004`, and then run `WP-GOV-PORT-002`.
