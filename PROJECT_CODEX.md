@@ -99,10 +99,11 @@ Any change that conflicts with non-goals in `.gov/Spec/stratatlas_spec_v1_2.md` 
 
 For desktop/build outputs:
 
-- current outputs -> `.product/build_target/Current/`
-- prior outputs -> `.product/build_target/Old versions/`
+- current governed release outputs -> `.product/build_target/Releases/Current/`
+- prior governed release outputs -> `.product/build_target/Releases/Archive/`
 - build logs -> `.product/build_target/logs/`
 - tool/script artifacts -> `.product/build_target/tool_artifacts/` (gitignored)
+- release changelog ledger -> `.gov/workflow/changelog/`
 
 Every build should be attributable to a Work Packet and reflected on the Task Board.
 
@@ -110,12 +111,15 @@ Every build should be attributable to a Work Packet and reflected on the Task Bo
 
 When Windows installer behavior changes, governance and product must stay aligned to spec Section 5.2:
 
-- Supported operations: `uninstall`, `repair`, `full-repair`, `update`, `downgrade`
+- Supported operations: `install`, `uninstall`, `full-uninstall`, `repair`, `full-repair`, `update`, `downgrade`
+- `uninstall` preserves user presets/data by default
 - `repair` preserves user presets/data
 - `full-repair` performs clean reinstall with backup/restore by default and explicit data-drop option
+- `full-uninstall` removes binaries and user data only when explicitly requested
 - `update` rejects non-newer packages
 - `downgrade` is explicit and auditable
 - Installer and EXE version must match for the same build; `build_windows_installer.ps1` is the canonical version-bump path.
+- Every governed release build requires a matching changelog entry under `.gov/workflow/changelog/` and must surface that changelog in the maintenance menu/help flow.
 
 Implementation anchors:
 

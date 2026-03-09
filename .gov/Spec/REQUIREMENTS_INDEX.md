@@ -1,6 +1,6 @@
 # StratAtlas - Requirements Index
 
-**Spec Version:** v1.2.4  
+**Spec Version:** v1.2.5  
 **Last Updated:** 2026-03-09  
 **Governance:** See `SPEC_GOVERNANCE.md` for maintenance rules.
 
@@ -54,6 +54,11 @@ REQ-NNNN | LEVEL | Section | Description | Iteration Target | Status
 | REQ-0029 | SHOULD | Section 5.2 | Release kit SHOULD include a maintenance script and lifecycle documentation next to installer artifacts | All | E2E-VERIFIED |
 | REQ-0030 | MUST | Section 5.2 | Installer build version MUST increase monotonically for rebuilt release artifacts from changed code | All | E2E-VERIFIED |
 | REQ-0031 | MUST | Section 5.2 | EXE and installer artifacts from the same build MUST use the same version | All | E2E-VERIFIED |
+| REQ-0032 | MUST | Section 5.2 | Governed release artifacts MUST stage latest installers and portable executable under `.product/build_target/Releases/Current/`, with superseded builds archived separately under `.product/build_target/Releases/Archive/` | All | E2E-VERIFIED |
+| REQ-0033 | MUST | Section 5.2 | Installer, setup EXE, and portable EXE release artifacts under build-target release folders MUST remain gitignored | All | E2E-VERIFIED |
+| REQ-0034 | MUST | Section 5.2 | Every shipped release build MUST have a matching governed changelog entry under `.gov/workflow/changelog/` and a staged copy in the release kit | All | E2E-VERIFIED |
+| REQ-0035 | MUST | Section 5.2 | Maintenance pathway MUST provide a menu/help surface that explains install/uninstall/full-uninstall/repair/full-repair/update/downgrade functions and shows the current changelog | All | E2E-VERIFIED |
+| REQ-0036 | MUST | Section 5.2 | Standard uninstall MUST preserve user presets/data by default, while full-uninstall MUST remove binaries and user data only on explicit request | All | E2E-VERIFIED |
 
 ---
 
@@ -231,7 +236,7 @@ REQ-NNNN | LEVEL | Section | Description | Iteration Target | Status
 | GATE-E | MUST | Section 18 | Performance budgets met on reference hardware/datasets | E | E2E-VERIFIED |
 | GATE-F | MUST | Section 18 | Context domain provenance, graceful degradation, not presented as primary evidence | F | E2E-VERIFIED |
 | GATE-G | MUST | Section 18 | AI safety controls operational whenever AI integration is enabled | G | E2E-VERIFIED |
-| GATE-H | MUST | Section 18 | Desktop startup/portability controls met, installer lifecycle operations validated, and installer/exe version contract enforced | H | E2E-VERIFIED |
+| GATE-H | MUST | Section 18 | Desktop startup/portability controls met, installer lifecycle operations validated, release layout/changelog contract enforced, and installer/exe version parity preserved | H | E2E-VERIFIED |
 
 ---
 
@@ -239,9 +244,9 @@ REQ-NNNN | LEVEL | Section | Description | Iteration Target | Status
 
 | Level | Count |
 |-------|-------|
-| MUST | 97 |
+| MUST | 102 |
 | SHOULD | 17 |
 | MAY | 3 |
-| **Total** | **117** |
+| **Total** | **122** |
 
 *Note: This index captures the primary normative requirements. Sub-specs will decompose these into finer-grained implementation requirements with IDs in the REQ-NNxx range (e.g., REQ-0101a, REQ-0101b).*

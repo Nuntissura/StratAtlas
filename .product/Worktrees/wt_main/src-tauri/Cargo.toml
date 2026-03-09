@@ -1,6 +1,6 @@
 [package]
 name = "stratatlas_app"
-version = "0.1.5"
+version = "0.1.11"
 description = "StratAtlas desktop workstation"
 authors = ["StratAtlas Team"]
 license = ""

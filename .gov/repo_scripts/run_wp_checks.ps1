@@ -92,6 +92,242 @@ function New-SkippedResult {
     }
 }
 
+function New-AssertionResult {
+    Param(
+        [string]$Category,
+        [string]$Name,
+        [bool]$Passed,
+        [string]$LogPath,
+        [string]$Details
+    )
+
+    return [PSCustomObject]@{
+        Category   = $Category
+        Name       = $Name
+        Command    = "custom-assertion"
+        Passed     = $Passed
+        Skipped    = $false
+        ExitCode   = $(if ($Passed) { 0 } else { 1 })
+        LogPath    = $LogPath
+        Details    = $Details
+    }
+}
+
+function Ensure-CheckDirectory {
+    Param([Parameter(Mandatory = $true)][string]$Path)
+
+    if (-not (Test-Path $Path -PathType Container)) {
+        New-Item -Path $Path -ItemType Directory -Force | Out-Null
+    }
+}
+
+function Invoke-ReleaseLayoutAssertion {
+    Param(
+        [string]$RepoRoot,
+        [string]$ArtifactRootAbs
+    )
+
+    $logPath = Join-Path $ArtifactRootAbs "FUNC-002.log"
+    $currentRoot = Join-Path $RepoRoot ".product/build_target/Releases/Current"
+    $installersDir = Join-Path $currentRoot "Installers"
+    $portableDir = Join-Path $currentRoot "Portable"
+    $kitDir = Join-Path $currentRoot "InstallerKit"
+    $archiveRoot = Join-Path $RepoRoot ".product/build_target/Releases/Archive"
+    $legacyCurrentRoot = Join-Path $RepoRoot ".product/build_target/Current"
+    $latestRelease = Join-Path $currentRoot "LATEST_RELEASE.txt"
+    $latestInstallerKit = Join-Path $currentRoot "LATEST_INSTALLER_KIT.txt"
+    $lines = New-Object System.Collections.Generic.List[string]
+    $failures = New-Object System.Collections.Generic.List[string]
+
+    $setupExe = @(Get-ChildItem -Path $installersDir -Filter "*-setup.exe" -File -ErrorAction SilentlyContinue)
+    $msi = @(Get-ChildItem -Path $installersDir -Filter "*.msi" -File -ErrorAction SilentlyContinue)
+    $portable = @(Get-ChildItem -Path $portableDir -Filter "*_portable_*.exe" -File -ErrorAction SilentlyContinue)
+    $kitDirs = @(Get-ChildItem -Path $kitDir -Directory -ErrorAction SilentlyContinue)
+    $archiveLegacyDirs = @(Get-ChildItem -Path $archiveRoot -Directory -Recurse -ErrorAction SilentlyContinue | Where-Object { $_.Name -eq "LegacyCurrent" })
+    $legacyCurrentArtifacts = @()
+    if (Test-Path $legacyCurrentRoot -PathType Container) {
+        $legacyCurrentArtifacts = @(Get-ChildItem -Path $legacyCurrentRoot -Force -ErrorAction SilentlyContinue | Where-Object { $_.Name -ne ".gitkeep" })
+    }
+
+    if ($setupExe.Count -eq 0) { $failures.Add("Missing current setup executable.") | Out-Null }
+    if ($msi.Count -eq 0) { $failures.Add("Missing current MSI artifact.") | Out-Null }
+    if ($portable.Count -eq 0) { $failures.Add("Missing current portable executable.") | Out-Null }
+    if (-not (Test-Path (Join-Path $installersDir "windows-installer-maintenance.ps1") -PathType Leaf)) { $failures.Add("Missing maintenance script in current installers folder.") | Out-Null }
+    if (-not (Test-Path (Join-Path $installersDir "INSTALLER_LIFECYCLE.md") -PathType Leaf)) { $failures.Add("Missing lifecycle document in current installers folder.") | Out-Null }
+    if (-not (Test-Path (Join-Path $installersDir "CHANGELOG_CURRENT.md") -PathType Leaf)) { $failures.Add("Missing current changelog copy in installers folder.") | Out-Null }
+    if ($kitDirs.Count -eq 0) { $failures.Add("Missing timestamped installer kit directory.") | Out-Null }
+    if (-not (Test-Path $latestRelease -PathType Leaf)) { $failures.Add("Missing LATEST_RELEASE.txt pointer.") | Out-Null }
+    if (-not (Test-Path $latestInstallerKit -PathType Leaf)) { $failures.Add("Missing LATEST_INSTALLER_KIT.txt pointer.") | Out-Null }
+    if ($archiveLegacyDirs.Count -eq 0) { $failures.Add("Missing archive import of legacy current release artifacts.") | Out-Null }
+    if ($legacyCurrentArtifacts.Count -gt 0) { $failures.Add("Legacy current release artifacts were not fully migrated into the governed archive.") | Out-Null }
+
+    $lines.Add("Current release root: $currentRoot") | Out-Null
+    $lines.Add("Setup EXE count: $($setupExe.Count)") | Out-Null
+    $lines.Add("MSI count: $($msi.Count)") | Out-Null
+    $lines.Add("Portable count: $($portable.Count)") | Out-Null
+    $lines.Add("Installer kit directories: $($kitDirs.Count)") | Out-Null
+    $lines.Add("Archive legacy directory count: $($archiveLegacyDirs.Count)") | Out-Null
+    $lines.Add("Legacy current artifact count after migration: $($legacyCurrentArtifacts.Count)") | Out-Null
+    foreach ($failure in $failures) {
+        $lines.Add("FAIL: $failure") | Out-Null
+    }
+    $lines | Set-Content -Path $logPath -Encoding UTF8
+
+    return (New-AssertionResult -Category "Functionality" -Name "Release layout and archive topology" -Passed ($failures.Count -eq 0) -LogPath $logPath -Details ($(if ($failures.Count -eq 0) { "Release outputs landed in the governed current/archive layout." } else { ($failures -join " ") })))
+}
+
+function Invoke-MaintenanceMenuAssertion {
+    Param(
+        [string]$RepoRoot,
+        [string]$ProductWorktree,
+        [string]$ArtifactRootAbs
+    )
+
+    $logPath = Join-Path $ArtifactRootAbs "UI-001.log"
+    $scriptPath = Join-Path $RepoRoot "$ProductWorktree/scripts/windows-installer-maintenance.ps1"
+    $currentChangelogCopy = Join-Path $RepoRoot ".product/build_target/Releases/Current/Installers/CHANGELOG_CURRENT.md"
+    $changelogPath = if (Test-Path $currentChangelogCopy -PathType Leaf) { $currentChangelogCopy } else { Join-Path $RepoRoot ".gov/workflow/changelog/v0.1.6.md" }
+    $commandResult = Invoke-CheckCommand -Category "UI Contract" -Name "Maintenance menu and changelog output" -Executable "powershell" -Arguments @("-ExecutionPolicy", "Bypass", "-File", $scriptPath, "-Action", "menu", "-ChangelogPath", $changelogPath) -WorkingDirectory $RepoRoot -LogPath $logPath
+    if (-not $commandResult.Passed) {
+        return $commandResult
+    }
+
+    $raw = Get-Content -Raw $logPath
+    $expectedHeading = ""
+    if (Test-Path $changelogPath -PathType Leaf) {
+        $expectedHeading = ((Get-Content -Path $changelogPath -TotalCount 1) -replace '^#\s*', '').Trim()
+    }
+    $requiredSnippets = @(
+        "install",
+        "uninstall",
+        "full-uninstall",
+        "full-repair",
+        "Current Release Changelog"
+    )
+    if (-not [string]::IsNullOrWhiteSpace($expectedHeading)) {
+        $requiredSnippets += $expectedHeading
+    }
+    $missing = @($requiredSnippets | Where-Object { $raw -notmatch [regex]::Escape($_) })
+    if ($missing.Count -gt 0) {
+        $commandResult.Passed = $false
+        $commandResult.ExitCode = 1
+        $commandResult.Details = "Menu output missing required text: $($missing -join ', ')"
+    }
+    else {
+        $commandResult.Details = "Menu output includes lifecycle explanations and changelog text."
+    }
+
+    return $commandResult
+}
+
+function Invoke-MaintenanceDataAssertion {
+    Param(
+        [string]$RepoRoot,
+        [string]$ProductWorktree,
+        [string]$ArtifactRootAbs
+    )
+
+    $logPath = Join-Path $ArtifactRootAbs "COR-005.log"
+    $scriptPath = Join-Path $RepoRoot "$ProductWorktree/scripts/windows-installer-maintenance.ps1"
+    $sandboxRoot = Join-Path $ArtifactRootAbs "maintenance_data_sandbox"
+    $sandboxAppData = Join-Path $sandboxRoot "AppData\Roaming"
+    $sandboxLocalAppData = Join-Path $sandboxRoot "AppData\Local"
+    Ensure-CheckDirectory -Path $sandboxAppData
+    Ensure-CheckDirectory -Path $sandboxLocalAppData
+
+    $roamingProductDir = Join-Path $sandboxAppData "StratAtlas"
+    $localIdentifierDir = Join-Path $sandboxLocalAppData "com.stratatlas.desktop"
+    Ensure-CheckDirectory -Path $roamingProductDir
+    Ensure-CheckDirectory -Path $localIdentifierDir
+    Set-Content -Path (Join-Path $roamingProductDir "user_preset.json") -Value "{}`n" -Encoding UTF8
+    Set-Content -Path (Join-Path $localIdentifierDir "workspace_state.json") -Value "{}`n" -Encoding UTF8
+
+    $environment = @{
+        APPDATA = $sandboxAppData
+        LOCALAPPDATA = $sandboxLocalAppData
+    }
+
+    $lines = New-Object System.Collections.Generic.List[string]
+    $uninstallLog = Join-Path $ArtifactRootAbs "COR-005-uninstall.log"
+    $fullUninstallLog = Join-Path $ArtifactRootAbs "COR-005-full-uninstall.log"
+
+    $uninstallResult = Invoke-CheckCommand -Category "Code Correctness" -Name "Uninstall preserves user data" -Executable "powershell" -Arguments @("-ExecutionPolicy", "Bypass", "-File", $scriptPath, "-Action", "uninstall") -WorkingDirectory $RepoRoot -LogPath $uninstallLog -EnvironmentOverrides $environment
+    $preserved = (Test-Path $roamingProductDir -PathType Container) -and (Test-Path $localIdentifierDir -PathType Container)
+    $lines.Add("Uninstall command passed: $($uninstallResult.Passed)") | Out-Null
+    $lines.Add("User data preserved after uninstall: $preserved") | Out-Null
+
+    $fullUninstallResult = Invoke-CheckCommand -Category "Code Correctness" -Name "Full uninstall removes user data" -Executable "powershell" -Arguments @("-ExecutionPolicy", "Bypass", "-File", $scriptPath, "-Action", "full-uninstall") -WorkingDirectory $RepoRoot -LogPath $fullUninstallLog -EnvironmentOverrides $environment
+    $removed = (-not (Test-Path $roamingProductDir -PathType Container)) -and (-not (Test-Path $localIdentifierDir -PathType Container))
+    $lines.Add("Full-uninstall command passed: $($fullUninstallResult.Passed)") | Out-Null
+    $lines.Add("User data removed after full-uninstall: $removed") | Out-Null
+    $lines | Set-Content -Path $logPath -Encoding UTF8
+
+    $passed = $uninstallResult.Passed -and $fullUninstallResult.Passed -and $preserved -and $removed
+    $details = if ($passed) {
+        "Uninstall preserved user data and full-uninstall removed it only when explicitly invoked."
+    }
+    else {
+        "Maintenance data contract assertion failed. See $logPath"
+    }
+
+    return (New-AssertionResult -Category "Code Correctness" -Name "Maintenance data-handling semantics" -Passed $passed -LogPath $logPath -Details $details)
+}
+
+function Invoke-GitIgnoreAssertion {
+    Param(
+        [string]$RepoRoot,
+        [string]$ArtifactRootAbs
+    )
+
+    $logPath = Join-Path $ArtifactRootAbs "RED-001.log"
+    $sampleMsi = Join-Path $RepoRoot ".product/build_target/Releases/Current/Installers/check-ignore-sample.msi"
+    $sampleSetup = Join-Path $RepoRoot ".product/build_target/Releases/Current/Installers/check-ignore-sample-setup.exe"
+    $samplePortable = Join-Path $RepoRoot ".product/build_target/Releases/Current/Portable/check-ignore-sample_portable_x64.exe"
+    Ensure-CheckDirectory -Path (Split-Path $sampleMsi -Parent)
+    Ensure-CheckDirectory -Path (Split-Path $samplePortable -Parent)
+    Set-Content -Path $sampleMsi -Value "sample" -Encoding UTF8
+    Set-Content -Path $sampleSetup -Value "sample" -Encoding UTF8
+    Set-Content -Path $samplePortable -Value "sample" -Encoding UTF8
+
+    $lines = New-Object System.Collections.Generic.List[string]
+    $paths = @($sampleMsi, $sampleSetup, $samplePortable)
+    $allIgnored = $true
+    foreach ($path in $paths) {
+        $relative = $path.Substring($RepoRoot.Length + 1).Replace("\", "/")
+        $output = & git check-ignore --verbose $relative 2>&1
+        $exitCode = $LASTEXITCODE
+        $lines.Add("git check-ignore --verbose $relative") | Out-Null
+        $lines.Add(($output | Out-String).Trim()) | Out-Null
+        if ($exitCode -ne 0) {
+            $allIgnored = $false
+        }
+    }
+
+    $trackedBinaryOutput = & git ls-files ".product/build_target" 2>&1
+    $trackedBinaryLines = @(
+        ($trackedBinaryOutput | Out-String).Split("`n") |
+            ForEach-Object { $_.Trim() } |
+            Where-Object { $_ -match '\.(msi|exe)$' }
+    )
+    $lines.Add("Tracked build-target binaries: $($trackedBinaryLines.Count)") | Out-Null
+    foreach ($tracked in $trackedBinaryLines) {
+        $lines.Add("TRACKED: $tracked") | Out-Null
+    }
+    $lines | Set-Content -Path $logPath -Encoding UTF8
+
+    Remove-Item -Path $sampleMsi, $sampleSetup, $samplePortable -Force
+
+    $passed = $allIgnored -and ($trackedBinaryLines.Count -eq 0)
+    $details = if ($passed) {
+        "Installer and portable sample binaries are ignored by git and no build-target binaries are tracked."
+    }
+    else {
+        "Gitignore assertion failed for release binaries."
+    }
+
+    return (New-AssertionResult -Category "Red-Team" -Name "Gitignore blocks release binaries" -Passed $passed -LogPath $logPath -Details $details)
+}
+
 function Invoke-WpI0ControlPlanePreparation {
     Param(
         [string]$ArtifactRootAbs,
@@ -256,6 +492,7 @@ if (-not (Test-Path $latestArtifactDirAbs -PathType Container)) {
 $results = New-Object System.Collections.Generic.List[object]
 
 $isGovernanceWp = $WpId -like "WP-GOV-*"
+$isWpGovInstaller003 = $WpId -eq "WP-GOV-INSTALLER-003"
 $isRuntimeGovernanceWp = $WpId -eq "WP-GOV-VERIFY-001"
 $isWpI0 = $WpId -eq "WP-I0-003"
 $isWpI1 = $WpId -eq "WP-I1-003" -or $WpId -eq "WP-I1-004" -or $WpId -eq "WP-I1-005"
@@ -268,7 +505,37 @@ $iterationMatch = [regex]::Match($WpId, '^WP-I(\d+)-\d{3}$')
 $iterationNumber = if ($iterationMatch.Success) { [int]$iterationMatch.Groups[1].Value } else { $null }
 $runtimeSmokeArtifactAbs = $null
 
-if ($isRuntimeGovernanceWp) {
+if ($isWpGovInstaller003) {
+    $depLog = Join-Path $artifactRootAbs "DEP-001.log"
+    $dep = Invoke-CheckCommand -Category "Dependency" -Name "Governance Preflight" -Executable "powershell" -Arguments @("-ExecutionPolicy", "Bypass", "-File", ".gov/repo_scripts/governance_preflight.ps1") -WorkingDirectory $repoRoot -LogPath $depLog
+    $results.Add($dep) | Out-Null
+
+    $corTemplateLog = Join-Path $artifactRootAbs "COR-001.log"
+    $corTemplate = Invoke-CheckCommand -Category "Code Correctness" -Name "WP template compliance" -Executable "powershell" -Arguments @("-ExecutionPolicy", "Bypass", "-File", ".gov/repo_scripts/enforce_wp_template_compliance.ps1") -WorkingDirectory $repoRoot -LogPath $corTemplateLog
+    $results.Add($corTemplate) | Out-Null
+
+    $corLintLog = Join-Path $artifactRootAbs "COR-002.log"
+    $corLint = Invoke-CheckCommand -Category "Code Correctness" -Name "Lint checks" -Executable "pnpm" -Arguments @("lint") -WorkingDirectory $productAbs -LogPath $corLintLog
+    $results.Add($corLint) | Out-Null
+
+    $corTestLog = Join-Path $artifactRootAbs "COR-003.log"
+    $corTest = Invoke-CheckCommand -Category "Code Correctness" -Name "Vitest suite" -Executable "pnpm" -Arguments @("test", "--", "--run", "--testTimeout=30000") -WorkingDirectory $productAbs -LogPath $corTestLog
+    $results.Add($corTest) | Out-Null
+
+    $corCargoLog = Join-Path $artifactRootAbs "COR-004.log"
+    $corCargo = Invoke-CheckCommand -Category "Code Correctness" -Name "Rust compile tests" -Executable "cargo" -Arguments @("test", "--manifest-path", "src-tauri/Cargo.toml", "--no-run") -WorkingDirectory $productAbs -LogPath $corCargoLog
+    $results.Add($corCargo) | Out-Null
+
+    $funcBuildLog = Join-Path $artifactRootAbs "FUNC-001.log"
+    $funcBuild = Invoke-CheckCommand -Category "Functionality" -Name "Governed installer build" -Executable "powershell" -Arguments @("-ExecutionPolicy", "Bypass", "-File", ".gov/repo_scripts/build_windows_installer.ps1") -WorkingDirectory $repoRoot -LogPath $funcBuildLog
+    $results.Add($funcBuild) | Out-Null
+
+    $results.Add((Invoke-MaintenanceMenuAssertion -RepoRoot $repoRoot -ProductWorktree $ProductWorktree -ArtifactRootAbs $artifactRootAbs)) | Out-Null
+    $results.Add((Invoke-ReleaseLayoutAssertion -RepoRoot $repoRoot -ArtifactRootAbs $artifactRootAbs)) | Out-Null
+    $results.Add((Invoke-MaintenanceDataAssertion -RepoRoot $repoRoot -ProductWorktree $ProductWorktree -ArtifactRootAbs $artifactRootAbs)) | Out-Null
+    $results.Add((Invoke-GitIgnoreAssertion -RepoRoot $repoRoot -ArtifactRootAbs $artifactRootAbs)) | Out-Null
+}
+elseif ($isRuntimeGovernanceWp) {
     $depLog = Join-Path $artifactRootAbs "DEP-001.log"
     $dep = Invoke-CheckCommand -Category "Dependency" -Name "Governance Preflight" -Executable "powershell" -Arguments @("-ExecutionPolicy", "Bypass", "-File", ".gov/repo_scripts/governance_preflight.ps1") -WorkingDirectory $repoRoot -LogPath $depLog
     $results.Add($dep) | Out-Null

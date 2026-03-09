@@ -1,8 +1,8 @@
 # STRATATLAS
-## Product Specification v1.2.4
+## Product Specification v1.2.5
 *Interactive Geospatial Analysis Workstation*
 
-**Date:** 2026-03-06  
+**Date:** 2026-03-09  
 **Status:** Draft  
 **Audience:** Engineering, Product, Security/Compliance, Stakeholders  
 **Supersedes:** `stratatlas_spec_v1_1.md`, `stratatlas_spec_v1_0.md`, `stratatlas_spec_v0_4.md`, `stratatlas_spec_v1_0_reset.md`
@@ -131,13 +131,18 @@ Windows desktop distribution MUST provide lifecycle operations for:
 Normative rules:
 
 - Installers MUST support standard uninstall from Windows Apps/Programs.
-- A maintenance pathway (installer UX and/or bundled maintenance tool) MUST expose repair, full-repair, update, and downgrade operations.
+- A maintenance pathway (installer UX and/or bundled maintenance tool) MUST expose install, uninstall, full-uninstall, repair, full-repair, update, and downgrade operations.
+- Standard uninstall MUST preserve user presets/data by default.
 - Repair MUST NOT delete user presets/data under application data directories.
+- Full-uninstall MUST be explicit and MUST delete binaries plus known user presets/data locations only when requested.
 - Full-repair MUST perform clean binary reinstall and MUST provide an explicit option to drop user data.
 - Update MUST reject non-newer packages.
 - Downgrade MUST be explicit (no silent version rollback) and auditable.
 - Installer build outputs MUST increase version monotonically when release artifacts are rebuilt from changed code.
 - EXE and installer artifacts produced by the same build MUST carry the same version.
+- Release artifacts MUST stage under a governed current-versus-archive layout so the latest installers and portable executable are distinct from historical versions.
+- Installer, setup EXE, and portable EXE artifacts under build-target release folders MUST remain gitignored.
+- Every shipped release MUST have a governed changelog entry under `.gov/workflow/changelog/`, and the maintenance pathway MUST surface that changelog together with plain-language explanations of lifecycle operations and data-handling differences.
 
 ---
 
@@ -1015,5 +1020,6 @@ This appendix catalogues approved and planned contextual data domains. New domai
 | v1.2 | 2026-03-04 | Added: AI Copilot Integration (Section 15.5) with narration, query suggestion, SAT pre-population, briefing draft, and continuous monitoring. Added: Visualization Technology Contract (Section 6.4) defining rendering, charting, spatial analysis, and offline analytics engine requirements. Added Gate G (AI Safety). |
 | v1.2.1 | 2026-03-05 | Added desktop startup budgets and state-change feedback budget (Section 11.5). Added desktop portability contract for Windows→macOS path (Section 5.1). Added Gate H (Desktop Portability & Startup). |
 | v1.2.2 | 2026-03-06 | Added installer lifecycle contract for Windows distribution (Section 5.2): uninstall, repair, full-repair, update, downgrade. Extended Gate H to require installer lifecycle validation. |
-| v1.2.4 | 2026-03-06 | Added the `SUPERSEDED` governance status so replaced activation and governance-baseline Work Packets can close truthfully with retained evidence and explicit successor references. |
 | v1.2.3 | 2026-03-06 | Clarified that iterations may use multiple sequenced Work Packets when activation scaffolding does not yet satisfy the capability-slice definition of done. Added governance-realignment language for follow-on recovery packets and requirement-status correction. |
+| v1.2.4 | 2026-03-06 | Added the `SUPERSEDED` governance status so replaced activation and governance-baseline Work Packets can close truthfully with retained evidence and explicit successor references. |
+| v1.2.5 | 2026-03-09 | Expanded the Windows installer contract with install, full-uninstall, governed release current/archive layout, gitignored release binaries, governed changelog entries, and a maintenance menu/help surface that explains lifecycle options and data-handling semantics. |

@@ -71,11 +71,13 @@ If these disagree with implementation, reconcile governance intent first.
 - `wt_user_*` worktrees are personal/local coding sandboxes (for example: `wt_user_ilja`).
 - Additional coders should each use their own `wt_user_<name>` worktree + branch for parallel work.
 - Only `wt_main` changes are pushed to GitHub.
-- Build outputs go to `.product/build_target/Current/`.
-- Previous outputs are archived under `.product/build_target/Old versions/`.
+- Release-ready installers and portable executables go to `.product/build_target/Releases/Current/`.
+- Superseded release builds are archived under `.product/build_target/Releases/Archive/`.
 - Build logs go to `.product/build_target/logs/`.
 - Tool/scanner/script outputs go to `.product/build_target/tool_artifacts/`.
+- Governed release changelog entries live under `.gov/workflow/changelog/`.
 - Contents of build target artifact folders must remain gitignored (except `.gitkeep` placeholders).
+- Legacy `.product/build_target/Current/` and `.product/build_target/Old versions/` folders are retained only for historical compatibility; new governed release outputs do not promote into them.
 
 ## 4.1 Startup Performance and Portability Rules
 

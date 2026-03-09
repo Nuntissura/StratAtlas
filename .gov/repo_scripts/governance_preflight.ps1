@@ -53,6 +53,7 @@ $requiredFiles = @(
     ".gov\workflow\ROADMAP.md",
     ".gov\workflow\GOVERNANCE_WORKFLOW.md",
     ".gov\workflow\BUILD_READINESS_CHECKLIST.md",
+    ".gov\workflow\changelog\README.md",
     ".gov\workflow\taskboard\TASK_BOARD.md",
     ".gov\workflow\wp_test_suites\README.md",
     ".gov\workflow\wp_spec_extractions\README.md",
@@ -87,6 +88,13 @@ $requiredDirectories = @(
     ".gov\templates",
     ".product\Worktrees",
     ".product\Worktrees\wt_main",
+    ".gov\workflow\changelog",
+    ".product\build_target\Releases",
+    ".product\build_target\Releases\Current",
+    ".product\build_target\Releases\Current\Installers",
+    ".product\build_target\Releases\Current\Portable",
+    ".product\build_target\Releases\Current\InstallerKit",
+    ".product\build_target\Releases\Archive",
     ".product\build_target\Current",
     ".product\build_target\Old versions",
     ".product\build_target\logs",
@@ -94,10 +102,15 @@ $requiredDirectories = @(
 )
 
 $requiredGitIgnorePatterns = @(
+    ".product/build_target/Releases/**",
     ".product/build_target/Current/**",
     ".product/build_target/Old versions/**",
     ".product/build_target/logs/**",
     ".product/build_target/tool_artifacts/**",
+    ".product/build_target/**/*.msi",
+    ".product/build_target/**/*.exe",
+    ".product/build_target/**/*-setup.exe",
+    ".product/build_target/**/*_portable_*.exe",
     ".product/Worktrees/wt_user_*/**"
 )
 

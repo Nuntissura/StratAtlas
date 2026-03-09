@@ -26,6 +26,7 @@ StratAtlas/
 |   |   |-- ROADMAP.md                    # Ordered iteration build plan (I0..I10)
 |   |   |-- GOVERNANCE_WORKFLOW.md        # Mandatory maintenance workflow/cadence
 |   |   |-- BUILD_READINESS_CHECKLIST.md  # Build/start preflight checklist
+|   |   |-- changelog/                    # Governed versioned release notes, one file per shipped build
 |   |   |-- taskboard/
 |   |   |   `-- TASK_BOARD.md             # Live work + governance maintenance status
 |   |   |-- work_packets/                 # WP-*.md files live here
@@ -42,8 +43,14 @@ StratAtlas/
 |   |   |-- wt_main/                      # Canonical product main worktree/branch (publish target)
 |   |   `-- wt_user_<name>/               # Personal/parallel coder worktree (local branch, not pushed)
 |   `-- build_target/                     # Build outputs + packaging artifacts
-|       |-- Current/
-|       |-- Old versions/
+|       |-- Releases/
+|       |   |-- Current/
+|       |   |   |-- Installers/
+|       |   |   |-- Portable/
+|       |   |   `-- InstallerKit/
+|       |   `-- Archive/                  # Versioned historical release artifacts
+|       |-- Current/                      # Legacy compatibility location (historical only)
+|       |-- Old versions/                 # Legacy compatibility location (historical only)
 |       |-- logs/
 |       `-- tool_artifacts/               # Tool/scanner/script output target (gitignored)
 |
@@ -68,6 +75,8 @@ StratAtlas/
 - Must not become a second home for specs, policy, or workflow governance docs.
 - Product changes must map back to active governance records (Work Packet + Task Board).
 - Only `wt_main` is a GitHub publish target; `wt_user_*` worktrees are local parallel-development spaces.
+- Governed release artifacts stage under `.product/build_target/Releases/Current/` and archive under `.product/build_target/Releases/Archive/`.
+- Governed release changelog entries live under `.gov/workflow/changelog/`.
 
 ---
 

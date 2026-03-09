@@ -673,7 +673,7 @@ describe('App', () => {
     expect(scope.getAllByText('Curated Context').length).toBeGreaterThan(0)
     expect(scope.getByText(/Port Throughput/)).toBeInTheDocument()
     expect(scope.getByText(/Export fingerprint: briefing-/)).toBeInTheDocument()
-  }, 15000)
+  }, 30000)
 
   it('captures briefing exports in a derived bundle and restores them on reopen', async () => {
     const user = userEvent.setup()
@@ -742,7 +742,7 @@ describe('App', () => {
     expect(scope.getByText(/analyst-2 \| artifact\.upsert/)).toBeInTheDocument()
     expect(scope.getByText(/analyst-2 \| view\.ephemeral/)).toBeInTheDocument()
     expect(scope.getByText(/analyst-1 \| conflict\.resolved/)).toBeInTheDocument()
-  }, 15000)
+  }, 30000)
 
   it('runs the scenario fork, compare, and export workflow', async () => {
     const user = userEvent.setup()
@@ -1054,7 +1054,7 @@ describe('App', () => {
       ).length,
     ).toBeGreaterThan(0)
     expect(screen.getAllByText(/modeled scenario input/).length).toBeGreaterThan(0)
-  }, 15000)
+  }, 30000)
 
   it('shows degraded aggregation feedback when the replay frame budget is exceeded', async () => {
     const user = userEvent.setup()

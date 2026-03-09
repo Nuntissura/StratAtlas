@@ -76,9 +76,10 @@ This file is the execution order for capability slices. It is the scheduling bri
 - `GATE-F` is now `E2E-VERIFIED` based on the already-closed context runtime packets: `WP-I7-002`, `WP-I8-002`, and `WP-I9-002` collectively prove provenance-bearing context registration, graceful degradation, and the `context is enrichment, not primary evidence` labeling contract.
 - No recovery blockers remain in the current spec queue. The next work should be release-prep governance or new-scope product planning rather than more remediation.
 - User-approved post-remediation design track:
-  - `WP-GOV-I1-RESTYLE-001` is now `E2E-VERIFIED`; proof: `.product/build_target/tool_artifacts/wp_runs/WP-GOV-I1-RESTYLE-001/20260309_054016/`. It captures the shell rubric, anti-overload rules, task grouping, feature-to-map placement, and ROI-ranked follow-on ideas for the redesign.
-  - `WP-I1-005` is now `E2E-VERIFIED`; proof: `.product/build_target/tool_artifacts/wp_runs/WP-I1-005/20260309_080635/`. It closes the real shell-restyle seam with grouped left/main/right/bottom tab sets, a calmer workbench presentation, preserved map primacy, and packet-grade cold/warm runtime smoke after fixing the restore and pan/zoom proof paths.
-  - Next correct task: release-prep governance and publishable installer/release evidence, not more shell remediation.
+- `WP-GOV-I1-RESTYLE-001` is now `E2E-VERIFIED`; proof: `.product/build_target/tool_artifacts/wp_runs/WP-GOV-I1-RESTYLE-001/20260309_054016/`. It captures the shell rubric, anti-overload rules, task grouping, feature-to-map placement, and ROI-ranked follow-on ideas for the redesign.
+- `WP-I1-005` is now `E2E-VERIFIED`; proof: `.product/build_target/tool_artifacts/wp_runs/WP-I1-005/20260309_080635/`. It closes the real shell-restyle seam with grouped left/main/right/bottom tab sets, a calmer workbench presentation, preserved map primacy, and packet-grade cold/warm runtime smoke after fixing the restore and pan/zoom proof paths.
+- `WP-GOV-INSTALLER-003` is now `E2E-VERIFIED`; proof: `.product/build_target/tool_artifacts/wp_runs/WP-GOV-INSTALLER-003/20260309_171125/`. It closes governed release current/archive topology, changelog-ledger enforcement, gitignored installer/exe coverage, legacy current-release archive migration, and the changelog-aware maintenance menu/help surface.
+- Next correct task: create and execute the release-candidate packet that publishes the installer/release evidence bundle from the hardened governed release layout.
 
 ---
 
@@ -128,6 +129,7 @@ In parallel with iteration delivery, maintain governance control packets:
 - `WP-GOV-DEPTH-001`: `E2E-VERIFIED` governance packet upgrading the packet template, generator, compliance rules, extraction snapshots, and root instructions so breadth-first work stays explicit while only real seams can advance delivery claims; proof: `.product/build_target/tool_artifacts/wp_runs/WP-GOV-DEPTH-001/20260308_042222/`.
 - `WP-GOV-PORT-002`: `E2E-VERIFIED` follow-on verification packet closing macOS runtime smoke and Gate H portability evidence after `WP-I1-004` via a hosted macOS runner and downloaded packet-proof artifacts; proof: `.product/build_target/tool_artifacts/wp_runs/WP-GOV-PORT-002/20260309_005735/`.
 - `WP-GOV-I1-RESTYLE-001`: `E2E-VERIFIED` governance packet capturing the workbench shell rubric, task grouping, and map-first IA for the user-approved redesign track before `WP-I1-005`; proof: `.product/build_target/tool_artifacts/wp_runs/WP-GOV-I1-RESTYLE-001/20260309_054016/`.
+- `WP-GOV-INSTALLER-003`: `E2E-VERIFIED` release-prep governance packet that hardened release artifact topology, governed changelog entries, maintenance-menu explanations, and gitignore policy before the next publishable Windows kit; proof: `.product/build_target/tool_artifacts/wp_runs/WP-GOV-INSTALLER-003/20260309_171125/`.
 
 Governance control packets are complete only when preflight and template-compliance checks pass with linked artifacts.
 

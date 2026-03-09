@@ -1,11 +1,13 @@
 Param(
-    [Parameter(Mandatory = $true)]
-    [ValidateSet("status", "uninstall", "repair", "full-repair", "update", "downgrade")]
-    [string]$Action,
+    [ValidateSet("menu", "show-changelog", "status", "install", "uninstall", "full-uninstall", "repair", "full-repair", "update", "downgrade")]
+    [string]$Action = "menu",
 
+    [Alias("PackagePath")]
     [string]$MsiPath = "",
+    [string]$ChangelogPath = "",
     [switch]$Silent,
-    [switch]$DropUserData
+    [switch]$DropUserData,
+    [switch]$Interactive
 )
 
 Set-StrictMode -Version Latest
@@ -84,6 +86,16 @@ function Get-InstalledProduct {
     return @($matches | Select-Object -First 1)
 }
 
+function Resolve-InstallerPath {
+    Param([Parameter(Mandatory = $true)][string]$Path)
+
+    if ([string]::IsNullOrWhiteSpace($Path)) {
+        throw "An installer package path is required for this action."
+    }
+
+    return (Resolve-Path $Path).Path
+}
+
 function Get-MsiVersion {
     Param([Parameter(Mandatory = $true)][string]$Path)
 
@@ -128,6 +140,21 @@ function Invoke-MsiExec {
     }
 }
 
+function Invoke-SetupExecutable {
+    Param([Parameter(Mandatory = $true)][string]$Path)
+
+    $arguments = @()
+    if ($Silent) {
+        $arguments += "/S"
+    }
+
+    Write-Host "$Path $($arguments -join ' ')"
+    $process = Start-Process -FilePath $Path -ArgumentList $arguments -Wait -PassThru
+    if ($process.ExitCode -ne 0) {
+        throw "Installer executable failed with exit code $($process.ExitCode)"
+    }
+}
+
 function Backup-UserData {
     Param([string]$BackupRoot)
 
@@ -169,6 +196,18 @@ function Restore-UserData {
     }
 }
 
+function Remove-UserData {
+    $removed = New-Object System.Collections.Generic.List[string]
+    foreach ($dir in $KnownDataDirs) {
+        if (-not (Test-Path $dir -PathType Container)) {
+            continue
+        }
+        Remove-Item -Path $dir -Recurse -Force
+        $removed.Add($dir) | Out-Null
+    }
+    return @($removed)
+}
+
 function Ensure-UpgradeableDirection {
     Param(
         [Parameter(Mandatory = $true)][version]$InstalledVersion,
@@ -184,9 +223,101 @@ function Ensure-UpgradeableDirection {
     }
 }
 
+function Get-DefaultChangelogPath {
+    $candidates = @(
+        (Join-Path $PSScriptRoot "CHANGELOG_CURRENT.md"),
+        (Join-Path $PSScriptRoot "CHANGELOG.md"),
+        (Join-Path (Join-Path $PSScriptRoot "..\\docs") "CHANGELOG_CURRENT.md")
+    )
+
+    foreach ($candidate in $candidates) {
+        if (Test-Path $candidate -PathType Leaf) {
+            return (Resolve-Path $candidate).Path
+        }
+    }
+
+    return $null
+}
+
+function Resolve-ChangelogPathOrNull {
+    if (-not [string]::IsNullOrWhiteSpace($ChangelogPath)) {
+        return (Resolve-Path $ChangelogPath).Path
+    }
+
+    return Get-DefaultChangelogPath
+}
+
+function Show-Changelog {
+    $resolvedChangelogPath = Resolve-ChangelogPathOrNull
+    if ($null -eq $resolvedChangelogPath) {
+        Write-Host "Changelog: not found next to the maintenance script."
+        return
+    }
+
+    Write-Host ""
+    Write-Host "=== Current Release Changelog ==="
+    Get-Content $resolvedChangelogPath
+}
+
+function Show-MaintenanceMenu {
+    Write-Host "StratAtlas Maintenance Menu"
+    Write-Host ""
+    Write-Host "1. install         Install from a governed MSI or approved setup executable."
+    Write-Host "2. uninstall       Remove the app while preserving user presets/data."
+    Write-Host "3. full-uninstall  Remove the app and delete known user presets/data."
+    Write-Host "4. repair          Repair installed binaries; keep user presets/data."
+    Write-Host "5. full-repair     Clean reinstall from MSI; restore user presets/data by default."
+    Write-Host "6. update          Install a newer MSI than the current installed version."
+    Write-Host "7. downgrade       Install an older MSI explicitly and audibly."
+    Write-Host "8. status          Show installed version and location."
+    Write-Host "9. show-changelog  Print the current governed release changelog."
+    Write-Host ""
+    Write-Host "Data handling:"
+    Write-Host "- uninstall preserves AppData/LocalAppData presets by default."
+    Write-Host "- full-uninstall deletes binaries and known data directories."
+    Write-Host "- full-repair backs up and restores user data unless -DropUserData is supplied."
+    Show-Changelog
+}
+
+function Prompt-InteractiveAction {
+    Show-MaintenanceMenu
+    Write-Host ""
+    $choice = Read-Host "Select action (status/install/uninstall/full-uninstall/repair/full-repair/update/downgrade/show-changelog or Enter to exit)"
+    if ([string]::IsNullOrWhiteSpace($choice)) {
+        return "menu"
+    }
+    return $choice.Trim().ToLowerInvariant()
+}
+
+function Invoke-Install {
+    $resolvedPackage = Resolve-InstallerPath -Path $MsiPath
+    $extension = [System.IO.Path]::GetExtension($resolvedPackage).ToLowerInvariant()
+    if ($extension -eq ".msi") {
+        Invoke-MsiExec -Arguments @("/i", $resolvedPackage)
+    } elseif ($extension -eq ".exe") {
+        Invoke-SetupExecutable -Path $resolvedPackage
+    } else {
+        throw "Unsupported installer package type: $resolvedPackage"
+    }
+
+    Write-Host "Install completed from $resolvedPackage"
+}
+
 $installed = Get-InstalledProduct
 
+if ($Action -eq "menu" -and $Interactive) {
+    $Action = Prompt-InteractiveAction
+}
+
 switch ($Action) {
+    "menu" {
+        Show-MaintenanceMenu
+        exit 0
+    }
+    "show-changelog" {
+        Show-Changelog
+        exit 0
+    }
     "status" {
         if ($null -eq $installed) {
             Write-Host "Status: not installed"
@@ -198,16 +329,36 @@ switch ($Action) {
         Write-Host "InstallLocation: $($installed.InstallLocation)"
         exit 0
     }
+    "install" {
+        Invoke-Install
+        exit 0
+    }
     "uninstall" {
         if ($null -eq $installed) {
-            Write-Host "Nothing to uninstall."
+            Write-Host "Nothing to uninstall. User data/presets preserved."
             exit 0
         }
         if ([string]::IsNullOrWhiteSpace($installed.ProductCode)) {
             throw "ProductCode not found for installed product; cannot run clean uninstall."
         }
         Invoke-MsiExec -Arguments @("/x", $installed.ProductCode)
-        Write-Host "Uninstall completed."
+        Write-Host "Uninstall completed. User data/presets preserved."
+        exit 0
+    }
+    "full-uninstall" {
+        if ($null -ne $installed -and -not [string]::IsNullOrWhiteSpace($installed.ProductCode)) {
+            Invoke-MsiExec -Arguments @("/x", $installed.ProductCode)
+        }
+        $removed = Remove-UserData
+        Write-Host "Full uninstall completed."
+        if ($removed.Count -eq 0) {
+            Write-Host "No known user data directories were present."
+        } else {
+            Write-Host "Removed user data directories:"
+            foreach ($entry in $removed) {
+                Write-Host " - $entry"
+            }
+        }
         exit 0
     }
     "repair" {
@@ -222,15 +373,11 @@ switch ($Action) {
         exit 0
     }
     "full-repair" {
-        if ([string]::IsNullOrWhiteSpace($MsiPath)) {
-            throw "full-repair requires -MsiPath to reinstall from a known package."
-        }
-        $resolvedMsi = (Resolve-Path $MsiPath).Path
+        $resolvedMsi = Resolve-InstallerPath -Path $MsiPath
         $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
         $backupRoot = Join-Path $env:TEMP "StratAtlasMaintenance\\$timestamp\\backup"
-        $backupDirs = @()
         if (-not $DropUserData) {
-            $backupDirs = Backup-UserData -BackupRoot $backupRoot
+            Backup-UserData -BackupRoot $backupRoot | Out-Null
         }
 
         if ($null -ne $installed -and -not [string]::IsNullOrWhiteSpace($installed.ProductCode)) {
@@ -242,7 +389,7 @@ switch ($Action) {
             Restore-UserData -BackupRoot $backupRoot
         }
 
-        Write-Host "Full repair completed."
+        Write-Host "Full repair (clean reinstall) completed."
         if ($DropUserData) {
             Write-Host "User data was intentionally dropped."
         } else {
@@ -254,10 +401,7 @@ switch ($Action) {
         if ($null -eq $installed) {
             throw "Update requested but product is not installed."
         }
-        if ([string]::IsNullOrWhiteSpace($MsiPath)) {
-            throw "update requires -MsiPath"
-        }
-        $resolvedMsi = (Resolve-Path $MsiPath).Path
+        $resolvedMsi = Resolve-InstallerPath -Path $MsiPath
         $installedVersion = [version]$installed.DisplayVersion
         $targetVersion = Get-MsiVersion -Path $resolvedMsi
         Ensure-UpgradeableDirection -InstalledVersion $installedVersion -TargetVersion $targetVersion -Mode "update"
@@ -269,15 +413,15 @@ switch ($Action) {
         if ($null -eq $installed) {
             throw "Downgrade requested but product is not installed."
         }
-        if ([string]::IsNullOrWhiteSpace($MsiPath)) {
-            throw "downgrade requires -MsiPath"
-        }
-        $resolvedMsi = (Resolve-Path $MsiPath).Path
+        $resolvedMsi = Resolve-InstallerPath -Path $MsiPath
         $installedVersion = [version]$installed.DisplayVersion
         $targetVersion = Get-MsiVersion -Path $resolvedMsi
         Ensure-UpgradeableDirection -InstalledVersion $installedVersion -TargetVersion $targetVersion -Mode "downgrade"
         Invoke-MsiExec -Arguments @("/i", $resolvedMsi)
         Write-Host "Downgrade completed: $installedVersion -> $targetVersion"
         exit 0
+    }
+    default {
+        throw "Unsupported action: $Action"
     }
 }

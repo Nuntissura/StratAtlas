@@ -1,6 +1,19 @@
 # StratAtlas generated artifacts
 
 # Product build outputs (keep folder skeleton only)
+.product/build_target/Releases/**
+!.product/build_target/Releases/.gitkeep
+!.product/build_target/Releases/Current/
+!.product/build_target/Releases/Current/.gitkeep
+!.product/build_target/Releases/Current/Installers/
+!.product/build_target/Releases/Current/Installers/.gitkeep
+!.product/build_target/Releases/Current/Portable/
+!.product/build_target/Releases/Current/Portable/.gitkeep
+!.product/build_target/Releases/Current/InstallerKit/
+!.product/build_target/Releases/Current/InstallerKit/.gitkeep
+!.product/build_target/Releases/Archive/
+!.product/build_target/Releases/Archive/.gitkeep
+
 .product/build_target/Current/**
 !.product/build_target/Current/.gitkeep
 
@@ -13,6 +26,13 @@
 # Tool-generated artifacts and scratch outputs
 .product/build_target/tool_artifacts/**
 !.product/build_target/tool_artifacts/.gitkeep
+
+# Explicit release binary ignore rules across current and archived versions
+.product/build_target/**/*.msi
+.product/build_target/**/*.exe
+.product/build_target/**/*-setup.exe
+.product/build_target/**/*_portable_*.exe
+.product/build_target/**/*_portable.exe
 
 # Personal/local coder worktrees (never push these)
 .product/Worktrees/wt_user_*/**

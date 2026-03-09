@@ -35,16 +35,22 @@ The governed installer build:
 
 - validates governance preflight unless `-SkipPreflight` is supplied
 - requires `package.json`, `src-tauri/tauri.conf.json`, and `src-tauri/Cargo.toml` to agree on the current checked-in version
+- requires a matching governed changelog entry under `.gov/workflow/changelog/` for the next release version before build promotion
 - increments the patch version only after a successful installer build
 - keeps the checked-in package, Tauri, and Cargo manifests synchronized to the shipped installer version
-- stages MSI/NSIS artifacts, the maintenance script, the lifecycle document, and a SHA256 manifest into `.product/build_target/Current/InstallerKit/<timestamp>/`
+- archives the prior current release under `.product/build_target/Releases/Archive/<previous-version>/`
+- stages MSI/NSIS artifacts, a portable executable, the maintenance script, the lifecycle document, the governed changelog copy, and a SHA256 manifest into `.product/build_target/Releases/Current/`
 - writes build logs to `.product/build_target/logs/`
 
 ## Artifact Locations
 
-- Current installer kits: `.product/build_target/Current/InstallerKit/`
+- Current installer artifacts: `.product/build_target/Releases/Current/Installers/`
+- Current portable executable: `.product/build_target/Releases/Current/Portable/`
+- Current installer kits: `.product/build_target/Releases/Current/InstallerKit/`
+- Archived historical releases: `.product/build_target/Releases/Archive/`
 - Installer build logs: `.product/build_target/logs/`
 - WP proof artifacts: `.product/build_target/tool_artifacts/wp_runs/`
+- Governed changelog entries: `.gov/workflow/changelog/`
 
 ## Operator References
 

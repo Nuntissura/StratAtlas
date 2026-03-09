@@ -23,12 +23,15 @@ Use this before starting implementation work or cutting build outputs.
 - [ ] `.product/Worktrees/wt_main/` exists and is the active publish worktree.
 - [ ] Personal/parallel work happens in `.product/Worktrees/wt_user_<name>/` worktrees.
 - [ ] Only `wt_main` changes are prepared for GitHub push.
-- [ ] `.product/build_target/Current/` exists.
-- [ ] `.product/build_target/Old versions/` exists.
+- [ ] `.product/build_target/Releases/Current/Installers/` exists.
+- [ ] `.product/build_target/Releases/Current/Portable/` exists.
+- [ ] `.product/build_target/Releases/Current/InstallerKit/` exists.
+- [ ] `.product/build_target/Releases/Archive/` exists.
 - [ ] `.product/build_target/logs/` exists.
 - [ ] `.product/build_target/tool_artifacts/` exists.
+- [ ] `.gov/workflow/changelog/` exists.
 - [ ] Build output path and log path are known for the current WP.
-- [ ] `.gitignore` contains rules for build/log/tool-artifact folders.
+- [ ] `.gitignore` contains rules for release/build/log/tool-artifact folders and installer/exe binaries.
 - [ ] `.gitignore` ignores `.product/Worktrees/wt_user_*/**`.
 - [ ] Startup budget evidence plan exists.
 - [ ] No new Windows-only runtime assumptions were introduced in core paths.
@@ -50,4 +53,3 @@ Run:
 `powershell -ExecutionPolicy Bypass -File .gov/repo_scripts/governance_preflight.ps1`
 
 If failures are reported, resolve them before build work starts.
-
