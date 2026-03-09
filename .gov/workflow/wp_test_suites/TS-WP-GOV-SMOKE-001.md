@@ -1,38 +1,38 @@
 # TS-WP-GOV-SMOKE-001 - Spec vs Code Test Suite
 
 Date Opened: 2026-03-09
-Status: PLANNED
+Status: IN-PROGRESS
 Linked Work Packet: WP-GOV-SMOKE-001
 Iteration: All
 
 ## Scope
 
-Validate WP delivery against linked requirements and primitives.
+Validate the first governed manual desktop smoke pass for the real StratAtlas Windows app, including screenshot-backed UX findings, map-first shell evaluation, and maintenance/help clarity checks.
 
 ## Inputs
 
 - Linked requirements: REQ-0013, REQ-0035, REQ-0200, REQ-0201, REQ-0212
 - Linked primitives: PRIM-0045, PRIM-0068, PRIM-0071, PRIM-0074
-- Linked components: TBD
+- Linked components: .gov/Spec/sub-specs/GOV_manual_desktop_smoke_and_ux_triage.md; .gov/workflow/ROADMAP.md; .gov/workflow/taskboard/TASK_BOARD.md; .gov/workflow/work_packets/WP-GOV-SMOKE-001_manual-desktop-smoke-and-ux-triage.md; .gov/workflow/wp_test_suites/TS-WP-GOV-SMOKE-001.md; .gov/workflow/wp_spec_extractions/SX-WP-GOV-SMOKE-001.md; .gov/workflow/wp_checks/check-WP-GOV-SMOKE-001.ps1; .product/build_target/Releases/Current/Portable/; .product/build_target/Releases/Current/Installers/; .product/Worktrees/wt_main/scripts/windows-installer-maintenance.ps1
 
 ## Reality Boundary Assertions
 
 - Packet Class: VERIFICATION
-- Real Seam: TBD
-- Proof Target: TBD
-- Allowed Fallbacks: TBD
+- Real Seam: The real packaged desktop app is launched and visually inspected with screenshot-backed notes instead of relying only on automated runtime smoke.
+- Proof Target: Manual smoke artifacts under `.product/build_target/tool_artifacts/manual_smoke/WP-GOV-SMOKE-001/` capture launch proof, screenshots, rubric scores, and prioritized findings.
+- Allowed Fallbacks: Accessibility automation may assist navigation or metadata collection, but screenshots and findings must come from the real running desktop window.
 - Promotion Guard: RESEARCH and SCAFFOLD packets do not promote linked requirements or primitives to E2E-VERIFIED.
 
 ## Test Case Matrix
 
 | Case ID | Requirement | Primitive | Category | Target | Command/Test | Expected |
 |--------|-------------|-----------|----------|--------|--------------|----------|
-| DEP-001 | REQ-0013 | PRIM-0045 | Dependency | dependency graph | TBD COMMAND | dependencies resolved and policy-compliant |
-| UI-001 | REQ-0013 | PRIM-0045 | UI Contract | required UI contract | TBD TEST FILE | required regions/modes and degraded states pass |
-| FUNC-001 | REQ-0013 | PRIM-0045 | Functionality | golden flow | TBD TEST FILE | golden flow passes deterministically |
-| COR-001 | REQ-0013 | PRIM-0045 | Code Correctness | module contracts | TBD UNIT/INTEGRATION | invariant and regression checks pass |
-| RED-001 | REQ-0013 | PRIM-0045 | Red Team / Abuse | misuse constraints | TBD SECURITY TEST | abuse cases blocked and audited |
-| EXT-001 | REQ-0013 | PRIM-0045 | Additional | perf/offline/reliability | TBD ADDITIONAL TEST | budgets and resilience targets met |
+| DEP-001 | REQ-0013 | PRIM-0071 | Dependency | governed release binary availability | current portable executable + governance preflight | manual smoke uses the real current governed desktop build and a clean governance baseline |
+| UI-001 | REQ-0200, REQ-0201, REQ-0212 | PRIM-0045, PRIM-0068, PRIM-0071 | UI Contract | first-minute shell and map comprehension | screenshot capture + rubric scoring of the running app | required shell regions exist, modes are discoverable, and map controls read as usable to a human observer |
+| FUNC-001 | REQ-0013, REQ-0201 | PRIM-0045, PRIM-0071 | Functionality | first-use navigation flow | manual launch and tab/mode walkthrough | the core shell can be navigated far enough to identify blockers, overload points, and dead ends honestly |
+| COR-001 | REQ-0035 | PRIM-0074 | Code Correctness | maintenance/help clarity | `windows-installer-maintenance.ps1 -Action menu` + release-kit docs review | install/uninstall/repair functions and changelog surface are understandable in operator language |
+| RED-001 | REQ-0013 | PRIM-0068, PRIM-0071 | Red Team / Abuse | false-confidence prevention | findings log review | observed issues are not minimized or overstated; unverified flows remain labeled unverified |
+| EXT-001 | REQ-0013 | PRIM-0045, PRIM-0068, PRIM-0071, PRIM-0074 | Additional | screenshot-backed UX triage bundle | manual smoke artifact bundle | evidence set includes screenshots, rubric, findings, severity, ROI, and recommended follow-on packets |
 
 ## Dependency and Environment Tests
 
@@ -78,12 +78,12 @@ Validate WP delivery against linked requirements and primitives.
 
 ## Execution Summary
 
-- Last Run Date:
-- Result:
-- Blocking Failures:
-- Evidence Paths:
-- What Became Real:
-- What Remains Simulated:
-- Next Blocking Real Seam:
-- Reviewer:
-- User Sign-off:
+- Last Run Date: 2026-03-09
+- Result: Partial manual smoke completed; packet remains IN-PROGRESS
+- Blocking Failures: First-use shell still reads as overloaded; map primacy is weaker than intended; 3D mode was not convincingly validated in this first pass because desktop focus automation was unreliable on this machine
+- Evidence Paths: `.product/build_target/tool_artifacts/manual_smoke/WP-GOV-SMOKE-001/20260309_202006/stratatlas-initial.png`; `.product/build_target/tool_artifacts/manual_smoke/WP-GOV-SMOKE-001/20260309_202006/stratatlas-workflow-tab.png`; `.product/build_target/tool_artifacts/manual_smoke/WP-GOV-SMOKE-001/20260309_202006/rubric.md`; `.product/build_target/tool_artifacts/manual_smoke/WP-GOV-SMOKE-001/20260309_202006/findings.md`
+- What Became Real: The repo now has screenshot-backed first-impression evidence of how the current packaged desktop app actually reads to a human observer.
+- What Remains Simulated: Deeper hands-on flow coverage is still incomplete; the current packet state is strong for first-use UX triage, not for full manual acceptance of every mode.
+- Next Blocking Real Seam: Decide whether to branch into targeted shell/value refactor packets immediately or continue the manual packet with broader scenario-by-scenario hands-on coverage.
+- Reviewer: Codex
+- User Sign-off: Pending user review

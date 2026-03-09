@@ -79,7 +79,8 @@ This file is the execution order for capability slices. It is the scheduling bri
 - `WP-GOV-I1-RESTYLE-001` is now `E2E-VERIFIED`; proof: `.product/build_target/tool_artifacts/wp_runs/WP-GOV-I1-RESTYLE-001/20260309_054016/`. It captures the shell rubric, anti-overload rules, task grouping, feature-to-map placement, and ROI-ranked follow-on ideas for the redesign.
 - `WP-I1-005` is now `E2E-VERIFIED`; proof: `.product/build_target/tool_artifacts/wp_runs/WP-I1-005/20260309_080635/`. It closes the real shell-restyle seam with grouped left/main/right/bottom tab sets, a calmer workbench presentation, preserved map primacy, and packet-grade cold/warm runtime smoke after fixing the restore and pan/zoom proof paths.
 - `WP-GOV-INSTALLER-003` is now `E2E-VERIFIED`; proof: `.product/build_target/tool_artifacts/wp_runs/WP-GOV-INSTALLER-003/20260309_171125/`. It closes governed release current/archive topology, changelog-ledger enforcement, gitignored installer/exe coverage, legacy current-release archive migration, and the changelog-aware maintenance menu/help surface.
-- Next correct task: create and execute the release-candidate packet that publishes the installer/release evidence bundle from the hardened governed release layout.
+- `WP-GOV-SMOKE-001` is now `IN-PROGRESS`. It is the first governed manual desktop smoke and UX-triage packet, intended to validate the real first-use experience with screenshot-backed findings before any further large refactors or release-candidate work.
+- Next correct task: complete `WP-GOV-SMOKE-001`, then decide whether to route into targeted refactor packets or proceed to the release-candidate packet.
 
 ---
 
