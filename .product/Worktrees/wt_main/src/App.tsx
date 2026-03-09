@@ -4685,13 +4685,27 @@ function App() {
       setStatus('Creating bundle...')
       try {
         const previousBundleCount = runtimeSmokeStateRef.current.bundles.length
+        const currentState = runtimeSmokeStateRef.current
         const requestState = requireGameModel
           ? await waitForPersistedGameModelState(runtimeSmokeFlow.solverRunId || undefined)
           : requiresGovernedConnectorForRuntimeSmoke
             ? await waitForPersistedI9BundleState(governedContextBundleAoi)
             : requiresGovernedDeviationForRuntimeSmoke
               ? await waitForPersistedDeviationBundleState(governedContextBundleAoi)
-              : await waitForPersistedContextState(governedContextBundleAoi, governedContextDomainId)
+              : requiresMidFlowContextPersistenceForRuntimeSmoke
+                ? await waitForPersistedContextState(governedContextBundleAoi, governedContextDomainId)
+                : {
+                    ...recorderStateCore,
+                    context: buildContextSnapshot({
+                      domains: currentState.domains,
+                      activeDomainIds: currentState.activeDomainIds,
+                      correlationAoi: currentState.correlationAoi,
+                      correlationLinks,
+                      records: currentState.contextRecords,
+                      queryRange: contextQueryRange,
+                    }),
+                    savedAt: new Date().toISOString(),
+                  }
         const manifest = await backend.createBundle({
           role,
           marking,
