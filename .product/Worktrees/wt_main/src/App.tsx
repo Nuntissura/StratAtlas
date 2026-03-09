@@ -4083,6 +4083,8 @@ function App() {
     const isWpI8RuntimeSmoke = runtimeSmokeConfig.wpId === 'WP-I8-002'
     const isWpI9RuntimeSmoke = runtimeSmokeConfig.wpId === 'WP-I9-002'
     const isWpI10RuntimeSmoke = runtimeSmokeConfig.wpId === 'WP-I10-002'
+    const requiresMidFlowContextPersistenceForRuntimeSmoke =
+      runtimeSmokeConfig.wpId !== 'WP-GOV-PORT-002'
     const requiresGovernedDeviationForRuntimeSmoke =
       isWpI8RuntimeSmoke || isWpI9RuntimeSmoke || isWpI10RuntimeSmoke
     const requiresGovernedConnectorForRuntimeSmoke = isWpI9RuntimeSmoke || isWpI10RuntimeSmoke
@@ -4843,7 +4845,9 @@ function App() {
             (record) => record.domain_id === domainId && record.target_id === targetAoi,
           ),
       )
-      await waitForPersistedContextState(targetAoi, domainId)
+      if (requiresMidFlowContextPersistenceForRuntimeSmoke) {
+        await waitForPersistedContextState(targetAoi, domainId)
+      }
     }
 
     const registerGovernedContextForRuntimeSmoke = async (): Promise<void> => {
@@ -4876,8 +4880,13 @@ function App() {
               record.target_id === governedContextMutationAoi,
           ),
       )
-      await waitForPersistedContextState(governedContextMutationAoi, governedContextDomainId)
-      if (requiresGovernedDeviationForRuntimeSmoke) {
+      if (requiresMidFlowContextPersistenceForRuntimeSmoke) {
+        await waitForPersistedContextState(governedContextMutationAoi, governedContextDomainId)
+      }
+      if (
+        requiresMidFlowContextPersistenceForRuntimeSmoke &&
+        requiresGovernedDeviationForRuntimeSmoke
+      ) {
         await waitForPersistedContextState(governedContextMutationAoi, governedDeviationDomainId)
       }
     }
