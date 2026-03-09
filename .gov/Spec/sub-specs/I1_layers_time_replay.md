@@ -4,11 +4,13 @@ Date: 2026-03-07
 Status: APPROVED
 Iteration: I1
 Parent Spec: .gov/Spec/stratatlas_spec_v1_2.md
-Linked Work Packet(s): WP-I1-001, WP-I1-002, WP-GOV-I1-RESEARCH-001, WP-I1-003
+Linked Work Packet(s): WP-I1-001, WP-I1-002, WP-GOV-I1-RESEARCH-001, WP-I1-003, WP-I1-004, WP-GOV-I1-RESTYLE-001, WP-I1-005
 Linked Requirements: REQ-0011, REQ-0012, REQ-0014..REQ-0016, REQ-0200..REQ-0212, REQ-0804, REQ-0805
-Linked Research Reference: .gov/Spec/sub-specs/I1_map_runtime_research.md
+Linked Research Reference: .gov/Spec/sub-specs/I1_map_runtime_research.md; .gov/Spec/sub-specs/I1_workbench_restyle_research.md
 
 Recovery Note (2026-03-07): `WP-GOV-I1-RESEARCH-001` is the governance prerequisite that captures source-backed 2D/3D design direction and feature-to-map integration rules. `WP-I1-003` is the active implementation packet that must replace the current faux main-canvas shell with the real governed map runtime.
+
+Design Extension Note (2026-03-09): `WP-GOV-I1-RESTYLE-001` captures the follow-on shell and information-architecture research after the runtime became real. `WP-I1-005` is the user-approved implementation successor for a calmer map-first workbench shell and must preserve the verified region, mode, degradation, and accessibility contracts already closed in `WP-I1-003` and `WP-I1-004`.
 
 ## 1) UX Contract
 

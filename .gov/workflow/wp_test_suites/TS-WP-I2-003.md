@@ -77,7 +77,7 @@ Validate WP delivery against linked requirements and primitives.
 
 - Last Run Date: 2026-03-07
 - Result: PASS (official closeout verification)
-- Blocking Failures: None for packet closeout. REQ-0209 and REQ-0210 remain tracked separately as `IN-PROGRESS` until explicit export-budget timing evidence is attached.
+- Blocking Failures: None for packet closeout. REQ-0209 and REQ-0210 were later closed by `WP-I1-004`, which attached explicit export-budget timing evidence.
 - Evidence Paths: `.product/build_target/tool_artifacts/wp_runs/WP-I2-003/20260307_201453/result.json`; `.product/build_target/tool_artifacts/wp_runs/WP-I2-003/20260307_201453/summary.md`; `.product/build_target/tool_artifacts/wp_runs/WP-I2-003/20260307_201453/UI-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I2-003/20260307_201453/FUNC-001.log`; retained pre-closeout failure: `.product/build_target/tool_artifacts/wp_runs/WP-I2-003/20260307_201231/UI-001.log`
 - Reviewer: Codex
 - User Sign-off: Approved via 2026-03-07 instruction to start and proceed with `WP-I2-003`.

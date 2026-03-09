@@ -1,7 +1,7 @@
 # StratAtlas - Requirements Index
 
 **Spec Version:** v1.2.4  
-**Last Updated:** 2026-03-08  
+**Last Updated:** 2026-03-09  
 **Governance:** See `SPEC_GOVERNANCE.md` for maintenance rules.
 
 ---
@@ -229,7 +229,7 @@ REQ-NNNN | LEVEL | Section | Description | Iteration Target | Status
 | GATE-C | MUST | Section 18 | RBAC + audit + sensitivity marking + export controls in place | C | E2E-VERIFIED |
 | GATE-D | MUST | Section 18 | Core analysis on saved projects/bundles functions offline with explicit UI state | D | E2E-VERIFIED |
 | GATE-E | MUST | Section 18 | Performance budgets met on reference hardware/datasets | E | E2E-VERIFIED |
-| GATE-F | MUST | Section 18 | Context domain provenance, graceful degradation, not presented as primary evidence | F | IN-PROGRESS |
+| GATE-F | MUST | Section 18 | Context domain provenance, graceful degradation, not presented as primary evidence | F | E2E-VERIFIED |
 | GATE-G | MUST | Section 18 | AI safety controls operational whenever AI integration is enabled | G | E2E-VERIFIED |
 | GATE-H | MUST | Section 18 | Desktop startup/portability controls met, installer lifecycle operations validated, and installer/exe version contract enforced | H | E2E-VERIFIED |
 

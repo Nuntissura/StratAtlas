@@ -1,7 +1,7 @@
 # StratAtlas - Traceability Matrix
 
 **Spec Version:** v1.2.4  
-**Last Updated:** 2026-03-08  
+**Last Updated:** 2026-03-09  
 **Governance:** See `SPEC_GOVERNANCE.md` for maintenance rules.
 
 ---
@@ -49,7 +49,7 @@ REQ-ID | Component(s) | Test(s) | Iteration | Verified
 | REQ-0015 | .product/Worktrees/wt_main/src/features/i1/performance.ts | .product/Worktrees/wt_main/src/features/i1/i1.test.ts | All | 2026-03-05 |
 | REQ-0016 | .product/Worktrees/wt_main/src/features/i1/performance.ts | .product/Worktrees/wt_main/src/features/i1/i1.test.ts | All | 2026-03-05 |
 | REQ-0017 | .product/Worktrees/wt_main/src-tauri/src/lib.rs; .product/Worktrees/wt_main/src/lib/backend.ts | .product/Worktrees/wt_main/src-tauri/src/lib.rs (unit tests); .product/Worktrees/wt_main/src/lib/backend.test.ts | All | 2026-03-05 |
-| REQ-0018 | .product/Worktrees/wt_main/src-tauri/src/lib.rs; .product/Worktrees/wt_main/src/lib/backend.ts | .product/Worktrees/wt_main/src-tauri/src/lib.rs (unit tests); .product/Worktrees/wt_main/src/lib/backend.test.ts | All | 2026-03-05 |
+| REQ-0018 | .product/Worktrees/wt_main/src-tauri/src/lib.rs; .product/Worktrees/wt_main/src/lib/backend.ts; .gov/repo_scripts/run_wp_gov_port_002.ps1; .github/workflows/wp-gov-port-002-macos-smoke.yml | .gov/workflow/wp_test_suites/TS-WP-GOV-PORT-002.md; .gov/workflow/wp_checks/check-WP-GOV-PORT-002.ps1; .product/build_target/tool_artifacts/wp_runs/WP-GOV-PORT-002/20260309_005735/runtime_smoke/ | All | 2026-03-09 |
 | REQ-0019 | .gov/repo_scripts/new_work_packet.ps1; .gov/repo_scripts/bootstrap_wp_loop_assets.ps1 | .gov/repo_scripts/enforce_wp_template_compliance.ps1 | All | 2026-03-06 |
 | REQ-0020 | .gov/repo_scripts/run_wp_checks.ps1; .gov/workflow/work_packets/WP-*.md | .gov/repo_scripts/enforce_wp_template_compliance.ps1 | All | 2026-03-06 |
 | REQ-0021 | .gov/repo_scripts/governance_preflight.ps1; .gov/repo_scripts/enforce_wp_template_compliance.ps1 | .gov/repo_scripts/governance_preflight.ps1 | All | 2026-03-06 |
@@ -99,8 +99,8 @@ REQ-ID | Component(s) | Test(s) | Iteration | Verified
 | REQ-0206 | .product/Worktrees/wt_main/src/features/i1/modes.ts; .product/Worktrees/wt_main/src/features/i1/layers.ts; .product/Worktrees/wt_main/src/features/i1/plugins.ts; .product/Worktrees/wt_main/src/features/i1/performance.ts; .product/Worktrees/wt_main/src/App.tsx | .product/Worktrees/wt_main/src/features/i1/i1.test.ts; .product/Worktrees/wt_main/src/App.test.tsx | I1 | 2026-03-05 |
 | REQ-0207 | .product/Worktrees/wt_main/src/features/i1/modes.ts; .product/Worktrees/wt_main/src/features/i1/layers.ts; .product/Worktrees/wt_main/src/features/i1/plugins.ts; .product/Worktrees/wt_main/src/features/i1/performance.ts; .product/Worktrees/wt_main/src/App.tsx | .product/Worktrees/wt_main/src/features/i1/i1.test.ts; .product/Worktrees/wt_main/src/App.test.tsx | I1 | 2026-03-05 |
 | REQ-0208 | .product/Worktrees/wt_main/src/features/i1/modes.ts; .product/Worktrees/wt_main/src/features/i1/layers.ts; .product/Worktrees/wt_main/src/features/i1/plugins.ts; .product/Worktrees/wt_main/src/features/i1/performance.ts; .product/Worktrees/wt_main/src/App.tsx | .product/Worktrees/wt_main/src/features/i1/i1.test.ts; .product/Worktrees/wt_main/src/App.test.tsx | I1 | 2026-03-05 |
-| REQ-0209 | .product/Worktrees/wt_main/src/features/i1/modes.ts; .product/Worktrees/wt_main/src/features/i1/layers.ts; .product/Worktrees/wt_main/src/features/i1/plugins.ts; .product/Worktrees/wt_main/src/features/i1/performance.ts; .product/Worktrees/wt_main/src/App.tsx | .product/Worktrees/wt_main/src/features/i1/i1.test.ts; .product/Worktrees/wt_main/src/App.test.tsx | I1 | 2026-03-05 |
-| REQ-0210 | .product/Worktrees/wt_main/src/features/i1/modes.ts; .product/Worktrees/wt_main/src/features/i1/layers.ts; .product/Worktrees/wt_main/src/features/i1/plugins.ts; .product/Worktrees/wt_main/src/features/i1/performance.ts; .product/Worktrees/wt_main/src/App.tsx | .product/Worktrees/wt_main/src/features/i1/i1.test.ts; .product/Worktrees/wt_main/src/App.test.tsx | I1 | 2026-03-05 |
+| REQ-0209 | .product/Worktrees/wt_main/src/features/i1/modes.ts; .product/Worktrees/wt_main/src/features/i1/layers.ts; .product/Worktrees/wt_main/src/features/i1/plugins.ts; .product/Worktrees/wt_main/src/features/i1/performance.ts; .product/Worktrees/wt_main/src/App.tsx; .product/Worktrees/wt_main/src/features/i1/runtime/mapRuntimeExport.ts | .gov/workflow/wp_test_suites/TS-WP-I1-004.md; .gov/workflow/wp_checks/check-WP-I1-004.ps1; .product/Worktrees/wt_main/src/features/i1/i1.test.ts; .product/Worktrees/wt_main/src/App.test.tsx; .product/build_target/tool_artifacts/wp_runs/WP-I1-004/20260308_232056/runtime_smoke/ | I1 | 2026-03-08 |
+| REQ-0210 | .product/Worktrees/wt_main/src/features/i1/modes.ts; .product/Worktrees/wt_main/src/features/i1/layers.ts; .product/Worktrees/wt_main/src/features/i1/plugins.ts; .product/Worktrees/wt_main/src/features/i1/performance.ts; .product/Worktrees/wt_main/src/App.tsx; .product/Worktrees/wt_main/src/features/i2/baselineDelta.ts | .gov/workflow/wp_test_suites/TS-WP-I1-004.md; .gov/workflow/wp_checks/check-WP-I1-004.ps1; .product/Worktrees/wt_main/src/features/i1/i1.test.ts; .product/Worktrees/wt_main/src/App.test.tsx; .product/build_target/tool_artifacts/wp_runs/WP-I1-004/20260308_232056/runtime_smoke/ | I1 | 2026-03-08 |
 | REQ-0211 | .product/Worktrees/wt_main/src/features/i1/modes.ts; .product/Worktrees/wt_main/src/features/i1/layers.ts; .product/Worktrees/wt_main/src/features/i1/plugins.ts; .product/Worktrees/wt_main/src/features/i1/performance.ts; .product/Worktrees/wt_main/src/App.tsx | .product/Worktrees/wt_main/src/features/i1/i1.test.ts; .product/Worktrees/wt_main/src/App.test.tsx | I1 | 2026-03-05 |
 | REQ-0212 | .product/Worktrees/wt_main/src/features/i1/modes.ts; .product/Worktrees/wt_main/src/features/i1/layers.ts; .product/Worktrees/wt_main/src/features/i1/plugins.ts; .product/Worktrees/wt_main/src/features/i1/performance.ts; .product/Worktrees/wt_main/src/App.tsx | .product/Worktrees/wt_main/src/features/i1/i1.test.ts; .product/Worktrees/wt_main/src/App.test.tsx | I1 | 2026-03-05 |
 
@@ -264,10 +264,10 @@ REQ-ID | Component(s) | Test(s) | Iteration | Verified
 | Gate B - Provenance and Reproducibility | Deterministic reopen + bundle integrity tests | REQ-0101, REQ-0104, REQ-0105, REQ-0009 | 2026-03-05 |
 | Gate C - Security and Governance | RBAC/audit/marking contract tests and app flow checks | REQ-0008, REQ-0010, REQ-0100, REQ-0106 | 2026-03-05 |
 | Gate D - Offline Operability | Offline bundle workflow in fallback runtime and app shell | REQ-0108 | 2026-03-05 |
-| Gate E - Performance | Budget contract checks in I1 performance suite | REQ-0014..REQ-0016, REQ-0112, REQ-0206..REQ-0211 | 2026-03-05 |
-| Gate F - Context Integrity | Context intake/deviation/OSINT iteration tests | REQ-0800..REQ-0810 | 2026-03-06 |
+| Gate E - Performance | Packet-grade governed Tauri runtime budget proof and I1 performance suite checks | REQ-0014..REQ-0016, REQ-0112, REQ-0206..REQ-0211 | 2026-03-08 |
+| Gate F - Context Integrity | Context intake, deviation, and governed OSINT runtime proofs with provenance, graceful-degradation, and non-primary-evidence labeling checks | REQ-0800..REQ-0810 | 2026-03-08 |
 | Gate G - AI Safety | Live governed provider smoke, gateway policy tests, labeling tests, and audited MCP runtime proof | REQ-0700..REQ-0708, REQ-0011, REQ-0012 | 2026-03-08 |
-| Gate H - Desktop Portability and Startup | Platform-neutral path handling, startup budgets, installer lifecycle controls, and version contract enforcement | REQ-0014..REQ-0018, REQ-0023..REQ-0031 | 2026-03-06 |
+| Gate H - Desktop Portability and Startup | Platform-neutral path handling, startup budgets, hosted macOS runtime smoke, installer lifecycle controls, and version contract enforcement | REQ-0014..REQ-0018, REQ-0023..REQ-0031 | 2026-03-09 |
 
 ---
 
@@ -341,3 +341,7 @@ For quick lookup: "What requirements does this component implement?"
 
 
 | WP-GOV-PORT-002 | All | GATE-H, REQ-0018 | PRIM-0060, PRIM-0061, PRIM-0069 | .gov/workflow/wp_test_suites/TS-WP-GOV-PORT-002.md | E2E-VERIFIED | .gov/workflow/wp_spec_extractions/SX-WP-GOV-PORT-002.md; .product/build_target/tool_artifacts/wp_runs/WP-GOV-PORT-002/20260309_005735/; GitHub-hosted macOS run `22834012147` relayed cold/warm runtime smoke proof back into the governed packet artifact path |
+
+| WP-GOV-I1-RESTYLE-001 | I1 | REQ-0013, REQ-0019, REQ-0020, REQ-0021, REQ-0022 | PRIM-0063, PRIM-0064, PRIM-0070 | .gov/workflow/wp_test_suites/TS-WP-GOV-I1-RESTYLE-001.md | E2E-VERIFIED | .gov/workflow/wp_spec_extractions/SX-WP-GOV-I1-RESTYLE-001.md; .product/build_target/tool_artifacts/wp_runs/WP-GOV-I1-RESTYLE-001/20260309_054016/; user sign-off approved via 2026-03-09 instruction to research UI/UX, create a rubric, and drive the redesign |
+
+| WP-I1-005 | I1 | REQ-0011, REQ-0012, REQ-0200, REQ-0201, REQ-0211, REQ-0212 | PRIM-0045, PRIM-0068, PRIM-0071 | .gov/workflow/wp_test_suites/TS-WP-I1-005.md | SPEC-MAPPED | .gov/workflow/wp_spec_extractions/SX-WP-I1-005.md |
