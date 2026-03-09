@@ -460,6 +460,7 @@ describe('App', () => {
 
       expect(await screen.findByDisplayValue('Hydrated note')).toBeInTheDocument()
       expect(within(screen.getByTestId('region-header')).getByText('Query v4')).toBeInTheDocument()
+      await openRightPanelTab(user, 'Context')
       expect(screen.getByText(/Active context domains: \d+ \| Correlation AOI: aoi-7/)).toBeInTheDocument()
       expect(screen.getByText('OFFLINE')).toBeInTheDocument()
       await openLeftPanelTab(user, 'Assistant')
@@ -508,6 +509,29 @@ describe('App', () => {
     expect(screen.getByTestId('region-right-panel')).toBeInTheDocument()
     expect(screen.getByTestId('region-bottom-panel')).toBeInTheDocument()
     expect(screen.getByTestId('map-runtime-surface')).toBeInTheDocument()
+  })
+
+  it('renders a guided first-use shell with collapsed support panes', async () => {
+    render(<App />)
+
+    expect(await screen.findByTestId('guided-start-card')).toBeInTheDocument()
+    expect(screen.getByTestId('guided-start-main')).toBeInTheDocument()
+    expect(screen.getByTestId('inspector-collapsed-view')).toBeInTheDocument()
+    expect(screen.getByTestId('bottom-tray-collapsed-view')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Open Full Workbench' })).toBeInTheDocument()
+  })
+
+  it('can reveal the full workbench from the guided first-use shell', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.click(await screen.findByRole('button', { name: 'Open Full Workbench' }))
+
+    expect(screen.queryByTestId('guided-start-card')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('inspector-collapsed-view')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('bottom-tray-collapsed-view')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Collapse Inspector' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Collapse Tray' })).toBeInTheDocument()
   })
 
   it('exposes pressed-state and non-color semantics on the live map runtime', async () => {
@@ -1006,6 +1030,7 @@ describe('App', () => {
     const user = userEvent.setup()
     render(<App />)
 
+    await openRightPanelTab(user, 'Context')
     await user.selectOptions(screen.getByLabelText('Approved Domain'), 'sanctions-regime-updates')
     await user.click(screen.getByRole('button', { name: 'Register Domain' }))
 
@@ -1030,11 +1055,12 @@ describe('App', () => {
     )
 
     await user.selectOptions(screen.getByLabelText('Mode'), 'scenario')
-    await waitFor(() => expect(screen.getByLabelText('Mode')).toHaveValue('scenario'))
+    await waitFor(() =>
+      expect(within(screen.getByTestId('region-header')).getByText('Mode: scenario')).toBeInTheDocument(),
+    )
     await openMainCanvasTab(user, 'Workflow')
-    const scenarioTitleInput = (await screen.findByLabelText('Scenario Title', undefined, {
-      timeout: 15000,
-    })) as HTMLInputElement
+    const scenarioPanel = await screen.findByTestId('scenario-panel', undefined, { timeout: 15000 })
+    const scenarioTitleInput = within(scenarioPanel).getByLabelText('Scenario Title') as HTMLInputElement
     fireEvent.change(scenarioTitleInput, { target: { value: 'Deviation scenario' } })
     expect(scenarioTitleInput).toHaveValue('Deviation scenario')
     const forkScenarioButton = await screen.findByRole(

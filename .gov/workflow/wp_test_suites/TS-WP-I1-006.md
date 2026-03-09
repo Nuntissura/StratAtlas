@@ -7,32 +7,32 @@ Iteration: I1
 
 ## Scope
 
-Validate WP delivery against linked requirements and primitives.
+Validate that the first-use shell becomes calmer and map-led without breaking the verified workbench regions, accessibility semantics, or routes into the existing runtime workflows.
 
 ## Inputs
 
 - Linked requirements: REQ-0011, REQ-0012, REQ-0013, REQ-0200, REQ-0201, REQ-0211, REQ-0212
 - Linked primitives: PRIM-0045, PRIM-0068, PRIM-0071
-- Linked components: TBD
+- Linked components: .product/Worktrees/wt_main/src/App.tsx; .product/Worktrees/wt_main/src/App.css; .product/Worktrees/wt_main/src/App.test.tsx
 
 ## Reality Boundary Assertions
 
 - Packet Class: IMPLEMENTATION
-- Real Seam: TBD
-- Proof Target: TBD
-- Allowed Fallbacks: TBD
+- Real Seam: The default shell exposes a guided-start state with reduced pane pressure and stronger map primacy while still routing into the existing verified workflows.
+- Proof Target: App-level shell tests, runtime smoke continuity, and governance proof artifacts show that the first-use state, disclosure controls, and guided actions are real.
+- Allowed Fallbacks: Existing advanced workflow forms remain behind current tabs as long as first-use copy and controls route to them truthfully and advanced density is no longer the default experience.
 - Promotion Guard: RESEARCH and SCAFFOLD packets do not promote linked requirements or primitives to E2E-VERIFIED.
 
 ## Test Case Matrix
 
 | Case ID | Requirement | Primitive | Category | Target | Command/Test | Expected |
 |--------|-------------|-----------|----------|--------|--------------|----------|
-| DEP-001 | REQ-0011 | PRIM-0045 | Dependency | dependency graph | TBD COMMAND | dependencies resolved and policy-compliant |
-| UI-001 | REQ-0011 | PRIM-0045 | UI Contract | required UI contract | TBD TEST FILE | required regions/modes and degraded states pass |
-| FUNC-001 | REQ-0011 | PRIM-0045 | Functionality | golden flow | TBD TEST FILE | golden flow passes deterministically |
-| COR-001 | REQ-0011 | PRIM-0045 | Code Correctness | module contracts | TBD UNIT/INTEGRATION | invariant and regression checks pass |
-| RED-001 | REQ-0011 | PRIM-0045 | Red Team / Abuse | misuse constraints | TBD SECURITY TEST | abuse cases blocked and audited |
-| EXT-001 | REQ-0011 | PRIM-0045 | Additional | perf/offline/reliability | TBD ADDITIONAL TEST | budgets and resilience targets met |
+| DEP-001 | REQ-0200 | PRIM-0071 | Dependency | governed shell surface | `pnpm build` | shell changes compile and preserve stable-region contract |
+| UI-001 | REQ-0200, REQ-0201 | PRIM-0071 | UI Contract | guided start and pane disclosure | `.product/Worktrees/wt_main/src/App.test.tsx` | required regions remain present while first-use disclosure state renders correctly |
+| FUNC-001 | REQ-0211 | PRIM-0045 | Functionality | map-linked quick actions | `.product/Worktrees/wt_main/src/App.test.tsx` | start actions route to real tabs/workflows without hiding the map runtime |
+| COR-001 | REQ-0011, REQ-0012 | PRIM-0045 | Code Correctness | label and shell regression | `.product/Worktrees/wt_main/src/App.test.tsx` | artifact labels and uncertainty language remain intact after shell changes |
+| RED-001 | REQ-0013 | PRIM-0071 | Red Team / Abuse | misleading onboarding risk | `.gov/workflow/work_packets/WP-I1-006_first-use-map-hero-and-guided-start-state.md` review | guided-start copy does not imply nonexistent features or fake completion |
+| EXT-001 | REQ-0212 | PRIM-0068 | Additional | accessibility/usability | `.product/Worktrees/wt_main/src/App.test.tsx`; manual smoke follow-on | disclosure and start-state controls remain keyboard reachable with explicit state cues |
 
 ## Dependency and Environment Tests
 
@@ -78,12 +78,12 @@ Validate WP delivery against linked requirements and primitives.
 
 ## Execution Summary
 
-- Last Run Date:
-- Result:
-- Blocking Failures:
-- Evidence Paths:
-- What Became Real:
-- What Remains Simulated:
-- Next Blocking Real Seam:
+- Last Run Date: 2026-03-09
+- Result: Initial implementation slice passed targeted verification; packet remains `IN-PROGRESS`
+- Blocking Failures: No current automated blockers after shell/test fixes; remaining blocker is renewed manual smoke and packet-grade proof capture
+- Evidence Paths: `pnpm exec vitest run src/App.test.tsx`; `pnpm lint`; `pnpm build`; `.gov/workflow/wp_spec_extractions/SX-WP-I1-006.md`
+- What Became Real: The shell now has a tested guided-start state, compact first-use workspace view, collapsed support panes, and explicit map-led quick actions
+- What Remains Simulated: No new analytical workflows were added, and the packet still depends on pre-existing verified workflows plus a follow-up hands-on smoke pass
+- Next Blocking Real Seam: Capture the second manual smoke pass against the updated shell and, if needed, continue with a narrower follow-on shell refinement packet before closeout
 - Reviewer:
 - User Sign-off:

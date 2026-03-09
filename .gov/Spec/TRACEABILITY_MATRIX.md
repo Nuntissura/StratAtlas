@@ -357,4 +357,4 @@ For quick lookup: "What requirements does this component implement?"
 
 | WP-GOV-SMOKE-001 | All | REQ-0013, REQ-0035, REQ-0200, REQ-0201, REQ-0212 | PRIM-0045, PRIM-0068, PRIM-0071, PRIM-0074 | .gov/workflow/wp_test_suites/TS-WP-GOV-SMOKE-001.md | IN-PROGRESS | .gov/workflow/wp_spec_extractions/SX-WP-GOV-SMOKE-001.md |
 
-| WP-I1-006 | I1 | REQ-0011, REQ-0012, REQ-0013, REQ-0200, REQ-0201, REQ-0211, REQ-0212 | PRIM-0045, PRIM-0068, PRIM-0071 | .gov/workflow/wp_test_suites/TS-WP-I1-006.md | IN-PROGRESS | .gov/workflow/wp_spec_extractions/SX-WP-I1-006.md |
+| WP-I1-006 | I1 | REQ-0011, REQ-0012, REQ-0013, REQ-0200, REQ-0201, REQ-0211, REQ-0212 | PRIM-0045, PRIM-0068, PRIM-0071 | .gov/workflow/wp_test_suites/TS-WP-I1-006.md | IN-PROGRESS | .gov/workflow/wp_spec_extractions/SX-WP-I1-006.md; first implementation slice landed in `.product/Worktrees/wt_main/src/App.tsx`, `.product/Worktrees/wt_main/src/App.css`, and `.product/Worktrees/wt_main/src/App.test.tsx` with guided start, collapsed support panes, and map-led quick actions; targeted verification passed on 2026-03-09 |

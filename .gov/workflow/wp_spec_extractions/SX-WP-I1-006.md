@@ -15,17 +15,17 @@ Concrete extraction of requirement and primitive obligations this WP must satisf
 
 ## Reality Boundary Snapshot
 
-- Real Seam: TBD
-- User-Visible Win: TBD
-- Proof Target: TBD
-- Allowed Temporary Fallbacks: TBD
+- Real Seam: The real workbench opens in a calmer guided-start state that reduces default pane pressure, keeps the live 2D/3D map visually primary, and exposes the first useful actions through map-linked quick starts instead of expecting users to parse the full shell immediately.
+- User-Visible Win: A new user can tell what to do first, why the map matters, and how to reveal deeper tools without being hit by the full density of the current workspace.
+- Proof Target: Automated shell tests plus governed runtime evidence show the start-state shell, panel disclosure behavior, and map-first quick actions working under the real workbench contract.
+- Allowed Temporary Fallbacks: Existing advanced workflows may remain behind the current tabs and forms as long as the first-use state labels them as advanced and the guided path routes into them truthfully.
 - Promotion Guard: RESEARCH and SCAFFOLD packets do not promote linked requirements or primitives to E2E-VERIFIED.
 
 ## Change Ledger Snapshot
 
-- What Became Real: TBD
-- What Remains Simulated: TBD
-- Next Blocking Real Seam: TBD
+- What Became Real: The live workbench now has a real guided-start shell, compact first-use workspace view, collapsed-by-default inspector and tray, map-first quick actions, and explicit "reveal full workbench" disclosure instead of always opening every support surface at once.
+- What Remains Simulated: No new analytical capability was added; this packet still depends on the previously verified I2-I10 workflows and has not yet been revalidated by a second manual smoke pass.
+- Next Blocking Real Seam: Re-run manual desktop smoke against the new first-use shell and decide whether the remaining overload is solved or whether a narrower follow-on packet is still required.
 
 ## Requirement Extraction
 

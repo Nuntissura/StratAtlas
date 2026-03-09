@@ -931,6 +931,10 @@ function App() {
     useState<MainCanvasDeckView>('summary')
   const [rightPanelView, setRightPanelView] = useState<RightPanelView>('context')
   const [bottomPanelView, setBottomPanelView] = useState<BottomPanelView>('bundles')
+  const [guidedStartDismissed, setGuidedStartDismissed] = useState<boolean>(false)
+  const [workspaceAdvancedVisible, setWorkspaceAdvancedVisible] = useState<boolean>(false)
+  const [inspectorCollapsed, setInspectorCollapsed] = useState<boolean>(true)
+  const [trayCollapsed, setTrayCollapsed] = useState<boolean>(true)
   const [replayCursor, setReplayCursor] = useState<number>(0)
   const [replayFrameMs, setReplayFrameMs] = useState<number>(32)
   const [baselineWindowLabel, setBaselineWindowLabel] =
@@ -1225,6 +1229,19 @@ function App() {
       ),
     [contextRecords, correlationLinks],
   )
+  const hasMeaningfulSessionProgress =
+    Boolean(selectedBundleId) ||
+    activeDomainIds.length > 0 ||
+    queryResultCount > 0 ||
+    savedQueryVersions.length > 0 ||
+    Boolean(savedQueryArtifact) ||
+    Boolean(briefingArtifact) ||
+    Boolean(briefingBundleArtifact) ||
+    Boolean(mapExportArtifact) ||
+    Boolean(latestAiArtifact)
+  const showGuidedStart = !guidedStartDismissed && !hasMeaningfulSessionProgress
+  const workspaceCompactView =
+    leftPanelView === 'workspace' && showGuidedStart && !workspaceAdvancedVisible
 
   useEffect(() => {
     let cancelled = false
@@ -2151,6 +2168,64 @@ function App() {
     setStateFeedback(describeStateChangeFeedback(action, Math.round(performance.now() - startedAt)))
   }
 
+  const revealGuidedStartWorkbench = (): void => {
+    setGuidedStartDismissed(true)
+    setWorkspaceAdvancedVisible(true)
+    setInspectorCollapsed(false)
+    setTrayCollapsed(false)
+  }
+
+  const onLeftPanelViewChange = (nextView: LeftPanelView): void => {
+    setLeftPanelView(nextView)
+    if (nextView !== 'workspace') {
+      setGuidedStartDismissed(true)
+      setWorkspaceAdvancedVisible(true)
+    }
+  }
+
+  const onMainCanvasDeckViewChange = (nextView: MainCanvasDeckView): void => {
+    setMainCanvasDeckView(nextView)
+    if (nextView !== 'summary') {
+      setGuidedStartDismissed(true)
+    }
+  }
+
+  const onRightPanelViewChange = (nextView: RightPanelView): void => {
+    setRightPanelView(nextView)
+    setGuidedStartDismissed(true)
+    setInspectorCollapsed(false)
+  }
+
+  const onBottomPanelViewChange = (nextView: BottomPanelView): void => {
+    setBottomPanelView(nextView)
+    setGuidedStartDismissed(true)
+    setTrayCollapsed(false)
+  }
+
+  const onRegisterGuidedDomain = (): void => {
+    setGuidedStartDismissed(true)
+    setWorkspaceAdvancedVisible(true)
+    setInspectorCollapsed(false)
+    setRightPanelView('context')
+    onRegisterDomain()
+  }
+
+  const onCreateGuidedBundle = (): void => {
+    setGuidedStartDismissed(true)
+    setWorkspaceAdvancedVisible(true)
+    setTrayCollapsed(false)
+    setBottomPanelView('bundles')
+    void onCreateBundle()
+  }
+
+  const onOpenGuidedBundle = (): void => {
+    setGuidedStartDismissed(true)
+    setWorkspaceAdvancedVisible(true)
+    setTrayCollapsed(false)
+    setBottomPanelView('bundles')
+    void onOpenBundle()
+  }
+
   const onMapSurfaceModeFeedback = (
     surfaceMode: 'planar' | 'orbital',
     measuredMs: number,
@@ -2234,6 +2309,16 @@ function App() {
       cancelled = true
     }
   }, [])
+
+  useEffect(() => {
+    if (!hydrated || !hasMeaningfulSessionProgress) {
+      return
+    }
+    setGuidedStartDismissed(true)
+    setWorkspaceAdvancedVisible(true)
+    setInspectorCollapsed(false)
+    setTrayCollapsed(false)
+  }, [hasMeaningfulSessionProgress, hydrated])
 
   useEffect(() => {
     if (!hydrated) {
@@ -6032,8 +6117,11 @@ function App() {
         </div>
       </header>
 
-      <main className="layout">
-        <section className="panel workspace" data-testid="region-left-panel">
+      <main className={`layout ${inspectorCollapsed ? 'layout-inspector-collapsed' : ''}`}>
+        <section
+          className={`panel workspace ${workspaceCompactView ? 'is-compact-start' : ''}`}
+          data-testid="region-left-panel"
+        >
           <div className="panel-header">
             <div>
               <h2>Inputs</h2>
@@ -6045,7 +6133,7 @@ function App() {
               type="button"
               className={leftPanelView === 'workspace' ? 'is-active' : ''}
               aria-pressed={leftPanelView === 'workspace'}
-              onClick={() => setLeftPanelView('workspace')}
+              onClick={() => onLeftPanelViewChange('workspace')}
             >
               Workspace
             </button>
@@ -6053,7 +6141,7 @@ function App() {
               type="button"
               className={leftPanelView === 'query' ? 'is-active' : ''}
               aria-pressed={leftPanelView === 'query'}
-              onClick={() => setLeftPanelView('query')}
+              onClick={() => onLeftPanelViewChange('query')}
             >
               Query
             </button>
@@ -6061,13 +6149,73 @@ function App() {
               type="button"
               className={leftPanelView === 'assistant' ? 'is-active' : ''}
               aria-pressed={leftPanelView === 'assistant'}
-              onClick={() => setLeftPanelView('assistant')}
+              onClick={() => onLeftPanelViewChange('assistant')}
             >
               Assistant
             </button>
           </div>
 
-          {leftPanelView === 'workspace' ? (
+          {workspaceCompactView ? (
+            <div className="panel-view" data-testid="guided-start-workspace">
+              <article className="surface-hero first-use-card" data-testid="guided-start-card">
+                <div className="card-header">
+                  <div>
+                    <h3>Start here</h3>
+                    <p className="status-line">
+                      Use one real action to change the live map, then reveal the full workbench
+                      only when you need deeper controls.
+                    </p>
+                  </div>
+                  <span className="policy-pill allowed">Map-first</span>
+                </div>
+                <div className="summary-grid guided-summary-grid">
+                  <article>
+                    <span className="metric-label">Current mode</span>
+                    <strong>{mode}</strong>
+                  </article>
+                  <article>
+                    <span className="metric-label">Bundle state</span>
+                    <strong>{selectedBundleId || 'Not captured yet'}</strong>
+                  </article>
+                  <article>
+                    <span className="metric-label">Context links</span>
+                    <strong>{activeDomainIds.length}</strong>
+                  </article>
+                </div>
+              </article>
+
+              <label className="field">
+                Mode
+                <select value={mode} onChange={(event) => onModeChange(event.target.value as UiMode)}>
+                  {REQUIRED_UI_MODES.map((currentMode) => (
+                    <option key={currentMode} value={currentMode}>
+                      {currentMode}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <div className="controls">
+                <button onClick={onRegisterGuidedDomain}>Register Domain</button>
+                <button onClick={() => onLeftPanelViewChange('query')}>Start Query</button>
+                <button onClick={onCreateGuidedBundle} disabled={busy}>
+                  Create Bundle
+                </button>
+                <button onClick={onOpenGuidedBundle} disabled={busy || !selectedBundleId}>
+                  Reopen Bundle
+                </button>
+                <button onClick={() => onRightPanelViewChange('context')}>Open Inspector</button>
+                <button onClick={revealGuidedStartWorkbench}>Open Full Workbench</button>
+              </div>
+              <p className="status-line">{status}</p>
+              <p className="status-line">{integrityState}</p>
+              <p className="status-line">
+                Advanced controls stay hidden until you explicitly open the full workbench.
+              </p>
+            </div>
+          ) : null}
+
+          {leftPanelView === 'workspace' && !workspaceCompactView ? (
             <div className="panel-view">
             <h3>Workspace Controls</h3>
             <label className="field">
@@ -6459,7 +6607,7 @@ function App() {
                 type="button"
                 className={mainCanvasDeckView === 'summary' ? 'is-active' : ''}
                 aria-pressed={mainCanvasDeckView === 'summary'}
-                onClick={() => setMainCanvasDeckView('summary')}
+                onClick={() => onMainCanvasDeckViewChange('summary')}
               >
                 Summary
               </button>
@@ -6467,7 +6615,7 @@ function App() {
                 type="button"
                 className={mainCanvasDeckView === 'workflow' ? 'is-active' : ''}
                 aria-pressed={mainCanvasDeckView === 'workflow'}
-                onClick={() => setMainCanvasDeckView('workflow')}
+                onClick={() => onMainCanvasDeckViewChange('workflow')}
               >
                 Workflow
               </button>
@@ -6475,7 +6623,7 @@ function App() {
                 type="button"
                 className={mainCanvasDeckView === 'artifacts' ? 'is-active' : ''}
                 aria-pressed={mainCanvasDeckView === 'artifacts'}
-                onClick={() => setMainCanvasDeckView('artifacts')}
+                onClick={() => onMainCanvasDeckViewChange('artifacts')}
               >
                 Artifacts
               </button>
@@ -6499,14 +6647,65 @@ function App() {
           {mainCanvasDeckView === 'summary' ? (
             <div className="panel-view">
             <div className="workspace-surface">
+              {showGuidedStart && (
+                <article className="surface-hero guided-start-main" data-testid="guided-start-main">
+                  <div className="card-header">
+                    <div>
+                      <h3>See the map first</h3>
+                      <p className="status-line">
+                        The center canvas is the product. Add context, open analysis, or reveal
+                        deeper tooling only when you need it.
+                      </p>
+                    </div>
+                    <span
+                      className={`policy-pill ${degradedBudgetCount > 0 ? 'blocked' : 'allowed'}`}
+                    >
+                      {degradedBudgetCount > 0 ? 'Aggregation mode active' : 'Map ready'}
+                    </span>
+                  </div>
+                  <div className="guided-action-grid">
+                    <article className="surface-card compact">
+                      <strong>Context</strong>
+                      <p>Open the inspector and register a governed domain tied to the AOI.</p>
+                      <div className="controls compact">
+                        <button onClick={() => onRightPanelViewChange('context')}>
+                          Show Context Intake
+                        </button>
+                      </div>
+                    </article>
+                    <article className="surface-card compact">
+                      <strong>Analysis</strong>
+                      <p>Route into query or workflow detail once the map scene is legible.</p>
+                      <div className="controls compact">
+                        <button onClick={() => onLeftPanelViewChange('query')}>
+                          Open Query Workspace
+                        </button>
+                        <button onClick={() => onMainCanvasDeckViewChange('workflow')}>
+                          Open Workflow Stack
+                        </button>
+                      </div>
+                    </article>
+                    <article className="surface-card compact">
+                      <strong>Outputs</strong>
+                      <p>Reveal bundles and runtime activity only when stored evidence matters.</p>
+                      <div className="controls compact">
+                        <button onClick={() => onBottomPanelViewChange('bundles')}>
+                          Show Bundle Tray
+                        </button>
+                        <button onClick={revealGuidedStartWorkbench}>Reveal Full Workbench</button>
+                      </div>
+                    </article>
+                  </div>
+                </article>
+              )}
               <article className="surface-hero" data-testid="workspace-surface-summary">
                 <div className="card-header">
                   <div>
-                    <h3>{mode} workflow surface</h3>
+                    <h3>{showGuidedStart ? 'Map readiness' : `${mode} workflow surface`}</h3>
                     <p className="status-line">
-                      {visibleLayerCatalog.length} visible governed artifacts across{' '}
-                      {mainCanvasCatalog.length} main-canvas surfaces and {rightPanelCatalog.length}{' '}
-                      right-panel surfaces.
+                      {showGuidedStart
+                        ? 'Use the guided actions to add meaning around the live map without opening every subsystem at once.'
+                        : `${visibleLayerCatalog.length} visible governed artifacts across ${mainCanvasCatalog.length} main-canvas surfaces and ${rightPanelCatalog.length} right-panel surfaces.`}
                     </p>
                   </div>
                   <span
@@ -6517,8 +6716,10 @@ function App() {
                 </div>
                 <div className="summary-grid">
                   <article>
-                    <span className="metric-label">Replay cursor</span>
-                    <strong>{replayCursor}</strong>
+                    <span className="metric-label">
+                      {showGuidedStart ? 'Map surfaces' : 'Replay cursor'}
+                    </span>
+                    <strong>{showGuidedStart ? '2D + 3D ready' : replayCursor}</strong>
                   </article>
                   <article>
                     <span className="metric-label">Active layers</span>
@@ -6543,33 +6744,35 @@ function App() {
                 ))}
               </div>
 
-              <div className="telemetry-grid">
-                {budgetTelemetry.map((probe) => (
+              {!showGuidedStart && (
+                <div className="telemetry-grid">
+                  {budgetTelemetry.map((probe) => (
+                    <article
+                      key={probe.label}
+                      className={`telemetry-card ${probe.degraded ? 'degraded' : ''}`}
+                    >
+                      <span className="metric-label">{probe.label}</span>
+                      <strong>
+                        {probe.measuredMs} ms / {probe.budgetMs} ms budget
+                      </strong>
+                      <p>{probe.degraded ? 'Degraded aggregation in effect.' : 'Within budget.'}</p>
+                    </article>
+                  ))}
                   <article
-                    key={probe.label}
-                    className={`telemetry-card ${probe.degraded ? 'degraded' : ''}`}
+                    className={`telemetry-card ${stateFeedback.degraded ? 'degraded' : ''}`}
+                    data-testid="state-feedback-card"
                   >
-                    <span className="metric-label">{probe.label}</span>
-                    <strong>
-                      {probe.measuredMs} ms / {probe.budgetMs} ms budget
-                    </strong>
-                    <p>{probe.degraded ? 'Degraded aggregation in effect.' : 'Within budget.'}</p>
+                    <span className="metric-label">State feedback</span>
+                    <strong>{stateFeedback.action}</strong>
+                    <p>{stateFeedback.message}</p>
+                    <small>
+                      {stateFeedback.showProgress
+                        ? 'Non-blocking progress visible.'
+                        : 'No blocking progress required.'}
+                    </small>
                   </article>
-                ))}
-                <article
-                  className={`telemetry-card ${stateFeedback.degraded ? 'degraded' : ''}`}
-                  data-testid="state-feedback-card"
-                >
-                  <span className="metric-label">State feedback</span>
-                  <strong>{stateFeedback.action}</strong>
-                  <p>{stateFeedback.message}</p>
-                  <small>
-                    {stateFeedback.showProgress
-                      ? 'Non-blocking progress visible.'
-                      : 'No blocking progress required.'}
-                  </small>
-                </article>
-              </div>
+                </div>
+              )}
 
               <div className="surface-grid">
                 {mainCanvasCatalog.length === 0 && (
@@ -6636,7 +6839,7 @@ function App() {
                 ))}
               </div>
 
-              {dashboardCatalog.length > 0 && (
+              {!showGuidedStart && dashboardCatalog.length > 0 && (
                 <div className="sub-panel">
                   <h3>Support widgets</h3>
                   <div className="mini-grid">
@@ -7802,7 +8005,10 @@ function App() {
           ) : null}
         </section>
 
-        <section className="panel audit-panel" data-testid="region-right-panel">
+        <section
+          className={`panel audit-panel ${inspectorCollapsed ? 'is-collapsed' : ''}`}
+          data-testid="region-right-panel"
+        >
           <div className="panel-header">
             <div>
               <h2>Inspector</h2>
@@ -7813,7 +8019,7 @@ function App() {
                 type="button"
                 className={rightPanelView === 'context' ? 'is-active' : ''}
                 aria-pressed={rightPanelView === 'context'}
-                onClick={() => setRightPanelView('context')}
+                onClick={() => onRightPanelViewChange('context')}
               >
                 Context
               </button>
@@ -7821,7 +8027,7 @@ function App() {
                 type="button"
                 className={rightPanelView === 'monitor' ? 'is-active' : ''}
                 aria-pressed={rightPanelView === 'monitor'}
-                onClick={() => setRightPanelView('monitor')}
+                onClick={() => onRightPanelViewChange('monitor')}
               >
                 Monitor
               </button>
@@ -7829,7 +8035,7 @@ function App() {
                 type="button"
                 className={rightPanelView === 'planning' ? 'is-active' : ''}
                 aria-pressed={rightPanelView === 'planning'}
-                onClick={() => setRightPanelView('planning')}
+                onClick={() => onRightPanelViewChange('planning')}
               >
                 Planning
               </button>
@@ -7837,14 +8043,31 @@ function App() {
                 type="button"
                 className={rightPanelView === 'audit' ? 'is-active' : ''}
                 aria-pressed={rightPanelView === 'audit'}
-                onClick={() => setRightPanelView('audit')}
+                onClick={() => onRightPanelViewChange('audit')}
               >
                 Audit
               </button>
             </div>
+            <button
+              type="button"
+              className="panel-disclosure"
+              aria-pressed={!inspectorCollapsed}
+              onClick={() => setInspectorCollapsed((previous) => !previous)}
+            >
+              {inspectorCollapsed ? 'Expand Inspector' : 'Collapse Inspector'}
+            </button>
           </div>
 
-          {rightPanelView === 'context' ? (
+          {inspectorCollapsed ? (
+            <div className="panel-view panel-collapsed-view" data-testid="inspector-collapsed-view">
+              <article className="surface-card compact">
+                <strong>Inspector tucked away</strong>
+                <p>Open Context, Monitor, Planning, or Audit when you need supporting detail beside the map.</p>
+              </article>
+            </div>
+          ) : null}
+
+          {!inspectorCollapsed && rightPanelView === 'context' ? (
             <div className="panel-view">
           {contextPanelEntry && (
             <article className={`artifact-callout ${artifactTone(contextPanelEntry.artifactLabel)}`}>
@@ -8050,7 +8273,7 @@ function App() {
             </div>
           ) : null}
 
-          {rightPanelView === 'monitor' ? (
+          {!inspectorCollapsed && rightPanelView === 'monitor' ? (
             <div className="panel-view">
           <div className="overlay-grid">
             <article className="surface-card compact">
@@ -8310,7 +8533,7 @@ function App() {
             </div>
           ) : null}
 
-          {rightPanelView === 'planning' ? (
+          {!inspectorCollapsed && rightPanelView === 'planning' ? (
             <div className="panel-view">
           <h3>Strategic Model (I10)</h3>
           <div className="overlay-grid">
@@ -8587,7 +8810,7 @@ function App() {
             </div>
           ) : null}
 
-          {rightPanelView === 'audit' ? (
+          {!inspectorCollapsed && rightPanelView === 'audit' ? (
             <div className="panel-view">
           <article className="surface-card compact">
             <strong>Audit state</strong>
@@ -8616,7 +8839,10 @@ function App() {
           ) : null}
         </section>
       </main>
-      <footer className="panel footer-panel" data-testid="region-bottom-panel">
+      <footer
+        className={`panel footer-panel ${trayCollapsed ? 'is-collapsed' : ''}`}
+        data-testid="region-bottom-panel"
+      >
         <div className="panel-header">
           <div>
             <h2>Tray</h2>
@@ -8627,7 +8853,7 @@ function App() {
               type="button"
               className={bottomPanelView === 'bundles' ? 'is-active' : ''}
               aria-pressed={bottomPanelView === 'bundles'}
-              onClick={() => setBottomPanelView('bundles')}
+              onClick={() => onBottomPanelViewChange('bundles')}
             >
               Bundles
             </button>
@@ -8635,14 +8861,31 @@ function App() {
               type="button"
               className={bottomPanelView === 'activity' ? 'is-active' : ''}
               aria-pressed={bottomPanelView === 'activity'}
-              onClick={() => setBottomPanelView('activity')}
+              onClick={() => onBottomPanelViewChange('activity')}
             >
               Activity
             </button>
           </div>
+          <button
+            type="button"
+            className="panel-disclosure"
+            aria-pressed={!trayCollapsed}
+            onClick={() => setTrayCollapsed((previous) => !previous)}
+          >
+            {trayCollapsed ? 'Expand Tray' : 'Collapse Tray'}
+          </button>
         </div>
 
-        {bottomPanelView === 'bundles' ? (
+        {trayCollapsed ? (
+          <div className="panel-view panel-collapsed-view" data-testid="bottom-tray-collapsed-view">
+            <article className="surface-card compact">
+              <strong>Tray hidden by default</strong>
+              <p>Open Bundles or Activity when you need stored evidence, runtime status, or recent actions.</p>
+            </article>
+          </div>
+        ) : null}
+
+        {!trayCollapsed && bottomPanelView === 'bundles' ? (
           <div className="panel-view">
           <h3>Bundle Registry</h3>
           <div className="bundle-list">
@@ -8664,7 +8907,7 @@ function App() {
           </div>
         ) : null}
 
-        {bottomPanelView === 'activity' ? (
+        {!trayCollapsed && bottomPanelView === 'activity' ? (
           <div className="panel-view">
           <div className="summary-grid bottom-summary-grid">
             <article>
