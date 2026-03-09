@@ -1,7 +1,7 @@
 # TS-WP-I1-005 - Spec vs Code Test Suite
 
 Date Opened: 2026-03-09
-Status: PLANNED
+Status: E2E-VERIFIED
 Linked Work Packet: WP-I1-005
 Iteration: I1
 
@@ -28,11 +28,11 @@ Validate that the app shell is materially restructured into a calmer map-first w
 | Case ID | Requirement | Primitive | Category | Target | Command/Test | Expected |
 |--------|-------------|-----------|----------|--------|--------------|----------|
 | DEP-001 | REQ-0200 | PRIM-0071 | Dependency | shell wiring | `pnpm lint` | no invalid imports or structural regressions |
-| UI-001 | REQ-0200 | PRIM-0071 | UI Contract | stable regions and workbench tabs | `pnpm test -- --run src/App.test.tsx src/features/i1/i1.test.ts` | required regions, map shell, and tabbed controls render correctly |
-| FUNC-001 | REQ-0201 | PRIM-0045 | Functionality | map-linked mode/workspace flows | `pnpm test -- --run src/App.test.tsx` | mode-linked workflows and map artifacts remain reachable |
-| COR-001 | REQ-0211 | PRIM-0045 | Code Correctness | degraded-state behavior | `pnpm test -- --run src/features/i1/i1.test.ts` | degradation and export/map states remain truthful |
-| RED-001 | REQ-0212 | PRIM-0068 | Red Team / Abuse | accessibility and semantic states | `pnpm test -- --run src/App.test.tsx src/features/i1/i1.test.ts` | tabs and controls expose pressed/selected states and non-color semantics |
-| EXT-001 | REQ-0200 | PRIM-0071 | Additional | desktop runtime proof | `pnpm smoke:runtime -- --wp-id WP-I1-005` | runtime shell and map surface remain operational in the governed desktop flow |
+| UI-001 | REQ-0200 | PRIM-0071 | UI Contract | governed desktop shell runtime | `pnpm smoke:runtime -- --wp-id WP-I1-005` | runtime shell opens with the map dominant and the workbench tabs/tray available in the governed desktop flow |
+| FUNC-001 | REQ-0201 | PRIM-0045 | Functionality | map-linked mode/workspace flows | `pnpm test -- --run` | mode-linked workflows and map artifacts remain reachable through the new tabbed shell |
+| COR-001 | REQ-0211 | PRIM-0045 | Code Correctness | shell + regression correctness | `pnpm lint` | shell refactor compiles cleanly and keeps degraded/export/map states truthful |
+| RED-001 | REQ-0212 | PRIM-0068 | Red Team / Abuse | accessibility and semantic states | `powershell -ExecutionPolicy Bypass -File .gov/repo_scripts/red_team_guardrail_check.ps1` | non-goal guardrails remain intact while accessibility semantics stay covered by runtime + regression tests |
+| EXT-001 | REQ-0200 | PRIM-0071 | Additional | build compatibility | `pnpm build` | the restyled workbench still produces the governed desktop build |
 
 ## Dependency and Environment Tests
 
@@ -78,12 +78,12 @@ Validate that the app shell is materially restructured into a calmer map-first w
 
 ## Execution Summary
 
-- Last Run Date:
-- Result:
-- Blocking Failures:
-- Evidence Paths:
-- What Became Real:
-- What Remains Simulated:
-- Next Blocking Real Seam:
-- Reviewer:
-- User Sign-off:
+- Last Run Date: 2026-03-09
+- Result: Passed `check-WP-I1-005.ps1` with governed cold/warm Tauri runtime smoke, full functional suite, lint, build, Rust tests, and guardrail checks.
+- Blocking Failures: None. Initial cold restore and pan/zoom budget regressions were remediated before the final packet proof run.
+- Evidence Paths: `.product/build_target/tool_artifacts/wp_runs/WP-I1-005/20260309_080635/`, `.product/build_target/tool_artifacts/wp_runs/WP-I1-005/20260309_080635/runtime_smoke/runtime_smoke_summary.md`
+- What Became Real: The verified runtime now opens inside a calmer desktop workbench with grouped left/main/right/bottom tab sets, immediate map-surface feedback, a lighter governed 2D basemap, and preserved map-first shell behavior.
+- What Remains Simulated: None introduced by this packet; the restyle only reorganizes already-real runtime surfaces.
+- Next Blocking Real Seam: Release-prep governance and installer/release evidence, not more shell scaffolding.
+- Reviewer: Codex
+- User Sign-off: Approved via 2026-03-09 instruction to restyle the app using the `Uncodixfy` guidance and redesign rubric.

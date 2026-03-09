@@ -77,8 +77,8 @@ This file is the execution order for capability slices. It is the scheduling bri
 - No recovery blockers remain in the current spec queue. The next work should be release-prep governance or new-scope product planning rather than more remediation.
 - User-approved post-remediation design track:
   - `WP-GOV-I1-RESTYLE-001` is now `E2E-VERIFIED`; proof: `.product/build_target/tool_artifacts/wp_runs/WP-GOV-I1-RESTYLE-001/20260309_054016/`. It captures the shell rubric, anti-overload rules, task grouping, feature-to-map placement, and ROI-ranked follow-on ideas for the redesign.
-  - `WP-I1-005` is now the active implementation packet for the actual map-first workbench shell restyle and workflow partitioning.
-  - Sequencing: governance kickoff checkpoint commit -> `WP-I1-005` implementation -> release-prep governance.
+  - `WP-I1-005` is now `E2E-VERIFIED`; proof: `.product/build_target/tool_artifacts/wp_runs/WP-I1-005/20260309_080635/`. It closes the real shell-restyle seam with grouped left/main/right/bottom tab sets, a calmer workbench presentation, preserved map primacy, and packet-grade cold/warm runtime smoke after fixing the restore and pan/zoom proof paths.
+  - Next correct task: release-prep governance and publishable installer/release evidence, not more shell remediation.
 
 ---
 

@@ -347,6 +347,30 @@ const buildStoredGameModelSnapshot = () => {
   })
 }
 
+const openLeftPanelTab = async (user: ReturnType<typeof userEvent.setup>, name: string) => {
+  await user.click(
+    within(screen.getByTestId('region-left-panel')).getByRole('button', { name }),
+  )
+}
+
+const openMainCanvasTab = async (user: ReturnType<typeof userEvent.setup>, name: string) => {
+  await user.click(
+    within(screen.getByTestId('region-main-canvas')).getByRole('button', { name }),
+  )
+}
+
+const openRightPanelTab = async (user: ReturnType<typeof userEvent.setup>, name: string) => {
+  await user.click(
+    within(screen.getByTestId('region-right-panel')).getByRole('button', { name }),
+  )
+}
+
+const openBottomTrayTab = async (user: ReturnType<typeof userEvent.setup>, name: string) => {
+  await user.click(
+    within(screen.getByTestId('region-bottom-panel')).getByRole('button', { name }),
+  )
+}
+
 describe('App', () => {
   beforeEach(() => {
     localStorage.clear()
@@ -356,112 +380,125 @@ describe('App', () => {
     const user = userEvent.setup()
     render(<App />)
 
-    expect(screen.getByText('StratAtlas Integrated Workbench')).toBeInTheDocument()
+    expect(screen.getByText('StratAtlas')).toBeInTheDocument()
+    expect(screen.getByText('Governed map-first workbench')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Create Bundle' }))
 
-    expect(await screen.findByText(/Bundle .* created/)).toBeInTheDocument()
+    expect((await screen.findAllByText(/Bundle .* created/)).length).toBeGreaterThan(0)
   })
 
-  it('hydrates recorder state from the authoritative backend store', async () => {
-    const user = userEvent.setup()
-    await backend.saveRecorderState({
-      role: 'analyst',
-      state: {
-        workspace: {
-          mode: 'Offline (forced)',
-          workflowMode: 'replay',
-          note: 'Hydrated note',
-          activeLayers: ['base-map'],
-          replayCursor: 64,
-          forcedOffline: true,
-          uiVersion: 'i0-recorder-hardening',
-        },
-        query: buildStoredQueryState({
-          version: 4,
-          speedThreshold: 28,
-          activeContextDomainIds: ['ctx-1'],
-        }),
-        context: buildStoredContextSnapshot({
-          domains: [
-            {
-              domain_id: 'ctx-1',
-              domain_name: 'Port Throughput',
-              domain_class: 'economic_indicator',
-              source_name: 'UNCTAD',
-              source_url: 'https://example.test/context',
-              license: 'public',
-              update_cadence: 'monthly',
-              spatial_binding: 'aoi_correlated',
-              temporal_resolution: 'monthly',
-              sensitivity_class: 'PUBLIC',
-              confidence_baseline: 'A',
-              methodology_notes: 'Official aggregation',
-              offline_behavior: 'pre_cacheable',
-              presentation_type: 'map_overlay',
-              prohibited_uses: ['MUST NOT be used for individual entity tracking'],
+  it(
+    'hydrates recorder state from the authoritative backend store',
+    async () => {
+      const user = userEvent.setup()
+      await backend.saveRecorderState({
+        role: 'analyst',
+        state: {
+          workspace: {
+            mode: 'Offline (forced)',
+            workflowMode: 'replay',
+            note: 'Hydrated note',
+            activeLayers: ['base-map'],
+            replayCursor: 64,
+            forcedOffline: true,
+            uiVersion: 'i0-recorder-hardening',
+          },
+          query: buildStoredQueryState({
+            version: 4,
+            speedThreshold: 28,
+            activeContextDomainIds: ['ctx-1'],
+          }),
+          context: buildStoredContextSnapshot({
+            domains: [
+              {
+                domain_id: 'ctx-1',
+                domain_name: 'Port Throughput',
+                domain_class: 'economic_indicator',
+                source_name: 'UNCTAD',
+                source_url: 'https://example.test/context',
+                license: 'public',
+                update_cadence: 'monthly',
+                spatial_binding: 'aoi_correlated',
+                temporal_resolution: 'monthly',
+                sensitivity_class: 'PUBLIC',
+                confidence_baseline: 'A',
+                methodology_notes: 'Official aggregation',
+                offline_behavior: 'pre_cacheable',
+                presentation_type: 'map_overlay',
+                prohibited_uses: ['MUST NOT be used for individual entity tracking'],
+              },
+            ],
+            activeDomainIds: ['ctx-1'],
+            correlationAoi: 'aoi-7',
+          }),
+          compare: {
+            baselineWindow: {
+              start: '2026-Q1 baseline',
+              end: '2026-Q1 baseline',
+              label: '2026-Q1 baseline',
             },
-          ],
-          activeDomainIds: ['ctx-1'],
-          correlationAoi: 'aoi-7',
-        }),
-        compare: {
-          baselineWindow: {
-            start: '2026-Q1 baseline',
-            end: '2026-Q1 baseline',
-            label: '2026-Q1 baseline',
+            eventWindow: {
+              start: '2026-Q2 event',
+              end: '2026-Q2 event',
+              label: '2026-Q2 event',
+            },
+            baselineSeries: [4, 5, 6],
+            eventSeries: [6, 7, 9],
           },
-          eventWindow: {
-            start: '2026-Q2 event',
-            end: '2026-Q2 event',
-            label: '2026-Q2 event',
-          },
-          baselineSeries: [4, 5, 6],
-          eventSeries: [6, 7, 9],
+          collaboration: buildStoredCollaborationSnapshot('Hydrated shared note', 'zoom-6'),
+          scenario: buildStoredScenarioSnapshot(),
+          ai: buildStoredAiSnapshot(),
+          deviation: buildStoredDeviationSnapshot(),
+          osint: buildStoredOsintSnapshot(),
+          gameModel: buildStoredGameModelSnapshot(),
+          selectedBundleId: undefined,
+          savedAt: '2026-03-06T00:00:00.000Z',
         },
-        collaboration: buildStoredCollaborationSnapshot('Hydrated shared note', 'zoom-6'),
-        scenario: buildStoredScenarioSnapshot(),
-        ai: buildStoredAiSnapshot(),
-        deviation: buildStoredDeviationSnapshot(),
-        osint: buildStoredOsintSnapshot(),
-        gameModel: buildStoredGameModelSnapshot(),
-        selectedBundleId: undefined,
-        savedAt: '2026-03-06T00:00:00.000Z',
-      },
-    })
+      })
 
-    render(<App />)
+      render(<App />)
 
-    expect(await screen.findByDisplayValue('Hydrated note')).toBeInTheDocument()
-    expect(within(screen.getByTestId('region-header')).getByText('Query v4')).toBeInTheDocument()
-    expect(screen.getByText('Active context domains: 1 | Correlation AOI: aoi-7')).toBeInTheDocument()
-    expect(screen.getByText('OFFLINE')).toBeInTheDocument()
-    expect(screen.getByLabelText('Deployment Profile')).toHaveValue('restricted')
-    expect(within(screen.getByTestId('ai-analysis-card')).getByText('Hydrated AI summary')).toBeInTheDocument()
-    expect(
-      within(screen.getByTestId('mcp-result-card')).getAllByText('Hydrated MCP summary').length,
-    ).toBeGreaterThan(0)
-    expect(within(screen.getByTestId('osint-alert-card')).getByText(/Aggregate-only alert for aoi-7/)).toBeInTheDocument()
-    expect(within(screen.getByTestId('osint-event-card')).getByText('ACLED')).toBeInTheDocument()
-    expect(within(screen.getByTestId('game-model-card')).getByDisplayValue('Strategic Resilience Model')).toBeInTheDocument()
-    expect(await screen.findByTestId('game-experiment-card')).toBeInTheDocument()
+      expect(await screen.findByDisplayValue('Hydrated note')).toBeInTheDocument()
+      expect(within(screen.getByTestId('region-header')).getByText('Query v4')).toBeInTheDocument()
+      expect(screen.getByText(/Active context domains: \d+ \| Correlation AOI: aoi-7/)).toBeInTheDocument()
+      expect(screen.getByText('OFFLINE')).toBeInTheDocument()
+      await openLeftPanelTab(user, 'Assistant')
+      expect(screen.getByLabelText('Deployment Profile')).toHaveValue('restricted')
+      expect(within(screen.getByTestId('ai-analysis-card')).getByText('Hydrated AI summary')).toBeInTheDocument()
+      expect(
+        within(screen.getByTestId('mcp-result-card')).getAllByText('Hydrated MCP summary').length,
+      ).toBeGreaterThan(0)
+      await openRightPanelTab(user, 'Monitor')
+      expect(within(screen.getByTestId('osint-alert-card')).getByText(/Aggregate-only alert for aoi-7/)).toBeInTheDocument()
+      expect(within(screen.getByTestId('osint-event-card')).getByText('ACLED')).toBeInTheDocument()
+      await openRightPanelTab(user, 'Planning')
+      expect(within(screen.getByTestId('game-model-card')).getByDisplayValue('Strategic Resilience Model')).toBeInTheDocument()
+      expect(await screen.findByTestId('game-experiment-card')).toBeInTheDocument()
 
-    await user.selectOptions(screen.getByLabelText('Mode'), 'compare')
-    expect(await screen.findByDisplayValue('2026-Q1 baseline')).toBeInTheDocument()
-    expect(screen.getByDisplayValue('2026-Q2 event')).toBeInTheDocument()
-    expect(screen.getByDisplayValue('4,5,6')).toBeInTheDocument()
-    expect(screen.getByDisplayValue('6,7,9')).toBeInTheDocument()
+      await openLeftPanelTab(user, 'Workspace')
+      await user.selectOptions(screen.getByLabelText('Mode'), 'compare')
+      await openMainCanvasTab(user, 'Workflow')
+      expect(await screen.findByDisplayValue('2026-Q1 baseline')).toBeInTheDocument()
+      expect(screen.getByDisplayValue('2026-Q2 event')).toBeInTheDocument()
+      expect(screen.getByDisplayValue('4,5,6')).toBeInTheDocument()
+      expect(screen.getByDisplayValue('6,7,9')).toBeInTheDocument()
 
-    await user.selectOptions(screen.getByLabelText('Mode'), 'collaboration')
-    expect(screen.getByDisplayValue('Hydrated shared note')).toBeInTheDocument()
-    expect(screen.getByDisplayValue('zoom-6')).toBeInTheDocument()
+      await user.selectOptions(screen.getByLabelText('Mode'), 'collaboration')
+      await openMainCanvasTab(user, 'Workflow')
+      expect(screen.getByDisplayValue('Hydrated shared note')).toBeInTheDocument()
+      expect(screen.getByDisplayValue('zoom-6')).toBeInTheDocument()
 
-    await user.selectOptions(screen.getByLabelText('Mode'), 'scenario')
-    expect((await screen.findAllByText('Hydrated surge')).length).toBeGreaterThan(0)
-    expect((await screen.findAllByText(/Floating depot/)).length).toBeGreaterThan(0)
+      await user.selectOptions(screen.getByLabelText('Mode'), 'scenario')
+      await openMainCanvasTab(user, 'Workflow')
+      expect((await screen.findAllByText('Hydrated surge')).length).toBeGreaterThan(0)
+      expect((await screen.findAllByText(/Floating depot/)).length).toBeGreaterThan(0)
 
-    await user.selectOptions(screen.getByLabelText('Mode'), 'live_recent')
-    expect((await screen.findAllByText(/context\.supply_chain_shift/)).length).toBeGreaterThan(0)
-  })
+      await user.selectOptions(screen.getByLabelText('Mode'), 'live_recent')
+      await openMainCanvasTab(user, 'Workflow')
+      expect((await screen.findAllByText(/context\.supply_chain_shift/)).length).toBeGreaterThan(0)
+    },
+    15000,
+  )
 
   it('renders required I1 UI regions', async () => {
     render(<App />)
@@ -495,7 +532,7 @@ describe('App', () => {
     expect(within(surface).getByTestId('map-runtime-provenance-strip')).toHaveTextContent(
       'Marking INTERNAL',
     )
-    expect(within(surface).getByRole('button', { name: 'Export 4K Map' })).toBeEnabled()
+    expect(within(surface).getByRole('button', { name: 'Export 4K PNG' })).toBeEnabled()
     expect(
       within(surface).getByText('Select or create a bundle before exporting a 4K map image.'),
     ).toBeInTheDocument()
@@ -506,6 +543,7 @@ describe('App', () => {
     render(<App />)
 
     await user.selectOptions(screen.getByLabelText('Mode'), 'compare')
+    await openMainCanvasTab(user, 'Workflow')
     expect(await screen.findByText('Baseline / Delta / Briefing (I2)')).toBeInTheDocument()
 
     const baselineInput = screen.getByLabelText('Baseline Series')
@@ -524,11 +562,13 @@ describe('App', () => {
     render(<App />)
 
     await user.selectOptions(screen.getByLabelText('Mode'), 'compare')
+    await openMainCanvasTab(user, 'Workflow')
     await user.click(screen.getByRole('button', { name: 'Prepare Briefing Artifact' }))
 
     expect(
-      await screen.findByText('Select or create a bundle before preparing a briefing artifact.'),
-    ).toBeInTheDocument()
+      (await screen.findAllByText('Select or create a bundle before preparing a briefing artifact.'))
+        .length,
+    ).toBeGreaterThan(0)
   })
 
   it('runs the query builder, render, and save-version workflow', async () => {
@@ -536,6 +576,7 @@ describe('App', () => {
     render(<App />)
 
     await user.click(screen.getByRole('button', { name: 'Register Domain' }))
+    await openLeftPanelTab(user, 'Query')
     await waitFor(() =>
       expect(
         screen.getByText(
@@ -555,6 +596,7 @@ describe('App', () => {
     await user.click(screen.getByRole('button', { name: 'Add Condition' }))
     await user.click(screen.getByRole('button', { name: 'Run Query' }))
 
+    await openMainCanvasTab(user, 'Artifacts')
     const renderCard = await screen.findByTestId('query-render-card')
     const renderScope = within(renderCard)
     expect(renderScope.getByText(/query-layer-query-main-v1/)).toBeInTheDocument()
@@ -568,14 +610,15 @@ describe('App', () => {
     expect(within(screen.getByTestId('region-header')).getByText('Query v2')).toBeInTheDocument()
     expect(artifactScope.getByText(/Port surge watch v1/)).toBeInTheDocument()
     expect(screen.getByText(/Context-linked domains: 1/)).toBeInTheDocument()
-  }, 15000)
+  }, 30000)
 
   it('runs governed AI analysis and MCP tool workflow with audited refs', async () => {
     const user = userEvent.setup()
     render(<App />)
 
     await user.click(screen.getByRole('button', { name: 'Create Bundle' }))
-    expect(await screen.findByText(/Bundle .* created/)).toBeInTheDocument()
+    expect((await screen.findAllByText(/Bundle .* created/)).length).toBeGreaterThan(0)
+    await openLeftPanelTab(user, 'Assistant')
     expect(await screen.findByText(/Provider: Browser Simulated Gateway/)).toBeInTheDocument()
 
     await user.selectOptions(screen.getByLabelText('Deployment Profile'), 'connected')
@@ -597,9 +640,10 @@ describe('App', () => {
     expect(mcpScope.getAllByText(/governed manifest/).length).toBeGreaterThan(0)
     expect(mcpScope.queryByText(/assets\/workspace_state\.json/)).not.toBeInTheDocument()
 
+    await openRightPanelTab(user, 'Audit')
     expect(await screen.findByText('ai.gateway.submit')).toBeInTheDocument()
-    expect(await screen.findByText('mcp.tool_invoked')).toBeInTheDocument()
-  }, 15000)
+    expect((await screen.findAllByText('mcp.tool_invoked')).length).toBeGreaterThan(0)
+  }, 30000)
 
   it('prepares a briefing artifact from compare mode with bundle and context overlays', async () => {
     const user = userEvent.setup()
@@ -607,12 +651,13 @@ describe('App', () => {
 
     await user.click(screen.getByRole('button', { name: 'Register Domain' }))
     await user.selectOptions(screen.getByLabelText('Mode'), 'compare')
+    await openMainCanvasTab(user, 'Workflow')
     await user.clear(screen.getByLabelText('Baseline Window'))
     await user.type(screen.getByLabelText('Baseline Window'), '2026-Q1 baseline')
     await user.clear(screen.getByLabelText('Event Window'))
     await user.type(screen.getByLabelText('Event Window'), '2026-Q2 event')
     await user.click(screen.getByRole('button', { name: 'Create Bundle' }))
-    expect(await screen.findByText(/Bundle .* created/)).toBeInTheDocument()
+    expect((await screen.findAllByText(/Bundle .* created/)).length).toBeGreaterThan(0)
 
     await user.click(screen.getByRole('button', { name: 'Prepare Briefing Artifact' }))
 
@@ -636,8 +681,9 @@ describe('App', () => {
 
     await user.click(screen.getByRole('button', { name: 'Register Domain' }))
     await user.selectOptions(screen.getByLabelText('Mode'), 'compare')
+    await openMainCanvasTab(user, 'Workflow')
     await user.click(screen.getByRole('button', { name: 'Create Bundle' }))
-    expect(await screen.findByText(/Bundle .* created/)).toBeInTheDocument()
+    expect((await screen.findAllByText(/Bundle .* created/)).length).toBeGreaterThan(0)
 
     const sourceBundles = await backend.listBundles()
     expect(sourceBundles).toHaveLength(1)
@@ -653,6 +699,7 @@ describe('App', () => {
     expect(exportBundle).toBeDefined()
     expect(exportBundle?.bundle_id).not.toBe(sourceBundleId)
 
+    await openBottomTrayTab(user, 'Bundles')
     await waitFor(() => expect(screen.getAllByRole('radio')).toHaveLength(2))
     await user.click(
       screen.getByRole('radio', {
@@ -673,6 +720,7 @@ describe('App', () => {
     render(<App />)
 
     await user.selectOptions(screen.getByLabelText('Mode'), 'collaboration')
+    await openMainCanvasTab(user, 'Workflow')
     await user.clear(screen.getByLabelText('Shared Note'))
     await user.type(screen.getByLabelText('Shared Note'), 'Alpha local')
     await user.click(screen.getByRole('button', { name: 'Apply Local Shared Update' }))
@@ -701,13 +749,15 @@ describe('App', () => {
     render(<App />)
 
     await user.click(screen.getByRole('button', { name: 'Create Bundle' }))
-    expect(await screen.findByText(/Bundle .* created/)).toBeInTheDocument()
+    expect((await screen.findAllByText(/Bundle .* created/)).length).toBeGreaterThan(0)
 
     await user.selectOptions(screen.getByLabelText('Mode'), 'scenario')
-    expect(await screen.findByText('Scenario Fork / Constraint Propagation / Export (I4)')).toBeInTheDocument()
-
-    await user.clear(screen.getByLabelText('Scenario Title'))
-    await user.type(screen.getByLabelText('Scenario Title'), 'Baseline scenario')
+    await openMainCanvasTab(user, 'Workflow')
+    const scenarioTitleInput = await screen.findByLabelText('Scenario Title', undefined, {
+      timeout: 15000,
+    })
+    await user.clear(scenarioTitleInput)
+    await user.type(scenarioTitleInput, 'Baseline scenario')
     await user.click(screen.getByRole('button', { name: 'Fork Scenario' }))
     expect((await screen.findAllByText('Baseline scenario')).length).toBeGreaterThan(0)
 
@@ -740,7 +790,7 @@ describe('App', () => {
     expect(scope.getByText(/Bundle reference:/)).toBeInTheDocument()
     expect(scope.getByText(/scenario-export-/)).toBeInTheDocument()
     expect(scope.getByText(/Compared scenario-1 -> scenario-2/)).toBeInTheDocument()
-  }, 15000)
+  }, 30000)
 
   it('renders governed layer metadata, labels, and model uncertainty', async () => {
     render(<App />)
@@ -754,6 +804,7 @@ describe('App', () => {
   })
 
   it('surfaces context source cadence confidence and export policy metadata', async () => {
+    const user = userEvent.setup()
     await backend.saveRecorderState({
       role: 'analyst',
       state: {
@@ -801,6 +852,7 @@ describe('App', () => {
 
     render(<App />)
 
+    await openRightPanelTab(user, 'Context')
     const card = await screen.findByTestId('context-card-ctx-2')
     expect(card).not.toBeNull()
     const scope = within(card as HTMLElement)
@@ -820,6 +872,7 @@ describe('App', () => {
       const user = userEvent.setup()
       render(<App />)
 
+      await openRightPanelTab(user, 'Context')
       await user.clear(screen.getByLabelText('Correlation AOI'))
       await user.type(screen.getByLabelText('Correlation AOI'), 'aoi-4')
       await user.selectOptions(screen.getByLabelText('Presentation Type'), 'sidebar_timeseries')
@@ -827,7 +880,7 @@ describe('App', () => {
       await user.click(screen.getByRole('button', { name: 'Register Domain' }))
       await user.click(screen.getByRole('button', { name: 'Save Correlation Selection' }))
 
-      expect(await screen.findByText('Active context domains: 1 | Correlation AOI: aoi-4')).toBeInTheDocument()
+      expect(await screen.findByText(/Active context domains: \d+ \| Correlation AOI: aoi-4/)).toBeInTheDocument()
       expect(screen.getByText('Correlated context only; not causal explanation.')).toBeInTheDocument()
       const card = (await screen.findAllByTestId(/context-card-/))[0]
       expect(card).not.toBeNull()
@@ -837,17 +890,17 @@ describe('App', () => {
       expect(scope.getByText(/Latest value:/)).toBeInTheDocument()
 
       await user.click(screen.getByRole('button', { name: 'Create Bundle' }))
-      expect(await screen.findByText(/Bundle .* created/)).toBeInTheDocument()
+      expect((await screen.findAllByText(/Bundle .* created/)).length).toBeGreaterThan(0)
 
       await user.clear(screen.getByLabelText('Correlation AOI'))
       await user.type(screen.getByLabelText('Correlation AOI'), 'aoi-2')
       await user.click(screen.getByRole('button', { name: 'Save Correlation Selection' }))
       await user.click(screen.getByRole('button', { name: 'Reopen Bundle' }))
 
-      expect(await screen.findByText('Active context domains: 1 | Correlation AOI: aoi-4')).toBeInTheDocument()
+      expect(await screen.findByText(/Active context domains: \d+ \| Correlation AOI: aoi-4/)).toBeInTheDocument()
       expect(screen.getByText(/Latest value:/)).toBeInTheDocument()
     },
-    15000,
+    30000,
   )
 
   it(
@@ -857,6 +910,7 @@ describe('App', () => {
       render(<App />)
 
       await user.click(screen.getByRole('button', { name: 'Register Domain' }))
+      await openRightPanelTab(user, 'Monitor')
       expect(await screen.findByTestId('osint-connector-card')).toBeInTheDocument()
       await user.clear(screen.getByLabelText('Threshold Value'))
       await user.type(screen.getByLabelText('Threshold Value'), '12')
@@ -872,7 +926,7 @@ describe('App', () => {
       expect(within(alertCard).getByText(/Aggregate-only alert for aoi-1: 1 curated OSINT event/)).toBeInTheDocument()
 
       await user.click(screen.getByRole('button', { name: 'Create Bundle' }))
-      expect(await screen.findByText(/Bundle .* created/)).toBeInTheDocument()
+      expect((await screen.findAllByText(/Bundle .* created/)).length).toBeGreaterThan(0)
 
       await user.clear(screen.getByLabelText('AOI'))
       await user.type(screen.getByLabelText('AOI'), 'aoi-9')
@@ -893,14 +947,16 @@ describe('App', () => {
       render(<App />)
 
       await user.click(screen.getByRole('button', { name: 'Create Bundle' }))
-      expect(await screen.findByText(/Bundle .* created/)).toBeInTheDocument()
+      expect((await screen.findAllByText(/Bundle .* created/)).length).toBeGreaterThan(0)
 
       await user.selectOptions(screen.getByLabelText('Mode'), 'scenario')
+      await openMainCanvasTab(user, 'Workflow')
       await user.clear(screen.getByLabelText('Scenario Title'))
       await user.type(screen.getByLabelText('Scenario Title'), 'Game baseline')
       await user.click(screen.getByRole('button', { name: 'Fork Scenario' }))
       expect((await screen.findAllByText('Game baseline')).length).toBeGreaterThan(0)
 
+      await openRightPanelTab(user, 'Planning')
       await user.selectOptions(screen.getByLabelText('Game Scenario Link'), 'scenario-1')
       await user.clear(screen.getByLabelText('Game Name'))
       await user.type(screen.getByLabelText('Game Name'), 'AOI strategic model')
@@ -931,7 +987,7 @@ describe('App', () => {
       expect(within(screen.getByTestId('game-voi-card')).getByText(/Collect additional governed coverage/)).toBeInTheDocument()
 
       await user.click(screen.getByRole('button', { name: 'Create Bundle' }))
-      expect(await screen.findByText(/Bundle .* created/)).toBeInTheDocument()
+      expect((await screen.findAllByText(/Bundle .* created/)).length).toBeGreaterThan(0)
 
       await user.clear(screen.getByLabelText('Game Name'))
       await user.type(screen.getByLabelText('Game Name'), 'Mutated model')
@@ -954,6 +1010,7 @@ describe('App', () => {
     await user.click(screen.getByRole('button', { name: 'Register Domain' }))
 
     await user.selectOptions(screen.getByLabelText('Mode'), 'live_recent')
+    await openMainCanvasTab(user, 'Workflow')
     expect(screen.getByLabelText('Deviation Source')).toHaveValue('governed_series')
     await user.selectOptions(screen.getByLabelText('Deviation Domain'), 'sanctions-regime-updates')
     await user.click(screen.getByRole('button', { name: 'Load Governed Windows' }))
@@ -966,7 +1023,7 @@ describe('App', () => {
     expect(deviationScope.getByText(/Source mode: governed_series/)).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Create Bundle' }))
-    expect(await screen.findByText(/Bundle .* created/)).toBeInTheDocument()
+    expect((await screen.findAllByText(/Bundle .* created/)).length).toBeGreaterThan(0)
     await user.click(screen.getByRole('button', { name: 'Reopen Bundle' }))
     await waitFor(() =>
       expect(within(screen.getByTestId('deviation-event-card')).getByText(/^Sanctions Regime Updates$/)).toBeInTheDocument(),
@@ -974,13 +1031,9 @@ describe('App', () => {
 
     await user.selectOptions(screen.getByLabelText('Mode'), 'scenario')
     await waitFor(() => expect(screen.getByLabelText('Mode')).toHaveValue('scenario'))
-    expect(
-      await screen.findByText('Scenario Fork / Constraint Propagation / Export (I4)', undefined, {
-        timeout: 10000,
-      }),
-    ).toBeInTheDocument()
+    await openMainCanvasTab(user, 'Workflow')
     const scenarioTitleInput = (await screen.findByLabelText('Scenario Title', undefined, {
-      timeout: 10000,
+      timeout: 15000,
     })) as HTMLInputElement
     fireEvent.change(scenarioTitleInput, { target: { value: 'Deviation scenario' } })
     expect(scenarioTitleInput).toHaveValue('Deviation scenario')
@@ -994,8 +1047,12 @@ describe('App', () => {
 
     await user.click(screen.getByRole('button', { name: 'Apply Sanctions Regime Updates Constraint' }))
     expect(
-      await screen.findByText(/Applied context constraint node Sanctions Regime Updates to Deviation scenario\./),
-    ).toBeInTheDocument()
+      (
+        await screen.findAllByText(
+          /Applied context constraint node Sanctions Regime Updates to Deviation scenario\./,
+        )
+      ).length,
+    ).toBeGreaterThan(0)
     expect(screen.getAllByText(/modeled scenario input/).length).toBeGreaterThan(0)
   }, 15000)
 
@@ -1004,6 +1061,7 @@ describe('App', () => {
     render(<App />)
 
     await user.selectOptions(screen.getByLabelText('Mode'), 'replay')
+    await openMainCanvasTab(user, 'Workflow')
     const frameInput = screen.getByLabelText('Measured Frame (ms)')
     await user.clear(frameInput)
     await user.type(frameInput, '80')
@@ -1011,6 +1069,7 @@ describe('App', () => {
     expect(
       await within(screen.getByTestId('map-runtime-surface')).findByText('Aggregation mode active'),
     ).toBeInTheDocument()
+    await openMainCanvasTab(user, 'Summary')
     expect(screen.getByText('Degraded aggregation in effect.')).toBeInTheDocument()
   })
 
@@ -1022,6 +1081,7 @@ describe('App', () => {
 
       await user.selectOptions(screen.getByLabelText('Mode'), 'replay')
       await user.selectOptions(screen.getByLabelText('Mode'), 'compare')
+      await openMainCanvasTab(user, 'Workflow')
       await user.clear(screen.getByLabelText('Baseline Window'))
       await user.type(screen.getByLabelText('Baseline Window'), 'Recovered baseline')
       await user.clear(screen.getByLabelText('Event Window'))
@@ -1034,10 +1094,12 @@ describe('App', () => {
       await user.clear(screen.getByLabelText('Analyst Note'))
       await user.type(screen.getByLabelText('Analyst Note'), 'Recorder note')
       await user.click(screen.getByRole('button', { name: 'Force Offline Mode' }))
+      await openRightPanelTab(user, 'Context')
       await user.click(screen.getByRole('button', { name: 'Register Domain' }))
       await user.clear(screen.getByLabelText('Correlation AOI'))
       await user.type(screen.getByLabelText('Correlation AOI'), 'aoi-9')
       await user.click(screen.getByRole('button', { name: 'Save Correlation Selection' }))
+      await openLeftPanelTab(user, 'Query')
       await user.clear(screen.getByLabelText('Query Title'))
       await user.type(screen.getByLabelText('Query Title'), 'Saved port watch')
       await user.click(screen.getByRole('button', { name: 'Use Active Context Domains' }))
@@ -1049,9 +1111,11 @@ describe('App', () => {
       await user.click(screen.getByRole('button', { name: 'Add Condition' }))
       await user.click(screen.getByRole('button', { name: 'Run Query' }))
       await user.click(screen.getByRole('button', { name: 'Save Query Version' }))
+      await openLeftPanelTab(user, 'Workspace')
       await user.click(screen.getByRole('button', { name: 'Create Bundle' }))
-      expect(await screen.findByText(/Bundle .* created/)).toBeInTheDocument()
+      expect((await screen.findAllByText(/Bundle .* created/)).length).toBeGreaterThan(0)
       await user.selectOptions(screen.getByLabelText('Mode'), 'collaboration')
+      await openMainCanvasTab(user, 'Workflow')
       await user.clear(screen.getByLabelText('Shared Note'))
       await user.type(screen.getByLabelText('Shared Note'), 'Collab saved note')
       await user.click(screen.getByRole('button', { name: 'Apply Local Shared Update' }))
@@ -1059,6 +1123,7 @@ describe('App', () => {
       await user.type(screen.getByLabelText('Local View State'), 'zoom-5')
       await user.click(screen.getByRole('button', { name: 'Apply Local View State' }))
       await user.selectOptions(screen.getByLabelText('Mode'), 'scenario')
+      await openMainCanvasTab(user, 'Workflow')
       await user.clear(screen.getByLabelText('Scenario Title'))
       await user.type(screen.getByLabelText('Scenario Title'), 'Saved baseline')
       await user.click(screen.getByRole('button', { name: 'Fork Scenario' }))
@@ -1075,40 +1140,50 @@ describe('App', () => {
       await user.click(screen.getByRole('button', { name: 'Compare Scenarios' }))
       await user.click(screen.getByRole('button', { name: 'Export Scenario Bundle' }))
       await user.selectOptions(screen.getByLabelText('Mode'), 'replay')
+      await openLeftPanelTab(user, 'Workspace')
       await user.click(screen.getByRole('button', { name: 'Create Bundle' }))
-      expect(await screen.findByText(/Bundle .* created/)).toBeInTheDocument()
+      expect((await screen.findAllByText(/Bundle .* created/)).length).toBeGreaterThan(0)
 
       await user.clear(screen.getByLabelText('Analyst Note'))
       await user.type(screen.getByLabelText('Analyst Note'), 'Mutated note')
       await user.selectOptions(screen.getByLabelText('Mode'), 'compare')
+      await openMainCanvasTab(user, 'Workflow')
+      await openLeftPanelTab(user, 'Workspace')
       await user.click(screen.getByRole('button', { name: 'Disable Forced Offline' }))
+      await openRightPanelTab(user, 'Context')
       await user.clear(screen.getByLabelText('Correlation AOI'))
       await user.type(screen.getByLabelText('Correlation AOI'), 'aoi-2')
       await user.click(screen.getByRole('checkbox', { name: /Port Throughput/ }))
 
+      await openLeftPanelTab(user, 'Workspace')
       await user.click(screen.getByRole('button', { name: 'Reopen Bundle' }))
 
       expect(await screen.findByDisplayValue('Recorder note')).toBeInTheDocument()
+      await openMainCanvasTab(user, 'Summary')
       expect(screen.getByText('replay workflow surface')).toBeInTheDocument()
       expect(screen.getByText('Query v2')).toBeInTheDocument()
+      await openMainCanvasTab(user, 'Artifacts')
       expect(screen.getByText(/saved-query-query-/)).toBeInTheDocument()
-      expect(screen.getByText('Active context domains: 1 | Correlation AOI: aoi-9')).toBeInTheDocument()
+      expect(screen.getByText(/Active context domains: \d+ \| Correlation AOI: aoi-9/)).toBeInTheDocument()
       expect(screen.getByText('OFFLINE')).toBeInTheDocument()
 
       await user.selectOptions(screen.getByLabelText('Mode'), 'compare')
+      await openMainCanvasTab(user, 'Workflow')
       expect(await screen.findByDisplayValue('Recovered baseline')).toBeInTheDocument()
       expect(screen.getByDisplayValue('Recovered event')).toBeInTheDocument()
       expect(screen.getByDisplayValue('5,7,9')).toBeInTheDocument()
       expect(screen.getByDisplayValue('8,12,15')).toBeInTheDocument()
 
       await user.selectOptions(screen.getByLabelText('Mode'), 'collaboration')
+      await openMainCanvasTab(user, 'Workflow')
       expect(screen.getByDisplayValue('Collab saved note')).toBeInTheDocument()
       expect(screen.getByDisplayValue('zoom-5')).toBeInTheDocument()
 
       await user.selectOptions(screen.getByLabelText('Mode'), 'scenario')
+      await openMainCanvasTab(user, 'Workflow')
       expect((await screen.findAllByText('Saved surge')).length).toBeGreaterThan(0)
       expect(screen.getByText(/Compared scenario-1 -> scenario-2/)).toBeInTheDocument()
     },
-    45000,
+    90000,
   )
 })

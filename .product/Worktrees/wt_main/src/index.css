@@ -1,8 +1,9 @@
 :root {
-  font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  font-family: 'Aptos', 'Segoe UI Variable', 'Segoe UI', 'Helvetica Neue', sans-serif;
   line-height: 1.4;
   font-weight: 400;
-  color: #e8eef9;
+  color: #eef2f6;
+  color-scheme: dark;
 }
 
 * {
@@ -13,5 +14,5 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  background: #0d111a;
+  background: #101418;
 }

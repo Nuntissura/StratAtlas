@@ -6,7 +6,7 @@ Linked Test Suite: .gov/workflow/wp_test_suites/TS-WP-I1-005.md
 Linked WP Check Script: .gov/workflow/wp_checks/check-WP-I1-005.ps1
 Packet Class Snapshot: IMPLEMENTATION
 Workflow Version Snapshot: 4.0
-WP Status Snapshot: SPEC-MAPPED
+WP Status Snapshot: E2E-VERIFIED
 Iteration: I1
 
 ## Scope
@@ -23,9 +23,9 @@ Concrete extraction of requirement and primitive obligations this WP must satisf
 
 ## Change Ledger Snapshot
 
-- What Became Real: The restyle packet now has an explicit shell boundary, proof target, and governing rubric.
-- What Remains Simulated: No new simulation is introduced; the current shell still exists until product changes land.
-- Next Blocking Real Seam: Move the real app shell from dashboard composition to a task-grouped workbench without breaking verified runtime behavior.
+- What Became Real: The shipped shell now uses grouped left/main/right/bottom tab sets around a center-stage 2D/3D map runtime, calmer workbench chrome, immediate surface-mode feedback, a governed local 2D basemap style, and packet-grade cold/warm runtime proof for the reorganized shell.
+- What Remains Simulated: No new simulation was introduced by this packet; browser/jsdom fallbacks remain existing non-proof development paths outside the governed Tauri runtime evidence.
+- Next Blocking Real Seam: Release-prep governance and publishable installer/release evidence, not more shell scaffolding.
 
 ## Requirement Extraction
 
@@ -44,7 +44,7 @@ Concrete extraction of requirement and primitive obligations this WP must satisf
 |-----------|------|----------|------|------------|--------|
 | PRIM-0045 | Dual Surface Geospatial Runtime | Deliver governed 2D and 3D canvas surfaces with mode-aware layer orchestration, labeling contracts, and stable shell integration | REQ-0011, REQ-0012, REQ-0014, REQ-0015, REQ-0016, REQ-0200, REQ-0201, REQ-0202, REQ-0203, REQ-0206, REQ-0207, REQ-0208, REQ-0209, REQ-0210, REQ-0211, REQ-0212 | I1 | E2E-VERIFIED |
 | PRIM-0068 | Accessible Map Interaction Contract | Preserve keyboard-reachable controls and non-color-only semantics across the governed map surface and its connected overlays | GATE-E, REQ-0014, REQ-0015, REQ-0016, REQ-0206, REQ-0207, REQ-0208, REQ-0209, REQ-0210, REQ-0212 | I1 | E2E-VERIFIED |
-| PRIM-0071 | Map-First Workbench Shell | Organize the verified StratAtlas regions into a calmer desktop workbench with task-grouped tabs, contextual panes, and bottom-tray disclosure while preserving map primacy and accessibility | REQ-0011, REQ-0012, REQ-0200, REQ-0201, REQ-0211, REQ-0212 | I1 | SPEC-MAPPED |
+| PRIM-0071 | Map-First Workbench Shell | Organize the verified StratAtlas regions into a calmer desktop workbench with task-grouped tabs, contextual panes, and bottom-tray disclosure while preserving map primacy and accessibility | REQ-0011, REQ-0012, REQ-0200, REQ-0201, REQ-0211, REQ-0212 | I1 | E2E-VERIFIED |
 
 ## Traceability Hooks
 

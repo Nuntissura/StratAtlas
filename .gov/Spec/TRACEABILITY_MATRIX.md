@@ -344,4 +344,4 @@ For quick lookup: "What requirements does this component implement?"
 
 | WP-GOV-I1-RESTYLE-001 | I1 | REQ-0013, REQ-0019, REQ-0020, REQ-0021, REQ-0022 | PRIM-0063, PRIM-0064, PRIM-0070 | .gov/workflow/wp_test_suites/TS-WP-GOV-I1-RESTYLE-001.md | E2E-VERIFIED | .gov/workflow/wp_spec_extractions/SX-WP-GOV-I1-RESTYLE-001.md; .product/build_target/tool_artifacts/wp_runs/WP-GOV-I1-RESTYLE-001/20260309_054016/; user sign-off approved via 2026-03-09 instruction to research UI/UX, create a rubric, and drive the redesign |
 
-| WP-I1-005 | I1 | REQ-0011, REQ-0012, REQ-0200, REQ-0201, REQ-0211, REQ-0212 | PRIM-0045, PRIM-0068, PRIM-0071 | .gov/workflow/wp_test_suites/TS-WP-I1-005.md | SPEC-MAPPED | .gov/workflow/wp_spec_extractions/SX-WP-I1-005.md |
+| WP-I1-005 | I1 | REQ-0011, REQ-0012, REQ-0200, REQ-0201, REQ-0211, REQ-0212 | PRIM-0045, PRIM-0068, PRIM-0071 | .gov/workflow/wp_test_suites/TS-WP-I1-005.md | E2E-VERIFIED | .gov/workflow/wp_spec_extractions/SX-WP-I1-005.md; .product/build_target/tool_artifacts/wp_runs/WP-I1-005/20260309_080635/; user sign-off approved via 2026-03-09 instruction to restyle the app using the `Uncodixfy` guidance and redesign rubric |

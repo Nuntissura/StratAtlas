@@ -1,7 +1,7 @@
 # WP-I1-005 - Map-First Workbench Shell Restyle and Workflow Partitioning
 
 Date Opened: 2026-03-09
-Status: SPEC-MAPPED
+Status: E2E-VERIFIED
 Iteration: I1
 Workflow Version: 4.0
 Packet Class: IMPLEMENTATION
@@ -129,9 +129,9 @@ Restyle the verified StratAtlas runtime into a calmer map-first desktop workbenc
 
 ## Change Ledger
 
-- What Became Real: The restyle packet now has an explicit shell boundary, proof target, and governing rubric.
-- What Remains Simulated: No new simulation is introduced; the current shell still exists until product changes land.
-- Next Blocking Real Seam: Move the real app shell from dashboard composition to a task-grouped workbench without breaking verified runtime behavior.
+- What Became Real: The shipped shell now uses grouped left/main/right/bottom tab sets around a center-stage 2D/3D map runtime, calmer workbench chrome, immediate surface-mode feedback, a governed local 2D basemap style, and packet-grade cold/warm runtime proof for the reorganized shell.
+- What Remains Simulated: No new simulation was introduced by this packet; browser/jsdom fallbacks remain existing non-proof development paths outside the governed Tauri runtime evidence.
+- Next Blocking Real Seam: Release-prep governance and publishable installer/release evidence, not more shell scaffolding.
 
 ## Checkpoint Commit Plan
 
@@ -156,14 +156,17 @@ Restyle the verified StratAtlas runtime into a calmer map-first desktop workbenc
 
 ## Evidence
 
-- Test Suite Execution:
-- Logs:
-- Screenshots/Exports:
-- Build Artifacts:
+- Test Suite Execution: `pnpm exec tsc -b --pretty false`; `pnpm exec vitest run src/App.test.tsx src/features/i1/i1.test.ts`; `powershell -ExecutionPolicy Bypass -File .gov/workflow/wp_checks/check-WP-I1-005.ps1`
+- Logs: `.product/build_target/tool_artifacts/wp_runs/WP-I1-005/20260309_080635/summary.md`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-005/20260309_080635/UI-001.log`
+- Screenshots/Exports: `.product/build_target/tool_artifacts/wp_runs/WP-I1-005/20260309_080635/runtime_smoke/runtime_smoke_summary.md`
+- Build Artifacts: `.product/build_target/tool_artifacts/wp_runs/WP-I1-005/20260309_080635/result.json`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-005/20260309_080635/runtime_smoke/cold/runtime_smoke_report.json`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-005/20260309_080635/runtime_smoke/warm/runtime_smoke_report.json`
 - Proof Artifact: .product/build_target/tool_artifacts/wp_runs/WP-I1-005/
-- User Sign-off:
+- User Sign-off: Approved via 2026-03-09 instruction to restyle the app using the `Uncodixfy` guidance and redesign rubric.
 
 ## Progress Log
 
 - 2026-03-09: WP scaffold created via .gov/repo_scripts/new_work_packet.ps1.
 - 2026-03-09: Scope refined to a fixed-pane workbench redesign guided by `Uncodixfy`, progressive-disclosure research, and the new I1 restyle rubric.
+- 2026-03-09: Product implementation landed the calmer desktop-workbench shell with grouped left/main/right/bottom tab sets, map-first prioritization, reduced dashboard overload, and updated regression coverage in `App.test.tsx` and `i1.test.ts`.
+- 2026-03-09: Official packet proof initially failed on the cold planar restore and pan/zoom budgets; closeout remediation moved surface feedback to layout-commit timing, removed redundant planar restore work, simplified the 2D basemap to a governed local style, and replaced the pan/zoom probe with browser-frame cadence sampling.
+- 2026-03-09: Final packet proof passed via `.product/build_target/tool_artifacts/wp_runs/WP-I1-005/20260309_080635/`; cold/warm startup measured 235 ms / 2140 ms, planar restore 14 ms / 20 ms, and planar pan/zoom 17 ms / 31 ms while the reworked shell preserved the required regions, accessibility semantics, and map-linked workflows.

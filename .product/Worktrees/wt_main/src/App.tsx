@@ -904,6 +904,11 @@ const collectRuntimeSmokeRegionChecks = (): RuntimeSmokeRegionCheck[] =>
     present: Boolean(document.querySelector(RUNTIME_SMOKE_REGION_SELECTORS[regionId])),
   }))
 
+type LeftPanelView = 'workspace' | 'query' | 'assistant'
+type MainCanvasDeckView = 'summary' | 'workflow' | 'artifacts'
+type RightPanelView = 'context' | 'monitor' | 'planning' | 'audit'
+type BottomPanelView = 'bundles' | 'activity'
+
 function App() {
   const [role, setRole] = useState<UserRole>('analyst')
   const [marking, setMarking] = useState<SensitivityMarking>('INTERNAL')
@@ -921,6 +926,11 @@ function App() {
   const [status, setStatus] = useState<string>('Ready')
   const [busy, setBusy] = useState<boolean>(false)
   const [integrityState, setIntegrityState] = useState<string>('No bundle validation yet')
+  const [leftPanelView, setLeftPanelView] = useState<LeftPanelView>('workspace')
+  const [mainCanvasDeckView, setMainCanvasDeckView] =
+    useState<MainCanvasDeckView>('summary')
+  const [rightPanelView, setRightPanelView] = useState<RightPanelView>('context')
+  const [bottomPanelView, setBottomPanelView] = useState<BottomPanelView>('bundles')
   const [replayCursor, setReplayCursor] = useState<number>(0)
   const [replayFrameMs, setReplayFrameMs] = useState<number>(32)
   const [baselineWindowLabel, setBaselineWindowLabel] =
@@ -5189,7 +5199,9 @@ function App() {
         if (!surfaceHandle) {
           throw new Error('Runtime smoke could not access the map runtime surface handle.')
         }
-        surfaceHandle.requestSurfaceMode(expectedMode)
+        if (runtimeSmokeStateRef.current.mapRuntime.activeSurfaceMode !== expectedMode) {
+          await surfaceHandle.switchSurfaceMode(expectedMode)
+        }
         await waitForCondition(
           `${expectedMode} surface mode`,
           () => runtimeSmokeStateRef.current.mapRuntime.activeSurfaceMode === expectedMode,
@@ -5216,6 +5228,21 @@ function App() {
         throw new Error(`Runtime smoke could not find the button "${label}".`)
       }
       target.click()
+    }
+
+    const setMainCanvasViewForRuntimeSmoke = async (
+      nextView: 'summary' | 'workflow' | 'artifacts',
+    ): Promise<void> => {
+      setMainCanvasDeckView(nextView)
+      const expectedLabel =
+        nextView === 'summary' ? 'Summary' : nextView === 'workflow' ? 'Workflow' : 'Artifacts'
+      await waitForCondition(`main canvas ${nextView} tab`, () => {
+        const button = Array.from(
+          document.querySelectorAll<HTMLButtonElement>('[aria-label="Main canvas detail tabs"] button'),
+        ).find((candidate) => candidate.textContent?.trim() === expectedLabel)
+        return button?.getAttribute('aria-pressed') === 'true'
+      })
+      await pause(50)
     }
 
     const requestMapExportForRuntimeSmoke = async (): Promise<void> => {
@@ -5453,40 +5480,29 @@ function App() {
           if (!surfaceHandle) {
             throw new Error('Runtime smoke could not access the map runtime surface handle.')
           }
-          const attempt = async (previousSequence: number) => {
-            const startedAt = performance.now()
-            surfaceHandle.requestSurfaceMode('planar')
+          const attempt = async () => {
+            const measuredMs = await surfaceHandle.switchSurfaceMode('planar')
             await waitForCondition(
               'planar surface feedback',
-              () => {
-                const feedback = surfaceHandle.getSurfaceModeFeedbackSnapshot()
-                return (
-                  (feedback.surfaceMode === 'planar' && feedback.sequence > previousSequence) ||
-                  (runtimeSmokeStateRef.current.mapRuntime.activeSurfaceMode === 'planar' &&
-                    runtimeSmokeStateRef.current.mapRuntime.activeRuntimeEngine === 'maplibre')
-                )
-              },
+              () =>
+                runtimeSmokeStateRef.current.mapRuntime.activeSurfaceMode === 'planar' &&
+                runtimeSmokeStateRef.current.mapRuntime.activeRuntimeEngine === 'maplibre',
               5000,
             )
             const feedback = surfaceHandle.getSurfaceModeFeedbackSnapshot()
-            if (feedback.surfaceMode === 'planar' && feedback.sequence > previousSequence) {
-              return feedback
-            }
             return {
-              measuredMs: Math.round(performance.now() - startedAt),
-              sequence: previousSequence,
+              measuredMs,
+              sequence: feedback.sequence,
               surfaceMode: 'planar' as const,
             }
           }
 
-          let previousSequence = surfaceHandle.getSurfaceModeFeedbackSnapshot().sequence
           let feedback
           try {
-            feedback = await attempt(previousSequence)
+            feedback = await attempt()
           } catch {
             notes.push('Retrying 2D Situation Map feedback capture after transient runtime-smoke failure.')
-            previousSequence = surfaceHandle.getSurfaceModeFeedbackSnapshot().sequence
-            feedback = await attempt(previousSequence)
+            feedback = await attempt()
           }
 
           setStateFeedback(describeStateChangeFeedback('Planar map runtime restore', feedback.measuredMs))
@@ -5759,6 +5775,7 @@ function App() {
           I1_BUDGETS.stateChangeFeedbackP95Ms,
         ),
       )
+      await setMainCanvasViewForRuntimeSmoke('workflow')
 
       metrics.push(
         await measure('Scenario fork create (baseline)', async () => {
@@ -5835,6 +5852,7 @@ function App() {
             I1_BUDGETS.stateChangeFeedbackP95Ms,
           ),
         )
+        await setMainCanvasViewForRuntimeSmoke('workflow')
 
         metrics.push(
           await measure(
@@ -5859,6 +5877,7 @@ function App() {
           await measure(
             '4K map export',
             async () => {
+              await setMainCanvasViewForRuntimeSmoke('artifacts')
               await requestMapExportForRuntimeSmoke()
               await waitForCondition(
                 '4K map export completion',
@@ -5998,11 +6017,8 @@ function App() {
     <div className="shell">
       <header className="header" data-testid="region-header">
         <div className="identity">
-          <h1>StratAtlas Integrated Workbench</h1>
-          <p>
-            I0-I10 shell: bundle determinism, replay/compare workflows, querying, AI
-            policy gating, context intake, deviation tracking, and strategic modeling
-          </p>
+          <h1>StratAtlas</h1>
+          <p>Governed map-first workbench</p>
         </div>
         <div className="status-block">
           <span className={offline ? 'pill offline' : 'pill online'}>
@@ -6010,101 +6026,144 @@ function App() {
           </span>
           <span className="pill neutral">Role: {role}</span>
           <span className="pill neutral">Marking: {marking}</span>
+          <span className="pill neutral">Mode: {mode}</span>
+          <span className="pill neutral">Bundle: {selectedBundleId || 'none'}</span>
           <span className="pill neutral">Query v{versionedQuery.version}</span>
         </div>
       </header>
 
       <main className="layout">
         <section className="panel workspace" data-testid="region-left-panel">
-          <h2>Workspace Controls</h2>
-          <label className="field">
-            Role
-            <select value={role} onChange={(event) => setRole(event.target.value as UserRole)}>
-              {ROLES.map((currentRole) => (
-                <option key={currentRole} value={currentRole}>
-                  {currentRole}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="field">
-            Marking
-            <select
-              value={marking}
-              onChange={(event) => setMarking(event.target.value as SensitivityMarking)}
-            >
-              {MARKINGS.map((currentMarking) => (
-                <option key={currentMarking} value={currentMarking}>
-                  {currentMarking}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="field">
-            Mode
-            <select value={mode} onChange={(event) => onModeChange(event.target.value as UiMode)}>
-              {REQUIRED_UI_MODES.map((currentMode) => (
-                <option key={currentMode} value={currentMode}>
-                  {currentMode}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="field">
-            Analyst Note
-            <textarea
-              value={analystNote}
-              onChange={(event) => setAnalystNote(event.target.value)}
-              rows={4}
-            />
-          </label>
-
-          <div className="field">
-            Layer Controls
-            <div className="layer-toggle-grid">
-              {toggleableLayerCatalog.map((entry) => (
-                <label key={entry.layerId} className="toggle-card">
-                  <input
-                    type="checkbox"
-                    aria-label={`Toggle ${entry.title}`}
-                    checked={activeLayers.includes(entry.layerId)}
-                    onChange={() => toggleLayer(entry.layerId)}
-                  />
-                  <div>
-                    <div className="card-header compact">
-                      <strong>{entry.title}</strong>
-                      <span className={`artifact-chip ${artifactTone(entry.artifactLabel)}`}>
-                        {entry.artifactLabel}
-                      </span>
-                    </div>
-                    <small>
-                      Source: {entry.source} | Cadence: {entry.cadence} | Geometry:{' '}
-                      {entry.geometryType} | Export: {entry.exportAllowed ? 'allowed' : 'blocked'}
-                    </small>
-                  </div>
-                </label>
-              ))}
+          <div className="panel-header">
+            <div>
+              <h2>Inputs</h2>
+              <p className="panel-copy">Keep only the active command set open.</p>
             </div>
           </div>
-
-          <div className="controls">
-            <button onClick={onCreateBundle} disabled={busy}>
-              Create Bundle
+          <div className="panel-tabs" aria-label="Input workspace tabs">
+            <button
+              type="button"
+              className={leftPanelView === 'workspace' ? 'is-active' : ''}
+              aria-pressed={leftPanelView === 'workspace'}
+              onClick={() => setLeftPanelView('workspace')}
+            >
+              Workspace
             </button>
-            <button onClick={onOpenBundle} disabled={busy || !selectedBundleId}>
-              Reopen Bundle
+            <button
+              type="button"
+              className={leftPanelView === 'query' ? 'is-active' : ''}
+              aria-pressed={leftPanelView === 'query'}
+              onClick={() => setLeftPanelView('query')}
+            >
+              Query
             </button>
-            <button onClick={onToggleForcedOffline} disabled={busy}>
-              {forcedOffline ? 'Disable Forced Offline' : 'Force Offline Mode'}
+            <button
+              type="button"
+              className={leftPanelView === 'assistant' ? 'is-active' : ''}
+              aria-pressed={leftPanelView === 'assistant'}
+              onClick={() => setLeftPanelView('assistant')}
+            >
+              Assistant
             </button>
           </div>
-          <p className="status-line">{status}</p>
-          <p className="status-line">{integrityState}</p>
-          <p className="status-line">
-            Recorder snapshot: {workspaceSnapshot.uiVersion} | Context links: {activeDomainIds.length}
-          </p>
 
-          <h3>Query Builder (I5)</h3>
+          {leftPanelView === 'workspace' ? (
+            <div className="panel-view">
+            <h3>Workspace Controls</h3>
+            <label className="field">
+              Role
+              <select value={role} onChange={(event) => setRole(event.target.value as UserRole)}>
+                {ROLES.map((currentRole) => (
+                  <option key={currentRole} value={currentRole}>
+                    {currentRole}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="field">
+              Marking
+              <select
+                value={marking}
+                onChange={(event) => setMarking(event.target.value as SensitivityMarking)}
+              >
+                {MARKINGS.map((currentMarking) => (
+                  <option key={currentMarking} value={currentMarking}>
+                    {currentMarking}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="field">
+              Mode
+              <select value={mode} onChange={(event) => onModeChange(event.target.value as UiMode)}>
+                {REQUIRED_UI_MODES.map((currentMode) => (
+                  <option key={currentMode} value={currentMode}>
+                    {currentMode}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="field">
+              Analyst Note
+              <textarea
+                value={analystNote}
+                onChange={(event) => setAnalystNote(event.target.value)}
+                rows={4}
+              />
+            </label>
+
+            <div className="field">
+              Layer Controls
+              <div className="layer-toggle-grid">
+                {toggleableLayerCatalog.map((entry) => (
+                  <label key={entry.layerId} className="toggle-card">
+                    <input
+                      type="checkbox"
+                      aria-label={`Toggle ${entry.title}`}
+                      checked={activeLayers.includes(entry.layerId)}
+                      onChange={() => toggleLayer(entry.layerId)}
+                    />
+                    <div>
+                      <div className="card-header compact">
+                        <strong>{entry.title}</strong>
+                        <span className={`artifact-chip ${artifactTone(entry.artifactLabel)}`}>
+                          {entry.artifactLabel}
+                        </span>
+                      </div>
+                      <small>
+                        Source: {entry.source} | Cadence: {entry.cadence} | Geometry:{' '}
+                        {entry.geometryType} | Export:{' '}
+                        {entry.exportAllowed ? 'allowed' : 'blocked'}
+                      </small>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div className="controls">
+              <button onClick={onCreateBundle} disabled={busy}>
+                Create Bundle
+              </button>
+              <button onClick={onOpenBundle} disabled={busy || !selectedBundleId}>
+                Reopen Bundle
+              </button>
+              <button onClick={onToggleForcedOffline} disabled={busy}>
+                {forcedOffline ? 'Disable Forced Offline' : 'Force Offline Mode'}
+              </button>
+            </div>
+            <p className="status-line">{status}</p>
+            <p className="status-line">{integrityState}</p>
+            <p className="status-line">
+              Recorder snapshot: {workspaceSnapshot.uiVersion} | Context links:{' '}
+              {activeDomainIds.length}
+            </p>
+            </div>
+          ) : null}
+
+          {leftPanelView === 'query' ? (
+            <div className="panel-view">
+            <h3>Query Builder (I5)</h3>
           <label className="field">
             Query Title
             <input
@@ -6270,7 +6329,11 @@ function App() {
               </article>
             ))}
           </div>
+            </div>
+          ) : null}
 
+          {leftPanelView === 'assistant' ? (
+            <div className="panel-view">
           <h3>AI Gateway (I6)</h3>
           <label className="field">
             Deployment Profile
@@ -6381,10 +6444,43 @@ function App() {
               <small>{latestMcpInvocation.resultPreview}</small>
             </article>
           )}
+            </div>
+          ) : null}
         </section>
 
         <section className="panel map-panel" data-testid="region-main-canvas">
-          <h2>Main Canvas and Geospatial Runtime</h2>
+          <div className="panel-header">
+            <div>
+              <h2>Main Canvas</h2>
+              <p className="panel-copy">Keep the map visible and push bulk detail behind tabs.</p>
+            </div>
+            <div className="panel-tabs" aria-label="Main canvas detail tabs">
+              <button
+                type="button"
+                className={mainCanvasDeckView === 'summary' ? 'is-active' : ''}
+                aria-pressed={mainCanvasDeckView === 'summary'}
+                onClick={() => setMainCanvasDeckView('summary')}
+              >
+                Summary
+              </button>
+              <button
+                type="button"
+                className={mainCanvasDeckView === 'workflow' ? 'is-active' : ''}
+                aria-pressed={mainCanvasDeckView === 'workflow'}
+                onClick={() => setMainCanvasDeckView('workflow')}
+              >
+                Workflow
+              </button>
+              <button
+                type="button"
+                className={mainCanvasDeckView === 'artifacts' ? 'is-active' : ''}
+                aria-pressed={mainCanvasDeckView === 'artifacts'}
+                onClick={() => setMainCanvasDeckView('artifacts')}
+              >
+                Artifacts
+              </button>
+            </div>
+          </div>
           <MapRuntimeSurface
             ref={mapRuntimeSurfaceRef}
             scene={mapRuntimeScene}
@@ -6400,239 +6496,253 @@ function App() {
             onRequestExport={onExportMapImage}
             onSurfaceModeFeedback={onMapSurfaceModeFeedback}
           />
-          {mapExportArtifact && (
-            <article
-              className={`artifact-callout ${artifactTone('Observed Evidence')}`}
-              data-testid="map-export-artifact-card"
-            >
-              <div className="card-header compact">
-                <span className={`artifact-chip ${artifactTone('Observed Evidence')}`}>
-                  Observed Evidence
-                </span>
-                <span>{mapExportArtifact.artifactId}</span>
-              </div>
-              <p>4K map export persisted from the live governed runtime.</p>
-              <small>
-                {mapExportArtifact.width}x{mapExportArtifact.height} | {mapExportArtifact.surfaceMode}{' '}
-                | {mapExportArtifact.runtimeEngine} | Bundle {mapExportArtifact.bundleId ?? 'none'}
-              </small>
-              <small>
-                SHA {mapExportArtifact.sha256} | {mapExportArtifact.pngPath}
-              </small>
-            </article>
-          )}
-          <div className="workspace-surface">
-            <article className="surface-hero" data-testid="workspace-surface-summary">
-              <p className="eyebrow">Persisted workspace surface</p>
-              <div className="card-header">
-                <div>
-                  <h3>{mode} workflow surface</h3>
-                  <p className="status-line">
-                    {visibleLayerCatalog.length} visible governed artifacts across{' '}
-                    {mainCanvasCatalog.length} main-canvas surfaces and {rightPanelCatalog.length}{' '}
-                    right-panel surfaces.
-                  </p>
+          {mainCanvasDeckView === 'summary' ? (
+            <div className="panel-view">
+            <div className="workspace-surface">
+              <article className="surface-hero" data-testid="workspace-surface-summary">
+                <div className="card-header">
+                  <div>
+                    <h3>{mode} workflow surface</h3>
+                    <p className="status-line">
+                      {visibleLayerCatalog.length} visible governed artifacts across{' '}
+                      {mainCanvasCatalog.length} main-canvas surfaces and {rightPanelCatalog.length}{' '}
+                      right-panel surfaces.
+                    </p>
+                  </div>
+                  <span
+                    className={`policy-pill ${degradedBudgetCount > 0 ? 'blocked' : 'allowed'}`}
+                  >
+                    {degradedBudgetCount > 0 ? 'Aggregation mode active' : 'Within I1 budgets'}
+                  </span>
                 </div>
-                <span
-                  className={`policy-pill ${degradedBudgetCount > 0 ? 'blocked' : 'allowed'}`}
-                >
-                  {degradedBudgetCount > 0 ? 'Aggregation mode active' : 'Within I1 budgets'}
-                </span>
-              </div>
-              <div className="summary-grid">
-                <article>
-                  <span className="metric-label">Replay cursor</span>
-                  <strong>{replayCursor}</strong>
-                </article>
-                <article>
-                  <span className="metric-label">Active layers</span>
-                  <strong>{activeLayers.length}</strong>
-                </article>
-                <article>
-                  <span className="metric-label">Context links</span>
-                  <strong>{activeDomainIds.length}</strong>
-                </article>
-                <article>
-                  <span className="metric-label">Selected bundle</span>
-                  <strong>{selectedBundleId || 'none'}</strong>
-                </article>
-              </div>
-            </article>
+                <div className="summary-grid">
+                  <article>
+                    <span className="metric-label">Replay cursor</span>
+                    <strong>{replayCursor}</strong>
+                  </article>
+                  <article>
+                    <span className="metric-label">Active layers</span>
+                    <strong>{activeLayers.length}</strong>
+                  </article>
+                  <article>
+                    <span className="metric-label">Context links</span>
+                    <strong>{activeDomainIds.length}</strong>
+                  </article>
+                  <article>
+                    <span className="metric-label">Selected bundle</span>
+                    <strong>{selectedBundleId || 'none'}</strong>
+                  </article>
+                </div>
+              </article>
 
-            <div className="legend-row" aria-label="Artifact label legend">
-              {ARTIFACT_LABELS.map((label) => (
-                <span key={label} className={`artifact-chip ${artifactTone(label)}`}>
-                  {label}
-                </span>
-              ))}
+              <div className="legend-row" aria-label="Artifact label legend">
+                {ARTIFACT_LABELS.map((label) => (
+                  <span key={label} className={`artifact-chip ${artifactTone(label)}`}>
+                    {label}
+                  </span>
+                ))}
+              </div>
+
+              <div className="telemetry-grid">
+                {budgetTelemetry.map((probe) => (
+                  <article
+                    key={probe.label}
+                    className={`telemetry-card ${probe.degraded ? 'degraded' : ''}`}
+                  >
+                    <span className="metric-label">{probe.label}</span>
+                    <strong>
+                      {probe.measuredMs} ms / {probe.budgetMs} ms budget
+                    </strong>
+                    <p>{probe.degraded ? 'Degraded aggregation in effect.' : 'Within budget.'}</p>
+                  </article>
+                ))}
+                <article
+                  className={`telemetry-card ${stateFeedback.degraded ? 'degraded' : ''}`}
+                  data-testid="state-feedback-card"
+                >
+                  <span className="metric-label">State feedback</span>
+                  <strong>{stateFeedback.action}</strong>
+                  <p>{stateFeedback.message}</p>
+                  <small>
+                    {stateFeedback.showProgress
+                      ? 'Non-blocking progress visible.'
+                      : 'No blocking progress required.'}
+                  </small>
+                </article>
+              </div>
+
+              <div className="surface-grid">
+                {mainCanvasCatalog.length === 0 && (
+                  <article className="surface-card">
+                    <strong>No visible main-canvas layers</strong>
+                    <p>Enable a governed layer to populate the workspace surface.</p>
+                  </article>
+                )}
+                {mainCanvasCatalog.map((entry) => (
+                  <article
+                    key={entry.layerId}
+                    className={`surface-card ${entry.degraded ? 'degraded' : ''}`}
+                  >
+                    <div className="card-header">
+                      <div>
+                        <span className={`artifact-chip ${artifactTone(entry.artifactLabel)}`}>
+                          {entry.artifactLabel}
+                        </span>
+                        <h3>{entry.title}</h3>
+                      </div>
+                      <span
+                        className={`policy-pill ${entry.exportAllowed ? 'allowed' : 'blocked'}`}
+                      >
+                        Export: {entry.exportAllowed ? 'allowed' : 'blocked'}
+                      </span>
+                    </div>
+                    <p>{entry.confidenceText}</p>
+                    {entry.uncertaintyText && (
+                      <p className="uncertainty-line">Uncertainty: {entry.uncertaintyText}</p>
+                    )}
+                    <dl className="meta-grid">
+                      <div>
+                        <dt>Source</dt>
+                        <dd>{entry.source}</dd>
+                      </div>
+                      <div>
+                        <dt>Cadence</dt>
+                        <dd>{entry.cadence}</dd>
+                      </div>
+                      <div>
+                        <dt>Geometry</dt>
+                        <dd>{entry.geometryType}</dd>
+                      </div>
+                      <div>
+                        <dt>Sensitivity</dt>
+                        <dd>{entry.sensitivityClass}</dd>
+                      </div>
+                      <div>
+                        <dt>Cache</dt>
+                        <dd>{entry.cachingPolicy}</dd>
+                      </div>
+                      <div>
+                        <dt>Render surface</dt>
+                        <dd>{entry.renderSurface}</dd>
+                      </div>
+                    </dl>
+                    {entry.degraded && (
+                      <p className="status-line warning">
+                        Aggregation mode active to stay within the {I1_BUDGETS.panZoomFrameMs} ms
+                        frame budget.
+                      </p>
+                    )}
+                  </article>
+                ))}
+              </div>
+
+              {dashboardCatalog.length > 0 && (
+                <div className="sub-panel">
+                  <h3>Support widgets</h3>
+                  <div className="mini-grid">
+                    {dashboardCatalog.map((entry) => (
+                      <article key={entry.layerId} className="surface-card compact">
+                        <span className={`artifact-chip ${artifactTone(entry.artifactLabel)}`}>
+                          {entry.artifactLabel}
+                        </span>
+                        <strong>{entry.title}</strong>
+                        <small>
+                          Source: {entry.source} | Cadence: {entry.cadence}
+                        </small>
+                      </article>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
-            <div className="telemetry-grid">
-              {budgetTelemetry.map((probe) => (
-                <article
-                  key={probe.label}
-                  className={`telemetry-card ${probe.degraded ? 'degraded' : ''}`}
-                >
-                  <span className="metric-label">{probe.label}</span>
-                  <strong>
-                    {probe.measuredMs} ms / {probe.budgetMs} ms budget
-                  </strong>
-                  <p>{probe.degraded ? 'Degraded aggregation in effect.' : 'Within budget.'}</p>
-                </article>
-              ))}
+            {modeledOutputEntry && (
+              <article className={`artifact-callout ${artifactTone(modeledOutputEntry.artifactLabel)}`}>
+                <div className="card-header compact">
+                  <span
+                    className={`artifact-chip ${artifactTone(modeledOutputEntry.artifactLabel)}`}
+                  >
+                    {modeledOutputEntry.artifactLabel}
+                  </span>
+                  <span>{modeledOutputEntry.title}</span>
+                </div>
+                <p>
+                  Payoff proxy: {payoffProxy.metric} {payoffProxy.value}
+                </p>
+                <p>Compare delta cells: [{densityDelta.delta.join(', ')}]</p>
+                <small>Uncertainty: {modeledOutputEntry.uncertaintyText}</small>
+              </article>
+            )}
+            </div>
+          ) : null}
+
+          {mainCanvasDeckView === 'artifacts' ? (
+            <div className="panel-view artifact-stack">
+            {mapExportArtifact && (
               <article
-                className={`telemetry-card ${stateFeedback.degraded ? 'degraded' : ''}`}
-                data-testid="state-feedback-card"
+                className={`artifact-callout ${artifactTone('Observed Evidence')}`}
+                data-testid="map-export-artifact-card"
               >
-                <span className="metric-label">State feedback</span>
-                <strong>{stateFeedback.action}</strong>
-                <p>{stateFeedback.message}</p>
+                <div className="card-header compact">
+                  <span className={`artifact-chip ${artifactTone('Observed Evidence')}`}>
+                    Observed Evidence
+                  </span>
+                  <span>{mapExportArtifact.artifactId}</span>
+                </div>
+                <p>4K map export persisted from the live governed runtime.</p>
                 <small>
-                  {stateFeedback.showProgress
-                    ? 'Non-blocking progress visible.'
-                    : 'No blocking progress required.'}
+                  {mapExportArtifact.width}x{mapExportArtifact.height} | {mapExportArtifact.surfaceMode}{' '}
+                  | {mapExportArtifact.runtimeEngine} | Bundle {mapExportArtifact.bundleId ?? 'none'}
+                </small>
+                <small>
+                  SHA {mapExportArtifact.sha256} | {mapExportArtifact.pngPath}
                 </small>
               </article>
-            </div>
-
-            <div className="surface-grid">
-              {mainCanvasCatalog.length === 0 && (
-                <article className="surface-card">
-                  <strong>No visible main-canvas layers</strong>
-                  <p>Enable a governed layer to populate the workspace surface.</p>
-                </article>
-              )}
-              {mainCanvasCatalog.map((entry) => (
-                <article
-                  key={entry.layerId}
-                  className={`surface-card ${entry.degraded ? 'degraded' : ''}`}
-                >
-                  <div className="card-header">
-                    <div>
-                      <span className={`artifact-chip ${artifactTone(entry.artifactLabel)}`}>
-                        {entry.artifactLabel}
-                      </span>
-                      <h3>{entry.title}</h3>
-                    </div>
-                    <span className={`policy-pill ${entry.exportAllowed ? 'allowed' : 'blocked'}`}>
-                      Export: {entry.exportAllowed ? 'allowed' : 'blocked'}
-                    </span>
-                  </div>
-                  <p>{entry.confidenceText}</p>
-                  {entry.uncertaintyText && (
-                    <p className="uncertainty-line">Uncertainty: {entry.uncertaintyText}</p>
-                  )}
-                  <dl className="meta-grid">
-                    <div>
-                      <dt>Source</dt>
-                      <dd>{entry.source}</dd>
-                    </div>
-                    <div>
-                      <dt>Cadence</dt>
-                      <dd>{entry.cadence}</dd>
-                    </div>
-                    <div>
-                      <dt>Geometry</dt>
-                      <dd>{entry.geometryType}</dd>
-                    </div>
-                    <div>
-                      <dt>Sensitivity</dt>
-                      <dd>{entry.sensitivityClass}</dd>
-                    </div>
-                    <div>
-                      <dt>Cache</dt>
-                      <dd>{entry.cachingPolicy}</dd>
-                    </div>
-                    <div>
-                      <dt>Render surface</dt>
-                      <dd>{entry.renderSurface}</dd>
-                    </div>
-                  </dl>
-                  {entry.degraded && (
-                    <p className="status-line warning">
-                      Aggregation mode active to stay within the {I1_BUDGETS.panZoomFrameMs} ms
-                      frame budget.
-                    </p>
-                  )}
-                </article>
-              ))}
-            </div>
-
-            {dashboardCatalog.length > 0 && (
-              <div className="sub-panel">
-                <h3>Dashboard Widgets</h3>
-                <div className="mini-grid">
-                  {dashboardCatalog.map((entry) => (
-                    <article key={entry.layerId} className="surface-card compact">
-                      <span className={`artifact-chip ${artifactTone(entry.artifactLabel)}`}>
-                        {entry.artifactLabel}
-                      </span>
-                      <strong>{entry.title}</strong>
-                      <small>
-                        Source: {entry.source} | Cadence: {entry.cadence}
-                      </small>
-                    </article>
-                  ))}
-                </div>
-              </div>
             )}
-          </div>
 
-          {modeledOutputEntry && (
-            <article className={`artifact-callout ${artifactTone(modeledOutputEntry.artifactLabel)}`}>
-              <div className="card-header compact">
-                <span className={`artifact-chip ${artifactTone(modeledOutputEntry.artifactLabel)}`}>
-                  {modeledOutputEntry.artifactLabel}
-                </span>
-                <span>{modeledOutputEntry.title}</span>
-              </div>
-              <p>
-                Payoff proxy: {payoffProxy.metric} {payoffProxy.value}
-              </p>
-              <p>Compare delta cells: [{densityDelta.delta.join(', ')}]</p>
-              <small>Uncertainty: {modeledOutputEntry.uncertaintyText}</small>
-            </article>
-          )}
+            {queryRenderLayer && (
+              <article
+                className={`artifact-callout ${artifactTone(queryRenderLayer.label)}`}
+                data-testid="query-render-card"
+              >
+                <div className="card-header compact">
+                  <span className={`artifact-chip ${artifactTone(queryRenderLayer.label)}`}>
+                    {queryRenderLayer.label}
+                  </span>
+                  <span>{queryRenderLayer.layerId}</span>
+                </div>
+                <p>{queryRenderLayer.summary}</p>
+                <small>
+                  Matched rows: [{queryRenderLayer.matchedRowIds.join(', ')}] | AOI:{' '}
+                  {queryRenderLayer.aoi} | Context domains: {queryRenderLayer.contextDomainIds.length} |
+                  Source rows: {querySourceRowCount}
+                </small>
+              </article>
+            )}
 
-          {queryRenderLayer && (
-            <article
-              className={`artifact-callout ${artifactTone(queryRenderLayer.label)}`}
-              data-testid="query-render-card"
-            >
-              <div className="card-header compact">
-                <span className={`artifact-chip ${artifactTone(queryRenderLayer.label)}`}>
-                  {queryRenderLayer.label}
-                </span>
-                <span>{queryRenderLayer.layerId}</span>
-              </div>
-              <p>{queryRenderLayer.summary}</p>
-              <small>
-                Matched rows: [{queryRenderLayer.matchedRowIds.join(', ')}] | AOI:{' '}
-                {queryRenderLayer.aoi} | Context domains: {queryRenderLayer.contextDomainIds.length} |
-                Source rows: {querySourceRowCount}
-              </small>
-            </article>
-          )}
+            {savedQueryArtifact && (
+              <article
+                className={`artifact-callout ${artifactTone('Observed Evidence')}`}
+                data-testid="saved-query-artifact-card"
+              >
+                <div className="card-header compact">
+                  <span className={`artifact-chip ${artifactTone('Observed Evidence')}`}>
+                    Observed Evidence
+                  </span>
+                  <span>{savedQueryArtifact.artifactId}</span>
+                </div>
+                <p>{savedQueryArtifact.summary}</p>
+                <small>
+                  Version {savedQueryArtifact.version} | Fingerprint{' '}
+                  {savedQueryArtifact.exportFingerprint} | Saved {savedQueryArtifact.savedAt}
+                </small>
+              </article>
+            )}
+            </div>
+          ) : null}
 
-          {savedQueryArtifact && (
-            <article
-              className={`artifact-callout ${artifactTone('Observed Evidence')}`}
-              data-testid="saved-query-artifact-card"
-            >
-              <div className="card-header compact">
-                <span className={`artifact-chip ${artifactTone('Observed Evidence')}`}>
-                  Observed Evidence
-                </span>
-                <span>{savedQueryArtifact.artifactId}</span>
-              </div>
-              <p>{savedQueryArtifact.summary}</p>
-              <small>
-                Version {savedQueryArtifact.version} | Fingerprint{' '}
-                {savedQueryArtifact.exportFingerprint} | Saved {savedQueryArtifact.savedAt}
-              </small>
-            </article>
-          )}
-
+          {mainCanvasDeckView === 'workflow' ? (
+            <div className="panel-view workflow-stack">
           {mode === 'replay' && (
             <div className="sub-panel">
               <h3>Replay Controls (I1)</h3>
@@ -7688,29 +7798,54 @@ function App() {
               )}
             </div>
           )}
-
-          <h3>Bundle Registry</h3>
-          <div className="bundle-list">
-            {bundles.length === 0 && <p>No bundles yet.</p>}
-            {bundles.map((bundle) => (
-              <label key={bundle.bundle_id} className="bundle-item">
-                <input
-                  type="radio"
-                  name="bundle"
-                  value={bundle.bundle_id}
-                  checked={selectedBundleId === bundle.bundle_id}
-                  onChange={() => setSelectedBundleId(bundle.bundle_id)}
-                />
-                <span>{bundle.bundle_id}</span>
-                <small>{bundle.created_at}</small>
-              </label>
-            ))}
-          </div>
+            </div>
+          ) : null}
         </section>
 
         <section className="panel audit-panel" data-testid="region-right-panel">
-          <h2>Governance, Context, and Audit</h2>
-          <p>Current head hash: {auditHead || 'n/a'}</p>
+          <div className="panel-header">
+            <div>
+              <h2>Inspector</h2>
+              <p className="panel-copy">Keep supporting detail docked beside the map, not in front of it.</p>
+            </div>
+            <div className="panel-tabs" aria-label="Inspector tabs">
+              <button
+                type="button"
+                className={rightPanelView === 'context' ? 'is-active' : ''}
+                aria-pressed={rightPanelView === 'context'}
+                onClick={() => setRightPanelView('context')}
+              >
+                Context
+              </button>
+              <button
+                type="button"
+                className={rightPanelView === 'monitor' ? 'is-active' : ''}
+                aria-pressed={rightPanelView === 'monitor'}
+                onClick={() => setRightPanelView('monitor')}
+              >
+                Monitor
+              </button>
+              <button
+                type="button"
+                className={rightPanelView === 'planning' ? 'is-active' : ''}
+                aria-pressed={rightPanelView === 'planning'}
+                onClick={() => setRightPanelView('planning')}
+              >
+                Planning
+              </button>
+              <button
+                type="button"
+                className={rightPanelView === 'audit' ? 'is-active' : ''}
+                aria-pressed={rightPanelView === 'audit'}
+                onClick={() => setRightPanelView('audit')}
+              >
+                Audit
+              </button>
+            </div>
+          </div>
+
+          {rightPanelView === 'context' ? (
+            <div className="panel-view">
           {contextPanelEntry && (
             <article className={`artifact-callout ${artifactTone(contextPanelEntry.artifactLabel)}`}>
               <div className="card-header compact">
@@ -7911,6 +8046,29 @@ function App() {
                 </article>
               )
             })}
+          </div>
+            </div>
+          ) : null}
+
+          {rightPanelView === 'monitor' ? (
+            <div className="panel-view">
+          <div className="overlay-grid">
+            <article className="surface-card compact">
+              <strong>Live monitor status</strong>
+              <p>
+                Mode {mode} | AOI {osintAoi} | Active context links {correlationLinks.length}
+              </p>
+              <small>{degradedBudgetCount > 0 ? 'Budget degradation active.' : 'Shell budgets nominal.'}</small>
+            </article>
+            <article className="surface-card compact">
+              <strong>Latest deviation</strong>
+              <p>{deviationSnapshot.latestEvent?.summary ?? 'No governed deviation event recorded yet.'}</p>
+              <small>
+                {deviationSnapshot.latestEvent
+                  ? `${deviationSnapshot.latestEvent.domain_name} | ${deviationSnapshot.latestEvent.taxonomy_key}`
+                  : 'Deviation stays map-linked once recorded.'}
+              </small>
+            </article>
           </div>
 
           <h3>OSINT Aggregation (I9)</h3>
@@ -8149,7 +8307,11 @@ function App() {
                 </article>
               ))}
           </div>
+            </div>
+          ) : null}
 
+          {rightPanelView === 'planning' ? (
+            <div className="panel-view">
           <h3>Strategic Model (I10)</h3>
           <div className="overlay-grid">
             <article className="surface-card compact" data-testid="game-model-card">
@@ -8422,6 +8584,18 @@ function App() {
               </small>
             </article>
           )}
+            </div>
+          ) : null}
+
+          {rightPanelView === 'audit' ? (
+            <div className="panel-view">
+          <article className="surface-card compact">
+            <strong>Audit state</strong>
+            <p>Current head hash: {auditHead || 'n/a'}</p>
+            <small>
+              Events {auditEvents.length} | Role {role} | Marking {marking}
+            </small>
+          </article>
 
           <h3>Audit Ledger</h3>
           <div className="audit-list">
@@ -8438,13 +8612,106 @@ function App() {
                 </article>
               ))}
           </div>
+            </div>
+          ) : null}
         </section>
       </main>
       <footer className="panel footer-panel" data-testid="region-bottom-panel">
-        <strong>Bottom Panel</strong>
-        <span>
-          {`Mode=${mode} | Connectivity=${offline ? 'offline' : 'online'} | Audit events=${auditEvents.length} | Query matches=${queryResultCount} | Degraded budgets=${degradedBudgetCount}`}
-        </span>
+        <div className="panel-header">
+          <div>
+            <h2>Tray</h2>
+            <p className="panel-copy">Move bundles and runtime status below the map so the canvas stays readable.</p>
+          </div>
+          <div className="panel-tabs" aria-label="Bottom tray tabs">
+            <button
+              type="button"
+              className={bottomPanelView === 'bundles' ? 'is-active' : ''}
+              aria-pressed={bottomPanelView === 'bundles'}
+              onClick={() => setBottomPanelView('bundles')}
+            >
+              Bundles
+            </button>
+            <button
+              type="button"
+              className={bottomPanelView === 'activity' ? 'is-active' : ''}
+              aria-pressed={bottomPanelView === 'activity'}
+              onClick={() => setBottomPanelView('activity')}
+            >
+              Activity
+            </button>
+          </div>
+        </div>
+
+        {bottomPanelView === 'bundles' ? (
+          <div className="panel-view">
+          <h3>Bundle Registry</h3>
+          <div className="bundle-list">
+            {bundles.length === 0 && <p>No bundles yet.</p>}
+            {bundles.map((bundle) => (
+              <label key={bundle.bundle_id} className="bundle-item">
+                <input
+                  type="radio"
+                  name="bundle"
+                  value={bundle.bundle_id}
+                  checked={selectedBundleId === bundle.bundle_id}
+                  onChange={() => setSelectedBundleId(bundle.bundle_id)}
+                />
+                <span>{bundle.bundle_id}</span>
+                <small>{bundle.created_at}</small>
+              </label>
+            ))}
+          </div>
+          </div>
+        ) : null}
+
+        {bottomPanelView === 'activity' ? (
+          <div className="panel-view">
+          <div className="summary-grid bottom-summary-grid">
+            <article>
+              <span className="metric-label">Status</span>
+              <strong>{status}</strong>
+            </article>
+            <article>
+              <span className="metric-label">Connectivity</span>
+              <strong>{offline ? 'Offline' : 'Online'}</strong>
+            </article>
+            <article>
+              <span className="metric-label">Audit events</span>
+              <strong>{auditEvents.length}</strong>
+            </article>
+            <article>
+              <span className="metric-label">Query matches</span>
+              <strong>{queryResultCount}</strong>
+            </article>
+          </div>
+          <div className="overlay-grid">
+            <article className="surface-card compact">
+              <strong>Integrity</strong>
+              <p>{integrityState}</p>
+              <small>Degraded budgets: {degradedBudgetCount}</small>
+            </article>
+            <article className="surface-card compact">
+              <strong>Provider runtime</strong>
+              <p>
+                {aiProviderStatus.providerLabel} | {aiProviderStatus.runtime}
+              </p>
+              <small>{aiProviderStatus.detail}</small>
+            </article>
+            <article className="surface-card compact">
+              <strong>Latest alert</strong>
+              <p>{osintSummary.summary}</p>
+              <small>
+                AOI {osintSummary.aoi} | Threshold refs {osintSummary.threshold_refs.length}
+              </small>
+            </article>
+            <article className="surface-card compact">
+              <strong>Latest audit event</strong>
+              <p>{auditEvents.at(-1)?.event_type ?? 'No events yet.'}</p>
+              <small>{auditEvents.at(-1)?.ts ?? 'Awaiting workflow actions.'}</small>
+            </article>
+          </div>
+          </div>
+        ) : null}
       </footer>
     </div>
   )

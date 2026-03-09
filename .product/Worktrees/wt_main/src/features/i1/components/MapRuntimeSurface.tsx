@@ -3,6 +3,7 @@ import {
   useEffect,
   useEffectEvent,
   useImperativeHandle,
+  useLayoutEffect,
   useRef,
   useState,
 } from 'react'
@@ -84,12 +85,6 @@ export interface MapRuntimeSurfaceHandle {
   switchSurfaceMode: (nextMode: SurfaceMode) => Promise<number>
 }
 
-const CARTO_TILES: string[] = [
-  'https://a.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}.png',
-  'https://b.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}.png',
-  'https://c.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}.png',
-]
-
 const GRATICULE: Exclude<GeoJSONSourceSpecification['data'], string> = {
   type: 'FeatureCollection',
   features: [
@@ -167,12 +162,6 @@ const supportsInteractiveMap = (): boolean => {
 const createBaseStyle = (): StyleSpecification => ({
   version: 8,
   sources: {
-    'carto-dark': {
-      type: 'raster',
-      tiles: CARTO_TILES,
-      tileSize: 256,
-      attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
-    },
     'i1-graticule': {
       type: 'geojson',
       data: GRATICULE,
@@ -183,17 +172,7 @@ const createBaseStyle = (): StyleSpecification => ({
       id: 'i1-background',
       type: 'background',
       paint: {
-        'background-color': '#07131e',
-      },
-    },
-    {
-      id: 'i1-carto-dark',
-      type: 'raster',
-      source: 'carto-dark',
-      paint: {
-        'raster-opacity': 0.68,
-        'raster-saturation': -0.72,
-        'raster-contrast': 0.24,
+        'background-color': '#08111a',
       },
     },
     {
@@ -201,9 +180,9 @@ const createBaseStyle = (): StyleSpecification => ({
       type: 'line',
       source: 'i1-graticule',
       paint: {
-        'line-color': '#2d4057',
+        'line-color': '#31465d',
         'line-width': 1,
-        'line-opacity': 0.55,
+        'line-opacity': 0.62,
       },
     },
   ],
@@ -383,6 +362,10 @@ export const MapRuntimeSurface = forwardRef<MapRuntimeSurfaceHandle, MapRuntimeS
   const offlineRef = useRef<boolean>(offline)
   const sceneRef = useRef<MapRuntimeScene>(scene)
   const focusAoiRef = useRef<string>(scene.focusAoiId)
+  const lastPlanarViewportRef = useRef<{
+    focusAoiId: string
+    surfaceMode: SurfaceMode
+  } | null>(null)
   const surfaceModeRef = useRef<SurfaceMode>('planar')
   const surfaceModeFeedbackStartRef = useRef<number | null>(null)
   const surfaceModeFeedbackSnapshotRef = useRef({
@@ -452,7 +435,7 @@ export const MapRuntimeSurface = forwardRef<MapRuntimeSurfaceHandle, MapRuntimeS
     surfaceModeRef.current = nextMode
   })
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (surfaceModeFeedbackStartRef.current === null) {
       return
     }
@@ -551,8 +534,42 @@ export const MapRuntimeSurface = forwardRef<MapRuntimeSurfaceHandle, MapRuntimeS
           }
         }
 
+        const waitForMapIdle = async (idleTimeoutMs = 1200): Promise<void> => {
+          await new Promise<void>((resolve) => {
+            let settled = false
+            let timeoutHandle = 0
+
+            const finish = () => {
+              if (settled) {
+                return
+              }
+              settled = true
+              map.off('idle', onIdle)
+              if (timeoutHandle) {
+                window.clearTimeout(timeoutHandle)
+              }
+              resolve()
+            }
+
+            const onIdle = () => {
+              finish()
+            }
+
+            timeoutHandle = window.setTimeout(() => {
+              finish()
+            }, idleTimeoutMs)
+
+            map.on('idle', onIdle)
+            window.requestAnimationFrame(() => {
+              if (!map.isMoving()) {
+                finish()
+              }
+            })
+          })
+        }
+
         map.stop()
-        map.resize()
+        await waitForMapIdle()
 
         const originCenter = map.getCenter()
         const originZoom = map.getZoom()
@@ -578,11 +595,14 @@ export const MapRuntimeSurface = forwardRef<MapRuntimeSurfaceHandle, MapRuntimeS
           let maxFrameMs = 0
           let totalFrameMs = 0
           let sampleCount = 0
+          let frameLoopHandle = 0
           let timeoutHandle = 0
 
           const cleanup = () => {
-            map.off('render', onRender)
             map.off('moveend', onMoveEnd)
+            if (frameLoopHandle) {
+              window.cancelAnimationFrame(frameLoopHandle)
+            }
             if (timeoutHandle) {
               window.clearTimeout(timeoutHandle)
             }
@@ -637,7 +657,7 @@ export const MapRuntimeSurface = forwardRef<MapRuntimeSurfaceHandle, MapRuntimeS
             reject(new Error(message))
           }
 
-          const onRender = () => {
+          const sampleFrame = () => {
             const now = performance.now()
             if (lastRenderAt !== null) {
               const frameMs = now - lastRenderAt
@@ -646,6 +666,9 @@ export const MapRuntimeSurface = forwardRef<MapRuntimeSurfaceHandle, MapRuntimeS
               sampleCount += 1
             }
             lastRenderAt = now
+            if (!settled) {
+              frameLoopHandle = window.requestAnimationFrame(sampleFrame)
+            }
           }
 
           const onMoveEnd = () => {
@@ -658,8 +681,8 @@ export const MapRuntimeSurface = forwardRef<MapRuntimeSurfaceHandle, MapRuntimeS
             void fail('Planar pan/zoom probe timed out before the map finished animating.')
           }, timeoutMs)
 
-          map.on('render', onRender)
           map.on('moveend', onMoveEnd)
+          frameLoopHandle = window.requestAnimationFrame(sampleFrame)
           map.easeTo({
             bearing: originBearing,
             center: targetCenter,
@@ -847,22 +870,44 @@ export const MapRuntimeSurface = forwardRef<MapRuntimeSurfaceHandle, MapRuntimeS
     }
 
     const map = mapRef.current
-    if (surfaceMode === 'planar') {
-      map.resize()
+    const previousViewport = lastPlanarViewportRef.current
+    lastPlanarViewportRef.current = {
+      focusAoiId: selectedFocusAoiId,
+      surfaceMode,
     }
+
+    if (surfaceMode !== 'planar') {
+      return
+    }
+
+    map.stop()
     const view = runtimeAoiView(selectedFocusAoiId)
 
     map.setProjection({
       type: 'mercator',
     })
     applyFog(map, null)
-    map.easeTo({
+    if (
+      previousViewport &&
+      previousViewport.surfaceMode === 'planar' &&
+      previousViewport.focusAoiId !== selectedFocusAoiId
+    ) {
+      map.easeTo({
+        center: view.center,
+        zoom: 3.4,
+        pitch: 24,
+        bearing: 0,
+        duration: 900,
+        essential: true,
+      })
+      return
+    }
+
+    map.jumpTo({
       center: view.center,
       zoom: 3.4,
       pitch: 24,
       bearing: 0,
-      duration: 900,
-      essential: true,
     })
   }, [planarReady, selectedFocusAoiId, surfaceMode])
 
@@ -969,8 +1014,7 @@ export const MapRuntimeSurface = forwardRef<MapRuntimeSurfaceHandle, MapRuntimeS
     <section className="map-runtime-shell" data-testid="map-runtime-surface">
       <div className="map-runtime-toolbar">
         <div>
-          <p className="eyebrow">Real governed geospatial runtime</p>
-          <h3>{mode} theatre surface</h3>
+          <h3>{surfaceMode === 'orbital' ? '3D globe' : '2D situation map'}</h3>
           <p className="map-runtime-copy">{scene.narrative}</p>
         </div>
         <div className="map-runtime-actions">
@@ -1002,7 +1046,7 @@ export const MapRuntimeSurface = forwardRef<MapRuntimeSurfaceHandle, MapRuntimeS
             }}
             title={exportBlockedReason || 'Export a governed 4K map image'}
           >
-            {exportBusy ? 'Exporting 4K…' : 'Export 4K Map'}
+            {exportBusy ? 'Exporting 4K...' : 'Export 4K PNG'}
           </button>
           <span className={degradedBudgetCount > 0 ? 'policy-pill blocked' : 'policy-pill allowed'}>
             {degradedBudgetCount > 0 ? 'Aggregation mode active' : 'Budget-safe interaction'}
