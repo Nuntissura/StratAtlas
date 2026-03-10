@@ -294,6 +294,43 @@ const DEFAULT_GAME_SOLVER_METHOD: SolverMethod = 'minimax_regret'
 const DEFAULT_GAME_SOLVER_SEED = '29'
 const DEFAULT_GAME_MONTE_CARLO_SAMPLES = '24'
 
+type PanelInfoId = 'left' | 'main' | 'right' | 'bottom'
+
+const PANEL_EXPLAINERS: Record<
+  PanelInfoId,
+  {
+    buttonLabel: string
+    title: string
+    shows: string
+    does: string
+  }
+> = {
+  left: {
+    buttonLabel: 'About Start panel',
+    title: 'Start / Inputs panel',
+    shows: 'Guided start, workspace inputs, query controls, and assistant actions that change what the map means.',
+    does: 'Use this panel to choose the next action, configure a query, or ask the governed assistant to analyze the current evidence.',
+  },
+  main: {
+    buttonLabel: 'About Map panel',
+    title: 'Map / Main canvas panel',
+    shows: 'The live 2D and 3D scene, workflow stack, and evidence/artifact surfaces linked to the active map story.',
+    does: 'Use this panel to read the scene first, switch between map/workflow/artifacts, inspect the runtime, and export governed map evidence.',
+  },
+  right: {
+    buttonLabel: 'About Inspector panel',
+    title: 'Inspector panel',
+    shows: 'Context intake, monitoring, planning, and audit detail that supports the current map view.',
+    does: 'Use this panel to add governed context, inspect supporting signals, work with planning detail, and review audit/provenance without crowding the map.',
+  },
+  bottom: {
+    buttonLabel: 'About Tray panel',
+    title: 'Tray panel',
+    shows: 'Saved bundles, recent activity, runtime status, and operational state that matter after the scene is understood.',
+    does: 'Use this panel to reopen evidence, review recent actions, and inspect supporting runtime status below the main map surface.',
+  },
+}
+
 const deviationTypeForDomain = (
   domain: ContextDomain,
 ): DeviationEvent['deviation_type'] => {
@@ -931,6 +968,7 @@ function App() {
     useState<MainCanvasDeckView>('summary')
   const [rightPanelView, setRightPanelView] = useState<RightPanelView>('context')
   const [bottomPanelView, setBottomPanelView] = useState<BottomPanelView>('bundles')
+  const [openPanelInfoId, setOpenPanelInfoId] = useState<PanelInfoId | null>(null)
   const [guidedStartDismissed, setGuidedStartDismissed] = useState<boolean>(false)
   const [workspaceAdvancedVisible, setWorkspaceAdvancedVisible] = useState<boolean>(false)
   const [inspectorCollapsed, setInspectorCollapsed] = useState<boolean>(true)
@@ -1242,6 +1280,52 @@ function App() {
   const showGuidedStart = !guidedStartDismissed && !hasMeaningfulSessionProgress
   const workspaceCompactView =
     leftPanelView === 'workspace' && showGuidedStart && !workspaceAdvancedVisible
+  const guidedContextReady = activeDomainIds.length > 0
+  const guidedAnalysisReady =
+    queryResultCount > 0 || savedQueryVersions.length > 0 || Boolean(savedQueryArtifact)
+  const guidedEvidenceReady =
+    Boolean(selectedBundleId) || Boolean(briefingArtifact) || Boolean(briefingBundleArtifact)
+  const guidedNextActionLabel = !guidedContextReady
+    ? 'Link Context to Map'
+    : !guidedAnalysisReady
+      ? 'Run Map Query'
+      : !guidedEvidenceReady
+        ? 'Capture Evidence Bundle'
+        : 'Review Evidence'
+  const guidedNextActionCopy = !guidedContextReady
+    ? 'Add one governed domain so the map explains what you are seeing in the AOI.'
+    : !guidedAnalysisReady
+      ? 'Run one analysis step so the map gains a query-driven layer instead of staying a static scene.'
+      : !guidedEvidenceReady
+        ? 'Capture the current state so it can be reopened, exported, and cited as evidence.'
+        : 'Open the saved evidence and move into the full workbench only after the map story is clear.'
+  const guidedMapOutcome = !guidedContextReady
+    ? 'The inspector will add governed context linked to the active AOI.'
+    : !guidedAnalysisReady
+      ? 'The query workspace will turn your map view into an explicit analytical slice.'
+      : !guidedEvidenceReady
+        ? 'The tray will gain a governed bundle that preserves the current scene.'
+        : 'The bundle tray becomes the handoff point into deeper workflows and exports.'
+  const guidedStepItems = [
+    {
+      id: 'context',
+      title: 'Link context',
+      detail: 'Tie one governed domain to the AOI so the map has meaning beyond the basemap.',
+      complete: guidedContextReady,
+    },
+    {
+      id: 'analysis',
+      title: 'Run analysis',
+      detail: 'Project a real analytical layer or compare signal into the map runtime.',
+      complete: guidedAnalysisReady,
+    },
+    {
+      id: 'evidence',
+      title: 'Capture evidence',
+      detail: 'Save the scene into a governed bundle you can reopen, inspect, and export.',
+      complete: guidedEvidenceReady,
+    },
+  ] as const
 
   useEffect(() => {
     let cancelled = false
@@ -2202,12 +2286,34 @@ function App() {
     setTrayCollapsed(false)
   }
 
-  const onRegisterGuidedDomain = (): void => {
-    setGuidedStartDismissed(true)
-    setWorkspaceAdvancedVisible(true)
-    setInspectorCollapsed(false)
-    setRightPanelView('context')
-    onRegisterDomain()
+  const onTogglePanelInfo = (panelId: PanelInfoId): void => {
+    setOpenPanelInfoId((previous) => (previous === panelId ? null : panelId))
+  }
+
+  const renderPanelExplainer = (panelId: PanelInfoId) => {
+    if (openPanelInfoId !== panelId) {
+      return null
+    }
+
+    const content = PANEL_EXPLAINERS[panelId]
+    return (
+      <article
+        id={`panel-explainer-${panelId}`}
+        className="panel-explainer"
+        data-testid={`panel-explainer-${panelId}`}
+      >
+        <div className="card-header compact">
+          <strong>{content.title}</strong>
+          <span className="metric-label">What it shows / does</span>
+        </div>
+        <p>
+          <strong>Shows:</strong> {content.shows}
+        </p>
+        <p>
+          <strong>Does:</strong> {content.does}
+        </p>
+      </article>
+    )
   }
 
   const onCreateGuidedBundle = (): void => {
@@ -2218,12 +2324,11 @@ function App() {
     void onCreateBundle()
   }
 
-  const onOpenGuidedBundle = (): void => {
+  const onReviewGuidedEvidence = (): void => {
     setGuidedStartDismissed(true)
     setWorkspaceAdvancedVisible(true)
     setTrayCollapsed(false)
     setBottomPanelView('bundles')
-    void onOpenBundle()
   }
 
   const onMapSurfaceModeFeedback = (
@@ -6105,16 +6210,29 @@ function App() {
           <h1>StratAtlas</h1>
           <p>Governed map-first workbench</p>
         </div>
-        <div className="status-block">
-          <span className={offline ? 'pill offline' : 'pill online'}>
-            {offline ? 'OFFLINE' : 'ONLINE'}
-          </span>
-          <span className="pill neutral">Role: {role}</span>
-          <span className="pill neutral">Marking: {marking}</span>
-          <span className="pill neutral">Mode: {mode}</span>
-          <span className="pill neutral">Bundle: {selectedBundleId || 'none'}</span>
-          <span className="pill neutral">Query v{versionedQuery.version}</span>
-        </div>
+        {showGuidedStart ? (
+          <div className="status-block is-guided">
+            <span className={offline ? 'pill offline' : 'pill online'}>
+              {offline ? 'OFFLINE' : 'ONLINE'}
+            </span>
+            <span className="pill neutral">Mode: {mode}</span>
+            <span className="pill neutral">Next: {guidedNextActionLabel}</span>
+            <span className="pill neutral">
+              Evidence: {selectedBundleId ? 'captured' : 'not captured'}
+            </span>
+          </div>
+        ) : (
+          <div className="status-block">
+            <span className={offline ? 'pill offline' : 'pill online'}>
+              {offline ? 'OFFLINE' : 'ONLINE'}
+            </span>
+            <span className="pill neutral">Role: {role}</span>
+            <span className="pill neutral">Marking: {marking}</span>
+            <span className="pill neutral">Mode: {mode}</span>
+            <span className="pill neutral">Bundle: {selectedBundleId || 'none'}</span>
+            <span className="pill neutral">Query v{versionedQuery.version}</span>
+          </div>
+        )}
       </header>
 
       <main className={`layout ${inspectorCollapsed ? 'layout-inspector-collapsed' : ''}`}>
@@ -6124,10 +6242,25 @@ function App() {
         >
           <div className="panel-header">
             <div>
-              <h2>Inputs</h2>
-              <p className="panel-copy">Keep only the active command set open.</p>
+              <h2>{workspaceCompactView ? 'Start' : 'Inputs'}</h2>
+              <p className="panel-copy">
+                {workspaceCompactView
+                  ? 'Choose one next move that changes the map, not six unrelated subsystems.'
+                  : 'Keep only the active command set open.'}
+              </p>
             </div>
+            <button
+              type="button"
+              className={`panel-info-button ${openPanelInfoId === 'left' ? 'is-active' : ''}`}
+              aria-expanded={openPanelInfoId === 'left'}
+              aria-controls="panel-explainer-left"
+              aria-label={PANEL_EXPLAINERS.left.buttonLabel}
+              onClick={() => onTogglePanelInfo('left')}
+            >
+              i
+            </button>
           </div>
+          {renderPanelExplainer('left')}
           <div className="panel-tabs" aria-label="Input workspace tabs">
             <button
               type="button"
@@ -6135,7 +6268,7 @@ function App() {
               aria-pressed={leftPanelView === 'workspace'}
               onClick={() => onLeftPanelViewChange('workspace')}
             >
-              Workspace
+              {workspaceCompactView ? 'Start' : 'Workspace'}
             </button>
             <button
               type="button"
@@ -6160,30 +6293,87 @@ function App() {
               <article className="surface-hero first-use-card" data-testid="guided-start-card">
                 <div className="card-header">
                   <div>
-                    <h3>Start here</h3>
+                    <h3>Start with one visible change</h3>
                     <p className="status-line">
-                      Use one real action to change the live map, then reveal the full workbench
-                      only when you need deeper controls.
+                      The map is the product. Take one action that changes it, then reveal deeper
+                      tooling only after the scene makes sense.
                     </p>
                   </div>
-                  <span className="policy-pill allowed">Map-first</span>
+                  <span className="policy-pill allowed">Guided start</span>
                 </div>
-                <div className="summary-grid guided-summary-grid">
-                  <article>
-                    <span className="metric-label">Current mode</span>
-                    <strong>{mode}</strong>
-                  </article>
-                  <article>
-                    <span className="metric-label">Bundle state</span>
-                    <strong>{selectedBundleId || 'Not captured yet'}</strong>
-                  </article>
-                  <article>
-                    <span className="metric-label">Context links</span>
-                    <strong>{activeDomainIds.length}</strong>
-                  </article>
+                <div className="guided-step-list" data-testid="guided-step-list">
+                  {guidedStepItems.map((item, index) => (
+                    <article
+                      key={item.id}
+                      className={`guided-step ${item.complete ? 'is-complete' : 'is-pending'}`}
+                    >
+                      <div className="card-header compact">
+                        <strong>
+                          {index + 1}. {item.title}
+                        </strong>
+                        <span className={item.complete ? 'policy-pill allowed' : 'pill neutral'}>
+                          {item.complete ? 'Ready' : 'Next'}
+                        </span>
+                      </div>
+                      <p>{item.detail}</p>
+                    </article>
+                  ))}
                 </div>
               </article>
 
+              <article className="surface-card compact guided-primary-callout">
+                <span className="metric-label">Next best action</span>
+                <strong>{guidedNextActionLabel}</strong>
+                <p>{guidedNextActionCopy}</p>
+                <small>{guidedMapOutcome}</small>
+                <div className="controls compact">
+                  {!guidedContextReady ? (
+                    <button onClick={() => onRightPanelViewChange('context')}>
+                      Link Context to Map
+                    </button>
+                  ) : null}
+                  {guidedContextReady && !guidedAnalysisReady ? (
+                    <button onClick={() => onLeftPanelViewChange('query')}>Run Map Query</button>
+                  ) : null}
+                  {guidedAnalysisReady && !guidedEvidenceReady ? (
+                    <button onClick={onCreateGuidedBundle} disabled={busy}>
+                      Capture Evidence Bundle
+                    </button>
+                  ) : null}
+                  {guidedEvidenceReady ? (
+                    <button onClick={onReviewGuidedEvidence}>Review Evidence</button>
+                  ) : null}
+                  <button
+                    type="button"
+                    className="button-secondary"
+                    onClick={() => onMainCanvasDeckViewChange('workflow')}
+                  >
+                    Open Workflow Stack
+                  </button>
+                  <button
+                    type="button"
+                    className="button-ghost"
+                    onClick={revealGuidedStartWorkbench}
+                  >
+                    Open Full Workbench
+                  </button>
+                </div>
+              </article>
+
+              <div className="summary-grid guided-summary-grid">
+                <article>
+                  <span className="metric-label">Current mode</span>
+                  <strong>{mode}</strong>
+                </article>
+                <article>
+                  <span className="metric-label">Context links</span>
+                  <strong>{activeDomainIds.length}</strong>
+                </article>
+                <article>
+                  <span className="metric-label">Bundle state</span>
+                  <strong>{selectedBundleId || 'Not captured yet'}</strong>
+                </article>
+              </div>
               <label className="field">
                 Mode
                 <select value={mode} onChange={(event) => onModeChange(event.target.value as UiMode)}>
@@ -6194,21 +6384,7 @@ function App() {
                   ))}
                 </select>
               </label>
-
-              <div className="controls">
-                <button onClick={onRegisterGuidedDomain}>Register Domain</button>
-                <button onClick={() => onLeftPanelViewChange('query')}>Start Query</button>
-                <button onClick={onCreateGuidedBundle} disabled={busy}>
-                  Create Bundle
-                </button>
-                <button onClick={onOpenGuidedBundle} disabled={busy || !selectedBundleId}>
-                  Reopen Bundle
-                </button>
-                <button onClick={() => onRightPanelViewChange('context')}>Open Inspector</button>
-                <button onClick={revealGuidedStartWorkbench}>Open Full Workbench</button>
-              </div>
               <p className="status-line">{status}</p>
-              <p className="status-line">{integrityState}</p>
               <p className="status-line">
                 Advanced controls stay hidden until you explicitly open the full workbench.
               </p>
@@ -6599,36 +6775,53 @@ function App() {
         <section className="panel map-panel" data-testid="region-main-canvas">
           <div className="panel-header">
             <div>
-              <h2>Main Canvas</h2>
-              <p className="panel-copy">Keep the map visible and push bulk detail behind tabs.</p>
+              <h2>{showGuidedStart ? 'Map' : 'Main Canvas'}</h2>
+              <p className="panel-copy">
+                {showGuidedStart
+                  ? 'Read the scene first, then add context, analysis, and evidence around it.'
+                  : 'Keep the map visible and push bulk detail behind tabs.'}
+              </p>
             </div>
-            <div className="panel-tabs" aria-label="Main canvas detail tabs">
+            <div className="panel-header-actions">
+              <div className="panel-tabs" aria-label="Main canvas detail tabs">
+                <button
+                  type="button"
+                  className={mainCanvasDeckView === 'summary' ? 'is-active' : ''}
+                  aria-pressed={mainCanvasDeckView === 'summary'}
+                  onClick={() => onMainCanvasDeckViewChange('summary')}
+                >
+                  {showGuidedStart ? 'Map' : 'Summary'}
+                </button>
+                <button
+                  type="button"
+                  className={mainCanvasDeckView === 'workflow' ? 'is-active' : ''}
+                  aria-pressed={mainCanvasDeckView === 'workflow'}
+                  onClick={() => onMainCanvasDeckViewChange('workflow')}
+                >
+                  Workflow
+                </button>
+                <button
+                  type="button"
+                  className={mainCanvasDeckView === 'artifacts' ? 'is-active' : ''}
+                  aria-pressed={mainCanvasDeckView === 'artifacts'}
+                  onClick={() => onMainCanvasDeckViewChange('artifacts')}
+                >
+                  Artifacts
+                </button>
+              </div>
               <button
                 type="button"
-                className={mainCanvasDeckView === 'summary' ? 'is-active' : ''}
-                aria-pressed={mainCanvasDeckView === 'summary'}
-                onClick={() => onMainCanvasDeckViewChange('summary')}
+                className={`panel-info-button ${openPanelInfoId === 'main' ? 'is-active' : ''}`}
+                aria-expanded={openPanelInfoId === 'main'}
+                aria-controls="panel-explainer-main"
+                aria-label={PANEL_EXPLAINERS.main.buttonLabel}
+                onClick={() => onTogglePanelInfo('main')}
               >
-                Summary
-              </button>
-              <button
-                type="button"
-                className={mainCanvasDeckView === 'workflow' ? 'is-active' : ''}
-                aria-pressed={mainCanvasDeckView === 'workflow'}
-                onClick={() => onMainCanvasDeckViewChange('workflow')}
-              >
-                Workflow
-              </button>
-              <button
-                type="button"
-                className={mainCanvasDeckView === 'artifacts' ? 'is-active' : ''}
-                aria-pressed={mainCanvasDeckView === 'artifacts'}
-                onClick={() => onMainCanvasDeckViewChange('artifacts')}
-              >
-                Artifacts
+                i
               </button>
             </div>
           </div>
+          {renderPanelExplainer('main')}
           <MapRuntimeSurface
             ref={mapRuntimeSurfaceRef}
             scene={mapRuntimeScene}
@@ -6651,10 +6844,10 @@ function App() {
                 <article className="surface-hero guided-start-main" data-testid="guided-start-main">
                   <div className="card-header">
                     <div>
-                      <h3>See the map first</h3>
+                      <h3>See the map, then add meaning</h3>
                       <p className="status-line">
-                        The center canvas is the product. Add context, open analysis, or reveal
-                        deeper tooling only when you need it.
+                        The center canvas is the product. Every guided action below changes what
+                        the map means, not just which form is open.
                       </p>
                     </div>
                     <span
@@ -6663,48 +6856,46 @@ function App() {
                       {degradedBudgetCount > 0 ? 'Aggregation mode active' : 'Map ready'}
                     </span>
                   </div>
-                  <div className="guided-action-grid">
+                  <div className="guided-hero-layout">
                     <article className="surface-card compact">
-                      <strong>Context</strong>
-                      <p>Open the inspector and register a governed domain tied to the AOI.</p>
-                      <div className="controls compact">
-                        <button onClick={() => onRightPanelViewChange('context')}>
-                          Show Context Intake
-                        </button>
-                      </div>
+                      <span className="metric-label">Why it matters</span>
+                      <strong>The scene should explain itself in under a minute.</strong>
+                      <p>
+                        Start by linking context, then run one analysis step, then capture the
+                        evidence. The map stays in view through the whole path.
+                      </p>
                     </article>
                     <article className="surface-card compact">
-                      <strong>Analysis</strong>
-                      <p>Route into query or workflow detail once the map scene is legible.</p>
-                      <div className="controls compact">
-                        <button onClick={() => onLeftPanelViewChange('query')}>
-                          Open Query Workspace
-                        </button>
-                        <button onClick={() => onMainCanvasDeckViewChange('workflow')}>
-                          Open Workflow Stack
-                        </button>
-                      </div>
-                    </article>
-                    <article className="surface-card compact">
-                      <strong>Outputs</strong>
-                      <p>Reveal bundles and runtime activity only when stored evidence matters.</p>
-                      <div className="controls compact">
-                        <button onClick={() => onBottomPanelViewChange('bundles')}>
-                          Show Bundle Tray
-                        </button>
-                        <button onClick={revealGuidedStartWorkbench}>Reveal Full Workbench</button>
+                      <span className="metric-label">Current scene</span>
+                      <strong>{guidedMapOutcome}</strong>
+                      <div className="summary-grid guided-map-strip">
+                        <article>
+                          <span className="metric-label">Surfaces</span>
+                          <strong>2D + 3D</strong>
+                        </article>
+                        <article>
+                          <span className="metric-label">Visible layers</span>
+                          <strong>{activeLayers.length}</strong>
+                        </article>
+                        <article>
+                          <span className="metric-label">Evidence</span>
+                          <strong>{selectedBundleId ? 'Captured' : 'Not yet'}</strong>
+                        </article>
                       </div>
                     </article>
                   </div>
                 </article>
               )}
-              <article className="surface-hero" data-testid="workspace-surface-summary">
+              <article
+                className={`surface-hero ${showGuidedStart ? 'guided-map-state' : ''}`}
+                data-testid="workspace-surface-summary"
+              >
                 <div className="card-header">
                   <div>
-                    <h3>{showGuidedStart ? 'Map readiness' : `${mode} workflow surface`}</h3>
+                    <h3>{showGuidedStart ? 'Current map state' : `${mode} workflow surface`}</h3>
                     <p className="status-line">
                       {showGuidedStart
-                        ? 'Use the guided actions to add meaning around the live map without opening every subsystem at once.'
+                        ? 'You can still enter the deeper workflows, but the first-use shell keeps attention on the scene and its next visible change.'
                         : `${visibleLayerCatalog.length} visible governed artifacts across ${mainCanvasCatalog.length} main-canvas surfaces and ${rightPanelCatalog.length} right-panel surfaces.`}
                     </p>
                   </div>
@@ -6726,12 +6917,16 @@ function App() {
                     <strong>{activeLayers.length}</strong>
                   </article>
                   <article>
-                    <span className="metric-label">Context links</span>
-                    <strong>{activeDomainIds.length}</strong>
+                    <span className="metric-label">
+                      {showGuidedStart ? 'Next outcome' : 'Context links'}
+                    </span>
+                    <strong>{showGuidedStart ? guidedNextActionLabel : activeDomainIds.length}</strong>
                   </article>
                   <article>
-                    <span className="metric-label">Selected bundle</span>
-                    <strong>{selectedBundleId || 'none'}</strong>
+                    <span className="metric-label">
+                      {showGuidedStart ? 'Evidence state' : 'Selected bundle'}
+                    </span>
+                    <strong>{showGuidedStart ? (selectedBundleId ? 'Captured' : 'Pending') : selectedBundleId || 'none'}</strong>
                   </article>
                 </div>
               </article>
@@ -8014,55 +8209,72 @@ function App() {
               <h2>Inspector</h2>
               <p className="panel-copy">Keep supporting detail docked beside the map, not in front of it.</p>
             </div>
-            <div className="panel-tabs" aria-label="Inspector tabs">
+            <div className="panel-header-actions">
+              <div className="panel-tabs" aria-label="Inspector tabs">
+                <button
+                  type="button"
+                  className={rightPanelView === 'context' ? 'is-active' : ''}
+                  aria-pressed={rightPanelView === 'context'}
+                  onClick={() => onRightPanelViewChange('context')}
+                >
+                  Context
+                </button>
+                <button
+                  type="button"
+                  className={rightPanelView === 'monitor' ? 'is-active' : ''}
+                  aria-pressed={rightPanelView === 'monitor'}
+                  onClick={() => onRightPanelViewChange('monitor')}
+                >
+                  Monitor
+                </button>
+                <button
+                  type="button"
+                  className={rightPanelView === 'planning' ? 'is-active' : ''}
+                  aria-pressed={rightPanelView === 'planning'}
+                  onClick={() => onRightPanelViewChange('planning')}
+                >
+                  Planning
+                </button>
+                <button
+                  type="button"
+                  className={rightPanelView === 'audit' ? 'is-active' : ''}
+                  aria-pressed={rightPanelView === 'audit'}
+                  onClick={() => onRightPanelViewChange('audit')}
+                >
+                  Audit
+                </button>
+              </div>
               <button
                 type="button"
-                className={rightPanelView === 'context' ? 'is-active' : ''}
-                aria-pressed={rightPanelView === 'context'}
-                onClick={() => onRightPanelViewChange('context')}
+                className={`panel-info-button ${openPanelInfoId === 'right' ? 'is-active' : ''}`}
+                aria-expanded={openPanelInfoId === 'right'}
+                aria-controls="panel-explainer-right"
+                aria-label={PANEL_EXPLAINERS.right.buttonLabel}
+                onClick={() => onTogglePanelInfo('right')}
               >
-                Context
+                i
               </button>
               <button
                 type="button"
-                className={rightPanelView === 'monitor' ? 'is-active' : ''}
-                aria-pressed={rightPanelView === 'monitor'}
-                onClick={() => onRightPanelViewChange('monitor')}
+                className="panel-disclosure"
+                aria-pressed={!inspectorCollapsed}
+                onClick={() => setInspectorCollapsed((previous) => !previous)}
               >
-                Monitor
-              </button>
-              <button
-                type="button"
-                className={rightPanelView === 'planning' ? 'is-active' : ''}
-                aria-pressed={rightPanelView === 'planning'}
-                onClick={() => onRightPanelViewChange('planning')}
-              >
-                Planning
-              </button>
-              <button
-                type="button"
-                className={rightPanelView === 'audit' ? 'is-active' : ''}
-                aria-pressed={rightPanelView === 'audit'}
-                onClick={() => onRightPanelViewChange('audit')}
-              >
-                Audit
+                {inspectorCollapsed ? 'Expand Inspector' : 'Collapse Inspector'}
               </button>
             </div>
-            <button
-              type="button"
-              className="panel-disclosure"
-              aria-pressed={!inspectorCollapsed}
-              onClick={() => setInspectorCollapsed((previous) => !previous)}
-            >
-              {inspectorCollapsed ? 'Expand Inspector' : 'Collapse Inspector'}
-            </button>
           </div>
+          {renderPanelExplainer('right')}
 
           {inspectorCollapsed ? (
             <div className="panel-view panel-collapsed-view" data-testid="inspector-collapsed-view">
               <article className="surface-card compact">
-                <strong>Inspector tucked away</strong>
-                <p>Open Context, Monitor, Planning, or Audit when you need supporting detail beside the map.</p>
+                <strong>{guidedContextReady ? 'Context linked' : 'Inspector tucked away'}</strong>
+                <p>
+                  {guidedContextReady
+                    ? `${activeDomainIds.length} governed context link(s) are ready. Reopen the inspector when you want source, cadence, and confidence detail beside the map.`
+                    : 'Open Context when you want to add governed meaning to the current AOI without crowding the first view.'}
+                </p>
               </article>
             </div>
           ) : null}
@@ -8848,39 +9060,56 @@ function App() {
             <h2>Tray</h2>
             <p className="panel-copy">Move bundles and runtime status below the map so the canvas stays readable.</p>
           </div>
-          <div className="panel-tabs" aria-label="Bottom tray tabs">
+          <div className="panel-header-actions">
+            <div className="panel-tabs" aria-label="Bottom tray tabs">
+              <button
+                type="button"
+                className={bottomPanelView === 'bundles' ? 'is-active' : ''}
+                aria-pressed={bottomPanelView === 'bundles'}
+                onClick={() => onBottomPanelViewChange('bundles')}
+              >
+                Bundles
+              </button>
+              <button
+                type="button"
+                className={bottomPanelView === 'activity' ? 'is-active' : ''}
+                aria-pressed={bottomPanelView === 'activity'}
+                onClick={() => onBottomPanelViewChange('activity')}
+              >
+                Activity
+              </button>
+            </div>
             <button
               type="button"
-              className={bottomPanelView === 'bundles' ? 'is-active' : ''}
-              aria-pressed={bottomPanelView === 'bundles'}
-              onClick={() => onBottomPanelViewChange('bundles')}
+              className={`panel-info-button ${openPanelInfoId === 'bottom' ? 'is-active' : ''}`}
+              aria-expanded={openPanelInfoId === 'bottom'}
+              aria-controls="panel-explainer-bottom"
+              aria-label={PANEL_EXPLAINERS.bottom.buttonLabel}
+              onClick={() => onTogglePanelInfo('bottom')}
             >
-              Bundles
+              i
             </button>
             <button
               type="button"
-              className={bottomPanelView === 'activity' ? 'is-active' : ''}
-              aria-pressed={bottomPanelView === 'activity'}
-              onClick={() => onBottomPanelViewChange('activity')}
+              className="panel-disclosure"
+              aria-pressed={!trayCollapsed}
+              onClick={() => setTrayCollapsed((previous) => !previous)}
             >
-              Activity
+              {trayCollapsed ? 'Expand Tray' : 'Collapse Tray'}
             </button>
           </div>
-          <button
-            type="button"
-            className="panel-disclosure"
-            aria-pressed={!trayCollapsed}
-            onClick={() => setTrayCollapsed((previous) => !previous)}
-          >
-            {trayCollapsed ? 'Expand Tray' : 'Collapse Tray'}
-          </button>
         </div>
+        {renderPanelExplainer('bottom')}
 
         {trayCollapsed ? (
           <div className="panel-view panel-collapsed-view" data-testid="bottom-tray-collapsed-view">
             <article className="surface-card compact">
-              <strong>Tray hidden by default</strong>
-              <p>Open Bundles or Activity when you need stored evidence, runtime status, or recent actions.</p>
+              <strong>{selectedBundleId ? 'Evidence captured' : 'Tray hidden by default'}</strong>
+              <p>
+                {selectedBundleId
+                  ? `Bundle ${selectedBundleId} is ready. Open Bundles when you want to review stored evidence or reopen prior work.`
+                  : 'Open Bundles or Activity only when stored evidence, runtime status, or recent actions matter to the map story.'}
+              </p>
             </article>
           </div>
         ) : null}

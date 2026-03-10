@@ -355,6 +355,24 @@ For quick lookup: "What requirements does this component implement?"
 
 | WP-GOV-INSTALLER-003 | All | REQ-0019, REQ-0020, REQ-0021, REQ-0022, REQ-0023, REQ-0024, REQ-0025, REQ-0026, REQ-0027, REQ-0028, REQ-0029, REQ-0030, REQ-0031, REQ-0032, REQ-0033, REQ-0034, REQ-0035, REQ-0036 | PRIM-0024, PRIM-0025, PRIM-0028, PRIM-0072, PRIM-0073, PRIM-0074 | .gov/workflow/wp_test_suites/TS-WP-GOV-INSTALLER-003.md | E2E-VERIFIED | .gov/workflow/wp_spec_extractions/SX-WP-GOV-INSTALLER-003.md; .product/build_target/tool_artifacts/wp_runs/WP-GOV-INSTALLER-003/20260309_171125/; governed release topology, changelog-ledger enforcement, maintenance menu/help surface, and legacy archive migration closed with proof |
 
-| WP-GOV-SMOKE-001 | All | REQ-0013, REQ-0035, REQ-0200, REQ-0201, REQ-0212 | PRIM-0045, PRIM-0068, PRIM-0071, PRIM-0074 | .gov/workflow/wp_test_suites/TS-WP-GOV-SMOKE-001.md | IN-PROGRESS | .gov/workflow/wp_spec_extractions/SX-WP-GOV-SMOKE-001.md |
+| WP-GOV-SMOKE-001 | All | REQ-0013, REQ-0035, REQ-0200, REQ-0201, REQ-0212 | PRIM-0045, PRIM-0068, PRIM-0071, PRIM-0074 | .gov/workflow/wp_test_suites/TS-WP-GOV-SMOKE-001.md | IN-PROGRESS | .gov/workflow/wp_spec_extractions/SX-WP-GOV-SMOKE-001.md; baseline packaged-build evidence under `.product/build_target/tool_artifacts/manual_smoke/WP-GOV-SMOKE-001/20260309_202006/`; follow-up current-code evidence under `.product/build_target/tool_artifacts/manual_smoke/WP-GOV-SMOKE-001/20260309_234318/` |
 
-| WP-I1-006 | I1 | REQ-0011, REQ-0012, REQ-0013, REQ-0200, REQ-0201, REQ-0211, REQ-0212 | PRIM-0045, PRIM-0068, PRIM-0071 | .gov/workflow/wp_test_suites/TS-WP-I1-006.md | IN-PROGRESS | .gov/workflow/wp_spec_extractions/SX-WP-I1-006.md; first implementation slice landed in `.product/Worktrees/wt_main/src/App.tsx`, `.product/Worktrees/wt_main/src/App.css`, and `.product/Worktrees/wt_main/src/App.test.tsx` with guided start, collapsed support panes, and map-led quick actions; targeted verification passed on 2026-03-09 |
+| WP-I1-006 | I1 | REQ-0011, REQ-0012, REQ-0013, REQ-0200, REQ-0201, REQ-0211, REQ-0212 | PRIM-0045, PRIM-0068, PRIM-0071 | .gov/workflow/wp_test_suites/TS-WP-I1-006.md | E2E-VERIFIED | .gov/workflow/wp_spec_extractions/SX-WP-I1-006.md; `.product/build_target/tool_artifacts/wp_runs/WP-I1-006/20260310_003729/`; first-use shell closes with guided start, calmer pane pressure, and second-pass manual smoke evidence showing the map above the fold in the rebuilt local Tauri shell |
+
+| WP-GOV-MAPDATA-001 | All | REQ-0013, REQ-0019, REQ-0020, REQ-0021, REQ-0022, REQ-0200, REQ-0201 | PRIM-0045, PRIM-0071 | .gov/workflow/wp_test_suites/TS-WP-GOV-MAPDATA-001.md | E2E-VERIFIED | .gov/workflow/wp_spec_extractions/SX-WP-GOV-MAPDATA-001.md; `.product/build_target/tool_artifacts/wp_runs/WP-GOV-MAPDATA-001/20260310_012211/`; governed source matrix, fallback taxonomy, and truthful build order for future toggleable map-visible layer families |
+
+| WP-I1-007 | I1 | REQ-0011, REQ-0013, REQ-0200, REQ-0201, REQ-0212 | PRIM-0045, PRIM-0068, PRIM-0071 | .gov/workflow/wp_test_suites/TS-WP-I1-007.md | E2E-VERIFIED | .gov/workflow/wp_spec_extractions/SX-WP-I1-007.md; `.product/build_target/tool_artifacts/wp_runs/WP-I1-007/20260310_012211/`; inline panel explainers plus truth-labeled online versus fallback 2D basemap behavior |
+
+| WP-I1-008 | I1 | REQ-0013, REQ-0200, REQ-0201, REQ-0202, REQ-0203, REQ-0212 | PRIM-0045, PRIM-0068, PRIM-0071 | .gov/workflow/wp_test_suites/TS-WP-I1-008.md | SPEC-MAPPED | .gov/workflow/wp_spec_extractions/SX-WP-I1-008.md |
+
+| WP-I1-009 | I1 | REQ-0013, REQ-0108, REQ-0200, REQ-0201, REQ-0202, REQ-0203, REQ-0211, REQ-0212 | PRIM-0045, PRIM-0046, PRIM-0071 | .gov/workflow/wp_test_suites/TS-WP-I1-009.md | SPEC-MAPPED | .gov/workflow/wp_spec_extractions/SX-WP-I1-009.md |
+
+| WP-I1-010 | I1 | REQ-0013, REQ-0108, REQ-0200, REQ-0201, REQ-0202, REQ-0203, REQ-0211, REQ-0212 | PRIM-0045, PRIM-0046, PRIM-0071 | .gov/workflow/wp_test_suites/TS-WP-I1-010.md | SPEC-MAPPED | .gov/workflow/wp_spec_extractions/SX-WP-I1-010.md |
+
+| WP-I1-011 | I1 | REQ-0013, REQ-0108, REQ-0200, REQ-0201, REQ-0202, REQ-0203, REQ-0211, REQ-0212 | PRIM-0045, PRIM-0046, PRIM-0071 | .gov/workflow/wp_test_suites/TS-WP-I1-011.md | SPEC-MAPPED | .gov/workflow/wp_spec_extractions/SX-WP-I1-011.md |
+
+| WP-GOV-MAPDATA-002 | All | REQ-0013, REQ-0019, REQ-0020, REQ-0021, REQ-0022, REQ-0200, REQ-0201 | PRIM-0045, PRIM-0071 | .gov/workflow/wp_test_suites/TS-WP-GOV-MAPDATA-002.md | SPEC-MAPPED | .gov/workflow/wp_spec_extractions/SX-WP-GOV-MAPDATA-002.md |
+
+| WP-I1-012 | I1 | REQ-0013, REQ-0108, REQ-0200, REQ-0201, REQ-0202, REQ-0203, REQ-0211, REQ-0212 | PRIM-0045, PRIM-0046, PRIM-0071 | .gov/workflow/wp_test_suites/TS-WP-I1-012.md | BLOCKED | .gov/workflow/wp_spec_extractions/SX-WP-I1-012.md |
+
+| WP-I1-013 | I1 | REQ-0013, REQ-0108, REQ-0200, REQ-0201, REQ-0202, REQ-0203, REQ-0211, REQ-0212 | PRIM-0045, PRIM-0046, PRIM-0071 | .gov/workflow/wp_test_suites/TS-WP-I1-013.md | SPEC-MAPPED | .gov/workflow/wp_spec_extractions/SX-WP-I1-013.md |

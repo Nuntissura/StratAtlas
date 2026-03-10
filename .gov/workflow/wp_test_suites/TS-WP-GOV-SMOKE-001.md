@@ -79,11 +79,11 @@ Validate the first governed manual desktop smoke pass for the real StratAtlas Wi
 ## Execution Summary
 
 - Last Run Date: 2026-03-09
-- Result: Partial manual smoke completed; packet remains IN-PROGRESS
-- Blocking Failures: First-use shell still reads as overloaded; map primacy is weaker than intended; 3D mode was not convincingly validated in this first pass because desktop focus automation was unreliable on this machine
-- Evidence Paths: `.product/build_target/tool_artifacts/manual_smoke/WP-GOV-SMOKE-001/20260309_202006/stratatlas-initial.png`; `.product/build_target/tool_artifacts/manual_smoke/WP-GOV-SMOKE-001/20260309_202006/stratatlas-workflow-tab.png`; `.product/build_target/tool_artifacts/manual_smoke/WP-GOV-SMOKE-001/20260309_202006/rubric.md`; `.product/build_target/tool_artifacts/manual_smoke/WP-GOV-SMOKE-001/20260309_202006/findings.md`
-- What Became Real: The repo now has screenshot-backed first-impression evidence of how the current packaged desktop app actually reads to a human observer.
-- What Remains Simulated: Deeper hands-on flow coverage is still incomplete; the current packet state is strong for first-use UX triage, not for full manual acceptance of every mode.
-- Next Blocking Real Seam: Decide whether to branch into targeted shell/value refactor packets immediately or continue the manual packet with broader scenario-by-scenario hands-on coverage.
+- Result: Baseline and follow-up manual smoke slices completed; packet remains IN-PROGRESS for broader scenario coverage
+- Blocking Failures: The critical first-use ambiguity is reduced after `WP-I1-006`, but broader hands-on validation across 3D/export/reopen is still incomplete
+- Evidence Paths: `.product/build_target/tool_artifacts/manual_smoke/WP-GOV-SMOKE-001/20260309_202006/stratatlas-initial.png`; `.product/build_target/tool_artifacts/manual_smoke/WP-GOV-SMOKE-001/20260309_202006/stratatlas-workflow-tab.png`; `.product/build_target/tool_artifacts/manual_smoke/WP-GOV-SMOKE-001/20260309_202006/rubric.md`; `.product/build_target/tool_artifacts/manual_smoke/WP-GOV-SMOKE-001/20260309_202006/findings.md`; `.product/build_target/tool_artifacts/manual_smoke/WP-GOV-SMOKE-001/20260309_234318/post-fix-guided-start-window-handle.png`; `.product/build_target/tool_artifacts/manual_smoke/WP-GOV-SMOKE-001/20260309_234318/rubric.md`; `.product/build_target/tool_artifacts/manual_smoke/WP-GOV-SMOKE-001/20260309_234318/findings.md`
+- What Became Real: The repo now has screenshot-backed before/after evidence showing that the smoke-driven shell refactor materially improved first-use map primacy and action clarity in the real desktop app
+- What Remains Simulated: Deeper hands-on flow coverage is still incomplete; the current packet state is strong for first-use UX triage and follow-up validation, not for full manual acceptance of every mode
+- Next Blocking Real Seam: Extend manual desktop coverage from first-use shell validation into deeper scenario-by-scenario hands-on flows before release-candidate work
 - Reviewer: Codex
 - User Sign-off: Pending user review

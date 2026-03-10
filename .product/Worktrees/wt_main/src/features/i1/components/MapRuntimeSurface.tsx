@@ -135,6 +135,10 @@ const GRATICULE: Exclude<GeoJSONSourceSpecification['data'], string> = {
   ],
 }
 
+const ONLINE_BASEMAP_STYLE_URL = 'https://tiles.openfreemap.org/styles/liberty'
+
+type BasemapState = 'online-live' | 'fallback-offline' | 'fallback-load-failure' | 'fallback-runtime'
+
 const toneClass = (tone: RuntimeTone): string => `map-runtime-chip tone-${tone}`
 
 const supportsInteractiveMap = (): boolean => {
@@ -159,7 +163,7 @@ const supportsInteractiveMap = (): boolean => {
   }
 }
 
-const createBaseStyle = (): StyleSpecification => ({
+const createFallbackStyle = (): StyleSpecification => ({
   version: 8,
   sources: {
     'i1-graticule': {
@@ -385,10 +389,82 @@ export const MapRuntimeSurface = forwardRef<MapRuntimeSurfaceHandle, MapRuntimeS
   const [planarReady, setPlanarReady] = useState<boolean>(false)
   const [orbitalReady, setOrbitalReady] = useState<boolean>(false)
   const [mapError, setMapError] = useState<string>('')
+  const [basemapState, setBasemapState] = useState<BasemapState>(() => {
+    if (!interactiveSupportedRef.current) {
+      return 'fallback-runtime'
+    }
+    return offline ? 'fallback-offline' : 'online-live'
+  })
+
+  const onlineBasemapConfirmedRef = useRef<boolean>(false)
+  const basemapStyleRef = useRef<'online' | 'fallback'>(
+    interactiveSupportedRef.current && !offline ? 'online' : 'fallback',
+  )
+  const basemapLoadTimeoutRef = useRef<number>(0)
 
   useEffect(() => {
     offlineRef.current = offline
   }, [offline])
+
+  const clearBasemapLoadTimeout = useEffectEvent(() => {
+    if (basemapLoadTimeoutRef.current) {
+      window.clearTimeout(basemapLoadTimeoutRef.current)
+      basemapLoadTimeoutRef.current = 0
+    }
+  })
+
+  const syncPlanarSceneAfterStyleChange = useEffectEvent((map: MapLibreMap) => {
+    const applyScene = () => {
+      try {
+        syncRuntimeScene(map, sceneRef.current)
+        setMapError('')
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Map scene sync failed'
+        setMapError(message)
+      }
+    }
+
+    if (map.isStyleLoaded()) {
+      applyScene()
+      return
+    }
+
+    map.once('styledata', applyScene)
+  })
+
+  const applyFallbackBasemap = useEffectEvent((
+    map: MapLibreMap,
+    nextState: Extract<BasemapState, 'fallback-offline' | 'fallback-load-failure' | 'fallback-runtime'>,
+    message = '',
+  ) => {
+    clearBasemapLoadTimeout()
+    onlineBasemapConfirmedRef.current = false
+    basemapStyleRef.current = 'fallback'
+    setBasemapState(nextState)
+    if (message) {
+      setMapError(message)
+    }
+    map.setStyle(createFallbackStyle())
+    syncPlanarSceneAfterStyleChange(map)
+  })
+
+  const applyOnlineBasemap = useEffectEvent((map: MapLibreMap) => {
+    clearBasemapLoadTimeout()
+    basemapStyleRef.current = 'online'
+    onlineBasemapConfirmedRef.current = false
+    setBasemapState('online-live')
+    map.setStyle(ONLINE_BASEMAP_STYLE_URL)
+    syncPlanarSceneAfterStyleChange(map)
+    basemapLoadTimeoutRef.current = window.setTimeout(() => {
+      if (!onlineBasemapConfirmedRef.current && mapRef.current === map) {
+        applyFallbackBasemap(
+          map,
+          'fallback-load-failure',
+          'Live basemap unavailable; using schematic fallback.',
+        )
+      }
+    }, 6000)
+  })
 
   useEffect(() => {
     sceneRef.current = scene
@@ -769,7 +845,7 @@ export const MapRuntimeSurface = forwardRef<MapRuntimeSurfaceHandle, MapRuntimeS
       const initialView = runtimeAoiView(sceneRef.current.focusAoiId)
       const map = new maplibregl.Map(({
         container: planarContainerRef.current,
-        style: createBaseStyle(),
+        style: offlineRef.current ? createFallbackStyle() : ONLINE_BASEMAP_STYLE_URL,
         center: initialView.center,
         zoom: 3.2,
         pitch: 24,
@@ -781,6 +857,8 @@ export const MapRuntimeSurface = forwardRef<MapRuntimeSurfaceHandle, MapRuntimeS
       } as MapOptions & { preserveDrawingBuffer: boolean }))
 
       mapRef.current = map
+      basemapStyleRef.current = offlineRef.current ? 'fallback' : 'online'
+      setBasemapState(offlineRef.current ? 'fallback-offline' : 'online-live')
       map.addControl(new maplibregl.NavigationControl({ showCompass: true }), 'top-right')
       map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right')
 
@@ -799,7 +877,14 @@ export const MapRuntimeSurface = forwardRef<MapRuntimeSurfaceHandle, MapRuntimeS
       })
       map.once('styledata', markPlanarReady)
       map.once('render', markPlanarReady)
-      map.on('load', markPlanarReady)
+      map.on('load', () => {
+        if (basemapStyleRef.current === 'online') {
+          onlineBasemapConfirmedRef.current = true
+          clearBasemapLoadTimeout()
+          setBasemapState('online-live')
+        }
+        markPlanarReady()
+      })
 
       map.on('click', 'i1-signal-core', (event) => {
         onSignalClick(selectFeatureId(event.features?.[0]))
@@ -821,6 +906,14 @@ export const MapRuntimeSurface = forwardRef<MapRuntimeSurfaceHandle, MapRuntimeS
       })
       map.on('error', (event) => {
         const message = event.error instanceof Error ? event.error.message : 'Map runtime error'
+        if (basemapStyleRef.current === 'online' && !onlineBasemapConfirmedRef.current) {
+          applyFallbackBasemap(
+            map,
+            'fallback-load-failure',
+            'Live basemap unavailable; using schematic fallback.',
+          )
+          return
+        }
         setMapError(message)
       })
     } catch (error: unknown) {
@@ -835,6 +928,7 @@ export const MapRuntimeSurface = forwardRef<MapRuntimeSurfaceHandle, MapRuntimeS
       if (planarReadyFrame) {
         window.cancelAnimationFrame(planarReadyFrame)
       }
+      clearBasemapLoadTimeout()
       mapRef.current?.remove()
       mapRef.current = null
       setPlanarReady(false)
@@ -863,6 +957,27 @@ export const MapRuntimeSurface = forwardRef<MapRuntimeSurfaceHandle, MapRuntimeS
 
     map.once('styledata', applyScene)
   }, [planarReady, scene])
+
+  useEffect(() => {
+    if (!interactiveSupportedRef.current) {
+      setBasemapState('fallback-runtime')
+      return
+    }
+    if (!mapRef.current || !planarReady) {
+      return
+    }
+
+    if (offline) {
+      if (basemapStyleRef.current !== 'fallback' || basemapState !== 'fallback-offline') {
+        applyFallbackBasemap(mapRef.current, 'fallback-offline')
+      }
+      return
+    }
+
+    if (basemapStyleRef.current === 'fallback' && basemapState === 'fallback-offline') {
+      applyOnlineBasemap(mapRef.current)
+    }
+  }, [basemapState, offline, planarReady])
 
   useEffect(() => {
     if (!mapRef.current || !planarReady) {
@@ -1009,6 +1124,23 @@ export const MapRuntimeSurface = forwardRef<MapRuntimeSurfaceHandle, MapRuntimeS
 
   const selectedInspect =
     scene.inspectCards.find((card) => card.id === selectedInspectId) ?? scene.inspectCards[0]
+  const basemapStatusLabel =
+    basemapState === 'online-live'
+      ? 'OpenFreeMap basemap'
+      : basemapState === 'fallback-load-failure'
+        ? 'Schematic fallback basemap'
+        : basemapState === 'fallback-offline'
+          ? 'Offline schematic basemap'
+          : 'Schematic fallback basemap'
+  const basemapStatusDetail =
+    basemapState === 'online-live'
+      ? 'Recognizable online basemap is active under the governed overlays.'
+      : basemapState === 'fallback-load-failure'
+        ? 'The live basemap failed to load, so the planar surface fell back to the local schematic map.'
+        : basemapState === 'fallback-offline'
+          ? 'Offline mode keeps the planar surface readable with the local schematic fallback.'
+          : 'The current runtime cannot mount the interactive online basemap, so the schematic fallback remains active.'
+  const basemapStatusTone = basemapState === 'online-live' ? 'allowed' : 'blocked'
 
   return (
     <section className="map-runtime-shell" data-testid="map-runtime-surface">
@@ -1050,6 +1182,12 @@ export const MapRuntimeSurface = forwardRef<MapRuntimeSurfaceHandle, MapRuntimeS
           </button>
           <span className={degradedBudgetCount > 0 ? 'policy-pill blocked' : 'policy-pill allowed'}>
             {degradedBudgetCount > 0 ? 'Aggregation mode active' : 'Budget-safe interaction'}
+          </span>
+          <span
+            className={`policy-pill ${basemapStatusTone}`}
+            data-testid="map-runtime-basemap-status"
+          >
+            {basemapStatusLabel}
           </span>
         </div>
       </div>
@@ -1187,6 +1325,7 @@ export const MapRuntimeSurface = forwardRef<MapRuntimeSurfaceHandle, MapRuntimeS
           Marking {marking} | Visible governed layers {visibleLayerCount} | Bundle-linked export
           policy enforced
         </p>
+        <p className="status-line">{basemapStatusDetail}</p>
         <p className="status-line" aria-label="Tone palette semantics">
           Tone palette:{' '}
           {(['evidence', 'context', 'model', 'ai', 'alert', 'support'] as const).map((tone) => (

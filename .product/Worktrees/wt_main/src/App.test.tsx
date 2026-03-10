@@ -371,6 +371,13 @@ const openBottomTrayTab = async (user: ReturnType<typeof userEvent.setup>, name:
   )
 }
 
+const revealFullWorkbenchIfAvailable = async (user: ReturnType<typeof userEvent.setup>) => {
+  const disclosure = screen.queryByRole('button', { name: 'Open Full Workbench' })
+  if (disclosure) {
+    await user.click(disclosure)
+  }
+}
+
 describe('App', () => {
   beforeEach(() => {
     localStorage.clear()
@@ -382,6 +389,7 @@ describe('App', () => {
 
     expect(screen.getByText('StratAtlas')).toBeInTheDocument()
     expect(screen.getByText('Governed map-first workbench')).toBeInTheDocument()
+    await revealFullWorkbenchIfAvailable(user)
     await user.click(screen.getByRole('button', { name: 'Create Bundle' }))
 
     expect((await screen.findAllByText(/Bundle .* created/)).length).toBeGreaterThan(0)
@@ -515,10 +523,24 @@ describe('App', () => {
     render(<App />)
 
     expect(await screen.findByTestId('guided-start-card')).toBeInTheDocument()
+    expect(screen.getByTestId('guided-step-list')).toBeInTheDocument()
     expect(screen.getByTestId('guided-start-main')).toBeInTheDocument()
     expect(screen.getByTestId('inspector-collapsed-view')).toBeInTheDocument()
     expect(screen.getByTestId('bottom-tray-collapsed-view')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Link Context to Map' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Open Full Workbench' })).toBeInTheDocument()
+  })
+
+  it('routes the primary guided action into context intake', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.click(await screen.findByRole('button', { name: 'Link Context to Map' }))
+
+    expect(screen.queryByTestId('guided-start-card')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('inspector-collapsed-view')).not.toBeInTheDocument()
+    expect(await screen.findByText('Context Intake (I7)')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Collapse Inspector' })).toBeInTheDocument()
   })
 
   it('can reveal the full workbench from the guided first-use shell', async () => {
@@ -562,6 +584,58 @@ describe('App', () => {
     ).toBeInTheDocument()
   })
 
+  it('explains each stable workbench panel with inline help', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    await revealFullWorkbenchIfAvailable(user)
+
+    const expectations = [
+      {
+        buttonLabel: 'About Start panel',
+        testId: 'panel-explainer-left',
+        title: 'Start / Inputs panel',
+      },
+      {
+        buttonLabel: 'About Map panel',
+        testId: 'panel-explainer-main',
+        title: 'Map / Main canvas panel',
+      },
+      {
+        buttonLabel: 'About Inspector panel',
+        testId: 'panel-explainer-right',
+        title: 'Inspector panel',
+      },
+      {
+        buttonLabel: 'About Tray panel',
+        testId: 'panel-explainer-bottom',
+        title: 'Tray panel',
+      },
+    ] as const
+
+    for (const expectation of expectations) {
+      await user.click(screen.getByRole('button', { name: expectation.buttonLabel }))
+      const explainer = await screen.findByTestId(expectation.testId)
+      expect(explainer).toHaveTextContent(expectation.title)
+      expect(explainer).toHaveTextContent('Shows:')
+      expect(explainer).toHaveTextContent('Does:')
+    }
+  })
+
+  it('surfaces a truthful basemap state label when the interactive runtime is unavailable', async () => {
+    render(<App />)
+
+    const surface = await screen.findByTestId('map-runtime-surface')
+    expect(within(surface).getByTestId('map-runtime-basemap-status')).toHaveTextContent(
+      'Schematic fallback basemap',
+    )
+    expect(
+      within(surface).getByText(
+        'The current runtime cannot mount the interactive online basemap, so the schematic fallback remains active.',
+      ),
+    ).toBeInTheDocument()
+  })
+
   it('runs compare workflow and updates delta output', async () => {
     const user = userEvent.setup()
     render(<App />)
@@ -599,6 +673,7 @@ describe('App', () => {
     const user = userEvent.setup()
     render(<App />)
 
+    await revealFullWorkbenchIfAvailable(user)
     await user.click(screen.getByRole('button', { name: 'Register Domain' }))
     await openLeftPanelTab(user, 'Query')
     await waitFor(() =>
@@ -640,6 +715,7 @@ describe('App', () => {
     const user = userEvent.setup()
     render(<App />)
 
+    await revealFullWorkbenchIfAvailable(user)
     await user.click(screen.getByRole('button', { name: 'Create Bundle' }))
     expect((await screen.findAllByText(/Bundle .* created/)).length).toBeGreaterThan(0)
     await openLeftPanelTab(user, 'Assistant')
@@ -673,6 +749,7 @@ describe('App', () => {
     const user = userEvent.setup()
     render(<App />)
 
+    await revealFullWorkbenchIfAvailable(user)
     await user.click(screen.getByRole('button', { name: 'Register Domain' }))
     await user.selectOptions(screen.getByLabelText('Mode'), 'compare')
     await openMainCanvasTab(user, 'Workflow')
@@ -703,6 +780,7 @@ describe('App', () => {
     const user = userEvent.setup()
     render(<App />)
 
+    await revealFullWorkbenchIfAvailable(user)
     await user.click(screen.getByRole('button', { name: 'Register Domain' }))
     await user.selectOptions(screen.getByLabelText('Mode'), 'compare')
     await openMainCanvasTab(user, 'Workflow')
@@ -772,6 +850,7 @@ describe('App', () => {
     const user = userEvent.setup()
     render(<App />)
 
+    await revealFullWorkbenchIfAvailable(user)
     await user.click(screen.getByRole('button', { name: 'Create Bundle' }))
     expect((await screen.findAllByText(/Bundle .* created/)).length).toBeGreaterThan(0)
 
@@ -933,6 +1012,7 @@ describe('App', () => {
       const user = userEvent.setup()
       render(<App />)
 
+      await revealFullWorkbenchIfAvailable(user)
       await user.click(screen.getByRole('button', { name: 'Register Domain' }))
       await openRightPanelTab(user, 'Monitor')
       expect(await screen.findByTestId('osint-connector-card')).toBeInTheDocument()
@@ -970,6 +1050,7 @@ describe('App', () => {
       const user = userEvent.setup()
       render(<App />)
 
+      await revealFullWorkbenchIfAvailable(user)
       await user.click(screen.getByRole('button', { name: 'Create Bundle' }))
       expect((await screen.findAllByText(/Bundle .* created/)).length).toBeGreaterThan(0)
 
@@ -1054,7 +1135,8 @@ describe('App', () => {
       expect(within(screen.getByTestId('deviation-event-card')).getByText(/^Sanctions Regime Updates$/)).toBeInTheDocument(),
     )
 
-    await user.selectOptions(screen.getByLabelText('Mode'), 'scenario')
+    const workspacePanel = screen.getByTestId('region-left-panel')
+    await user.selectOptions(within(workspacePanel).getByLabelText('Mode'), 'scenario')
     await waitFor(() =>
       expect(within(screen.getByTestId('region-header')).getByText('Mode: scenario')).toBeInTheDocument(),
     )

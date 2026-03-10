@@ -1,9 +1,9 @@
-# SX-WP-I1-006 - Spec Extraction Snapshot
+# SX-WP-I1-007 - Spec Extraction Snapshot
 
 Generated On: 2026-03-10
-Linked Work Packet: WP-I1-006
-Linked Test Suite: .gov/workflow/wp_test_suites/TS-WP-I1-006.md
-Linked WP Check Script: .gov/workflow/wp_checks/check-WP-I1-006.ps1
+Linked Work Packet: WP-I1-007
+Linked Test Suite: .gov/workflow/wp_test_suites/TS-WP-I1-007.md
+Linked WP Check Script: .gov/workflow/wp_checks/check-WP-I1-007.ps1
 Packet Class Snapshot: IMPLEMENTATION
 Workflow Version Snapshot: 4.0
 WP Status Snapshot: E2E-VERIFIED
@@ -15,28 +15,26 @@ Concrete extraction of requirement and primitive obligations this WP must satisf
 
 ## Reality Boundary Snapshot
 
-- Real Seam: The real workbench opens in a calmer guided-start state that reduces default pane pressure, keeps the live 2D/3D map visually primary, and exposes the first useful actions through map-linked quick starts instead of expecting users to parse the full shell immediately.
-- User-Visible Win: A new user can tell what to do first, why the map matters, and how to reveal deeper tools without being hit by the full density of the current workspace.
-- Proof Target: Automated shell tests plus governed runtime evidence show the start-state shell, panel disclosure behavior, and map-first quick actions working under the real workbench contract.
-- Allowed Temporary Fallbacks: Existing advanced workflows may remain behind the current tabs and forms as long as the first-use state labels them as advanced and the guided path routes into them truthfully.
+- Real Seam: The live workbench exposes plain-language explainers on each stable panel and the 2D surface mounts a recognizable online basemap when network is available, falling back truthfully to the schematic local map when offline or when the online basemap fails.
+- User-Visible Win: Users can tell what each panel is for and the 2D map no longer feels broken or blank.
+- Proof Target: App/UI tests plus packet-grade verification show explainer controls in all stable panels and a basemap-state contract that distinguishes online vs fallback rendering.
+- Allowed Temporary Fallbacks: The packet may use an external online basemap provider only as a non-blocking enhancement; offline fallback must remain available and truthfully labeled.
 - Promotion Guard: RESEARCH and SCAFFOLD packets do not promote linked requirements or primitives to E2E-VERIFIED.
 
 ## Change Ledger Snapshot
 
-- What Became Real: The live workbench now has a real guided-start shell with one recommended next action, a visible step ladder (link context -> run analysis -> capture evidence), calmer guided header status, stronger map-first layout behavior, and a post-smoke responsive fix that keeps the map above the fold at the validated desktop window size.
-- What Remains Simulated: No new analytical capability was added by design; this packet still reuses the previously verified I2-I10 workflows, and broader manual acceptance across 3D/export/reopen remains owned by `WP-GOV-SMOKE-001` rather than this shell packet.
-- Next Blocking Real Seam: Continue broader manual desktop scenario coverage under `WP-GOV-SMOKE-001` before release-candidate work.
+- What Became Real: All four stable shell regions now expose inline explainer cards, and the 2D runtime now truthfully distinguishes a recognizable online basemap from schematic fallback states instead of presenting only an abstract dark surface.
+- What Remains Simulated: Requested future live/source-backed layer families remain outside this packet and must not be implied by the new basemap/help improvements.
+- Next Blocking Real Seam: Use the governed source contract in `WP-GOV-MAPDATA-001` to implement the first source-backed toggleable map-visible layer families.
 
 ## Requirement Extraction
 
 | Requirement | Level | Section | Description | Target | Status |
 |-------------|-------|---------|-------------|--------|--------|
 | REQ-0011 | MUST | Section 11.4 | Every layer/chart/annotation/export labeled as Observed Evidence, Curated Context, Modeled Output, or AI-Derived Interpretation | All | E2E-VERIFIED |
-| REQ-0012 | MUST | Section 11.4 | Modeled outputs MUST include uncertainty representation and MUST NOT be presented as observed | All | E2E-VERIFIED |
 | REQ-0013 | MUST | Section 17 | No capability is "implemented" until it satisfies the slice definition of done | All | E2E-VERIFIED |
 | REQ-0200 | MUST | Section 11.1 | UI stable regions: header, left panel, right panel, bottom panel, main canvas | I1 | E2E-VERIFIED |
 | REQ-0201 | MUST | Section 11.2 | UI modes: Live/Recent, Replay, Compare, Scenario, Collaboration, Offline | I1 | E2E-VERIFIED |
-| REQ-0211 | MUST | Section 11.5 | Graceful degradation via aggregation when budget cannot be met; UI indicates aggregation | I1 | E2E-VERIFIED |
 | REQ-0212 | SHOULD | Section 11.6 | WCAG/508 accessibility (keyboard, non-color-only semantics) | I1 | E2E-VERIFIED |
 
 ## Primitive Extraction
@@ -50,11 +48,9 @@ Concrete extraction of requirement and primitive obligations this WP must satisf
 ## Traceability Hooks
 
 - REQ-0011: Mapped in TRACEABILITY_MATRIX.md
-- REQ-0012: Mapped in TRACEABILITY_MATRIX.md
 - REQ-0013: Mapped in TRACEABILITY_MATRIX.md
 - REQ-0200: Mapped in TRACEABILITY_MATRIX.md
 - REQ-0201: Mapped in TRACEABILITY_MATRIX.md
-- REQ-0211: Mapped in TRACEABILITY_MATRIX.md
 - REQ-0212: Mapped in TRACEABILITY_MATRIX.md
 
 ## Non-Goal / Red-Team Guardrails
@@ -68,5 +64,5 @@ Concrete extraction of requirement and primitive obligations this WP must satisf
 ## Verification Hooks
 
 - Run preflight: powershell -ExecutionPolicy Bypass -File .gov/repo_scripts/governance_preflight.ps1
-- Run WP checks: powershell -ExecutionPolicy Bypass -File .gov/workflow/wp_checks/check-WP-I1-006.ps1
-- Proof artifacts: .product/build_target/tool_artifacts/wp_runs/WP-I1-006/
+- Run WP checks: powershell -ExecutionPolicy Bypass -File .gov/workflow/wp_checks/check-WP-I1-007.ps1
+- Proof artifacts: .product/build_target/tool_artifacts/wp_runs/WP-I1-007/

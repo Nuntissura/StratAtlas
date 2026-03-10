@@ -79,9 +79,19 @@ This file is the execution order for capability slices. It is the scheduling bri
 - `WP-GOV-I1-RESTYLE-001` is now `E2E-VERIFIED`; proof: `.product/build_target/tool_artifacts/wp_runs/WP-GOV-I1-RESTYLE-001/20260309_054016/`. It captures the shell rubric, anti-overload rules, task grouping, feature-to-map placement, and ROI-ranked follow-on ideas for the redesign.
 - `WP-I1-005` is now `E2E-VERIFIED`; proof: `.product/build_target/tool_artifacts/wp_runs/WP-I1-005/20260309_080635/`. It closes the real shell-restyle seam with grouped left/main/right/bottom tab sets, a calmer workbench presentation, preserved map primacy, and packet-grade cold/warm runtime smoke after fixing the restore and pan/zoom proof paths.
 - `WP-GOV-INSTALLER-003` is now `E2E-VERIFIED`; proof: `.product/build_target/tool_artifacts/wp_runs/WP-GOV-INSTALLER-003/20260309_171125/`. It closes governed release current/archive topology, changelog-ledger enforcement, gitignored installer/exe coverage, legacy current-release archive migration, and the changelog-aware maintenance menu/help surface.
-- `WP-GOV-SMOKE-001` is now `IN-PROGRESS`. Its first screenshot-backed smoke slice is complete under `.product/build_target/tool_artifacts/manual_smoke/WP-GOV-SMOKE-001/20260309_202006/` and confirmed that first-use overload, weak map primacy, and poor first-action clarity are still real.
-- `WP-I1-006` is now `IN-PROGRESS` as the active smoke-driven successor implementation packet. It narrows the next shell change to guided start-state routing, stronger map hero framing, and reduced default pane pressure instead of another broad redesign pass.
-- Next correct task: execute `WP-I1-006`, then return to `WP-GOV-SMOKE-001` for follow-up manual validation of the updated first-use shell before release-candidate work.
+- `WP-GOV-SMOKE-001` remains `IN-PROGRESS`. Its baseline packaged-build evidence lives under `.product/build_target/tool_artifacts/manual_smoke/WP-GOV-SMOKE-001/20260309_202006/`, and its follow-up current-code evidence lives under `.product/build_target/tool_artifacts/manual_smoke/WP-GOV-SMOKE-001/20260309_234318/`. Together they now show the first-use shell improved materially, while deeper scenario-by-scenario manual coverage is still pending.
+- `WP-I1-006` is now `E2E-VERIFIED`. It closed the first-use shell seam with guided start-state routing, stronger map hero framing, reduced default pane pressure, and a responsive fix that keeps the map above the fold in the validated desktop window; proof lives under `.product/build_target/tool_artifacts/wp_runs/WP-I1-006/20260310_003729/`.
+- `WP-GOV-MAPDATA-001` is now `E2E-VERIFIED`; proof: `.product/build_target/tool_artifacts/wp_runs/WP-GOV-MAPDATA-001/20260310_012211/`. It closes the governed source-contract research for future toggleable map layer families and sets the truthful build order for air, shipping, satellites, infrastructure/resources, airports, ports, and known military installations.
+- `WP-I1-007` is now `E2E-VERIFIED`; proof: `.product/build_target/tool_artifacts/wp_runs/WP-I1-007/20260310_012211/`. It closes the narrow map-legibility fix with inline panel explainers across all stable regions plus a recognizable online 2D basemap that degrades truthfully to a schematic fallback.
+- The future map-family queue is now split into explicit successor packets:
+  - `WP-I1-008` foundation control-surface packet for grouped layer families and truthful availability badges
+  - `WP-I1-009` static installations and critical infrastructure
+  - `WP-I1-010` commercial air traffic and flight awareness
+  - `WP-I1-011` satellite orbit and coverage
+  - `WP-GOV-MAPDATA-002` maritime source-path and coverage-gap resolution
+  - `WP-I1-012` maritime traffic and port awareness, currently blocked by `WP-GOV-MAPDATA-002`
+  - `WP-I1-013` specialized industrial and water infrastructure
+- Next correct task: start `WP-I1-008` as the blocking foundation packet. Run `WP-GOV-MAPDATA-002` in parallel only if maritime source research becomes urgent. Keep `WP-GOV-SMOKE-001` open in parallel for broader manual scenario coverage before release-candidate work.
 
 ---
 

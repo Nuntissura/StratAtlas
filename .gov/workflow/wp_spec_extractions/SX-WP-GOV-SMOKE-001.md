@@ -1,6 +1,6 @@
 # SX-WP-GOV-SMOKE-001 - Spec Extraction Snapshot
 
-Generated On: 2026-03-09
+Generated On: 2026-03-10
 Linked Work Packet: WP-GOV-SMOKE-001
 Linked Test Suite: .gov/workflow/wp_test_suites/TS-WP-GOV-SMOKE-001.md
 Linked WP Check Script: .gov/workflow/wp_checks/check-WP-GOV-SMOKE-001.ps1
@@ -23,9 +23,9 @@ Concrete extraction of requirement and primitive obligations this WP must satisf
 
 ## Change Ledger Snapshot
 
-- What Became Real: The repo now has a governed packet for manual desktop validation, so first-use UX quality can be assessed with evidence instead of being inferred from automated proof alone.
-- What Remains Simulated: The app value proposition itself may still be weak or confusing; this packet exists to measure and document that honestly rather than assume usefulness.
-- Next Blocking Real Seam: Launch the real desktop app, complete the first-pass manual smoke, and record screenshots plus severity-ranked findings.
+- What Became Real: The repo now has governed screenshot-backed manual smoke evidence for both the baseline packaged shell and the refined current-code guided-start shell, so first-use UX quality can be assessed against real desktop windows instead of inferred from automated proof alone.
+- What Remains Simulated: Broader manual acceptance across 3D, export, reopen, and deeper workflow scenarios is still incomplete; the packet currently proves first-use shell triage and follow-up validation, not full manual acceptance of every mode.
+- Next Blocking Real Seam: Extend manual desktop coverage from first-use shell triage into deeper scenario-by-scenario flows before release-candidate work.
 
 ## Requirement Extraction
 

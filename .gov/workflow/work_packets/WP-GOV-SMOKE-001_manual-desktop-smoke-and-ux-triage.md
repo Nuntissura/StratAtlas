@@ -120,9 +120,9 @@ Run the first governed manual desktop smoke test against the real StratAtlas Win
 
 ## Change Ledger
 
-- What Became Real: The repo now has a governed packet for manual desktop validation, so first-use UX quality can be assessed with evidence instead of being inferred from automated proof alone.
-- What Remains Simulated: The app value proposition itself may still be weak or confusing; this packet exists to measure and document that honestly rather than assume usefulness.
-- Next Blocking Real Seam: Launch the real desktop app, complete the first-pass manual smoke, and record screenshots plus severity-ranked findings.
+- What Became Real: The repo now has governed screenshot-backed manual smoke evidence for both the baseline packaged shell and the refined current-code guided-start shell, so first-use UX quality can be assessed against real desktop windows instead of inferred from automated proof alone.
+- What Remains Simulated: Broader manual acceptance across 3D, export, reopen, and deeper workflow scenarios is still incomplete; the packet currently proves first-use shell triage and follow-up validation, not full manual acceptance of every mode.
+- Next Blocking Real Seam: Extend manual desktop coverage from first-use shell triage into deeper scenario-by-scenario flows before release-candidate work.
 
 ## Checkpoint Commit Plan
 
@@ -147,10 +147,10 @@ Run the first governed manual desktop smoke test against the real StratAtlas Win
 
 ## Evidence
 
-- Test Suite Execution: First manual smoke slice completed against the current governed portable build; packet remains open for broader hands-on follow-through.
-- Logs: `.product/build_target/tool_artifacts/manual_smoke/WP-GOV-SMOKE-001/20260309_202006/maintenance-menu.txt`; `.product/build_target/tool_artifacts/manual_smoke/WP-GOV-SMOKE-001/20260309_202006/rubric.md`; `.product/build_target/tool_artifacts/manual_smoke/WP-GOV-SMOKE-001/20260309_202006/findings.md`
-- Screenshots/Exports: `.product/build_target/tool_artifacts/manual_smoke/WP-GOV-SMOKE-001/20260309_202006/stratatlas-initial.png`; `.product/build_target/tool_artifacts/manual_smoke/WP-GOV-SMOKE-001/20260309_202006/stratatlas-workflow-tab.png`
-- Build Artifacts: `.product/build_target/Releases/Current/Portable/StratAtlas_0.1.11_portable_x64.exe`
+- Test Suite Execution: Baseline manual smoke completed against the governed portable build, followed by a current-code validation pass against the rebuilt local Tauri desktop app after `WP-I1-006`; packet remains open for broader hands-on scenario coverage.
+- Logs: `.product/build_target/tool_artifacts/manual_smoke/WP-GOV-SMOKE-001/20260309_202006/maintenance-menu.txt`; `.product/build_target/tool_artifacts/manual_smoke/WP-GOV-SMOKE-001/20260309_202006/rubric.md`; `.product/build_target/tool_artifacts/manual_smoke/WP-GOV-SMOKE-001/20260309_202006/findings.md`; `.product/build_target/tool_artifacts/manual_smoke/WP-GOV-SMOKE-001/20260309_234318/rubric.md`; `.product/build_target/tool_artifacts/manual_smoke/WP-GOV-SMOKE-001/20260309_234318/findings.md`
+- Screenshots/Exports: `.product/build_target/tool_artifacts/manual_smoke/WP-GOV-SMOKE-001/20260309_202006/stratatlas-initial.png`; `.product/build_target/tool_artifacts/manual_smoke/WP-GOV-SMOKE-001/20260309_202006/stratatlas-workflow-tab.png`; `.product/build_target/tool_artifacts/manual_smoke/WP-GOV-SMOKE-001/20260309_234318/post-fix-guided-start-window-handle.png`
+- Build Artifacts: `.product/build_target/Releases/Current/Portable/StratAtlas_0.1.11_portable_x64.exe`; `.product/Worktrees/wt_main/src-tauri/target/release/stratatlas_app.exe`
 - Proof Artifact: .product/build_target/tool_artifacts/manual_smoke/WP-GOV-SMOKE-001/
 - User Sign-off: Pending user review
 
@@ -159,3 +159,4 @@ Run the first governed manual desktop smoke test against the real StratAtlas Win
 - 2026-03-09: WP scaffold created via .gov/repo_scripts/new_work_packet.ps1.
 - 2026-03-09: Packet scope redefined around real manual desktop smoke, screenshot-backed UX triage, and refactor prioritization before further large changes.
 - 2026-03-09: First manual smoke slice executed against `StratAtlas_0.1.11_portable_x64.exe`; captured initial shell and workflow-state screenshots plus rubric/findings under `.product/build_target/tool_artifacts/manual_smoke/WP-GOV-SMOKE-001/20260309_202006/`. Early result: the shell remains visually overwhelming, map primacy is weak in first-use perception, and the maintenance/help surface is materially clearer than the in-app workflow shell.
+- 2026-03-09: Follow-up manual smoke slice executed against the rebuilt local Tauri app after `WP-I1-006` changes; captured `post-fix-guided-start-window-handle.png` plus updated rubric/findings under `.product/build_target/tool_artifacts/manual_smoke/WP-GOV-SMOKE-001/20260309_234318/`. Result: map-first comprehension improved materially, but broader scenario-by-scenario manual coverage is still pending.

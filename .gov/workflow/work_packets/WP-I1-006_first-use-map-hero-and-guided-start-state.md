@@ -1,7 +1,7 @@
 # WP-I1-006 - First-Use Map Hero and Guided Start State
 
 Date Opened: 2026-03-09
-Status: IN-PROGRESS
+Status: E2E-VERIFIED
 Iteration: I1
 Workflow Version: 4.0
 Packet Class: IMPLEMENTATION
@@ -121,9 +121,9 @@ Use the findings from `WP-GOV-SMOKE-001` to reduce first-use overload in the ver
 
 ## Change Ledger
 
-- What Became Real: The live workbench now has a real guided-start shell, compact first-use workspace view, collapsed-by-default inspector and tray, map-first quick actions, and explicit "reveal full workbench" disclosure instead of always opening every support surface at once.
-- What Remains Simulated: No new analytical capability was added; this packet still depends on the previously verified I2-I10 workflows and has not yet been revalidated by a second manual smoke pass.
-- Next Blocking Real Seam: Re-run manual desktop smoke against the new first-use shell and decide whether the remaining overload is solved or whether a narrower follow-on packet is still required.
+- What Became Real: The live workbench now has a real guided-start shell with one recommended next action, a visible step ladder (link context -> run analysis -> capture evidence), calmer guided header status, stronger map-first layout behavior, and a post-smoke responsive fix that keeps the map above the fold at the validated desktop window size.
+- What Remains Simulated: No new analytical capability was added by design; this packet still reuses the previously verified I2-I10 workflows, and broader manual acceptance across 3D/export/reopen remains owned by `WP-GOV-SMOKE-001` rather than this shell packet.
+- Next Blocking Real Seam: Continue broader manual desktop scenario coverage under `WP-GOV-SMOKE-001` before release-candidate work.
 
 ## Checkpoint Commit Plan
 
@@ -134,7 +134,7 @@ Use the findings from `WP-GOV-SMOKE-001` to reduce first-use overload in the ver
 ## Proof of Implementation
 
 - Command Runs: powershell -ExecutionPolicy Bypass -File .gov/workflow/wp_checks/check-WP-I1-006.ps1
-- Proof Artifact: .product/build_target/tool_artifacts/wp_runs/WP-I1-006/
+- Proof Artifact: .product/build_target/tool_artifacts/wp_runs/WP-I1-006/20260310_003729/
 - Claim Standard: do not claim completion without linked command output and artifact paths.
 
 ## Exit Criteria
@@ -148,11 +148,11 @@ Use the findings from `WP-GOV-SMOKE-001` to reduce first-use overload in the ver
 
 ## Evidence
 
-- Test Suite Execution: `pnpm exec vitest run src/App.test.tsx`; `pnpm lint`; `pnpm build`; `powershell -ExecutionPolicy Bypass -File .gov/repo_scripts/update_wp_spec_extract.ps1 -WpId WP-I1-006`; `powershell -ExecutionPolicy Bypass -File .gov/repo_scripts/enforce_wp_template_compliance.ps1`; `powershell -ExecutionPolicy Bypass -File .gov/repo_scripts/governance_preflight.ps1`
-- Logs: local command evidence from the commands above; no packet-grade `wp_runs/WP-I1-006/` artifact bundle has been captured yet because the packet remains open
-- Screenshots/Exports: successor manual-smoke evidence still lives under `.product/build_target/tool_artifacts/manual_smoke/WP-GOV-SMOKE-001/20260309_202006/` and remains the baseline for the next hands-on validation pass
+- Test Suite Execution: `pnpm exec vitest run src/App.test.tsx`; `pnpm lint`; `pnpm build`; `powershell -ExecutionPolicy Bypass -File .gov/repo_scripts/update_wp_spec_extract.ps1 -WpId WP-I1-006`; `powershell -ExecutionPolicy Bypass -File .gov/repo_scripts/enforce_wp_template_compliance.ps1`; `powershell -ExecutionPolicy Bypass -File .gov/repo_scripts/governance_preflight.ps1`; `powershell -ExecutionPolicy Bypass -File .gov/workflow/wp_checks/check-WP-I1-006.ps1`
+- Logs: packet-grade proof is captured under `.product/build_target/tool_artifacts/wp_runs/WP-I1-006/20260310_003729/`
+- Screenshots/Exports: baseline manual-smoke evidence under `.product/build_target/tool_artifacts/manual_smoke/WP-GOV-SMOKE-001/20260309_202006/`; follow-up current-code validation under `.product/build_target/tool_artifacts/manual_smoke/WP-GOV-SMOKE-001/20260309_234318/`, including `post-fix-guided-start-window-handle.png`
 - Build Artifacts: `.product/Worktrees/wt_main/dist/`
-- Proof Artifact: .product/build_target/tool_artifacts/wp_runs/WP-I1-006/
+- Proof Artifact: .product/build_target/tool_artifacts/wp_runs/WP-I1-006/20260310_003729/
 - User Sign-off:
 
 ## Progress Log
@@ -161,3 +161,7 @@ Use the findings from `WP-GOV-SMOKE-001` to reduce first-use overload in the ver
 - 2026-03-09: Packet contract rewritten from placeholder scaffold into a smoke-driven first-use shell packet with a linked sub-spec at `.gov/Spec/sub-specs/I1_first_use_map_hero_guided_start.md`.
 - 2026-03-09: First implementation slice landed in `.product/Worktrees/wt_main/src/App.tsx`, `.product/Worktrees/wt_main/src/App.css`, and `.product/Worktrees/wt_main/src/App.test.tsx` with a guided-start state, compact workspace entry, collapsed inspector/tray defaults, and explicit map-linked quick actions.
 - 2026-03-09: Initial verification slice passed via `pnpm exec vitest run src/App.test.tsx`, `pnpm lint`, `pnpm build`, `update_wp_spec_extract.ps1 -WpId WP-I1-006`, `enforce_wp_template_compliance.ps1`, and `governance_preflight.ps1`; packet remains open pending renewed manual smoke and full packet proof capture.
+- 2026-03-09: Second implementation slice tightened the first-use IA around one recommended next action, a three-step visible mission ladder, calmer guided header status, map-scene payoff copy, and more informative collapsed support panes without breaking the deeper verified workflows.
+- 2026-03-09: Regression coverage was refreshed and still passes via `pnpm exec vitest run src/App.test.tsx`, `pnpm lint`, and `pnpm build`; packet remained open pending renewed manual smoke and packet-grade proof capture.
+- 2026-03-09: Follow-up manual smoke under `WP-GOV-SMOKE-001` confirmed the guided shell now keeps the map above the fold and makes the first action obvious at the validated desktop window size; second-pass evidence lives under `.product/build_target/tool_artifacts/manual_smoke/WP-GOV-SMOKE-001/20260309_234318/`.
+- 2026-03-09: Packet-grade verification executed via `.gov/workflow/wp_checks/check-WP-I1-006.ps1`; official proof captured under `.product/build_target/tool_artifacts/wp_runs/WP-I1-006/20260310_003729/`; status promoted to `E2E-VERIFIED`.

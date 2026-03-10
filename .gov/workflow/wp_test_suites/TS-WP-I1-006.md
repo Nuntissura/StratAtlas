@@ -1,7 +1,7 @@
 # TS-WP-I1-006 - Spec vs Code Test Suite
 
 Date Opened: 2026-03-09
-Status: PLANNED
+Status: E2E-VERIFIED
 Linked Work Packet: WP-I1-006
 Iteration: I1
 
@@ -74,16 +74,16 @@ Validate that the first-use shell becomes calmer and map-led without breaking th
 ## Automation Hook
 
 - Command: powershell -ExecutionPolicy Bypass -File .gov/workflow/wp_checks/check-WP-I1-006.ps1
-- Artifacts: .product/build_target/tool_artifacts/wp_runs/WP-I1-006/
+- Artifacts: .product/build_target/tool_artifacts/wp_runs/WP-I1-006/20260310_003729/
 
 ## Execution Summary
 
 - Last Run Date: 2026-03-09
-- Result: Initial implementation slice passed targeted verification; packet remains `IN-PROGRESS`
-- Blocking Failures: No current automated blockers after shell/test fixes; remaining blocker is renewed manual smoke and packet-grade proof capture
-- Evidence Paths: `pnpm exec vitest run src/App.test.tsx`; `pnpm lint`; `pnpm build`; `.gov/workflow/wp_spec_extractions/SX-WP-I1-006.md`
-- What Became Real: The shell now has a tested guided-start state, compact first-use workspace view, collapsed support panes, and explicit map-led quick actions
-- What Remains Simulated: No new analytical workflows were added, and the packet still depends on pre-existing verified workflows plus a follow-up hands-on smoke pass
-- Next Blocking Real Seam: Capture the second manual smoke pass against the updated shell and, if needed, continue with a narrower follow-on shell refinement packet before closeout
+- Result: Packet-grade verification passed and the packet is now `E2E-VERIFIED`
+- Blocking Failures: None for this packet after the second manual smoke confirmed the map-first start state on the rebuilt local Tauri desktop app
+- Evidence Paths: `pnpm exec vitest run src/App.test.tsx`; `pnpm lint`; `pnpm build`; `.product/build_target/tool_artifacts/manual_smoke/WP-GOV-SMOKE-001/20260309_234318/post-fix-guided-start-window-handle.png`; `.product/build_target/tool_artifacts/manual_smoke/WP-GOV-SMOKE-001/20260309_234318/rubric.md`; `.product/build_target/tool_artifacts/manual_smoke/WP-GOV-SMOKE-001/20260309_234318/findings.md`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-006/20260310_003729/`
+- What Became Real: The shell now has a tested guided-start state, compact first-use workspace view, collapsed support panes, one recommended next action, a visible step ladder, calmer guided status, explicit map-led quick actions, and a responsive layout fix that keeps the map above the fold in the validated first-use window
+- What Remains Simulated: No new analytical workflows were added by design; broader manual scenario coverage across 3D/export/reopen remains with `WP-GOV-SMOKE-001`
+- Next Blocking Real Seam: Continue broader manual desktop scenario coverage before release-candidate work
 - Reviewer:
 - User Sign-off:
