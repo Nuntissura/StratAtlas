@@ -31,8 +31,14 @@ import {
 import {
   ARTIFACT_LABELS,
   artifactTone,
+  buildLayerFamilyCatalog,
   buildWorkspaceLayerCatalog,
+  createDefaultLayerFamilyExpandedState,
+  createDefaultLayerFamilyVisibility,
   type LayerCatalogEntry,
+  type LayerFamilyExpandedState,
+  type LayerFamilyId,
+  type LayerFamilyVisibilityState,
 } from './features/i1/layers'
 import { buildMapRuntimeScene } from './features/i1/runtime/mapRuntimeScene'
 import {
@@ -829,12 +835,16 @@ const buildWorkspaceStateSnapshot = ({
   analystNote,
   activeLayers,
   forcedOffline,
+  layerFamilyExpanded,
+  layerFamilyVisibility,
   mode,
   replayCursor,
 }: {
   analystNote: string
   activeLayers: string[]
   forcedOffline: boolean
+  layerFamilyExpanded: LayerFamilyExpandedState
+  layerFamilyVisibility: LayerFamilyVisibilityState
   mode: UiMode
   replayCursor: number
 }): WorkspaceStateSnapshot => ({
@@ -842,10 +852,30 @@ const buildWorkspaceStateSnapshot = ({
   workflowMode: mode,
   note: analystNote,
   activeLayers,
+  layerFamilyExpanded,
+  layerFamilyVisibility,
   replayCursor,
   forcedOffline,
   uiVersion: 'i1-workspace-surface',
 })
+
+const normalizeLayerFamilyBooleanState = <TState extends Record<string, boolean>>(
+  value: unknown,
+  defaults: TState,
+): TState => {
+  if (!isRecord(value)) {
+    return defaults
+  }
+
+  const next = { ...defaults } as TState
+  const writableNext = next as Record<string, boolean>
+  for (const key of Object.keys(defaults)) {
+    if (typeof value[key] === 'boolean') {
+      writableNext[key] = value[key]
+    }
+  }
+  return next
+}
 
 const buildQueryStateSnapshot = ({
   definition,
@@ -956,6 +986,10 @@ function App() {
     WORKSPACE_LAYERS[0],
     WORKSPACE_LAYERS[1],
   ])
+  const [layerFamilyVisibility, setLayerFamilyVisibility] =
+    useState<LayerFamilyVisibilityState>(() => createDefaultLayerFamilyVisibility())
+  const [layerFamilyExpanded, setLayerFamilyExpanded] =
+    useState<LayerFamilyExpandedState>(() => createDefaultLayerFamilyExpandedState())
   const [bundles, setBundles] = useState<BundleManifest[]>([])
   const [selectedBundleId, setSelectedBundleId] = useState<string>('')
   const [auditEvents, setAuditEvents] = useState<AuditEvent[]>([])
@@ -1197,10 +1231,20 @@ function App() {
         analystNote,
         activeLayers,
         forcedOffline,
+        layerFamilyExpanded,
+        layerFamilyVisibility,
         mode,
         replayCursor,
       }),
-    [activeLayers, analystNote, forcedOffline, mode, replayCursor],
+    [
+      activeLayers,
+      analystNote,
+      forcedOffline,
+      layerFamilyExpanded,
+      layerFamilyVisibility,
+      mode,
+      replayCursor,
+    ],
   )
 
   const resolvedQueryDomainIds = useMemo(
@@ -1782,6 +1826,7 @@ function App() {
         allowedLicenses: ['internal', 'public'],
         aiSummaryAvailable: Boolean(latestAiArtifact),
         degradeRendering,
+        familyVisibility: layerFamilyVisibility,
         modelUncertaintyText: `Payoff range [${payoffProxy.uncertainty[0]}, ${payoffProxy.uncertainty[1]}]`,
       }),
     [
@@ -1789,9 +1834,19 @@ function App() {
       activeLayers,
       degradeRendering,
       domains,
+      layerFamilyVisibility,
       latestAiArtifact,
       payoffProxy.uncertainty,
     ],
+  )
+  const layerFamilyCatalog = useMemo(
+    () =>
+      buildLayerFamilyCatalog({
+        layerCatalog,
+        familyVisibility: layerFamilyVisibility,
+        familyExpanded: layerFamilyExpanded,
+      }),
+    [layerCatalog, layerFamilyExpanded, layerFamilyVisibility],
   )
   const visibleLayerCatalog = useMemo(
     () => layerCatalog.filter((entry) => entry.visible),
@@ -2061,12 +2116,20 @@ function App() {
         : restoredCorrelationLinks[0]?.target_id ?? DEFAULT_CORRELATION_AOI
 
     startTransition(() => {
+      const defaultFamilyVisibility = createDefaultLayerFamilyVisibility()
+      const defaultFamilyExpanded = createDefaultLayerFamilyExpandedState()
       setAnalystNote(
         typeof workspace.note === 'string' ? workspace.note : 'Initial analyst workspace state',
       )
       setMode(isUiMode(workspace.workflowMode) ? workspace.workflowMode : 'offline')
       setForcedOffline(Boolean(workspace.forcedOffline))
       setActiveLayers(normalizeStringArray(workspace.activeLayers))
+      setLayerFamilyVisibility(
+        normalizeLayerFamilyBooleanState(workspace.layerFamilyVisibility, defaultFamilyVisibility),
+      )
+      setLayerFamilyExpanded(
+        normalizeLayerFamilyBooleanState(workspace.layerFamilyExpanded, defaultFamilyExpanded),
+      )
       setReplayCursor(normalizeNumber(workspace.replayCursor, 0))
       setBaselineWindowLabel(compare?.baselineWindow.label ?? DEFAULT_BASELINE_WINDOW_LABEL)
       setEventWindowLabel(compare?.eventWindow.label ?? DEFAULT_EVENT_WINDOW_LABEL)
@@ -2607,6 +2670,26 @@ function App() {
       prev.includes(layer) ? prev.filter((existing) => existing !== layer) : [...prev, layer],
     )
     completeMeasuredAction('Layer visibility update', startedAt)
+  }
+
+  const toggleLayerFamilyVisibility = (familyId: LayerFamilyId) => {
+    const family = layerFamilyCatalog.find((entry) => entry.familyId === familyId)
+    if (!family || family.toggleDisabled) {
+      return
+    }
+    const startedAt = beginMeasuredAction('Layer family visibility update')
+    setLayerFamilyVisibility((previous) => ({
+      ...previous,
+      [familyId]: !previous[familyId],
+    }))
+    completeMeasuredAction('Layer family visibility update', startedAt)
+  }
+
+  const toggleLayerFamilyExpanded = (familyId: LayerFamilyId) => {
+    setLayerFamilyExpanded((previous) => ({
+      ...previous,
+      [familyId]: !previous[familyId],
+    }))
   }
 
   const onModeChange = (nextMode: UiMode) => {
@@ -6437,30 +6520,127 @@ function App() {
             </label>
 
             <div className="field">
-              Layer Controls
-              <div className="layer-toggle-grid">
-                {toggleableLayerCatalog.map((entry) => (
-                  <label key={entry.layerId} className="toggle-card">
-                    <input
-                      type="checkbox"
-                      aria-label={`Toggle ${entry.title}`}
-                      checked={activeLayers.includes(entry.layerId)}
-                      onChange={() => toggleLayer(entry.layerId)}
-                    />
-                    <div>
-                      <div className="card-header compact">
-                        <strong>{entry.title}</strong>
-                        <span className={`artifact-chip ${artifactTone(entry.artifactLabel)}`}>
-                          {entry.artifactLabel}
-                        </span>
+              Layer Families
+              <div className="layer-family-dock" data-testid="layer-family-dock">
+                {layerFamilyCatalog.map((family) => (
+                  <article
+                    key={family.familyId}
+                    className={`layer-family-card ${
+                      family.availableInBuild ? 'is-available' : 'is-planned'
+                    }`}
+                    data-testid={`layer-family-card-${family.familyId}`}
+                  >
+                    <div className="layer-family-card-header">
+                      <div className="layer-family-card-copy">
+                        <div className="card-header compact">
+                          <strong>{family.title}</strong>
+                          <span
+                            className={`layer-family-state-badge state-${family.state}`}
+                            data-testid={`layer-family-state-${family.familyId}`}
+                          >
+                            {family.stateLabel}
+                          </span>
+                        </div>
+                        <p>{family.description}</p>
+                        <small>{family.strategicUse}</small>
                       </div>
-                      <small>
-                        Source: {entry.source} | Cadence: {entry.cadence} | Geometry:{' '}
-                        {entry.geometryType} | Export:{' '}
-                        {entry.exportAllowed ? 'allowed' : 'blocked'}
-                      </small>
+                      <div className="layer-family-card-actions">
+                        <button
+                          type="button"
+                          className="button-secondary"
+                          aria-expanded={family.expanded}
+                          aria-controls={`layer-family-panel-${family.familyId}`}
+                          onClick={() => toggleLayerFamilyExpanded(family.familyId)}
+                        >
+                          {family.expanded ? 'Collapse' : 'Expand'}
+                        </button>
+                        <label className="layer-family-visibility-toggle">
+                          <input
+                            type="checkbox"
+                            aria-label={`Show ${family.title}`}
+                            checked={family.visible}
+                            disabled={family.toggleDisabled}
+                            onChange={() => toggleLayerFamilyVisibility(family.familyId)}
+                          />
+                          <span>{family.availableInBuild ? 'Show on map' : 'Pending payload'}</span>
+                        </label>
+                      </div>
                     </div>
-                  </label>
+
+                    <div className="layer-family-meta-row">
+                      <span className="metric-label">Queue owner</span>
+                      <strong>{family.queueOwner}</strong>
+                      <span className="metric-label">Selected layers</span>
+                      <strong>
+                        {family.selectedMemberCount}/{family.memberEntries.length}
+                      </strong>
+                    </div>
+                    <p className="layer-family-state-detail">{family.stateDetail}</p>
+
+                    {family.expanded ? (
+                      <div
+                        id={`layer-family-panel-${family.familyId}`}
+                        className="layer-family-body"
+                      >
+                        {family.availableInBuild ? (
+                          <div className="layer-toggle-grid layer-toggle-grid-nested">
+                            {family.memberEntries.map((entry) => (
+                              <label
+                                key={entry.layerId}
+                                className="toggle-card"
+                                data-testid={`layer-family-entry-${entry.layerId}`}
+                              >
+                                <input
+                                  type="checkbox"
+                                  aria-label={`Toggle ${entry.title}`}
+                                  checked={entry.selected}
+                                  disabled={!family.visible}
+                                  onChange={() => toggleLayer(entry.layerId)}
+                                />
+                                <div>
+                                  <div className="card-header compact">
+                                    <strong>{entry.title}</strong>
+                                    <span
+                                      className={`artifact-chip ${artifactTone(
+                                        entry.artifactLabel,
+                                      )}`}
+                                    >
+                                      {entry.artifactLabel}
+                                    </span>
+                                  </div>
+                                  <small>
+                                    Source: {entry.source} | Cadence: {entry.cadence} | Geometry:{' '}
+                                    {entry.geometryType} | Export:{' '}
+                                    {entry.exportAllowed ? 'allowed' : 'blocked'}
+                                  </small>
+                                  {entry.coverageText ? <small>Coverage: {entry.coverageText}</small> : null}
+                                  {entry.uncertaintyText ? (
+                                    <small>Truth note: {entry.uncertaintyText}</small>
+                                  ) : null}
+                                  {entry.sourceUrl ? (
+                                    <small>
+                                      Reference:{' '}
+                                      <a href={entry.sourceUrl} target="_blank" rel="noreferrer">
+                                        {entry.sourceUrl}
+                                      </a>
+                                    </small>
+                                  ) : null}
+                                </div>
+                              </label>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="layer-family-placeholder" data-testid={`layer-family-placeholder-${family.familyId}`}>
+                            <strong>No payload layers in this build</strong>
+                            <p>
+                              The family is visible in the dock so future map data stays truthful
+                              and discoverable. Runtime implementation belongs to {family.queueOwner}.
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    ) : null}
+                  </article>
                 ))}
               </div>
             </div>

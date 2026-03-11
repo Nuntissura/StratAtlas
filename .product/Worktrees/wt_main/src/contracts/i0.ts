@@ -88,6 +88,8 @@ export interface WorkspaceStateSnapshot {
   workflowMode: UiMode
   note: string
   activeLayers: string[]
+  layerFamilyVisibility?: Record<string, boolean>
+  layerFamilyExpanded?: Record<string, boolean>
   replayCursor: number
   forcedOffline: boolean
   uiVersion: string

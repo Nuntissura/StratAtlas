@@ -135,3 +135,16 @@ Every future family should be implemented as:
 | Satellites | 2D and 3D propagated orbit display | modeled-versus-observed labeling and performance tuning | `WP-I1-011` |
 | Maritime traffic | vessel movement and maritime awareness | no clean first-choice global open live source path | `WP-GOV-MAPDATA-002` then `WP-I1-012` |
 | Specialized industrial sites | refineries, water treatment, ore/oil processing | no single global dataset; composite curation and QA required | `WP-I1-013` |
+
+## 9) Intent Guardrails
+
+All future queue packets from `WP-I1-008` through `WP-I1-013` MUST satisfy the checklist in `.gov/Spec/sub-specs/GOV_map_family_intent_guardrails.md` before status promotion beyond `SPEC-MAPPED`.
+
+The guardrail checklist exists to keep future families aligned with the original StratAtlas intent:
+
+- strategic analysis over generic tracking
+- map-first contribution over side-panel clutter
+- explicit evidence/context/model boundaries
+- replay/compare/scenario/export usefulness
+- strict non-goal and anti-tracker boundaries
+- calm shell fit as the layer count grows

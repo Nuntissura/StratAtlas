@@ -29,3 +29,18 @@ Add specialized infrastructure layers that need composite governed sourcing rath
 
 - This packet starts only after source coverage and QA criteria are acceptable.
 - It must expose uncertainty and incomplete regional coverage directly in UI help.
+
+## 5) Guardrail Response
+
+Status: Pending completion before `WP-I1-013` moves beyond `SPEC-MAPPED`.
+
+- Strategic question fit:
+- Map-first contribution:
+- Evidence label contract:
+- Context and causality boundary:
+- Mode integration:
+- Bundle/export/reopen contract:
+- Non-goal and anti-tracker boundary:
+- Shell fit and cognitive-load control:
+- Truthful degradation states:
+- Proof obligations:

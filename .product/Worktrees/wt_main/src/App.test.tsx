@@ -636,6 +636,71 @@ describe('App', () => {
     ).toBeInTheDocument()
   })
 
+  it('renders the static family as a real dock payload and restores it from recorder persistence and bundle reopen', async () => {
+    const user = userEvent.setup()
+    const firstRender = render(<App />)
+
+    await revealFullWorkbenchIfAvailable(user)
+
+    const dock = await screen.findByTestId('layer-family-dock')
+    expect(within(dock).getByTestId('layer-family-card-verified-workspace')).toBeInTheDocument()
+    expect(within(dock).getByTestId('layer-family-state-static-installations')).toHaveTextContent(
+      'Static-only',
+    )
+
+    const staticFamilyCard = within(dock).getByTestId('layer-family-card-static-installations')
+    await user.click(within(staticFamilyCard).getByRole('checkbox', { name: 'Show Static Installations' }))
+    await user.click(within(staticFamilyCard).getByRole('button', { name: 'Expand' }))
+    expect(
+      within(
+        await within(staticFamilyCard).findByTestId('layer-family-entry-static-airports'),
+      ).getByText(/Representative AOI benchmark only; not comprehensive global airport coverage\./),
+    ).toBeInTheDocument()
+    await user.click(within(staticFamilyCard).getByRole('checkbox', { name: 'Toggle Commercial Airports' }))
+
+    await waitFor(async () => {
+      const restored = await backend.loadRecorderState()
+      expect(restored.state?.workspace.layerFamilyVisibility?.['static-installations']).toBe(true)
+      expect(restored.state?.workspace.layerFamilyExpanded?.['static-installations']).toBe(true)
+      expect(restored.state?.workspace.activeLayers).toContain('static-airports')
+    })
+
+    expect(
+      within(staticFamilyCard).getByRole('checkbox', { name: 'Toggle Commercial Airports' }),
+    ).toBeChecked()
+    await user.click(screen.getByRole('button', { name: 'Create Bundle' }))
+    expect((await screen.findAllByText(/Bundle .* created/)).length).toBeGreaterThan(0)
+
+    await user.click(within(staticFamilyCard).getByRole('checkbox', { name: 'Show Static Installations' }))
+    expect(within(staticFamilyCard).getByRole('checkbox', { name: 'Show Static Installations' })).not.toBeChecked()
+    await user.click(screen.getByRole('button', { name: 'Reopen Bundle' }))
+    await waitFor(() =>
+      expect(
+        within(screen.getByTestId('layer-family-card-static-installations')).getByRole('checkbox', {
+          name: 'Show Static Installations',
+        }),
+      ).toBeChecked(),
+    )
+    expect(
+      within(screen.getByTestId('layer-family-card-static-installations')).getByRole('checkbox', {
+        name: 'Toggle Commercial Airports',
+      }),
+    ).toBeChecked()
+
+    firstRender.unmount()
+
+    const secondUser = userEvent.setup()
+    render(<App />)
+    await revealFullWorkbenchIfAvailable(secondUser)
+
+    expect(
+      screen.getByRole('checkbox', { name: 'Show Static Installations' }),
+    ).toBeChecked()
+    expect(
+      screen.getByRole('checkbox', { name: 'Toggle Commercial Airports' }),
+    ).toBeChecked()
+  })
+
   it('runs compare workflow and updates delta output', async () => {
     const user = userEvent.setup()
     render(<App />)

@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { LayerRegistry, buildWorkspaceLayerCatalog } from './layers'
+import {
+  LayerRegistry,
+  buildLayerFamilyCatalog,
+  buildWorkspaceLayerCatalog,
+  createDefaultLayerFamilyExpandedState,
+  createDefaultLayerFamilyVisibility,
+} from './layers'
 import { REQUIRED_UI_MODES, REQUIRED_UI_REGIONS } from './modes'
 import { I1_BUDGETS, describeStateChangeFeedback, shouldDegradeRendering } from './performance'
 import { validatePluginAgainstPolicy } from './plugins'
@@ -131,6 +137,54 @@ describe('I1 contracts', () => {
     expect(aiEntry?.artifactLabel).toBe('AI-Derived Interpretation')
   })
 
+  it('builds a grouped layer family registry with truthful planned states', () => {
+    const layerCatalog = buildWorkspaceLayerCatalog({
+      activeLayerIds: ['base-map', 'context-panel', 'static-airports'],
+      activeDomainIds: [],
+      domains: [],
+      allowRestrictedExport: false,
+      allowedLicenses: ['public', 'internal'],
+      aiSummaryAvailable: false,
+      degradeRendering: false,
+      familyVisibility: {
+        ...createDefaultLayerFamilyVisibility(),
+        'verified-workspace': false,
+        'static-installations': true,
+      },
+      modelUncertaintyText: 'Range +/- 15%',
+    })
+
+    const familyCatalog = buildLayerFamilyCatalog({
+      layerCatalog,
+      familyVisibility: {
+        ...createDefaultLayerFamilyVisibility(),
+        'verified-workspace': false,
+        'static-installations': true,
+      },
+      familyExpanded: {
+        ...createDefaultLayerFamilyExpandedState(),
+        'static-installations': true,
+      },
+    })
+
+    const verifiedFamily = familyCatalog.find((entry) => entry.familyId === 'verified-workspace')
+    const maritimeFamily = familyCatalog.find((entry) => entry.familyId === 'maritime-awareness')
+    const staticFamily = familyCatalog.find((entry) => entry.familyId === 'static-installations')
+
+    expect(verifiedFamily?.availableInBuild).toBe(true)
+    expect(verifiedFamily?.visible).toBe(false)
+    expect(verifiedFamily?.selectedMemberCount).toBe(2)
+    expect(verifiedFamily?.visibleMemberCount).toBe(0)
+    expect(staticFamily?.expanded).toBe(true)
+    expect(staticFamily?.availableInBuild).toBe(true)
+    expect(staticFamily?.state).toBe('static-only')
+    expect(staticFamily?.toggleDisabled).toBe(false)
+    expect(staticFamily?.selectedMemberCount).toBe(1)
+    expect(staticFamily?.visibleMemberCount).toBe(1)
+    expect(maritimeFamily?.state).toBe('blocked')
+    expect(maritimeFamily?.toggleDisabled).toBe(true)
+  })
+
   it('spatializes the cross-feature runtime state onto the governed map scene', () => {
     const domains: ContextDomain[] = [
       {
@@ -152,13 +206,17 @@ describe('I1 contracts', () => {
       },
     ]
     const visibleLayerCatalog = buildWorkspaceLayerCatalog({
-      activeLayerIds: ['base-map', 'audit-overlay'],
+      activeLayerIds: ['base-map', 'audit-overlay', 'static-ports'],
       activeDomainIds: ['ctx-1'],
       domains,
       allowRestrictedExport: false,
       allowedLicenses: ['public', 'internal'],
       aiSummaryAvailable: true,
       degradeRendering: false,
+      familyVisibility: {
+        ...createDefaultLayerFamilyVisibility(),
+        'static-installations': true,
+      },
       modelUncertaintyText: 'Range +/- 14%',
     }).filter((entry) => entry.visible)
     const versionedQuery: VersionedQuery = {
@@ -312,6 +370,9 @@ describe('I1 contracts', () => {
     expect(scene.focusOptions.length).toBeGreaterThan(2)
     expect(scene.signals.features.some((feature) => feature.properties.category === 'query')).toBe(true)
     expect(scene.signals.features.some((feature) => feature.properties.category === 'context')).toBe(true)
+    expect(
+      scene.signals.features.some((feature) => feature.properties.label === 'Port of Singapore'),
+    ).toBe(true)
     expect(scene.signals.features.some((feature) => feature.properties.category === 'scenario')).toBe(true)
     expect(scene.signals.features.some((feature) => feature.properties.category === 'ai')).toBe(true)
     expect(scene.signals.features.some((feature) => feature.properties.category === 'osint')).toBe(true)

@@ -7,19 +7,19 @@ Iteration: I1
 
 ## Scope
 
-Validate specialized industrial and water-infrastructure layers with explicit coverage and uncertainty labeling.
+Validate specialized industrial and water-infrastructure layers with explicit coverage and uncertainty labeling against the governed map-family intent checklist.
 
 ## Inputs
 
 - Linked requirements: REQ-0013, REQ-0108, REQ-0200, REQ-0201, REQ-0202, REQ-0203, REQ-0211, REQ-0212
 - Linked primitives: PRIM-0045, PRIM-0046, PRIM-0071
-- Linked components: .gov/Spec/sub-specs/I1_specialized_industrial_and_water_infrastructure_layers.md; .gov/workflow/work_packets/WP-I1-013_specialized-industrial-and-water-infrastructure-layers.md
+- Linked components: .gov/Spec/sub-specs/GOV_map_family_intent_guardrails.md; .gov/Spec/sub-specs/I1_specialized_industrial_and_water_infrastructure_layers.md; .gov/workflow/work_packets/WP-I1-013_specialized-industrial-and-water-infrastructure-layers.md
 
 ## Reality Boundary Assertions
 
 - Packet Class: IMPLEMENTATION
 - Real Seam: Specialized industrial and water-infrastructure sites render as governed static layers with explicit coverage and quality labels.
-- Proof Target: Packet verification proves truthful composite-source labels, family toggles, and offline-safe packaging where permitted.
+- Proof Target: Packet verification proves truthful composite-source labels, family toggles, offline-safe packaging where permitted, and conformance with the governed map-family intent checklist.
 - Allowed Fallbacks: Composite curated layers are acceptable if uncertainty and coverage gaps are explicit.
 - Promotion Guard: RESEARCH and SCAFFOLD packets do not promote linked requirements or primitives to E2E-VERIFIED.
 

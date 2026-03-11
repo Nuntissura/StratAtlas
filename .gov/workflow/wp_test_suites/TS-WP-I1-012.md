@@ -7,19 +7,19 @@ Iteration: I1
 
 ## Scope
 
-Validate maritime implementation once the governing source path exists.
+Validate maritime implementation once the governing source path exists and against the governed map-family intent checklist.
 
 ## Inputs
 
 - Linked requirements: REQ-0013, REQ-0108, REQ-0200, REQ-0201, REQ-0202, REQ-0203, REQ-0211, REQ-0212
 - Linked primitives: PRIM-0045, PRIM-0046, PRIM-0071
-- Linked components: .gov/Spec/sub-specs/I1_maritime_traffic_and_port_awareness_layers.md; .gov/workflow/work_packets/WP-I1-012_maritime-traffic-and-port-awareness-layers.md
+- Linked components: .gov/Spec/sub-specs/GOV_map_family_intent_guardrails.md; .gov/Spec/sub-specs/I1_maritime_traffic_and_port_awareness_layers.md; .gov/workflow/work_packets/WP-I1-012_maritime-traffic-and-port-awareness-layers.md
 
 ## Reality Boundary Assertions
 
 - Packet Class: IMPLEMENTATION
 - Real Seam: Maritime movement is implemented only after source truth is governed.
-- Proof Target: Packet verification proves truthful live/delayed/cached/licensed labels and clean maritime map rendering.
+- Proof Target: Packet verification proves truthful live/delayed/cached/licensed labels, clean maritime map rendering, and conformance with the governed map-family intent checklist.
 - Allowed Fallbacks: None until `WP-GOV-MAPDATA-002` unblocks the packet.
 - Promotion Guard: RESEARCH and SCAFFOLD packets do not promote linked requirements or primitives to E2E-VERIFIED.
 

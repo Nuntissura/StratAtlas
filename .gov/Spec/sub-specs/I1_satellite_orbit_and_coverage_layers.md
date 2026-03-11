@@ -23,3 +23,18 @@ Add a governed satellite layer family that works in both 2D and 3D while truthfu
 
 - No claim of direct live telemetry when positions are propagated from TLE/GP data.
 - No unsupported classification or mission inference.
+
+## 4) Guardrail Response
+
+Status: Pending completion before `WP-I1-011` moves beyond `SPEC-MAPPED`.
+
+- Strategic question fit:
+- Map-first contribution:
+- Evidence label contract:
+- Context and causality boundary:
+- Mode integration:
+- Bundle/export/reopen contract:
+- Non-goal and anti-tracker boundary:
+- Shell fit and cognitive-load control:
+- Truthful degradation states:
+- Proof obligations:

@@ -1,25 +1,25 @@
 # TS-WP-I1-008 - Spec vs Code Test Suite
 
 Date Opened: 2026-03-10
-Status: SPEC-MAPPED
+Status: E2E-VERIFIED
 Linked Work Packet: WP-I1-008
 Iteration: I1
 
 ## Scope
 
-Validate the grouped layer-family registry and map control dock before family payload packets start landing.
+Validate the grouped layer-family registry and map control dock, including compliance with the governed map-family intent checklist before payload packets start landing.
 
 ## Inputs
 
 - Linked requirements: REQ-0013, REQ-0200, REQ-0201, REQ-0202, REQ-0203, REQ-0212
 - Linked primitives: PRIM-0045, PRIM-0068, PRIM-0071
-- Linked components: .gov/Spec/sub-specs/I1_toggleable_layer_family_registry.md; .product/Worktrees/wt_main/src/App.tsx; .product/Worktrees/wt_main/src/App.css; .product/Worktrees/wt_main/src/features/i1/layers.ts
+- Linked components: .gov/Spec/sub-specs/GOV_map_family_intent_guardrails.md; .gov/Spec/sub-specs/I1_toggleable_layer_family_registry.md; .product/Worktrees/wt_main/src/App.tsx; .product/Worktrees/wt_main/src/App.css; .product/Worktrees/wt_main/src/features/i1/layers.ts
 
 ## Reality Boundary Assertions
 
 - Packet Class: IMPLEMENTATION
 - Real Seam: The workbench gains grouped layer-family controls with truthful availability/source-state labels and persisted control state.
-- Proof Target: UI and integration tests plus packet-grade verification prove grouped family controls, badges, and persistence without shell overload.
+- Proof Target: UI and integration tests plus packet-grade verification prove grouped family controls, badges, persistence, and conformance with the governed map-family intent checklist without shell overload.
 - Allowed Fallbacks: Some families may remain unavailable or blocked if labeled explicitly.
 - Promotion Guard: RESEARCH and SCAFFOLD packets do not promote linked requirements or primitives to E2E-VERIFIED.
 
@@ -78,12 +78,12 @@ Validate the grouped layer-family registry and map control dock before family pa
 
 ## Execution Summary
 
-- Last Run Date: 2026-03-10
-- Result: Queue packet defined; execution not started
-- Blocking Failures: None yet
-- Evidence Paths: `.gov/Spec/sub-specs/I1_toggleable_layer_family_registry.md`; `.gov/workflow/work_packets/WP-I1-008_toggleable-layer-family-registry-and-map-control-dock.md`
-- What Became Real: The queue now has a dedicated foundation test owner for grouped layer-family controls
-- What Remains Simulated: Product code still exposes the smaller verified workspace-layer set only
-- Next Blocking Real Seam: Implement the grouped family registry and control dock
+- Last Run Date: 2026-03-11
+- Result: Passed
+- Blocking Failures: None
+- Evidence Paths: `.gov/Spec/sub-specs/I1_toggleable_layer_family_registry.md`; `.product/Worktrees/wt_main/src/features/i1/layers.ts`; `.product/Worktrees/wt_main/src/App.tsx`; `.product/Worktrees/wt_main/src/App.css`; `.product/Worktrees/wt_main/src/contracts/i0.ts`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-008/20260311_002209/`
+- What Became Real: The workbench now renders a grouped family dock with truthful planned-family placeholders and restores family visibility/disclosure state through recorder persistence and bundle reopen.
+- What Remains Simulated: Only the verified workspace family is live in this packet; the future families remain placeholders until their source-backed successor packets land.
+- Next Blocking Real Seam: Execute `WP-I1-009` to replace the first planned placeholder with a source-backed static installations family.
 - Reviewer:
 - User Sign-off:

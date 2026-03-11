@@ -1,7 +1,7 @@
 # WP-I1-008 - Toggleable Layer Family Registry and Map Control Dock
 
 Date Opened: 2026-03-10
-Status: SPEC-MAPPED
+Status: E2E-VERIFIED
 Iteration: I1
 Workflow Version: 4.0
 Packet Class: IMPLEMENTATION
@@ -38,6 +38,7 @@ Create the grouped layer-family registry and map control dock that will let futu
 - Confirm traceability rows are present and current.
 - Confirm task board row exists and status is current.
 - Confirm successor layer-family packets are present so the dock shape reflects the real queue.
+- Confirm packet-specific responses to `.gov/Spec/sub-specs/GOV_map_family_intent_guardrails.md` are recorded in the linked sub-spec before status moves beyond `SPEC-MAPPED`.
 
 ## Reality Boundary
 
@@ -121,9 +122,9 @@ Create the grouped layer-family registry and map control dock that will let futu
 
 ## Change Ledger
 
-- What Became Real: The post-basemap queue now has a dedicated packet for the control surface that will hold all requested map layer families.
-- What Remains Simulated: The current product still only exposes the smaller verified workspace-layer set.
-- Next Blocking Real Seam: Implement the grouped registry and control dock before shipping the first large family payload packet.
+- What Became Real: The workbench now exposes a grouped layer-family dock with truthful `Available`, `Unavailable`, and `Blocked` family states, per-family disclosure, family-level visibility control, and recorder/bundle restore for family visibility and expansion state.
+- What Remains Simulated: Future payload families still remain queue-backed placeholders until `WP-I1-009` through `WP-I1-013` land their source-backed implementations.
+- Next Blocking Real Seam: Use the verified registry contract in `WP-I1-009` to land the first source-backed static installations and critical infrastructure family.
 
 ## Checkpoint Commit Plan
 
@@ -135,6 +136,7 @@ Create the grouped layer-family registry and map control dock that will let futu
 
 - Command Runs: powershell -ExecutionPolicy Bypass -File .gov/workflow/wp_checks/check-WP-I1-008.ps1
 - Proof Artifact: .product/build_target/tool_artifacts/wp_runs/WP-I1-008/
+- Mandatory Guardrail Proof: show how the dock preserves strategic map-first use, truthful family states, mode fit, bundle/workspace restore behavior, and anti-tracker boundaries per `.gov/Spec/sub-specs/GOV_map_family_intent_guardrails.md`.
 - Claim Standard: do not claim completion without linked command output and artifact paths.
 
 ## Exit Criteria
@@ -144,18 +146,21 @@ Create the grouped layer-family registry and map control dock that will let futu
 - Linked test suite has executed results and evidence paths.
 - Evidence bundle is attached.
 - Reality Boundary, Fallback Register, and Change Ledger are truthful.
+- Packet-specific guardrail responses are completed in the linked sub-spec and evidenced in the packet proof.
 - User Sign-off: APPROVED.
 
 ## Evidence
 
-- Test Suite Execution:
-- Logs:
-- Screenshots/Exports:
-- Build Artifacts:
-- Proof Artifact: .product/build_target/tool_artifacts/wp_runs/WP-I1-008/
+- Test Suite Execution: `pnpm exec vitest run src/features/i1/i1.test.ts src/App.test.tsx`; `.gov/workflow/wp_checks/check-WP-I1-008.ps1`
+- Logs: `.product/build_target/tool_artifacts/wp_runs/WP-I1-008/20260311_002209/`
+- Screenshots/Exports: N/A for this control-surface packet; persistence and truth-state proof is captured in UI tests and WP logs
+- Build Artifacts: `pnpm lint`; `pnpm build`; `cargo test --manifest-path src-tauri/Cargo.toml`
+- Proof Artifact: `.product/build_target/tool_artifacts/wp_runs/WP-I1-008/20260311_002209/`
 - User Sign-off:
 
 ## Progress Log
 
 - 2026-03-10: WP scaffold created via `.gov/repo_scripts/new_work_packet.ps1`.
 - 2026-03-10: Packet rewritten as the foundation control-surface owner for all future toggleable map layer families.
+- 2026-03-11: Implemented the grouped family registry and dock in `src/features/i1/layers.ts`, `src/App.tsx`, `src/App.css`, and `src/contracts/i0.ts`, including persisted family visibility/disclosure state and truthful future-family placeholders.
+- 2026-03-11: `pnpm exec vitest run src/features/i1/i1.test.ts src/App.test.tsx`, `pnpm lint`, `pnpm build`, and `.gov/workflow/wp_checks/check-WP-I1-008.ps1` all passed; proof artifact: `.product/build_target/tool_artifacts/wp_runs/WP-I1-008/20260311_002209/`.

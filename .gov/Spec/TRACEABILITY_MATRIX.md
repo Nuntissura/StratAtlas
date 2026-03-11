@@ -1,7 +1,7 @@
 # StratAtlas - Traceability Matrix
 
 **Spec Version:** v1.2.4  
-**Last Updated:** 2026-03-09  
+**Last Updated:** 2026-03-11  
 **Governance:** See `SPEC_GOVERNANCE.md` for maintenance rules.
 
 ---
@@ -287,6 +287,7 @@ For quick lookup: "What requirements does this component implement?"
 | .product/Worktrees/wt_main/src/App.tsx | REQ-0008..REQ-0013, REQ-0200..REQ-0212, REQ-0300..REQ-0302, REQ-0400..REQ-0403, REQ-0500..REQ-0504, REQ-0700..REQ-0708 |
 | .product/Worktrees/wt_main/src/features/i1/modes.ts | REQ-0200..REQ-0212 |
 | .product/Worktrees/wt_main/src/features/i1/layers.ts | REQ-0200..REQ-0212 |
+| .product/Worktrees/wt_main/src/features/i1/staticInstallations.ts | REQ-0013, REQ-0108, REQ-0200, REQ-0201, REQ-0202, REQ-0203, REQ-0211, REQ-0212 |
 | .product/Worktrees/wt_main/src/features/i1/plugins.ts | REQ-0204..REQ-0205 |
 | .product/Worktrees/wt_main/src/features/i1/performance.ts | REQ-0014..REQ-0016, REQ-0206..REQ-0211 |
 | .product/Worktrees/wt_main/src/features/i2/baselineDelta.ts | REQ-0300..REQ-0302 |
@@ -363,9 +364,9 @@ For quick lookup: "What requirements does this component implement?"
 
 | WP-I1-007 | I1 | REQ-0011, REQ-0013, REQ-0200, REQ-0201, REQ-0212 | PRIM-0045, PRIM-0068, PRIM-0071 | .gov/workflow/wp_test_suites/TS-WP-I1-007.md | E2E-VERIFIED | .gov/workflow/wp_spec_extractions/SX-WP-I1-007.md; `.product/build_target/tool_artifacts/wp_runs/WP-I1-007/20260310_012211/`; inline panel explainers plus truth-labeled online versus fallback 2D basemap behavior |
 
-| WP-I1-008 | I1 | REQ-0013, REQ-0200, REQ-0201, REQ-0202, REQ-0203, REQ-0212 | PRIM-0045, PRIM-0068, PRIM-0071 | .gov/workflow/wp_test_suites/TS-WP-I1-008.md | SPEC-MAPPED | .gov/workflow/wp_spec_extractions/SX-WP-I1-008.md |
+| WP-I1-008 | I1 | REQ-0013, REQ-0200, REQ-0201, REQ-0202, REQ-0203, REQ-0212 | PRIM-0045, PRIM-0068, PRIM-0071 | .gov/workflow/wp_test_suites/TS-WP-I1-008.md | E2E-VERIFIED | .gov/workflow/wp_spec_extractions/SX-WP-I1-008.md; `.product/build_target/tool_artifacts/wp_runs/WP-I1-008/20260311_002209/`; grouped family dock, truthful planned-family placeholders, and family visibility/disclosure restore through recorder persistence |
 
-| WP-I1-009 | I1 | REQ-0013, REQ-0108, REQ-0200, REQ-0201, REQ-0202, REQ-0203, REQ-0211, REQ-0212 | PRIM-0045, PRIM-0046, PRIM-0071 | .gov/workflow/wp_test_suites/TS-WP-I1-009.md | SPEC-MAPPED | .gov/workflow/wp_spec_extractions/SX-WP-I1-009.md |
+| WP-I1-009 | I1 | REQ-0013, REQ-0108, REQ-0200, REQ-0201, REQ-0202, REQ-0203, REQ-0211, REQ-0212 | PRIM-0045, PRIM-0046, PRIM-0071 | .gov/workflow/wp_test_suites/TS-WP-I1-009.md | E2E-VERIFIED | .gov/workflow/wp_spec_extractions/SX-WP-I1-009.md; `.product/build_target/tool_artifacts/wp_runs/WP-I1-009/20260311_083107/`; first source-backed static family ships with packaged facilities, truthful source/cadence/coverage labels, runtime map projection, and recorder/bundle restore proof |
 
 | WP-I1-010 | I1 | REQ-0013, REQ-0108, REQ-0200, REQ-0201, REQ-0202, REQ-0203, REQ-0211, REQ-0212 | PRIM-0045, PRIM-0046, PRIM-0071 | .gov/workflow/wp_test_suites/TS-WP-I1-010.md | SPEC-MAPPED | .gov/workflow/wp_spec_extractions/SX-WP-I1-010.md |
 
@@ -376,3 +377,5 @@ For quick lookup: "What requirements does this component implement?"
 | WP-I1-012 | I1 | REQ-0013, REQ-0108, REQ-0200, REQ-0201, REQ-0202, REQ-0203, REQ-0211, REQ-0212 | PRIM-0045, PRIM-0046, PRIM-0071 | .gov/workflow/wp_test_suites/TS-WP-I1-012.md | BLOCKED | .gov/workflow/wp_spec_extractions/SX-WP-I1-012.md |
 
 | WP-I1-013 | I1 | REQ-0013, REQ-0108, REQ-0200, REQ-0201, REQ-0202, REQ-0203, REQ-0211, REQ-0212 | PRIM-0045, PRIM-0046, PRIM-0071 | .gov/workflow/wp_test_suites/TS-WP-I1-013.md | SPEC-MAPPED | .gov/workflow/wp_spec_extractions/SX-WP-I1-013.md |
+
+| WP-GOV-MAPDATA-003 | All | REQ-0011, REQ-0012, REQ-0013, REQ-0019, REQ-0020, REQ-0021, REQ-0022, REQ-0200, REQ-0201 | PRIM-0064, PRIM-0070 | .gov/workflow/wp_test_suites/TS-WP-GOV-MAPDATA-003.md | E2E-VERIFIED | .gov/workflow/wp_spec_extractions/SX-WP-GOV-MAPDATA-003.md; `.product/build_target/tool_artifacts/wp_runs/WP-GOV-MAPDATA-003/20260310_231706/`; checklist hardening in `.gov/Spec/sub-specs/GOV_map_family_intent_guardrails.md`; queue inheritance wired into `WP-I1-008` through `WP-I1-013` |

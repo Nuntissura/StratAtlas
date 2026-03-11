@@ -1,12 +1,12 @@
 # SX-WP-I1-008 - Spec Extraction Snapshot
 
-Generated On: 2026-03-10
+Generated On: 2026-03-11
 Linked Work Packet: WP-I1-008
 Linked Test Suite: .gov/workflow/wp_test_suites/TS-WP-I1-008.md
 Linked WP Check Script: .gov/workflow/wp_checks/check-WP-I1-008.ps1
 Packet Class Snapshot: IMPLEMENTATION
 Workflow Version Snapshot: 4.0
-WP Status Snapshot: SPEC-MAPPED
+WP Status Snapshot: E2E-VERIFIED
 Iteration: I1
 
 ## Scope
@@ -23,9 +23,9 @@ Concrete extraction of requirement and primitive obligations this WP must satisf
 
 ## Change Ledger Snapshot
 
-- What Became Real: The post-basemap queue now has a dedicated packet for the control surface that will hold all requested map layer families.
-- What Remains Simulated: The current product still only exposes the smaller verified workspace-layer set.
-- Next Blocking Real Seam: Implement the grouped registry and control dock before shipping the first large family payload packet.
+- What Became Real: The workbench now exposes a grouped layer-family dock with truthful `Available`, `Unavailable`, and `Blocked` family states, per-family disclosure, family-level visibility control, and recorder/bundle restore for family visibility and expansion state.
+- What Remains Simulated: Future payload families still remain queue-backed placeholders until `WP-I1-009` through `WP-I1-013` land their source-backed implementations.
+- Next Blocking Real Seam: Use the verified registry contract in `WP-I1-009` to land the first source-backed static installations and critical infrastructure family.
 
 ## Requirement Extraction
 

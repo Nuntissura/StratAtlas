@@ -10,6 +10,7 @@ import type { GameModelSnapshot, PayoffProxy } from '../../i10/gameModeling'
 import type { LayerCatalogEntry } from '../layers'
 import { artifactTone } from '../layers'
 import type { UiMode } from '../modes'
+import { listStaticInstallationRecordsForLayers } from '../staticInstallations'
 
 export type RuntimeTone = 'evidence' | 'context' | 'model' | 'ai' | 'alert' | 'support'
 
@@ -410,6 +411,39 @@ export const buildMapRuntimeScene = (input: MapRuntimeSceneInput): MapRuntimeSce
     features: [],
   }
   const latestRecords = latestRecordByDomain(input.contextRecords)
+  const staticLayerEntries = input.visibleLayerCatalog.filter(
+    (entry) => entry.familyId === 'static-installations',
+  )
+  const staticLayerEntryById = new Map(
+    staticLayerEntries.map((entry) => [entry.layerId, entry] as const),
+  )
+  const staticInstallationRecords = listStaticInstallationRecordsForLayers(
+    staticLayerEntries.map((entry) => entry.layerId),
+  )
+
+  staticInstallationRecords.forEach((record, index) => {
+    const layerEntry = staticLayerEntryById.get(record.layerId)
+    const militaryInstallation = record.layerId.includes('military')
+    signals.features.push({
+      type: 'Feature',
+      geometry: {
+        type: 'Point',
+        coordinates: record.coordinates,
+      },
+      properties: {
+        featureId: `static-installation-${record.installationId}`,
+        aoiId: record.aoiId,
+        category: 'context',
+        label: record.name,
+        detail: `${record.category}. ${record.detail} ${record.truthNote} Source ${layerEntry?.source ?? 'Curated snapshot'} | Cadence ${layerEntry?.cadence ?? 'static'}${layerEntry?.coverageText ? ` | Coverage ${layerEntry.coverageText}` : ''}`,
+        tone: 'context',
+        radius: militaryInstallation ? 6 : 7,
+        haloRadius: militaryInstallation ? 16 : 18,
+        haloOpacity: militaryInstallation ? 0.16 : 0.2,
+        emphasis: record.aoiId === focusAoiId ? 0.94 : 0.68 - (index % 3) * 0.04,
+      },
+    })
+  })
 
   pushCorridor(corridors.features, focus.center, supportAoi.center, {
     category: 'compare',

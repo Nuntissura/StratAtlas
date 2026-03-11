@@ -39,6 +39,7 @@ Add the specialized industrial and water-infrastructure family after source cove
 - Confirm `WP-I1-008` has established the grouped layer-family control dock.
 - Confirm source QA and coverage criteria in the sub-spec are acceptable.
 - Confirm task board row exists and status is current.
+- Confirm packet-specific responses to `.gov/Spec/sub-specs/GOV_map_family_intent_guardrails.md` are recorded in the linked sub-spec before status moves beyond `SPEC-MAPPED`.
 
 ## Reality Boundary
 
@@ -138,6 +139,7 @@ Add the specialized industrial and water-infrastructure family after source cove
 
 - Command Runs: powershell -ExecutionPolicy Bypass -File .gov/workflow/wp_checks/check-WP-I1-013.ps1
 - Proof Artifact: .product/build_target/tool_artifacts/wp_runs/WP-I1-013/
+- Mandatory Guardrail Proof: show the family's strategic question fit, evidence/context label contract, mode behavior, bundle/export/reopen contract, and anti-tracker boundary per `.gov/Spec/sub-specs/GOV_map_family_intent_guardrails.md`.
 - Claim Standard: do not claim completion without linked command output and artifact paths.
 
 ## Exit Criteria
@@ -147,6 +149,7 @@ Add the specialized industrial and water-infrastructure family after source cove
 - Linked test suite has executed results and evidence paths.
 - Evidence bundle is attached.
 - Reality Boundary, Fallback Register, and Change Ledger are truthful.
+- Packet-specific guardrail responses are completed in the linked sub-spec and evidenced in the packet proof.
 - User Sign-off: APPROVED.
 
 ## Evidence

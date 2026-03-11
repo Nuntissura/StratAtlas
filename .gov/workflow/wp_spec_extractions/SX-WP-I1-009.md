@@ -1,12 +1,12 @@
 # SX-WP-I1-009 - Spec Extraction Snapshot
 
-Generated On: 2026-03-10
+Generated On: 2026-03-11
 Linked Work Packet: WP-I1-009
 Linked Test Suite: .gov/workflow/wp_test_suites/TS-WP-I1-009.md
 Linked WP Check Script: .gov/workflow/wp_checks/check-WP-I1-009.ps1
 Packet Class Snapshot: IMPLEMENTATION
 Workflow Version Snapshot: 4.0
-WP Status Snapshot: SPEC-MAPPED
+WP Status Snapshot: E2E-VERIFIED
 Iteration: I1
 
 ## Scope
@@ -23,9 +23,9 @@ Concrete extraction of requirement and primitive obligations this WP must satisf
 
 ## Change Ledger Snapshot
 
-- What Became Real: The queue now has a first source-backed family packet that can add immediate map value without waiting on harder live-source decisions.
-- What Remains Simulated: The product does not yet show these static installations.
-- Next Blocking Real Seam: Establish the grouped layer-family dock in `WP-I1-008`, then land the first static installation payloads.
+- What Became Real: The map now ships a real `Static Installations` family with toggleable airports, ports, power plants, dams, and curated military airbase/port layers that carry explicit source, cadence, coverage, and truth-note metadata, render into the governed 2D/3D scene, and survive recorder/bundle restore.
+- What Remains Simulated: This packet intentionally stops at curated static snapshots. No live operational state, movement, or comprehensive military truth is implied.
+- Next Blocking Real Seam: `WP-I1-010` for governed commercial air traffic and separately truth-labeled flight-awareness overlays.
 
 ## Requirement Extraction
 

@@ -91,7 +91,11 @@ This file is the execution order for capability slices. It is the scheduling bri
   - `WP-GOV-MAPDATA-002` maritime source-path and coverage-gap resolution
   - `WP-I1-012` maritime traffic and port awareness, currently blocked by `WP-GOV-MAPDATA-002`
   - `WP-I1-013` specialized industrial and water infrastructure
-- Next correct task: start `WP-I1-008` as the blocking foundation packet. Run `WP-GOV-MAPDATA-002` in parallel only if maritime source research becomes urgent. Keep `WP-GOV-SMOKE-001` open in parallel for broader manual scenario coverage before release-candidate work.
+- `WP-GOV-MAPDATA-003` is now `E2E-VERIFIED`; proof: `.product/build_target/tool_artifacts/wp_runs/WP-GOV-MAPDATA-003/20260310_231706/`. It adds the mandatory map-family intent guardrail checklist under `.gov/Spec/sub-specs/GOV_map_family_intent_guardrails.md` and wires that contract into `WP-I1-008` through `WP-I1-013`.
+- `WP-I1-008` through `WP-I1-013` MUST keep packet-specific guardrail responses in their linked sub-specs before status moves beyond `SPEC-MAPPED`, and MUST prove that conformance in packet evidence before any future promotion.
+- `WP-I1-008` is now `E2E-VERIFIED`; proof: `.product/build_target/tool_artifacts/wp_runs/WP-I1-008/20260311_002209/`. It closes the family-registry foundation with grouped dock cards, truthful planned-family placeholders, and persisted family visibility/disclosure state that restores through recorder save and bundle reopen.
+- `WP-I1-009` is now `E2E-VERIFIED`; proof: `.product/build_target/tool_artifacts/wp_runs/WP-I1-009/20260311_083107/`. It closes the first source-backed map-family payload with packaged airports, ports, power plants, dams, and curated military airbase/port layers that render as `Curated Context`, carry explicit source/cadence/coverage/truth-note metadata, and restore through recorder persistence plus bundle reopen.
+- Next correct task: execute `WP-I1-010` for governed commercial air traffic and separately truth-labeled flight-awareness overlays. Run `WP-GOV-MAPDATA-002` in parallel only if maritime source research becomes urgent. Keep `WP-GOV-SMOKE-001` open in parallel for broader manual scenario coverage before release-candidate work.
 
 ---
 

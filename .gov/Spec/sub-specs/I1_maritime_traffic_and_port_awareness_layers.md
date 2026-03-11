@@ -22,3 +22,18 @@ Add maritime traffic and maritime-awareness layers only after the source and cov
 
 - Blocked until `WP-GOV-MAPDATA-002` resolves the source path.
 - Static port installations belong to `WP-I1-009`; this packet is for movement and maritime-awareness behavior.
+
+## 4) Guardrail Response
+
+Status: Pending completion before `WP-I1-012` moves beyond `SPEC-MAPPED`.
+
+- Strategic question fit:
+- Map-first contribution:
+- Evidence label contract:
+- Context and causality boundary:
+- Mode integration:
+- Bundle/export/reopen contract:
+- Non-goal and anti-tracker boundary:
+- Shell fit and cognitive-load control:
+- Truthful degradation states:
+- Proof obligations:

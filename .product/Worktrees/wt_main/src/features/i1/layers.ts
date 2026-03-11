@@ -3,6 +3,7 @@ import {
   type ContextDomain,
   type PresentationType,
 } from '../i7/contextIntake'
+import { STATIC_INSTALLATION_LAYER_DEFINITIONS } from './staticInstallations'
 
 export type GeometryType = 'point' | 'line' | 'polygon' | 'raster'
 
@@ -18,6 +19,31 @@ export type ArtifactLabel =
 
 export type RenderSurface = 'main_canvas' | 'right_panel' | 'dashboard_widget'
 
+export const LAYER_FAMILY_IDS = [
+  'verified-workspace',
+  'static-installations',
+  'commercial-air',
+  'satellite-coverage',
+  'maritime-awareness',
+  'specialized-infrastructure',
+] as const
+
+export type LayerFamilyId = (typeof LAYER_FAMILY_IDS)[number]
+
+export type LayerFamilyState =
+  | 'available'
+  | 'unavailable'
+  | 'static-only'
+  | 'live'
+  | 'delayed'
+  | 'heuristic'
+  | 'licensed'
+  | 'blocked'
+
+export type LayerFamilyVisibilityState = Record<LayerFamilyId, boolean>
+
+export type LayerFamilyExpandedState = Record<LayerFamilyId, boolean>
+
 export interface LayerDeclaration {
   layerId: string
   source: string
@@ -26,6 +52,7 @@ export interface LayerDeclaration {
   geometryType: GeometryType
   sensitivityClass: SensitivityClass
   cachingPolicy: CachingPolicy
+  familyId?: LayerFamilyId
 }
 
 export interface LayerCatalogEntry extends LayerDeclaration {
@@ -34,7 +61,10 @@ export interface LayerCatalogEntry extends LayerDeclaration {
   renderSurface: RenderSurface
   confidenceText: string
   uncertaintyText?: string
+  sourceUrl?: string
+  coverageText?: string
   exportAllowed: boolean
+  selected: boolean
   visible: boolean
   degraded: boolean
 }
@@ -53,6 +83,40 @@ export interface WorkspaceLayerCatalogOptions {
   aiSummaryAvailable: boolean
   degradeRendering: boolean
   modelUncertaintyText: string
+  familyVisibility?: Partial<LayerFamilyVisibilityState>
+}
+
+export interface LayerFamilyCatalogEntry {
+  familyId: LayerFamilyId
+  title: string
+  description: string
+  strategicUse: string
+  queueOwner: string
+  state: LayerFamilyState
+  stateLabel: string
+  stateDetail: string
+  availableInBuild: boolean
+  toggleDisabled: boolean
+  visible: boolean
+  expanded: boolean
+  memberEntries: LayerCatalogEntry[]
+  memberLayerIds: string[]
+  selectedMemberCount: number
+  visibleMemberCount: number
+}
+
+interface LayerFamilyDefinition {
+  familyId: LayerFamilyId
+  title: string
+  description: string
+  strategicUse: string
+  queueOwner: string
+  state: LayerFamilyState
+  stateDetail: string
+  realizedState?: LayerFamilyState
+  realizedStateDetail?: string
+  defaultVisible: boolean
+  defaultExpanded: boolean
 }
 
 export const ARTIFACT_LABELS: ArtifactLabel[] = [
@@ -74,6 +138,144 @@ export const artifactTone = (label: ArtifactLabel): 'evidence' | 'context' | 'mo
   }
   return 'evidence'
 }
+
+const LAYER_FAMILY_DEFINITIONS: LayerFamilyDefinition[] = [
+  {
+    familyId: 'verified-workspace',
+    title: 'Verified Workspace Layers',
+    description:
+      'The currently shipped map-support layers: basemap, context panel, audit overlay, and bundle metadata.',
+    strategicUse:
+      'Keeps the existing recorded evidence and support surfaces controllable without flattening them into a raw toggle list.',
+    queueOwner: 'WP-I1-008',
+    state: 'available',
+    stateDetail: 'This build already ships the family and persists its visibility state.',
+    defaultVisible: true,
+    defaultExpanded: true,
+  },
+  {
+    familyId: 'static-installations',
+    title: 'Static Installations',
+    description:
+      'Airports, ports, dams, power plants, and curated military facilities will land here as source-backed static layers.',
+    strategicUse:
+      'Provides durable baseline infrastructure context for compare, scenario, and export workflows.',
+    queueOwner: 'WP-I1-009',
+    state: 'unavailable',
+    stateDetail: 'Static source path is defined, but payload layers are not loaded in this build yet.',
+    realizedState: 'static-only',
+    realizedStateDetail:
+      'This family ships as a curated static snapshot with explicit source, cadence, and coverage limits. It does not imply live operational state.',
+    defaultVisible: false,
+    defaultExpanded: false,
+  },
+  {
+    familyId: 'commercial-air',
+    title: 'Commercial Air and Flight Awareness',
+    description:
+      'Governed commercial air traffic plus separately labeled flight-awareness overlays will use this family.',
+    strategicUse:
+      'Adds mobility context for route disruption, throughput pressure, and cross-AOI comparison without implying pursuit use.',
+    queueOwner: 'WP-I1-010',
+    state: 'unavailable',
+    stateDetail: 'The source contract exists, but live/delayed payload layers are not implemented in this build.',
+    defaultVisible: false,
+    defaultExpanded: false,
+  },
+  {
+    familyId: 'satellite-coverage',
+    title: 'Satellite Orbit and Coverage',
+    description:
+      'Propagated points, tracks, and footprints will surface here once the satellite packet lands.',
+    strategicUse:
+      'Supports strategic context about orbital coverage and timing inside replay, compare, and scenario views.',
+    queueOwner: 'WP-I1-011',
+    state: 'unavailable',
+    stateDetail: 'The family is reserved in the dock, but no orbital payload is loaded in this build.',
+    defaultVisible: false,
+    defaultExpanded: false,
+  },
+  {
+    familyId: 'maritime-awareness',
+    title: 'Maritime Traffic and Port Awareness',
+    description:
+      'Commercial shipping and maritime-awareness overlays will appear here once the governed source path is resolved.',
+    strategicUse:
+      'Adds route and port awareness for chokepoints, diversion analysis, and infrastructure correlation.',
+    queueOwner: 'WP-I1-012',
+    state: 'blocked',
+    stateDetail: 'Blocked by WP-GOV-MAPDATA-002 until maritime source truth and licensing are governed.',
+    defaultVisible: false,
+    defaultExpanded: false,
+  },
+  {
+    familyId: 'specialized-infrastructure',
+    title: 'Industrial and Water Infrastructure',
+    description:
+      'Refineries, treatment plants, and processing sites will be grouped here as composite static context.',
+    strategicUse:
+      'Adds strategic context around throughput, resilience, and infrastructure dependency for modeling and briefings.',
+    queueOwner: 'WP-I1-013',
+    state: 'unavailable',
+    stateDetail:
+      'Composite source coverage is planned, but specialized infrastructure payload layers are not loaded yet.',
+    defaultVisible: false,
+    defaultExpanded: false,
+  },
+]
+
+const stateLabel = (state: LayerFamilyState): string => {
+  switch (state) {
+    case 'static-only':
+      return 'Static-only'
+    case 'live':
+      return 'Live'
+    case 'delayed':
+      return 'Delayed'
+    case 'heuristic':
+      return 'Heuristic'
+    case 'licensed':
+      return 'Licensed'
+    case 'blocked':
+      return 'Blocked'
+    case 'available':
+      return 'Available'
+    default:
+      return 'Unavailable'
+  }
+}
+
+export const createDefaultLayerFamilyVisibility = (): LayerFamilyVisibilityState => ({
+  'verified-workspace': true,
+  'static-installations': false,
+  'commercial-air': false,
+  'satellite-coverage': false,
+  'maritime-awareness': false,
+  'specialized-infrastructure': false,
+})
+
+export const createDefaultLayerFamilyExpandedState = (): LayerFamilyExpandedState => ({
+  'verified-workspace': true,
+  'static-installations': false,
+  'commercial-air': false,
+  'satellite-coverage': false,
+  'maritime-awareness': false,
+  'specialized-infrastructure': false,
+})
+
+const resolveLayerFamilyVisibility = (
+  familyVisibility?: Partial<LayerFamilyVisibilityState>,
+): LayerFamilyVisibilityState => ({
+  ...createDefaultLayerFamilyVisibility(),
+  ...(familyVisibility ?? {}),
+})
+
+const resolveLayerFamilyExpanded = (
+  familyExpanded?: Partial<LayerFamilyExpandedState>,
+): LayerFamilyExpandedState => ({
+  ...createDefaultLayerFamilyExpandedState(),
+  ...(familyExpanded ?? {}),
+})
 
 const presentationSurface = (presentationType: PresentationType): RenderSurface => {
   if (presentationType === 'dashboard_widget') {
@@ -137,6 +339,7 @@ export const buildWorkspaceLayerCatalog = (
   options: WorkspaceLayerCatalogOptions,
 ): LayerCatalogEntry[] => {
   const registry = new LayerRegistry()
+  const familyVisibility = resolveLayerFamilyVisibility(options.familyVisibility)
   const exportPolicy = {
     allowRestrictedExport: options.allowRestrictedExport,
     allowedLicenses: options.allowedLicenses,
@@ -152,11 +355,14 @@ export const buildWorkspaceLayerCatalog = (
       geometryType: 'polygon',
       sensitivityClass: 'PUBLIC',
       cachingPolicy: 'disk',
+      familyId: 'verified-workspace',
       artifactLabel: 'Observed Evidence',
       renderSurface: 'main_canvas',
       confidenceText: 'Primary workspace geometry',
       exportAllowed: true,
-      visible: options.activeLayerIds.includes('base-map'),
+      selected: options.activeLayerIds.includes('base-map'),
+      visible:
+        options.activeLayerIds.includes('base-map') && familyVisibility['verified-workspace'],
       degraded: options.degradeRendering,
     },
     {
@@ -168,11 +374,14 @@ export const buildWorkspaceLayerCatalog = (
       geometryType: 'raster',
       sensitivityClass: 'INTERNAL',
       cachingPolicy: 'disk',
+      familyId: 'verified-workspace',
       artifactLabel: 'Curated Context',
       renderSurface: 'right_panel',
       confidenceText: 'Displays curated source, cadence, and confidence metadata',
       exportAllowed: false,
-      visible: options.activeLayerIds.includes('context-panel'),
+      selected: options.activeLayerIds.includes('context-panel'),
+      visible:
+        options.activeLayerIds.includes('context-panel') && familyVisibility['verified-workspace'],
       degraded: false,
     },
     {
@@ -184,11 +393,14 @@ export const buildWorkspaceLayerCatalog = (
       geometryType: 'line',
       sensitivityClass: 'INTERNAL',
       cachingPolicy: 'disk',
+      familyId: 'verified-workspace',
       artifactLabel: 'Observed Evidence',
       renderSurface: 'main_canvas',
       confidenceText: 'Hash-chained recorder events',
       exportAllowed: true,
-      visible: options.activeLayerIds.includes('audit-overlay'),
+      selected: options.activeLayerIds.includes('audit-overlay'),
+      visible:
+        options.activeLayerIds.includes('audit-overlay') && familyVisibility['verified-workspace'],
       degraded: options.degradeRendering,
     },
     {
@@ -200,11 +412,15 @@ export const buildWorkspaceLayerCatalog = (
       geometryType: 'raster',
       sensitivityClass: 'INTERNAL',
       cachingPolicy: 'disk',
+      familyId: 'verified-workspace',
       artifactLabel: 'Observed Evidence',
       renderSurface: 'right_panel',
       confidenceText: 'Manifest-backed recorder metadata',
       exportAllowed: true,
-      visible: options.activeLayerIds.includes('bundle-metadata'),
+      selected: options.activeLayerIds.includes('bundle-metadata'),
+      visible:
+        options.activeLayerIds.includes('bundle-metadata') &&
+        familyVisibility['verified-workspace'],
       degraded: false,
     },
   ]
@@ -212,6 +428,36 @@ export const buildWorkspaceLayerCatalog = (
   for (const entry of baseEntries) {
     registry.register(entry)
   }
+
+  const staticEntries = STATIC_INSTALLATION_LAYER_DEFINITIONS.map((definition) => {
+    const declaration: LayerDeclaration = {
+      layerId: definition.layerId,
+      source: definition.source,
+      license: definition.license,
+      cadence: definition.cadence,
+      geometryType: 'point',
+      sensitivityClass: definition.sensitivityClass,
+      cachingPolicy: 'disk',
+      familyId: 'static-installations',
+    }
+    registry.register(declaration)
+    return {
+      ...declaration,
+      title: definition.title,
+      artifactLabel: 'Curated Context' as const,
+      renderSurface: 'main_canvas' as const,
+      confidenceText: definition.confidenceText,
+      uncertaintyText: definition.uncertaintyText,
+      sourceUrl: definition.sourceUrl,
+      coverageText: definition.coverageText,
+      exportAllowed: registry.canExport(definition.layerId, exportPolicy),
+      selected: options.activeLayerIds.includes(definition.layerId),
+      visible:
+        options.activeLayerIds.includes(definition.layerId) &&
+        familyVisibility['static-installations'],
+      degraded: options.degradeRendering,
+    }
+  })
 
   const curatedContextEntries = options.domains.map((domain) => {
     const layerId = `context-${domain.domain_id}`
@@ -232,6 +478,7 @@ export const buildWorkspaceLayerCatalog = (
       renderSurface: presentationSurface(domain.presentation_type),
       confidenceText: `Confidence ${domain.confidence_baseline}`,
       exportAllowed: registry.canExport(layerId, exportPolicy),
+      selected: options.activeDomainIds.includes(domain.domain_id),
       visible: options.activeDomainIds.includes(domain.domain_id),
       degraded: options.degradeRendering && allowsMapPointRendering(domain),
     }
@@ -252,6 +499,7 @@ export const buildWorkspaceLayerCatalog = (
       confidenceText: 'Scenario-driven estimate',
       uncertaintyText: options.modelUncertaintyText,
       exportAllowed: true,
+      selected: true,
       visible: true,
       degraded: options.degradeRendering,
     },
@@ -269,10 +517,62 @@ export const buildWorkspaceLayerCatalog = (
       confidenceText: 'Analyst acceptance required',
       uncertaintyText: 'Do not treat as observed evidence.',
       exportAllowed: false,
+      selected: options.aiSummaryAvailable,
       visible: options.aiSummaryAvailable,
       degraded: false,
     },
   ]
 
-  return [...baseEntries, ...curatedContextEntries, ...analyticEntries]
+  return [...baseEntries, ...staticEntries, ...curatedContextEntries, ...analyticEntries]
+}
+
+export const buildLayerFamilyCatalog = ({
+  layerCatalog,
+  familyVisibility,
+  familyExpanded,
+}: {
+  layerCatalog: LayerCatalogEntry[]
+  familyVisibility?: Partial<LayerFamilyVisibilityState>
+  familyExpanded?: Partial<LayerFamilyExpandedState>
+}): LayerFamilyCatalogEntry[] => {
+  const resolvedVisibility = resolveLayerFamilyVisibility(familyVisibility)
+  const resolvedExpanded = resolveLayerFamilyExpanded(familyExpanded)
+  const entriesByFamily = new Map<LayerFamilyId, LayerCatalogEntry[]>()
+
+  for (const entry of layerCatalog) {
+    if (!entry.familyId) {
+      continue
+    }
+    const familyEntries = entriesByFamily.get(entry.familyId) ?? []
+    familyEntries.push(entry)
+    entriesByFamily.set(entry.familyId, familyEntries)
+  }
+
+  return LAYER_FAMILY_DEFINITIONS.map((definition) => {
+    const memberEntries = entriesByFamily.get(definition.familyId) ?? []
+    const availableInBuild = memberEntries.length > 0
+    const activeState = availableInBuild ? definition.realizedState ?? 'available' : definition.state
+    const activeStateDetail = availableInBuild
+      ? definition.realizedStateDetail ??
+        'This family is live in the current build and persists across recorder saves and bundle reopen.'
+      : definition.stateDetail
+    return {
+      familyId: definition.familyId,
+      title: definition.title,
+      description: definition.description,
+      strategicUse: definition.strategicUse,
+      queueOwner: definition.queueOwner,
+      state: activeState,
+      stateLabel: stateLabel(activeState),
+      stateDetail: activeStateDetail,
+      availableInBuild,
+      toggleDisabled: !availableInBuild,
+      visible: resolvedVisibility[definition.familyId],
+      expanded: resolvedExpanded[definition.familyId],
+      memberEntries,
+      memberLayerIds: memberEntries.map((entry) => entry.layerId),
+      selectedMemberCount: memberEntries.filter((entry) => entry.selected).length,
+      visibleMemberCount: memberEntries.filter((entry) => entry.visible).length,
+    }
+  })
 }

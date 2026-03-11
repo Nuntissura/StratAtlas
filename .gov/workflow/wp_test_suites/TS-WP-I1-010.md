@@ -7,19 +7,19 @@ Iteration: I1
 
 ## Scope
 
-Validate the commercial air-traffic family and the separate truth-labeled flight-awareness path.
+Validate the commercial air-traffic family and the separate truth-labeled flight-awareness path against the governed map-family intent checklist.
 
 ## Inputs
 
 - Linked requirements: REQ-0013, REQ-0108, REQ-0200, REQ-0201, REQ-0202, REQ-0203, REQ-0211, REQ-0212
 - Linked primitives: PRIM-0045, PRIM-0046, PRIM-0071
-- Linked components: .gov/Spec/sub-specs/I1_commercial_air_traffic_and_flight_awareness_layers.md; .product/Worktrees/wt_main/src/features/i1/layers.ts; .product/Worktrees/wt_main/src/features/i1/runtime/mapRuntimeScene.ts
+- Linked components: .gov/Spec/sub-specs/GOV_map_family_intent_guardrails.md; .gov/Spec/sub-specs/I1_commercial_air_traffic_and_flight_awareness_layers.md; .product/Worktrees/wt_main/src/features/i1/layers.ts; .product/Worktrees/wt_main/src/features/i1/runtime/mapRuntimeScene.ts
 
 ## Reality Boundary Assertions
 
 - Packet Class: IMPLEMENTATION
 - Real Seam: Commercial air traffic is a source-backed family and any military-awareness overlay remains separately labeled as heuristic or curated.
-- Proof Target: Packet verification proves truthful family separation, degraded/offline labels, and map rendering behavior.
+- Proof Target: Packet verification proves truthful family separation, degraded/offline labels, map rendering behavior, and conformance with the governed map-family intent checklist.
 - Allowed Fallbacks: Delayed or cached air traffic and heuristic military-awareness overlays if labeled.
 - Promotion Guard: RESEARCH and SCAFFOLD packets do not promote linked requirements or primitives to E2E-VERIFIED.
 

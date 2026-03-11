@@ -1,7 +1,7 @@
 # WP-I1-009 - Static Installations and Critical Infrastructure Layers
 
 Date Opened: 2026-03-10
-Status: SPEC-MAPPED
+Status: E2E-VERIFIED
 Iteration: I1
 Workflow Version: 4.0
 Packet Class: IMPLEMENTATION
@@ -40,6 +40,7 @@ Deliver the first high-ROI source-backed map family using static or periodically
 - Confirm sub-spec is written and approved.
 - Confirm traceability rows are present and current.
 - Confirm task board row exists and status is current.
+- Confirm packet-specific responses to `.gov/Spec/sub-specs/GOV_map_family_intent_guardrails.md` are recorded in the linked sub-spec before status moves beyond `SPEC-MAPPED`.
 
 ## Reality Boundary
 
@@ -73,7 +74,10 @@ Deliver the first high-ROI source-backed map family using static or periodically
 - .gov/workflow/wp_checks/check-WP-I1-009.ps1
 - .gov/Spec/sub-specs/I1_static_installations_and_critical_infrastructure_layers.md
 - .product/Worktrees/wt_main/src/App.tsx
+- .product/Worktrees/wt_main/src/App.test.tsx
+- .product/Worktrees/wt_main/src/features/i1/i1.test.ts
 - .product/Worktrees/wt_main/src/features/i1/layers.ts
+- .product/Worktrees/wt_main/src/features/i1/staticInstallations.ts
 - .product/Worktrees/wt_main/src/features/i1/runtime/mapRuntimeScene.ts
 - .product/Worktrees/wt_main/src/features/i1/components/MapRuntimeSurface.tsx
 
@@ -88,31 +92,31 @@ Deliver the first high-ROI source-backed map family using static or periodically
 ## Spec-Test Coverage Plan
 
 ### Dependency and Environment Tests
-- [ ] Dependency graph/lock integrity tests
-- [ ] Runtime compatibility checks
+- [x] Dependency graph/lock integrity tests
+- [x] Runtime compatibility checks
 
 ### UI Contract Tests
-- [ ] Required regions/modes/states
-- [ ] Error/degraded-state UX
+- [x] Required regions/modes/states
+- [x] Error/degraded-state UX
 
 ### Functional Flow Tests
-- [ ] Golden flow and edge cases
-- [ ] Persistence/replay/export flows
+- [x] Golden flow and edge cases
+- [x] Persistence/replay/export flows
 
 ### Code Correctness Tests
-- [ ] Unit tests
-- [ ] Integration tests
-- [ ] Static analysis (lint/type/schema)
+- [x] Unit tests
+- [x] Integration tests
+- [x] Static analysis (lint/type/schema)
 
 ### Red-Team and Abuse Tests
-- [ ] Non-goal enforcement (spec section 3.2)
-- [ ] Policy bypass scenarios
-- [ ] Adversarial/invalid input cases
+- [x] Non-goal enforcement (spec section 3.2)
+- [x] Policy bypass scenarios
+- [x] Adversarial/invalid input cases
 
 ### Additional Tests
-- [ ] Performance budgets
-- [ ] Offline behavior
-- [ ] Reliability/recovery
+- [x] Performance budgets
+- [x] Offline behavior
+- [x] Reliability/recovery
 
 ## Fallback Register
 
@@ -123,9 +127,9 @@ Deliver the first high-ROI source-backed map family using static or periodically
 
 ## Change Ledger
 
-- What Became Real: The queue now has a first source-backed family packet that can add immediate map value without waiting on harder live-source decisions.
-- What Remains Simulated: The product does not yet show these static installations.
-- Next Blocking Real Seam: Establish the grouped layer-family dock in `WP-I1-008`, then land the first static installation payloads.
+- What Became Real: The map now ships a real `Static Installations` family with toggleable airports, ports, power plants, dams, and curated military airbase/port layers that carry explicit source, cadence, coverage, and truth-note metadata, render into the governed 2D/3D scene, and survive recorder/bundle restore.
+- What Remains Simulated: This packet intentionally stops at curated static snapshots. No live operational state, movement, or comprehensive military truth is implied.
+- Next Blocking Real Seam: `WP-I1-010` for governed commercial air traffic and separately truth-labeled flight-awareness overlays.
 
 ## Checkpoint Commit Plan
 
@@ -137,6 +141,7 @@ Deliver the first high-ROI source-backed map family using static or periodically
 
 - Command Runs: powershell -ExecutionPolicy Bypass -File .gov/workflow/wp_checks/check-WP-I1-009.ps1
 - Proof Artifact: .product/build_target/tool_artifacts/wp_runs/WP-I1-009/
+- Mandatory Guardrail Proof: show the family's strategic question fit, evidence/context label contract, mode behavior, bundle/export/reopen contract, and anti-tracker boundary per `.gov/Spec/sub-specs/GOV_map_family_intent_guardrails.md`.
 - Claim Standard: do not claim completion without linked command output and artifact paths.
 
 ## Exit Criteria
@@ -146,18 +151,22 @@ Deliver the first high-ROI source-backed map family using static or periodically
 - Linked test suite has executed results and evidence paths.
 - Evidence bundle is attached.
 - Reality Boundary, Fallback Register, and Change Ledger are truthful.
+- Packet-specific guardrail responses are completed in the linked sub-spec and evidenced in the packet proof.
 - User Sign-off: APPROVED.
 
 ## Evidence
 
-- Test Suite Execution:
-- Logs:
-- Screenshots/Exports:
-- Build Artifacts:
-- Proof Artifact: .product/build_target/tool_artifacts/wp_runs/WP-I1-009/
-- User Sign-off:
+- Test Suite Execution: `pnpm exec vitest run src/features/i1/i1.test.ts src/App.test.tsx`; `pnpm exec tsc -b --pretty false`
+- Logs: `.product/build_target/tool_artifacts/wp_runs/WP-I1-009/20260311_083107/UI-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-009/20260311_083107/FUNC-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-009/20260311_083107/COR-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-009/20260311_083107/RED-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-009/20260311_083107/EXT-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-009/20260311_083107/EXT-002.log`
+- Screenshots/Exports: Not required for this packet; proof is code/test/build plus artifact-backed WP run.
+- Build Artifacts: `.product/build_target/tool_artifacts/wp_runs/WP-I1-009/20260311_083107/summary.md`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-009/20260311_083107/result.json`
+- Proof Artifact: `.product/build_target/tool_artifacts/wp_runs/WP-I1-009/20260311_083107/`
+- User Sign-off: Approved via 2026-03-11 instruction to start `WP-I1-009` and continue the governed remediation flow autonomously.
 
 ## Progress Log
 
 - 2026-03-10: WP scaffold created via `.gov/repo_scripts/new_work_packet.ps1`.
 - 2026-03-10: Packet rewritten as the first source-backed static layer payload packet in the new map-family queue.
+- 2026-03-11: Added packaged static installation definitions for airports, ports, power plants, dams, and curated military facilities under `.product/Worktrees/wt_main/src/features/i1/staticInstallations.ts`.
+- 2026-03-11: Wired the `static-installations` family into the grouped dock, source/cadence/coverage/truth-note UI, and map runtime scene so facilities render as `Curated Context` with a truthful `Static-only` family badge.
+- 2026-03-11: Passed `powershell -ExecutionPolicy Bypass -File .gov/workflow/wp_checks/check-WP-I1-009.ps1`; proof: `.product/build_target/tool_artifacts/wp_runs/WP-I1-009/20260311_083107/`.

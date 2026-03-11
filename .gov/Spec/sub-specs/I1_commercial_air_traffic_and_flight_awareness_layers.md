@@ -24,3 +24,18 @@ Add the first live mobility layer with the cleanest open governed path: commerci
 - No unsupported military/commercial certainty claims.
 - No individual targeting or stalking workflow.
 - No covert or hidden identity inference beyond governed source fields and explicit heuristics.
+
+## 4) Guardrail Response
+
+Status: Pending completion before `WP-I1-010` moves beyond `SPEC-MAPPED`.
+
+- Strategic question fit:
+- Map-first contribution:
+- Evidence label contract:
+- Context and causality boundary:
+- Mode integration:
+- Bundle/export/reopen contract:
+- Non-goal and anti-tracker boundary:
+- Shell fit and cognitive-load control:
+- Truthful degradation states:
+- Proof obligations:

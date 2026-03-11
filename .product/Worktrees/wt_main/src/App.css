@@ -257,6 +257,111 @@ button:disabled {
   border: 1px solid #213453;
 }
 
+.layer-family-dock,
+.layer-family-body,
+.layer-family-card-actions {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.layer-family-card {
+  border: 1px solid var(--workbench-border);
+  border-radius: 12px;
+  background: var(--workbench-panel-2);
+  padding: 0.85rem;
+}
+
+.layer-family-card.is-available {
+  border-color: var(--workbench-border-strong);
+}
+
+.layer-family-card-header,
+.layer-family-meta-row,
+.layer-family-visibility-toggle {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.layer-family-card-header {
+  justify-content: space-between;
+  align-items: start;
+}
+
+.layer-family-card-copy {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.layer-family-card-copy p,
+.layer-family-card-copy small,
+.layer-family-state-detail,
+.layer-family-placeholder p {
+  margin: 0;
+  color: var(--workbench-muted);
+}
+
+.layer-family-card-actions {
+  justify-items: end;
+}
+
+.layer-family-visibility-toggle {
+  align-items: center;
+  color: var(--workbench-muted);
+  font-size: 0.86rem;
+}
+
+.layer-family-visibility-toggle input {
+  margin: 0;
+}
+
+.layer-family-meta-row {
+  flex-wrap: wrap;
+  align-items: center;
+  margin-top: 0.35rem;
+}
+
+.layer-family-state-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.18rem 0.48rem;
+  border-radius: 999px;
+  border: 1px solid var(--workbench-border-strong);
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.layer-family-state-badge.state-available {
+  border-color: #4f7455;
+  color: #a7e1b1;
+}
+
+.layer-family-state-badge.state-unavailable,
+.layer-family-state-badge.state-blocked {
+  border-color: #74524f;
+  color: #efb3b6;
+}
+
+.layer-family-state-badge.state-static-only,
+.layer-family-state-badge.state-licensed {
+  border-color: #756845;
+  color: #ead394;
+}
+
+.layer-family-state-badge.state-live,
+.layer-family-state-badge.state-delayed,
+.layer-family-state-badge.state-heuristic {
+  border-color: #4a6580;
+  color: #a8c6eb;
+}
+
+.layer-family-placeholder {
+  padding: 0.75rem;
+  border-radius: 10px;
+  border: 1px dashed var(--workbench-border-strong);
+  background: rgba(255, 255, 255, 0.03);
+}
+
 .summary-grid strong {
   display: block;
   margin-top: 0.4rem;

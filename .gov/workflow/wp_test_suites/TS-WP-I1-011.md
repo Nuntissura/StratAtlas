@@ -7,19 +7,19 @@ Iteration: I1
 
 ## Scope
 
-Validate the satellite-family packet and its modeled-position truth contract.
+Validate the satellite-family packet and its modeled-position truth contract against the governed map-family intent checklist.
 
 ## Inputs
 
 - Linked requirements: REQ-0013, REQ-0108, REQ-0200, REQ-0201, REQ-0202, REQ-0203, REQ-0211, REQ-0212
 - Linked primitives: PRIM-0045, PRIM-0046, PRIM-0071
-- Linked components: .gov/Spec/sub-specs/I1_satellite_orbit_and_coverage_layers.md; .product/Worktrees/wt_main/src/features/i1/runtime/mapRuntimeScene.ts; .product/Worktrees/wt_main/src/features/i1/components/MapRuntimeSurface.tsx
+- Linked components: .gov/Spec/sub-specs/GOV_map_family_intent_guardrails.md; .gov/Spec/sub-specs/I1_satellite_orbit_and_coverage_layers.md; .product/Worktrees/wt_main/src/features/i1/runtime/mapRuntimeScene.ts; .product/Worktrees/wt_main/src/features/i1/components/MapRuntimeSurface.tsx
 
 ## Reality Boundary Assertions
 
 - Packet Class: IMPLEMENTATION
 - Real Seam: Satellite families render in 2D/3D with explicit propagated-position labeling.
-- Proof Target: Packet verification proves orbit-family toggles, modeled-position labels, and stable rendering in both surfaces.
+- Proof Target: Packet verification proves orbit-family toggles, modeled-position labels, stable rendering in both surfaces, and conformance with the governed map-family intent checklist.
 - Allowed Fallbacks: Cached orbital elements or limited constellations if labeled.
 - Promotion Guard: RESEARCH and SCAFFOLD packets do not promote linked requirements or primitives to E2E-VERIFIED.
 
