@@ -1,7 +1,7 @@
 # TS-WP-I1-010 - Spec vs Code Test Suite
 
 Date Opened: 2026-03-10
-Status: SPEC-MAPPED
+Status: E2E-VERIFIED
 Linked Work Packet: WP-I1-010
 Iteration: I1
 
@@ -13,7 +13,7 @@ Validate the commercial air-traffic family and the separate truth-labeled flight
 
 - Linked requirements: REQ-0013, REQ-0108, REQ-0200, REQ-0201, REQ-0202, REQ-0203, REQ-0211, REQ-0212
 - Linked primitives: PRIM-0045, PRIM-0046, PRIM-0071
-- Linked components: .gov/Spec/sub-specs/GOV_map_family_intent_guardrails.md; .gov/Spec/sub-specs/I1_commercial_air_traffic_and_flight_awareness_layers.md; .product/Worktrees/wt_main/src/features/i1/layers.ts; .product/Worktrees/wt_main/src/features/i1/runtime/mapRuntimeScene.ts
+- Linked components: .gov/Spec/sub-specs/GOV_map_family_intent_guardrails.md; .gov/Spec/sub-specs/I1_commercial_air_traffic_and_flight_awareness_layers.md; .product/Worktrees/wt_main/src/features/i1/airTraffic.ts; .product/Worktrees/wt_main/src/features/i1/layers.ts; .product/Worktrees/wt_main/src/features/i1/runtime/mapRuntimeScene.ts; .product/Worktrees/wt_main/src/App.tsx; .product/Worktrees/wt_main/src/lib/backend.ts; .product/Worktrees/wt_main/src-tauri/src/lib.rs
 
 ## Reality Boundary Assertions
 
@@ -36,40 +36,40 @@ Validate the commercial air-traffic family and the separate truth-labeled flight
 
 ## Dependency and Environment Tests
 
-- [ ] Runtime dependency install/lock integrity
-- [ ] Platform portability constraints checked
-- [ ] Required services/adapters available
+- [x] Runtime dependency install/lock integrity
+- [x] Platform portability constraints checked
+- [x] Required services/adapters available
 
 ## UI Contract Tests
 
-- [ ] Required regions
-- [ ] Required modes/states
-- [ ] Error and degraded-state UX
+- [x] Required regions
+- [x] Required modes/states
+- [x] Error and degraded-state UX
 
 ## Functional Flow Tests
 
-- [ ] Golden flow
-- [ ] Deterministic replay path
-- [ ] Export/import or persistence flow
+- [x] Golden flow
+- [x] Deterministic replay path
+- [x] Export/import or persistence flow
 
 ## Code Correctness Tests
 
-- [ ] Unit tests
-- [ ] Integration tests
-- [ ] Static checks (lint/type/schema)
+- [x] Unit tests
+- [x] Integration tests
+- [x] Static checks (lint/type/schema)
 
 ## Red-Team and Abuse Tests
 
-- [ ] Non-goal enforcement (spec section 3.2)
-- [ ] Policy bypass attempts
-- [ ] Invalid input and path abuse cases
+- [x] Non-goal enforcement (spec section 3.2)
+- [x] Policy bypass attempts
+- [x] Invalid input and path abuse cases
 
 ## Additional Tests
 
-- [ ] Performance budget checks
-- [ ] Offline behavior
-- [ ] Accessibility/usability checks
-- [ ] Reliability/recovery checks
+- [x] Performance budget checks
+- [x] Offline behavior
+- [x] Accessibility/usability checks
+- [x] Reliability/recovery checks
 
 ## Automation Hook
 
@@ -78,12 +78,12 @@ Validate the commercial air-traffic family and the separate truth-labeled flight
 
 ## Execution Summary
 
-- Last Run Date: 2026-03-10
-- Result: Queue packet defined; execution not started
-- Blocking Failures: Waits on `WP-I1-008`
-- Evidence Paths: `.gov/Spec/sub-specs/I1_commercial_air_traffic_and_flight_awareness_layers.md`; `.gov/workflow/work_packets/WP-I1-010_commercial-air-traffic-and-flight-awareness-layers.md`
-- What Became Real: The queue now has a dedicated owner for the first live mobility family
-- What Remains Simulated: Product code does not yet render commercial air traffic or military-awareness overlays
-- Next Blocking Real Seam: Implement the family dock, then land the governed air-traffic family
+- Last Run Date: 2026-03-11
+- Result: Passed
+- Blocking Failures: None
+- Evidence Paths: `.product/build_target/tool_artifacts/wp_runs/WP-I1-010/20260311_124734/summary.md`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-010/20260311_124734/result.json`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-010/20260311_124734/UI-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-010/20260311_124734/FUNC-001.log`
+- What Became Real: Commercial air traffic now renders as a governed family with a real OpenSky-backed Tauri fetch path, explicit live/delayed/cached labeling, and a separate heuristic awareness layer that persists through recorder save and bundle reopen.
+- What Remains Simulated: Browser fallback and failed-refresh paths use a packaged benchmark snapshot, and the awareness overlay remains heuristic rather than authoritative military identity.
+- Next Blocking Real Seam: `WP-I1-011` satellite orbit and coverage layers
 - Reviewer:
 - User Sign-off:

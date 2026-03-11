@@ -9,7 +9,11 @@ import type { AggregateAlert, OsintEvent } from '../../i9/osint'
 import type { GameModelSnapshot, PayoffProxy } from '../../i10/gameModeling'
 import type { LayerCatalogEntry } from '../layers'
 import { artifactTone } from '../layers'
+import type { AirTrafficSnapshot } from '../airTraffic'
+import type { MaritimeSnapshot } from '../maritime'
 import type { UiMode } from '../modes'
+import type { SatelliteSnapshot } from '../satellites'
+import { listSpecializedInfrastructureRecordsForLayers } from '../specializedInfrastructure'
 import { listStaticInstallationRecordsForLayers } from '../staticInstallations'
 
 export type RuntimeTone = 'evidence' | 'context' | 'model' | 'ai' | 'alert' | 'support'
@@ -24,6 +28,12 @@ export type RuntimeSignalCategory =
   | 'deviation'
   | 'osint'
   | 'model'
+  | 'air_traffic'
+  | 'maritime'
+  | 'maritime_awareness'
+  | 'awareness'
+  | 'satellite'
+  | 'satellite_coverage'
 
 export type Position = [number, number]
 
@@ -59,6 +69,7 @@ export interface RuntimeCorridorProperties {
   color: string
   width: number
   dashLength: number
+  altitudeMeters?: number[]
 }
 
 export interface RuntimeSignalProperties {
@@ -72,6 +83,7 @@ export interface RuntimeSignalProperties {
   haloRadius: number
   haloOpacity: number
   emphasis: number
+  altitudeMeters?: number
 }
 
 export interface RuntimeMetricCard {
@@ -125,6 +137,9 @@ export interface MapRuntimeSceneInput {
   mainCanvasCatalog: LayerCatalogEntry[]
   rightPanelCatalog: LayerCatalogEntry[]
   dashboardCatalog: LayerCatalogEntry[]
+  airTrafficSnapshot?: AirTrafficSnapshot | null
+  maritimeSnapshot?: MaritimeSnapshot | null
+  satelliteSnapshot?: SatelliteSnapshot | null
   versionedQuery: VersionedQuery
   queryRenderLayer?: QueryRenderLayer
   contextDomains: ContextDomain[]
@@ -249,7 +264,7 @@ const aoiFor = (aoiId: string): AoiDefinition =>
 
 const toneForLayer = (entry: LayerCatalogEntry): RuntimeTone => artifactTone(entry.artifactLabel)
 
-const determineFocusAoi = ({
+export const deriveRuntimeFocusAoiId = ({
   mode,
   compareFocusAoi,
   queryAoi,
@@ -283,6 +298,15 @@ const determineFocusAoi = ({
 }
 
 const buildNarrative = (input: MapRuntimeSceneInput, focus: AoiDefinition): string => {
+  if (input.visibleLayerCatalog.some((entry) => entry.familyId === 'satellite-coverage')) {
+    return `Satellite mode turns ${focus.label} into an orbital context scene with propagated pass windows, footprints, and revisit reasoning tied back to the active AOI.`
+  }
+  if (input.visibleLayerCatalog.some((entry) => entry.familyId === 'maritime-awareness')) {
+    return `Maritime mode turns ${focus.label} into a constrained shipping and port-awareness scene with truthful delayed-or-cached movement cues rather than a fake live global tracker.`
+  }
+  if (input.visibleLayerCatalog.some((entry) => entry.familyId === 'specialized-infrastructure')) {
+    return `Specialized infrastructure mode turns ${focus.label} into a resilience scene with refining, metallurgical, and water-treatment context rendered directly on the map with explicit coverage-gap language.`
+  }
   if (input.mode === 'compare') {
     return `Compare mode turns the ${focus.label} theatre into a delta surface with corridor tension, context overlays, and briefing-ready AOI framing.`
   }
@@ -324,19 +348,35 @@ const pushCorridor = (
   features: MapRuntimeScene['corridors']['features'],
   from: Position,
   to: Position,
-  properties: Omit<RuntimeCorridorProperties, 'featureId'> & { featureId?: string },
+  properties: Omit<RuntimeCorridorProperties, 'featureId'> & {
+    featureId?: string
+    coordinates?: Position[]
+  },
 ) => {
+  const { coordinates, ...runtimeProperties } = properties
   features.push({
     type: 'Feature',
     geometry: {
       type: 'LineString',
-      coordinates: [from, to],
+      coordinates: coordinates ?? [from, to],
     },
     properties: {
-      ...properties,
+      ...runtimeProperties,
       featureId: properties.featureId ?? `${properties.category}-${features.length + 1}`,
     },
   })
+}
+
+const projectHeadingPoint = (
+  center: Position,
+  headingDeg: number | undefined,
+  scale = 0.18,
+): Position => {
+  const radians = ((headingDeg ?? 0) - 90) * (Math.PI / 180)
+  return [
+    Number((center[0] + Math.cos(radians) * scale).toFixed(4)),
+    Number((center[1] + Math.sin(radians) * scale).toFixed(4)),
+  ]
 }
 
 const latestRecordByDomain = (records: ContextRecord[]): Map<string, ContextRecord> =>
@@ -355,7 +395,7 @@ const nextSupportAoi = (aoiId: string): AoiDefinition => {
 }
 
 export const buildMapRuntimeScene = (input: MapRuntimeSceneInput): MapRuntimeScene => {
-  const focusAoiId = determineFocusAoi({
+  const focusAoiId = deriveRuntimeFocusAoiId({
     mode: input.mode,
     compareFocusAoi: input.compareDashboard.focusAoiId,
     queryAoi: input.versionedQuery.aoi,
@@ -420,6 +460,15 @@ export const buildMapRuntimeScene = (input: MapRuntimeSceneInput): MapRuntimeSce
   const staticInstallationRecords = listStaticInstallationRecordsForLayers(
     staticLayerEntries.map((entry) => entry.layerId),
   )
+  const specializedLayerEntries = input.visibleLayerCatalog.filter(
+    (entry) => entry.familyId === 'specialized-infrastructure',
+  )
+  const specializedLayerEntryById = new Map(
+    specializedLayerEntries.map((entry) => [entry.layerId, entry] as const),
+  )
+  const specializedInfrastructureRecords = listSpecializedInfrastructureRecordsForLayers(
+    specializedLayerEntries.map((entry) => entry.layerId),
+  )
 
   staticInstallationRecords.forEach((record, index) => {
     const layerEntry = staticLayerEntryById.get(record.layerId)
@@ -444,6 +493,357 @@ export const buildMapRuntimeScene = (input: MapRuntimeSceneInput): MapRuntimeSce
       },
     })
   })
+
+  specializedInfrastructureRecords.forEach((record, index) => {
+    const layerEntry = specializedLayerEntryById.get(record.layerId)
+    const clusterSite = record.truthNote.toLowerCase().includes('cluster')
+    signals.features.push({
+      type: 'Feature',
+      geometry: {
+        type: 'Point',
+        coordinates: record.coordinates,
+      },
+      properties: {
+        featureId: `specialized-infrastructure-${record.siteId}`,
+        aoiId: record.aoiId,
+        category: 'context',
+        label: record.name,
+        detail: `${record.category}. ${record.detail} ${record.truthNote} Source ${layerEntry?.source ?? 'Composite curated snapshot'} | Cadence ${layerEntry?.cadence ?? 'static'}${layerEntry?.coverageText ? ` | Coverage ${layerEntry.coverageText}` : ''}`,
+        tone: 'context',
+        radius: clusterSite ? 6 : 7,
+        haloRadius: clusterSite ? 17 : 19,
+        haloOpacity: clusterSite ? 0.18 : 0.22,
+        emphasis: record.aoiId === focusAoiId ? 0.95 : 0.7 - (index % 3) * 0.04,
+      },
+    })
+  })
+
+  const commercialAirVisible = input.visibleLayerCatalog.some(
+    (entry) => entry.layerId === 'commercial-air-traffic',
+  )
+  const awarenessVisible = input.visibleLayerCatalog.some(
+    (entry) => entry.layerId === 'flight-awareness-heuristic',
+  )
+  const airTrafficSnapshot = input.airTrafficSnapshot ?? null
+  const maritimeSnapshot = input.maritimeSnapshot ?? null
+  const satellitePositionsVisible = input.visibleLayerCatalog.some(
+    (entry) => entry.layerId === 'satellite-propagated-positions',
+  )
+  const satelliteTracksVisible = input.visibleLayerCatalog.some(
+    (entry) => entry.layerId === 'satellite-ground-tracks',
+  )
+  const satelliteFootprintsVisible = input.visibleLayerCatalog.some(
+    (entry) => entry.layerId === 'satellite-coverage-footprints',
+  )
+  const satelliteSnapshot = input.satelliteSnapshot ?? null
+
+  if (airTrafficSnapshot && commercialAirVisible) {
+    const visibleFlights = airTrafficSnapshot.flights.slice(0, 10)
+
+    if (visibleFlights.length === 0) {
+      pushSignal(
+        signals.features,
+        focus.center,
+        {
+          aoiId: focusAoiId,
+          category: 'air_traffic',
+          label: 'No commercial flights in snapshot',
+          detail: `${airTrafficSnapshot.statusDetail} Refresh or change focus to fetch a different AOI snapshot.`,
+          tone: 'support',
+          radius: 6,
+          haloRadius: 16,
+          haloOpacity: 0.16,
+          emphasis: 0.7,
+        },
+        [0.28, -0.24],
+      )
+    }
+
+    visibleFlights.forEach((flight, index) => {
+      signals.features.push({
+        type: 'Feature',
+        geometry: {
+          type: 'Point',
+          coordinates: flight.coordinates,
+        },
+        properties: {
+          featureId: `commercial-air-${flight.flightId}`,
+          aoiId: airTrafficSnapshot.focusAoiId,
+          category: 'air_traffic',
+          label: flight.callsign || flight.icao24.toUpperCase(),
+          detail: `${flight.callsign || flight.icao24.toUpperCase()} from ${flight.originCountry} | ${
+            flight.velocityKts ? `${Math.round(flight.velocityKts)} kts` : 'speed unavailable'
+          } | ${
+            flight.altitudeFt ? `${Math.round(flight.altitudeFt)} ft` : 'altitude unavailable'
+          } | ${flight.truthLabel}`,
+          tone: 'evidence',
+          radius: flight.onGround ? 4 : 6.5,
+          haloRadius: flight.onGround ? 10 : 18,
+          haloOpacity: flight.sourceState === 'live' ? 0.24 : 0.16,
+          emphasis:
+            airTrafficSnapshot.focusAoiId === focusAoiId ? 0.94 : 0.72 - (index % 4) * 0.05,
+        },
+      })
+
+      if (!flight.onGround) {
+        pushCorridor(
+          corridors.features,
+          flight.coordinates,
+          projectHeadingPoint(flight.coordinates, flight.headingDeg),
+          {
+            category: 'air_traffic',
+            label: `${flight.callsign || flight.icao24.toUpperCase()} projected track`,
+            detail: `Short heading projection from the current ${airTrafficSnapshot.sourceStateLabel.toLowerCase()}.`,
+            tone: 'evidence',
+            color: TONE_COLORS.evidence,
+            width: 2.4,
+            dashLength: 0.3,
+          },
+        )
+      }
+    })
+  }
+
+  if (airTrafficSnapshot && awarenessVisible) {
+    const awarenessFlights = airTrafficSnapshot.awarenessFlights.slice(0, 6)
+
+    if (awarenessFlights.length === 0) {
+      pushSignal(
+        signals.features,
+        focus.center,
+        {
+          aoiId: focusAoiId,
+          category: 'awareness',
+          label: 'No heuristic awareness candidates',
+          detail:
+            'The curated prefix watchlist found no candidates in the current air snapshot. This is not proof that no military flights exist.',
+          tone: 'alert',
+          radius: 5.5,
+          haloRadius: 15,
+          haloOpacity: 0.12,
+          emphasis: 0.64,
+        },
+        [-0.26, -0.18],
+      )
+    }
+
+    awarenessFlights.forEach((flight, index) => {
+      signals.features.push({
+        type: 'Feature',
+        geometry: {
+          type: 'Point',
+          coordinates: flight.coordinates,
+        },
+        properties: {
+          featureId: `air-awareness-${flight.flightId}`,
+          aoiId: airTrafficSnapshot.focusAoiId,
+          category: 'awareness',
+          label: `${flight.callsign || flight.icao24.toUpperCase()} watch`,
+          detail: flight.truthLabel,
+          tone: 'alert',
+          radius: 7,
+          haloRadius: 20,
+          haloOpacity: 0.22,
+          emphasis:
+            airTrafficSnapshot.focusAoiId === focusAoiId ? 0.96 : 0.74 - (index % 3) * 0.04,
+        },
+      })
+      })
+  }
+
+  const maritimeTrafficVisible = input.visibleLayerCatalog.some(
+    (entry) => entry.layerId === 'commercial-maritime-traffic',
+  )
+  const maritimeAwarenessVisible = input.visibleLayerCatalog.some(
+    (entry) => entry.layerId === 'maritime-port-awareness',
+  )
+
+  if (maritimeSnapshot && maritimeTrafficVisible) {
+    const visibleVessels = maritimeSnapshot.vessels.slice(0, 10)
+    if (visibleVessels.length > 0) {
+      pushSignal(signals.features, focus.center, {
+        category: 'maritime',
+        aoiId: maritimeSnapshot.focusAoiId,
+        label: `${maritimeSnapshot.focusAoiLabel} shipping picture`,
+        detail: `${maritimeSnapshot.statusDetail} The current build keeps this as constrained maritime benchmark context rather than a live global feed.`,
+        tone: maritimeSnapshot.sourceState === 'cached' ? 'support' : 'evidence',
+        radius: 7,
+        haloRadius: 20,
+        haloOpacity: 0.16,
+        emphasis: 0.9,
+      })
+    }
+
+    visibleVessels.forEach((vessel, index) => {
+      pushSignal(
+        signals.features,
+        vessel.coordinates,
+        {
+          featureId: `maritime-${vessel.vesselId}`,
+          aoiId: maritimeSnapshot.focusAoiId,
+          category: 'maritime',
+          label: vessel.vesselName,
+          detail: `${vessel.vesselType} to ${vessel.destination}. ${vessel.speedKts ? `${Math.round(vessel.speedKts)} kts` : 'Speed unknown'}. ${vessel.truthLabel}`,
+          tone: maritimeSnapshot.sourceState === 'cached' ? 'support' : 'evidence',
+          radius: 6,
+          haloRadius: 18,
+          haloOpacity: maritimeSnapshot.focusAoiId === focusAoiId ? 0.22 : 0.15,
+          emphasis: maritimeSnapshot.focusAoiId === focusAoiId ? 0.94 : 0.72 - (index % 4) * 0.05,
+        },
+      )
+
+      pushCorridor(
+        corridors.features,
+        vessel.coordinates,
+        projectHeadingPoint(vessel.coordinates, vessel.headingDeg, 0.16),
+        {
+          featureId: `maritime-corridor-${vessel.vesselId}`,
+          category: 'maritime',
+          label: `${vessel.vesselName} course cue`,
+          detail: `Short projected course cue from the current ${maritimeSnapshot.sourceStateLabel.toLowerCase()} maritime benchmark.`,
+          tone: maritimeSnapshot.sourceState === 'cached' ? 'support' : 'evidence',
+          color: TONE_COLORS[maritimeSnapshot.sourceState === 'cached' ? 'support' : 'evidence'],
+          width: 2.4,
+          dashLength: 1.2,
+        },
+      )
+    })
+  }
+
+  if (maritimeSnapshot && maritimeAwarenessVisible) {
+    const awarenessSignals = maritimeSnapshot.awarenessSignals.slice(0, 6)
+    awarenessSignals.forEach((signal, index) => {
+      pushSignal(
+        signals.features,
+        signal.coordinates,
+        {
+          featureId: `maritime-awareness-${signal.vesselId}`,
+          aoiId: maritimeSnapshot.focusAoiId,
+          category: 'maritime_awareness',
+          label: `${signal.vesselName} awareness cue`,
+          detail: signal.awarenessReason ?? signal.truthLabel,
+          tone: 'context',
+          radius: 7,
+          haloRadius: 22,
+          haloOpacity: 0.22,
+          emphasis: maritimeSnapshot.focusAoiId === focusAoiId ? 0.96 : 0.74 - (index % 3) * 0.04,
+        },
+      )
+
+      pushCorridor(
+        corridors.features,
+        signal.coordinates,
+        focus.center,
+        {
+          featureId: `maritime-awareness-corridor-${signal.vesselId}`,
+          category: 'maritime_awareness',
+          label: `${signal.vesselName} port cue`,
+          detail: `Awareness cue ties the vessel benchmark back to ${maritimeSnapshot.focusAoiLabel}. ${signal.awarenessReason ?? signal.truthLabel}`,
+          tone: 'context',
+          color: TONE_COLORS.context,
+          width: 2,
+          dashLength: 1.6,
+        },
+      )
+    })
+  }
+
+  if (satelliteSnapshot && (satellitePositionsVisible || satelliteTracksVisible || satelliteFootprintsVisible)) {
+    const visibleSatellites = satelliteSnapshot.satellites.slice(0, 4)
+
+    if (visibleSatellites.length === 0) {
+      pushSignal(
+        signals.features,
+        focus.center,
+        {
+          aoiId: focusAoiId,
+          category: 'satellite',
+          label: 'No propagated pass window in snapshot',
+          detail: `${satelliteSnapshot.statusDetail} Refresh or change AOI to compute a different orbital window.`,
+          tone: 'model',
+          radius: 6,
+          haloRadius: 18,
+          haloOpacity: 0.18,
+          emphasis: 0.72,
+          altitudeMeters: 140_000,
+        },
+        [0.34, 0.24],
+      )
+    }
+
+    visibleSatellites.forEach((satellite, index) => {
+      const focusOffset = satellite.focusCovered ? 0 : index * 0.04
+      const footprintTone = satellite.focusCovered ? 'model' : 'support'
+      const footprintOpacity = satellite.focusCovered ? 0.16 : 0.08
+      if (satelliteFootprintsVisible) {
+        surfaces.features.push({
+          type: 'Feature',
+          geometry: {
+            type: 'Polygon',
+            coordinates: [satellite.footprintCoordinates],
+          },
+          properties: {
+            featureId: `satellite-footprint-${satellite.satelliteId}`,
+            aoiId: satellite.focusAoiId,
+            label: `${satellite.displayName} footprint`,
+            detail: `${satellite.categoryLabel}. ${satellite.statusLabel} Coverage radius ${Math.round(
+              satellite.coverageRadiusKm,
+            )} km. ${satellite.truthLabel}`,
+            fillColor: footprintTone === 'model' ? '#5b3e16' : '#1f3654',
+            fillOpacity: footprintOpacity,
+            lineColor: footprintTone === 'model' ? '#ffbe78' : '#b4c7ff',
+            emphasis: satellite.focusCovered ? 0.9 : 0.55,
+          },
+        })
+      }
+
+      if (satelliteTracksVisible && satellite.track.length >= 2) {
+        pushCorridor(
+          corridors.features,
+          satellite.track[0].coordinates,
+          satellite.track[satellite.track.length - 1].coordinates,
+          {
+            category: 'satellite',
+            label: `${satellite.displayName} propagated corridor`,
+            detail: `${satellite.categoryLabel}. Short propagated orbit corridor around ${satellite.focusAoiLabel}. ${satellite.truthLabel}`,
+            tone: 'model',
+            color: TONE_COLORS.model,
+            width: 2.3,
+            dashLength: 0.45,
+            coordinates: satellite.track.map((point) => point.coordinates),
+            altitudeMeters: satellite.track.map((point) =>
+              Math.max(140_000, Math.round(point.altitudeKm * 1000)),
+            ),
+          },
+        )
+      }
+
+      if (satellitePositionsVisible) {
+        signals.features.push({
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: satellite.coordinates,
+          },
+          properties: {
+            featureId: `satellite-position-${satellite.satelliteId}`,
+            aoiId: satellite.focusAoiId,
+            category: satellite.focusCovered ? 'satellite_coverage' : 'satellite',
+            label: satellite.displayName,
+            detail: `${satellite.categoryLabel}. ${satellite.statusLabel} Altitude ${Math.round(
+              satellite.altitudeKm,
+            )} km | Anchor ${satellite.analysisAnchorAt}. ${satellite.truthLabel}`,
+            tone: 'model',
+            radius: satellite.focusCovered ? 7 : 6,
+            haloRadius: satellite.focusCovered ? 22 : 18,
+            haloOpacity: satellite.focusCovered ? 0.24 : 0.18,
+            emphasis: satellite.focusCovered ? 0.98 : 0.72 - focusOffset,
+            altitudeMeters: Math.max(160_000, Math.round(satellite.altitudeKm * 1000)),
+          },
+        })
+      }
+    })
+  }
 
   pushCorridor(corridors.features, focus.center, supportAoi.center, {
     category: 'compare',

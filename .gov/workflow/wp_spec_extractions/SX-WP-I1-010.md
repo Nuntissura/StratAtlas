@@ -1,12 +1,12 @@
 # SX-WP-I1-010 - Spec Extraction Snapshot
 
-Generated On: 2026-03-10
+Generated On: 2026-03-11
 Linked Work Packet: WP-I1-010
 Linked Test Suite: .gov/workflow/wp_test_suites/TS-WP-I1-010.md
 Linked WP Check Script: .gov/workflow/wp_checks/check-WP-I1-010.ps1
 Packet Class Snapshot: IMPLEMENTATION
 Workflow Version Snapshot: 4.0
-WP Status Snapshot: SPEC-MAPPED
+WP Status Snapshot: E2E-VERIFIED
 Iteration: I1
 
 ## Scope
@@ -23,9 +23,9 @@ Concrete extraction of requirement and primitive obligations this WP must satisf
 
 ## Change Ledger Snapshot
 
-- What Became Real: The queue now has a dedicated owner for the first live mobility family rather than hiding that work inside a generic future-map note.
-- What Remains Simulated: The product does not yet render commercial flight motion or military-awareness overlays.
-- Next Blocking Real Seam: Finish `WP-I1-008`, then implement live/delayed commercial air traffic with a separate truth-labeled military-awareness path.
+- What Became Real: The map now ships a governed `Commercial Air and Flight Awareness` family with a real OpenSky-backed commercial traffic layer, projected 2D/3D movement cues, explicit `Live`/`Delayed`/`Cached` source-state labels, a separate heuristic awareness overlay, and recorder-plus-bundle restore of the current air snapshot.
+- What Remains Simulated: Browser/non-Tauri environments use a packaged benchmark snapshot, and the awareness overlay remains heuristic rather than authoritative military truth.
+- Next Blocking Real Seam: `WP-I1-011` for satellite orbit and coverage layers.
 
 ## Requirement Extraction
 

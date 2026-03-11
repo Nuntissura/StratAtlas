@@ -1,12 +1,12 @@
 # SX-WP-I1-011 - Spec Extraction Snapshot
 
-Generated On: 2026-03-10
+Generated On: 2026-03-11
 Linked Work Packet: WP-I1-011
 Linked Test Suite: .gov/workflow/wp_test_suites/TS-WP-I1-011.md
 Linked WP Check Script: .gov/workflow/wp_checks/check-WP-I1-011.ps1
 Packet Class Snapshot: IMPLEMENTATION
 Workflow Version Snapshot: 4.0
-WP Status Snapshot: SPEC-MAPPED
+WP Status Snapshot: E2E-VERIFIED
 Iteration: I1
 
 ## Scope
@@ -23,9 +23,9 @@ Concrete extraction of requirement and primitive obligations this WP must satisf
 
 ## Change Ledger Snapshot
 
-- What Became Real: The queue now has a distinct owner for orbital and satellite context rather than burying that work under a generic "other map feeds" bucket.
-- What Remains Simulated: The product does not yet render governed satellite families.
-- Next Blocking Real Seam: Complete the family dock and then add propagated satellite layers with explicit modeled-position labeling.
+- What Became Real: The map now ships a governed `Satellite Orbit and Coverage` family with propagated positions, tracks, and footprints in both 2D and 3D, explicit modeled-output labeling, Tauri-backed orbital refresh, and recorder/bundle restore proof.
+- What Remains Simulated: Browser fallback and offline operation still use a labeled packaged orbital benchmark, and the governed family is intentionally limited to a small catalog subset.
+- Next Blocking Real Seam: Resolve maritime source truth via `WP-GOV-MAPDATA-002`, then continue the queue with `WP-I1-012` and `WP-I1-013`.
 
 ## Requirement Extraction
 

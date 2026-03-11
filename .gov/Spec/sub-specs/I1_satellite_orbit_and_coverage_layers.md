@@ -1,7 +1,7 @@
 # I1 Satellite Orbit and Coverage Layers
 
-Date: 2026-03-10
-Status: DRAFT
+Date: 2026-03-11
+Status: IMPLEMENTED
 Iteration: I1
 Parent Spec: .gov/Spec/stratatlas_spec_v1_2.md
 Linked Work Packet(s): WP-I1-011
@@ -26,15 +26,15 @@ Add a governed satellite layer family that works in both 2D and 3D while truthfu
 
 ## 4) Guardrail Response
 
-Status: Pending completion before `WP-I1-011` moves beyond `SPEC-MAPPED`.
+Status: Completed for `WP-I1-011`.
 
-- Strategic question fit:
-- Map-first contribution:
-- Evidence label contract:
-- Context and causality boundary:
-- Mode integration:
-- Bundle/export/reopen contract:
-- Non-goal and anti-tracker boundary:
-- Shell fit and cognitive-load control:
-- Truthful degradation states:
-- Proof obligations:
+- Strategic question fit: The family answers orbital-context and coverage questions in the focused AOI instead of adding an isolated “space tracker” surface.
+- Map-first contribution: Propagated passes, ground tracks, and coverage footprints render directly in the governed 2D/3D runtime with inspect targets and family-dock controls.
+- Evidence label contract: Satellite overlays are labeled as propagated/modeled output rather than direct telemetry, and cached/live source-state wording remains explicit in the family summary.
+- Context and causality boundary: The family adds spatial context only and does not imply mission certainty, causal claims, or unsupported operational conclusions.
+- Mode integration: The family participates in the grouped dock, scene composition, family badges, 2D/3D roundtrip behavior, and persisted workspace state without bypassing existing shell controls.
+- Bundle/export/reopen contract: The current satellite snapshot, family visibility, family expansion, and selected member layers persist through recorder save and bundle reopen, and the runtime smoke proof copies the reopened bundle artifacts.
+- Non-goal and anti-tracker boundary: No individual targeting workflow, covert classification inference, or mission-enrichment path is added; the packet keeps a small governed subset and avoids pretending to be a real-time targeting display.
+- Shell fit and cognitive-load control: The family surfaces one summary card, three modeled member toggles, and an opt-in refresh action instead of dumping raw orbital metadata into the shell.
+- Truthful degradation states: Tauri can refresh governed orbital elements from CelesTrak, while browser/offline fallback stays usable through an explicitly labeled packaged benchmark snapshot.
+- Proof obligations: `WP-I1-011` must prove family visibility, modeled-output label contract, 2D/3D projection, and bundle restore in the governed Tauri runtime, plus lint/build/test parity.

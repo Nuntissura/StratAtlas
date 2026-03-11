@@ -1,7 +1,7 @@
 # TS-WP-I1-011 - Spec vs Code Test Suite
 
 Date Opened: 2026-03-10
-Status: SPEC-MAPPED
+Status: E2E-VERIFIED
 Linked Work Packet: WP-I1-011
 Iteration: I1
 
@@ -78,12 +78,12 @@ Validate the satellite-family packet and its modeled-position truth contract aga
 
 ## Execution Summary
 
-- Last Run Date: 2026-03-10
-- Result: Queue packet defined; execution not started
-- Blocking Failures: Waits on `WP-I1-008`
-- Evidence Paths: `.gov/Spec/sub-specs/I1_satellite_orbit_and_coverage_layers.md`; `.gov/workflow/work_packets/WP-I1-011_satellite-orbit-and-coverage-layers.md`
-- What Became Real: The queue now has a dedicated satellite-family owner with explicit modeled-position constraints
-- What Remains Simulated: Product code does not yet render governed satellite families
-- Next Blocking Real Seam: Implement the family dock, then land the satellite family with truthful modeled-position labels
+- Last Run Date: 2026-03-11
+- Result: Passed
+- Blocking Failures: None
+- Evidence Paths: `.gov/Spec/sub-specs/I1_satellite_orbit_and_coverage_layers.md`; `.gov/workflow/work_packets/WP-I1-011_satellite-orbit-and-coverage-layers.md`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-011/20260311_150847/summary.md`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-011/20260311_150847/runtime_smoke/cold/runtime_smoke_report.json`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-011/20260311_150847/runtime_smoke/warm/runtime_smoke_report.json`
+- What Became Real: Governed satellite positions, tracks, and coverage footprints now render as a toggleable family in both surfaces with explicit modeled-output labeling, Tauri refresh, and bundle restore proof.
+- What Remains Simulated: Browser fallback and offline mode still rely on a clearly labeled packaged orbital benchmark, and the family remains intentionally limited to a small governed subset.
+- Next Blocking Real Seam: `WP-GOV-MAPDATA-002` for maritime source truth, then `WP-I1-012` / `WP-I1-013`.
 - Reviewer:
 - User Sign-off:

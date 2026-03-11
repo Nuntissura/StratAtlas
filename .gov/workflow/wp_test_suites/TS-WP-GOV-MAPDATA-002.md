@@ -1,7 +1,7 @@
 # TS-WP-GOV-MAPDATA-002 - Spec vs Code Test Suite
 
 Date Opened: 2026-03-10
-Status: SPEC-MAPPED
+Status: E2E-VERIFIED
 Linked Work Packet: WP-GOV-MAPDATA-002
 Iteration: All
 
@@ -78,12 +78,12 @@ Validate the governance decision path that must unblock maritime implementation 
 
 ## Execution Summary
 
-- Last Run Date: 2026-03-10
-- Result: Queue packet defined; execution not started
-- Blocking Failures: None yet
-- Evidence Paths: `.gov/Spec/sub-specs/GOV_maritime_source_path_and_gap_resolution.md`; `.gov/workflow/work_packets/WP-GOV-MAPDATA-002_maritime-source-path-and-coverage-gap-resolution.md`
-- What Became Real: The queue now has an explicit governance blocker owner for maritime source selection
-- What Remains Simulated: No maritime movement runtime is implemented
-- Next Blocking Real Seam: Resolve the maritime source path and unblock `WP-I1-012`
+- Last Run Date: 2026-03-11
+- Result: Passed
+- Blocking Failures: None
+- Evidence Paths: `.gov/Spec/sub-specs/GOV_maritime_source_path_and_gap_resolution.md`; `.gov/workflow/work_packets/WP-GOV-MAPDATA-002_maritime-source-path-and-coverage-gap-resolution.md`; `.product/build_target/tool_artifacts/wp_runs/WP-GOV-MAPDATA-002/20260311_155444/`
+- What Became Real: Maritime source truth is now resolved into a governed decision matrix with accepted phase-1 delayed/regional/cached scope, optional backend-only user-key enhancement, and a separately governed licensed-provider path for any future default global live claim.
+- What Remains Simulated: No maritime movement runtime exists yet, and no licensed global maritime provider is wired into the repo.
+- Next Blocking Real Seam: Execute `WP-I1-012` under the constrained scope and truth-label contract recorded by this packet.
 - Reviewer:
 - User Sign-off:

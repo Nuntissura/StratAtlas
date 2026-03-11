@@ -1,7 +1,7 @@
 # WP-I1-013 - Specialized Industrial and Water Infrastructure Layers
 
 Date Opened: 2026-03-10
-Status: SPEC-MAPPED
+Status: E2E-VERIFIED
 Iteration: I1
 Workflow Version: 4.0
 Packet Class: IMPLEMENTATION
@@ -125,9 +125,9 @@ Add the specialized industrial and water-infrastructure family after source cove
 
 ## Change Ledger
 
-- What Became Real: The queue now has a dedicated owner for the messy composite-source industrial/water layer family instead of mixing it into cleaner facility packets.
-- What Remains Simulated: The product does not yet render these specialized site layers.
-- Next Blocking Real Seam: Complete the family dock, then define the composite-source QA and coverage contract strongly enough to implement the family.
+- What Became Real: The map now ships a governed `Industrial and Water Infrastructure` family with packaged refinery, ore-processing, and water-treatment benchmarks, explicit coverage-gap language, family summary help, and recorder/bundle restore proof.
+- What Remains Simulated: The family remains intentionally static and AOI-benchmark based; it does not include live operational telemetry, complete global coverage, or clean single-source facility inventories.
+- Next Blocking Real Seam: Return to `WP-GOV-SMOKE-001` for broader hands-on scenario coverage now that the full map-family queue is present, and treat any future live industrial telemetry as a separate governed expansion.
 
 ## Checkpoint Commit Plan
 
@@ -154,14 +154,16 @@ Add the specialized industrial and water-infrastructure family after source cove
 
 ## Evidence
 
-- Test Suite Execution:
-- Logs:
-- Screenshots/Exports:
-- Build Artifacts:
-- Proof Artifact: .product/build_target/tool_artifacts/wp_runs/WP-I1-013/
+- Test Suite Execution: `powershell -ExecutionPolicy Bypass -File .gov/workflow/wp_checks/check-WP-I1-013.ps1` -> passed; `pnpm exec vitest run src/features/i1/i1.test.ts src/App.test.tsx` -> passed; `pnpm lint` -> passed.
+- Logs: `.product/build_target/tool_artifacts/wp_runs/WP-I1-013/20260311_165018/summary.md`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-013/20260311_165018/UI-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-013/20260311_165018/FUNC-001.log`.
+- Screenshots/Exports: Specialized-family recorder and bundle-restore evidence is asserted in `.product/Worktrees/wt_main/src/App.test.tsx`; no separate manual screenshot bundle was required for this static curated scope.
+- Build Artifacts: `.product/build_target/tool_artifacts/wp_runs/WP-I1-013/20260311_165018/EXT-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-013/20260311_165018/EXT-002.log`.
+- Proof Artifact: .product/build_target/tool_artifacts/wp_runs/WP-I1-013/20260311_165018/
 - User Sign-off:
 
 ## Progress Log
 
 - 2026-03-10: WP scaffold created via `.gov/repo_scripts/new_work_packet.ps1`.
 - 2026-03-10: Packet rewritten as the specialized industrial/water family owner with explicit composite-source and coverage-gap constraints.
+- 2026-03-11: Product seam landed with packaged specialized-infrastructure definitions and AOI records for refineries, ore-processing clusters, and water-treatment benchmarks, plus family-dock summary help, scene projection, and recorder/bundle persistence.
+- 2026-03-11: Official packet proof passed under `.product/build_target/tool_artifacts/wp_runs/WP-I1-013/20260311_165018/`, including app and feature tests, lint, build, Rust verification, and guardrail static checks.

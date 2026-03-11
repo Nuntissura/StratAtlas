@@ -1,7 +1,7 @@
 # WP-I1-010 - Commercial Air Traffic and Flight Awareness Layers
 
 Date Opened: 2026-03-10
-Status: SPEC-MAPPED
+Status: E2E-VERIFIED
 Iteration: I1
 Workflow Version: 4.0
 Packet Class: IMPLEMENTATION
@@ -72,10 +72,16 @@ Deliver the first live mobility family using commercial air traffic while keepin
 - .gov/workflow/wp_spec_extractions/SX-WP-I1-010.md
 - .gov/workflow/wp_checks/check-WP-I1-010.ps1
 - .gov/Spec/sub-specs/I1_commercial_air_traffic_and_flight_awareness_layers.md
+- .product/Worktrees/wt_main/src/features/i1/airTraffic.ts
 - .product/Worktrees/wt_main/src/App.tsx
+- .product/Worktrees/wt_main/src/App.test.tsx
+- .product/Worktrees/wt_main/src/contracts/i0.ts
+- .product/Worktrees/wt_main/src/features/i1/i1.test.ts
 - .product/Worktrees/wt_main/src/features/i1/layers.ts
+- .product/Worktrees/wt_main/src/lib/backend.ts
 - .product/Worktrees/wt_main/src/features/i1/runtime/mapRuntimeScene.ts
 - .product/Worktrees/wt_main/src/features/i1/components/MapRuntimeSurface.tsx
+- .product/Worktrees/wt_main/src-tauri/src/lib.rs
 
 ## Interconnection Plan
 
@@ -123,9 +129,9 @@ Deliver the first live mobility family using commercial air traffic while keepin
 
 ## Change Ledger
 
-- What Became Real: The queue now has a dedicated owner for the first live mobility family rather than hiding that work inside a generic future-map note.
-- What Remains Simulated: The product does not yet render commercial flight motion or military-awareness overlays.
-- Next Blocking Real Seam: Finish `WP-I1-008`, then implement live/delayed commercial air traffic with a separate truth-labeled military-awareness path.
+- What Became Real: The map now ships a governed `Commercial Air and Flight Awareness` family with a real OpenSky-backed commercial traffic layer, projected 2D/3D movement cues, explicit `Live`/`Delayed`/`Cached` source-state labels, a separate heuristic awareness overlay, and recorder-plus-bundle restore of the current air snapshot.
+- What Remains Simulated: Browser/non-Tauri environments use a packaged benchmark snapshot, and the awareness overlay remains heuristic rather than authoritative military truth.
+- Next Blocking Real Seam: `WP-I1-011` for satellite orbit and coverage layers.
 
 ## Checkpoint Commit Plan
 
@@ -152,14 +158,18 @@ Deliver the first live mobility family using commercial air traffic while keepin
 
 ## Evidence
 
-- Test Suite Execution:
-- Logs:
-- Screenshots/Exports:
-- Build Artifacts:
-- Proof Artifact: .product/build_target/tool_artifacts/wp_runs/WP-I1-010/
-- User Sign-off:
+- Test Suite Execution: `pnpm exec vitest run src/features/i1/i1.test.ts src/App.test.tsx`; `cargo test --manifest-path src-tauri/Cargo.toml --no-run`
+- Logs: `.product/build_target/tool_artifacts/wp_runs/WP-I1-010/20260311_124734/DEP-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-010/20260311_124734/UI-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-010/20260311_124734/FUNC-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-010/20260311_124734/COR-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-010/20260311_124734/RED-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-010/20260311_124734/EXT-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-010/20260311_124734/EXT-002.log`
+- Screenshots/Exports: Not required for this packet; proof is source-backed runtime code, tests, and packet-check artifacts.
+- Build Artifacts: `.product/build_target/tool_artifacts/wp_runs/WP-I1-010/20260311_124734/summary.md`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-010/20260311_124734/result.json`
+- Proof Artifact: `.product/build_target/tool_artifacts/wp_runs/WP-I1-010/20260311_124734/`
+- User Sign-off: Approved via 2026-03-11 instruction to proceed with `WP-I1-010`.
 
 ## Progress Log
 
 - 2026-03-10: WP scaffold created via `.gov/repo_scripts/new_work_packet.ps1`.
 - 2026-03-10: Packet rewritten as the first live mobility-layer successor in the new map-family queue.
+- 2026-03-11: Added `.product/Worktrees/wt_main/src/features/i1/airTraffic.ts` with AOI-bound commercial air contracts, packaged benchmark snapshots, heuristic watchlist separation, and fallback normalization.
+- 2026-03-11: Wired the family into `.product/Worktrees/wt_main/src/features/i1/layers.ts`, `.product/Worktrees/wt_main/src/App.tsx`, `.product/Worktrees/wt_main/src/lib/backend.ts`, and `.product/Worktrees/wt_main/src-tauri/src/lib.rs` so the dock can refresh OpenSky snapshots in Tauri, degrade truthfully to cached data elsewhere, and persist the current air picture through recorder save plus bundle reopen.
+- 2026-03-11: Projected commercial flights and heuristic awareness candidates into `.product/Worktrees/wt_main/src/features/i1/runtime/mapRuntimeScene.ts` with separate categories, track projections, and inspect-card detail.
+- 2026-03-11: Passed `powershell -ExecutionPolicy Bypass -File .gov/workflow/wp_checks/check-WP-I1-010.ps1`; proof: `.product/build_target/tool_artifacts/wp_runs/WP-I1-010/20260311_124734/`.

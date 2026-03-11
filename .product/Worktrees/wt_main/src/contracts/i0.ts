@@ -1,4 +1,7 @@
 import type { UiMode } from '../features/i1/modes'
+import type { AirTrafficSnapshot } from '../features/i1/airTraffic'
+import type { MaritimeSnapshot } from '../features/i1/maritime'
+import type { SatelliteSnapshot } from '../features/i1/satellites'
 import type { CompareStateSnapshot } from '../features/i2/baselineDelta'
 import type { CollaborationStateSnapshot } from '../features/i3/collaboration'
 import type { ScenarioStateSnapshot } from '../features/i4/scenarios'
@@ -90,6 +93,9 @@ export interface WorkspaceStateSnapshot {
   activeLayers: string[]
   layerFamilyVisibility?: Record<string, boolean>
   layerFamilyExpanded?: Record<string, boolean>
+  airTraffic?: AirTrafficSnapshot
+  maritime?: MaritimeSnapshot
+  satellite?: SatelliteSnapshot
   replayCursor: number
   forcedOffline: boolean
   uiVersion: string
@@ -279,6 +285,7 @@ export interface RuntimeSmokeReport {
   mapFocusAoiId: string
   mapInspectCount: number
   mapRuntimeError?: string
+  mapSatelliteInspectVisible: boolean
   mapOsintInspectVisible: boolean
   mapModelInspectVisible: boolean
   activeContextDomainCount: number

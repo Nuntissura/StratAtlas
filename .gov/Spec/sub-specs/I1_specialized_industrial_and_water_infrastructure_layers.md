@@ -1,7 +1,7 @@
 # I1 Specialized Industrial and Water Infrastructure Layers
 
-Date: 2026-03-10
-Status: DRAFT
+Date: 2026-03-11
+Status: IMPLEMENTED
 Iteration: I1
 Parent Spec: .gov/Spec/stratatlas_spec_v1_2.md
 Linked Work Packet(s): WP-I1-013
@@ -32,15 +32,15 @@ Add specialized infrastructure layers that need composite governed sourcing rath
 
 ## 5) Guardrail Response
 
-Status: Pending completion before `WP-I1-013` moves beyond `SPEC-MAPPED`.
+Status: Completed for `WP-I1-013`.
 
-- Strategic question fit:
-- Map-first contribution:
-- Evidence label contract:
-- Context and causality boundary:
-- Mode integration:
-- Bundle/export/reopen contract:
-- Non-goal and anti-tracker boundary:
-- Shell fit and cognitive-load control:
-- Truthful degradation states:
-- Proof obligations:
+- Strategic question fit: The family answers resilience and throughput questions around refining, metallurgical processing, and water treatment instead of acting like a generic “industrial places” overlay.
+- Map-first contribution: Specialized sites render directly on the map as curated context, so compare, scenario, and briefing flows can anchor industrial/resource-processing constraints spatially rather than burying them in side notes.
+- Evidence label contract: All member layers are labeled as curated static context, with explicit coverage-gap language and no suggestion of live operational throughput, outage, inventory, or quality truth.
+- Context and causality boundary: The family adds infrastructure context only; it does not imply that any facility causes an observed disruption, and it does not convert industrial presence into unsupported intent or affiliation claims.
+- Mode integration: The family participates in the grouped dock, scene narrative, inspect cards, recorder persistence, and bundle reopen without introducing a separate workflow surface.
+- Bundle/export/reopen contract: Visibility, selected member layers, and the family’s curated context role survive recorder save and bundle reopen through the existing workspace-state contract.
+- Non-goal and anti-tracker boundary: The packet does not add live industrial telemetry, covert targeting behavior, or surveillance-style facility monitoring; it stays at benchmark static context level.
+- Shell fit and cognitive-load control: The family adds one summary card and three member toggles, keeping composite-source uncertainty visible without overwhelming the dock.
+- Truthful degradation states: The family is intentionally packaged as a partial AOI benchmark with cluster-level uncertainty notes where appropriate; incomplete regional coverage is visible in family and member metadata.
+- Proof obligations: `WP-I1-013` must prove family toggles, explicit coverage/uncertainty communication, map rendering, and recorder/bundle restore with full lint/build/test parity before promotion.

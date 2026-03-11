@@ -701,6 +701,329 @@ describe('App', () => {
     ).toBeChecked()
   })
 
+  it('renders commercial air traffic separately from heuristic awareness and restores the family from bundle state', async () => {
+    const user = userEvent.setup()
+    const firstRender = render(<App />)
+
+    await revealFullWorkbenchIfAvailable(user)
+
+    const dock = await screen.findByTestId('layer-family-dock')
+    const commercialFamilyCard = within(dock).getByTestId('layer-family-card-commercial-air')
+
+    await user.click(
+      within(commercialFamilyCard).getByRole('checkbox', {
+        name: 'Show Commercial Air and Flight Awareness',
+      }),
+    )
+    await user.click(within(commercialFamilyCard).getByRole('button', { name: 'Expand' }))
+
+    expect(
+      await within(commercialFamilyCard).findByTestId('commercial-air-runtime-summary'),
+    ).toBeInTheDocument()
+    expect(
+      within(commercialFamilyCard).getByTestId('layer-family-state-commercial-air'),
+    ).toHaveTextContent(/Cached|Delayed|Live/)
+    expect(
+      within(commercialFamilyCard).getByRole('checkbox', { name: 'Toggle Commercial Air Traffic' }),
+    ).toBeChecked()
+
+    await user.click(
+      within(commercialFamilyCard).getByRole('checkbox', {
+        name: 'Toggle Flight Awareness (Heuristic)',
+      }),
+    )
+
+    await waitFor(async () => {
+      const restored = await backend.loadRecorderState()
+      expect(restored.state?.workspace.layerFamilyVisibility?.['commercial-air']).toBe(true)
+      expect(restored.state?.workspace.activeLayers).toContain('commercial-air-traffic')
+      expect(restored.state?.workspace.activeLayers).toContain('flight-awareness-heuristic')
+      expect(restored.state?.workspace.airTraffic?.focusAoiId).toBeTruthy()
+    })
+
+    await user.click(screen.getByRole('button', { name: 'Create Bundle' }))
+    expect((await screen.findAllByText(/Bundle .* created/)).length).toBeGreaterThan(0)
+
+    await user.click(
+      within(commercialFamilyCard).getByRole('checkbox', {
+        name: 'Show Commercial Air and Flight Awareness',
+      }),
+    )
+    expect(
+      within(commercialFamilyCard).getByRole('checkbox', {
+        name: 'Show Commercial Air and Flight Awareness',
+      }),
+    ).not.toBeChecked()
+
+    await user.click(screen.getByRole('button', { name: 'Reopen Bundle' }))
+    await waitFor(() =>
+      expect(
+        within(screen.getByTestId('layer-family-card-commercial-air')).getByRole('checkbox', {
+          name: 'Show Commercial Air and Flight Awareness',
+        }),
+      ).toBeChecked(),
+    )
+    expect(
+      within(screen.getByTestId('layer-family-card-commercial-air')).getByRole('checkbox', {
+        name: 'Toggle Flight Awareness (Heuristic)',
+      }),
+    ).toBeChecked()
+
+    firstRender.unmount()
+  })
+
+  it('renders propagated satellite overlays and restores the family from bundle state', async () => {
+    const user = userEvent.setup()
+    const firstRender = render(<App />)
+
+    await revealFullWorkbenchIfAvailable(user)
+
+    const dock = await screen.findByTestId('layer-family-dock')
+    const satelliteFamilyCard = within(dock).getByTestId('layer-family-card-satellite-coverage')
+
+    await user.click(
+      within(satelliteFamilyCard).getByRole('checkbox', {
+        name: 'Show Satellite Orbit and Coverage',
+      }),
+    )
+    await user.click(within(satelliteFamilyCard).getByRole('button', { name: 'Expand' }))
+
+    const summary = await within(satelliteFamilyCard).findByTestId('satellite-runtime-summary')
+    expect(summary).toBeInTheDocument()
+    expect(within(summary).getByText(/modeled output/i)).toBeInTheDocument()
+    expect(within(summary).getByText(/not direct live telemetry/i)).toBeInTheDocument()
+    expect(
+      within(satelliteFamilyCard).getByRole('checkbox', {
+        name: 'Toggle Propagated Satellite Positions',
+      }),
+    ).toBeChecked()
+    expect(
+      within(satelliteFamilyCard).getByRole('checkbox', {
+        name: 'Toggle Coverage Footprints',
+      }),
+    ).toBeChecked()
+
+    await user.click(
+      within(satelliteFamilyCard).getByRole('checkbox', {
+        name: 'Toggle Orbit Ground Tracks',
+      }),
+    )
+
+    await waitFor(async () => {
+      const restored = await backend.loadRecorderState()
+      expect(restored.state?.workspace.layerFamilyVisibility?.['satellite-coverage']).toBe(true)
+      expect(restored.state?.workspace.activeLayers).toContain('satellite-propagated-positions')
+      expect(restored.state?.workspace.activeLayers).toContain('satellite-ground-tracks')
+      expect(restored.state?.workspace.activeLayers).toContain('satellite-coverage-footprints')
+      expect(restored.state?.workspace.satellite?.satellites.length).toBeGreaterThan(0)
+    })
+
+    await user.click(screen.getByRole('button', { name: 'Create Bundle' }))
+    expect((await screen.findAllByText(/Bundle .* created/)).length).toBeGreaterThan(0)
+
+    await user.click(
+      within(satelliteFamilyCard).getByRole('checkbox', {
+        name: 'Show Satellite Orbit and Coverage',
+      }),
+    )
+    expect(
+      within(satelliteFamilyCard).getByRole('checkbox', {
+        name: 'Show Satellite Orbit and Coverage',
+      }),
+    ).not.toBeChecked()
+
+    await user.click(screen.getByRole('button', { name: 'Reopen Bundle' }))
+    await waitFor(() =>
+      expect(
+        within(screen.getByTestId('layer-family-card-satellite-coverage')).getByRole('checkbox', {
+          name: 'Show Satellite Orbit and Coverage',
+        }),
+      ).toBeChecked(),
+    )
+    expect(
+      within(screen.getByTestId('layer-family-card-satellite-coverage')).getByRole('checkbox', {
+        name: 'Toggle Orbit Ground Tracks',
+      }),
+    ).toBeChecked()
+    expect(
+      within(screen.getByTestId('layer-family-card-satellite-coverage')).getByTestId(
+        'satellite-runtime-summary',
+      ),
+    ).toHaveTextContent(/current live orbital picture/i)
+
+    firstRender.unmount()
+  })
+
+  it('renders maritime traffic separately from port-awareness cues and restores the family from bundle state', async () => {
+    const user = userEvent.setup()
+    const firstRender = render(<App />)
+
+    await revealFullWorkbenchIfAvailable(user)
+
+    const dock = await screen.findByTestId('layer-family-dock')
+    const maritimeFamilyCard = within(dock).getByTestId('layer-family-card-maritime-awareness')
+
+    await user.click(
+      within(maritimeFamilyCard).getByRole('checkbox', {
+        name: 'Show Maritime Traffic and Port Awareness',
+      }),
+    )
+    await user.click(within(maritimeFamilyCard).getByRole('button', { name: 'Expand' }))
+
+    const summary = await within(maritimeFamilyCard).findByTestId('maritime-runtime-summary')
+    expect(summary).toBeInTheDocument()
+    expect(within(summary).getByText('Cached Benchmark')).toBeInTheDocument()
+    expect(summary).toHaveTextContent(/not a live global ship tracker|not live global shipping certainty/i)
+    expect(
+      within(maritimeFamilyCard).getByRole('checkbox', {
+        name: 'Toggle Commercial Maritime Traffic',
+      }),
+    ).toBeChecked()
+
+    await user.click(
+      within(maritimeFamilyCard).getByRole('checkbox', {
+        name: 'Toggle Maritime Port Awareness',
+      }),
+    )
+
+    await waitFor(async () => {
+      const restored = await backend.loadRecorderState()
+      expect(restored.state?.workspace.layerFamilyVisibility?.['maritime-awareness']).toBe(true)
+      expect(restored.state?.workspace.activeLayers).toContain('commercial-maritime-traffic')
+      expect(restored.state?.workspace.activeLayers).toContain('maritime-port-awareness')
+      expect(restored.state?.workspace.maritime?.focusAoiId).toBeTruthy()
+      expect(restored.state?.workspace.maritime?.vessels.length).toBeGreaterThan(0)
+    })
+
+    await user.click(screen.getByRole('button', { name: 'Create Bundle' }))
+    expect((await screen.findAllByText(/Bundle .* created/)).length).toBeGreaterThan(0)
+
+    await user.click(
+      within(maritimeFamilyCard).getByRole('checkbox', {
+        name: 'Show Maritime Traffic and Port Awareness',
+      }),
+    )
+    expect(
+      within(maritimeFamilyCard).getByRole('checkbox', {
+        name: 'Show Maritime Traffic and Port Awareness',
+      }),
+    ).not.toBeChecked()
+
+    await user.click(screen.getByRole('button', { name: 'Reopen Bundle' }))
+    await waitFor(() =>
+      expect(
+        within(screen.getByTestId('layer-family-card-maritime-awareness')).getByRole('checkbox', {
+          name: 'Show Maritime Traffic and Port Awareness',
+        }),
+      ).toBeChecked(),
+    )
+    expect(
+      within(screen.getByTestId('layer-family-card-maritime-awareness')).getByRole('checkbox', {
+        name: 'Toggle Maritime Port Awareness',
+      }),
+    ).toBeChecked()
+    expect(
+      within(screen.getByTestId('layer-family-card-maritime-awareness')).getByTestId(
+        'maritime-runtime-summary',
+      ),
+    ).toHaveTextContent(/vessel record\(s\)|awareness cue\(s\)/i)
+
+    firstRender.unmount()
+  })
+
+  it('renders specialized industrial context with explicit coverage limits and restores the family from bundle state', async () => {
+    const user = userEvent.setup()
+    const firstRender = render(<App />)
+
+    await revealFullWorkbenchIfAvailable(user)
+
+    const dock = await screen.findByTestId('layer-family-dock')
+    const specializedFamilyCard = within(dock).getByTestId(
+      'layer-family-card-specialized-infrastructure',
+    )
+
+    await user.click(
+      within(specializedFamilyCard).getByRole('checkbox', {
+        name: 'Show Industrial and Water Infrastructure',
+      }),
+    )
+    await user.click(within(specializedFamilyCard).getByRole('button', { name: 'Expand' }))
+
+    const summary = await within(specializedFamilyCard).findByTestId(
+      'specialized-infrastructure-summary',
+    )
+    expect(summary).toBeInTheDocument()
+    expect(within(summary).getByText('Composite Curated Snapshot')).toBeInTheDocument()
+    expect(summary).toHaveTextContent(/partial and AOI-focused/i)
+    expect(summary).toHaveTextContent(/not be read as live operational state/i)
+    expect(
+      within(specializedFamilyCard).getByRole('checkbox', {
+        name: 'Toggle Oil Refineries',
+      }),
+    ).toBeChecked()
+    expect(
+      within(specializedFamilyCard).getByRole('checkbox', {
+        name: 'Toggle Water Treatment and Filtration',
+      }),
+    ).toBeChecked()
+
+    await user.click(
+      within(specializedFamilyCard).getByRole('checkbox', {
+        name: 'Toggle Ore Processing and Smelting',
+      }),
+    )
+
+    await waitFor(async () => {
+      const restored = await backend.loadRecorderState()
+      expect(restored.state?.workspace.layerFamilyVisibility?.['specialized-infrastructure']).toBe(
+        true,
+      )
+      expect(restored.state?.workspace.activeLayers).toContain('specialized-oil-refineries')
+      expect(restored.state?.workspace.activeLayers).toContain('specialized-water-treatment')
+      expect(restored.state?.workspace.activeLayers).toContain('specialized-ore-processing')
+    })
+
+    await user.click(screen.getByRole('button', { name: 'Create Bundle' }))
+    expect((await screen.findAllByText(/Bundle .* created/)).length).toBeGreaterThan(0)
+
+    await user.click(
+      within(specializedFamilyCard).getByRole('checkbox', {
+        name: 'Show Industrial and Water Infrastructure',
+      }),
+    )
+    expect(
+      within(specializedFamilyCard).getByRole('checkbox', {
+        name: 'Show Industrial and Water Infrastructure',
+      }),
+    ).not.toBeChecked()
+
+    await user.click(screen.getByRole('button', { name: 'Reopen Bundle' }))
+    await waitFor(() =>
+      expect(
+        within(
+          screen.getByTestId('layer-family-card-specialized-infrastructure'),
+        ).getByRole('checkbox', {
+          name: 'Show Industrial and Water Infrastructure',
+        }),
+      ).toBeChecked(),
+    )
+    expect(
+      within(screen.getByTestId('layer-family-card-specialized-infrastructure')).getByRole(
+        'checkbox',
+        {
+          name: 'Toggle Ore Processing and Smelting',
+        },
+      ),
+    ).toBeChecked()
+    expect(
+      within(
+        screen.getByTestId('layer-family-card-specialized-infrastructure'),
+      ).getByTestId('specialized-infrastructure-summary'),
+    ).toHaveTextContent(/AOI benchmark/i)
+
+    firstRender.unmount()
+  })
+
   it('runs compare workflow and updates delta output', async () => {
     const user = userEvent.setup()
     render(<App />)

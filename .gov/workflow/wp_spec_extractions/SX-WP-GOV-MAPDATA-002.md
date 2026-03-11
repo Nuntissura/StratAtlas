@@ -1,12 +1,12 @@
 # SX-WP-GOV-MAPDATA-002 - Spec Extraction Snapshot
 
-Generated On: 2026-03-10
+Generated On: 2026-03-11
 Linked Work Packet: WP-GOV-MAPDATA-002
 Linked Test Suite: .gov/workflow/wp_test_suites/TS-WP-GOV-MAPDATA-002.md
 Linked WP Check Script: .gov/workflow/wp_checks/check-WP-GOV-MAPDATA-002.ps1
 Packet Class Snapshot: RESEARCH
 Workflow Version Snapshot: 4.0
-WP Status Snapshot: SPEC-MAPPED
+WP Status Snapshot: E2E-VERIFIED
 Iteration: All
 
 ## Scope
@@ -23,9 +23,9 @@ Concrete extraction of requirement and primitive obligations this WP must satisf
 
 ## Change Ledger Snapshot
 
-- What Became Real: The queue now has an explicit governance owner for the maritime source gap instead of pretending shipping can be implemented on the same footing as air traffic.
-- What Remains Simulated: No maritime movement layer is implemented by this packet.
-- Next Blocking Real Seam: Resolve source and coverage truth so `WP-I1-012` can move from blocked into implementation.
+- What Became Real: The repo now has a concrete maritime source decision matrix, a source-state labeling contract, and a constrained unblock path for `WP-I1-012` instead of treating shipping as source-equivalent to air traffic.
+- What Remains Simulated: No maritime movement runtime is implemented by this packet, and no licensed global low-latency maritime provider is wired into the app yet.
+- Next Blocking Real Seam: Implement `WP-I1-012` with delayed/regional/cached maritime plus optional backend-only user-key live enhancement while keeping global-live and naval claims out of scope.
 
 ## Requirement Extraction
 

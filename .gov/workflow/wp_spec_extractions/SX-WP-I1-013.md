@@ -1,12 +1,12 @@
 # SX-WP-I1-013 - Spec Extraction Snapshot
 
-Generated On: 2026-03-10
+Generated On: 2026-03-11
 Linked Work Packet: WP-I1-013
 Linked Test Suite: .gov/workflow/wp_test_suites/TS-WP-I1-013.md
 Linked WP Check Script: .gov/workflow/wp_checks/check-WP-I1-013.ps1
 Packet Class Snapshot: IMPLEMENTATION
 Workflow Version Snapshot: 4.0
-WP Status Snapshot: SPEC-MAPPED
+WP Status Snapshot: E2E-VERIFIED
 Iteration: I1
 
 ## Scope
@@ -23,9 +23,9 @@ Concrete extraction of requirement and primitive obligations this WP must satisf
 
 ## Change Ledger Snapshot
 
-- What Became Real: The queue now has a dedicated owner for the messy composite-source industrial/water layer family instead of mixing it into cleaner facility packets.
-- What Remains Simulated: The product does not yet render these specialized site layers.
-- Next Blocking Real Seam: Complete the family dock, then define the composite-source QA and coverage contract strongly enough to implement the family.
+- What Became Real: The map now ships a governed `Industrial and Water Infrastructure` family with packaged refinery, ore-processing, and water-treatment benchmarks, explicit coverage-gap language, family summary help, and recorder/bundle restore proof.
+- What Remains Simulated: The family remains intentionally static and AOI-benchmark based; it does not include live operational telemetry, complete global coverage, or clean single-source facility inventories.
+- Next Blocking Real Seam: Return to `WP-GOV-SMOKE-001` for broader hands-on scenario coverage now that the full map-family queue is present, and treat any future live industrial telemetry as a separate governed expansion.
 
 ## Requirement Extraction
 

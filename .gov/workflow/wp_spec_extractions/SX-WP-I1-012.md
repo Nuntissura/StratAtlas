@@ -1,12 +1,12 @@
 # SX-WP-I1-012 - Spec Extraction Snapshot
 
-Generated On: 2026-03-10
+Generated On: 2026-03-11
 Linked Work Packet: WP-I1-012
 Linked Test Suite: .gov/workflow/wp_test_suites/TS-WP-I1-012.md
 Linked WP Check Script: .gov/workflow/wp_checks/check-WP-I1-012.ps1
 Packet Class Snapshot: IMPLEMENTATION
 Workflow Version Snapshot: 4.0
-WP Status Snapshot: BLOCKED
+WP Status Snapshot: E2E-VERIFIED
 Iteration: I1
 
 ## Scope
@@ -15,17 +15,17 @@ Concrete extraction of requirement and primitive obligations this WP must satisf
 
 ## Reality Boundary Snapshot
 
-- Real Seam: Maritime movement renders as a governed family with truthful live/delayed/cached/licensed labels only after the source and coverage path is approved.
-- User-Visible Win: The map gains shipping awareness without misleading users about source quality or naval coverage.
-- Proof Target: Packet checks prove maritime movement toggles, source-state labels, AOI aggregation, and export/offline behavior that respects provider limits.
-- Allowed Temporary Fallbacks: Regional, delayed, or cached maritime paths are acceptable if explicitly labeled.
+- Real Seam: Maritime movement renders as a governed family with truthful live/delayed/cached/licensed labels only within the constrained source contract approved by `WP-GOV-MAPDATA-002`.
+- User-Visible Win: The map gains shipping awareness without misleading users about source quality, coverage, or naval visibility.
+- Proof Target: Packet checks prove maritime movement toggles, source-state labels, AOI aggregation, and export/offline behavior that respects the constrained first-scope source contract.
+- Allowed Temporary Fallbacks: Regional, delayed, cached, or backend-only user-key live maritime paths are acceptable if explicitly labeled.
 - Promotion Guard: RESEARCH and SCAFFOLD packets do not promote linked requirements or primitives to `E2E-VERIFIED`.
 
 ## Change Ledger Snapshot
 
-- What Became Real: The queue now makes maritime implementation explicitly blocked rather than silently "future work."
-- What Remains Simulated: No maritime movement layer is implemented.
-- Next Blocking Real Seam: Close `WP-GOV-MAPDATA-002`, then move this packet into implementation.
+- What Became Real: The map now ships a governed `Maritime Traffic and Port Awareness` family with cached benchmark vessel movement, separate port-awareness cues, truthful cached/delayed/community/licensed label taxonomy, AOI-focused scene projection, and recorder/bundle restore proof.
+- What Remains Simulated: The current build remains intentionally constrained to a packaged cached benchmark; no default global live shipping feed, no backend-only user-key live enhancement, and no licensed global live maritime provider are implemented.
+- Next Blocking Real Seam: Continue the map-family queue with `WP-I1-013`, while any broader live maritime expansion remains a separately governed successor beyond this packet.
 
 ## Requirement Extraction
 

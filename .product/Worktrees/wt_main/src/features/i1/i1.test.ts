@@ -27,6 +27,10 @@ import {
 import { detectDeviation } from '../i8/deviation'
 import { aggregateAlerts, buildOsintEvent } from '../i9/osint'
 import { buildPayoffProxy, createGameModelSnapshot } from '../i10/gameModeling'
+import { createPackagedAirTrafficSnapshot } from './airTraffic'
+import { createPackagedMaritimeSnapshot } from './maritime'
+import { createPackagedSatelliteSnapshot } from './satellites'
+import { listSpecializedInfrastructureRecordsForLayers } from './specializedInfrastructure'
 import { buildMapRuntimeScene } from './runtime/mapRuntimeScene'
 
 describe('I1 contracts', () => {
@@ -138,18 +142,37 @@ describe('I1 contracts', () => {
   })
 
   it('builds a grouped layer family registry with truthful planned states', () => {
+    const airTrafficSnapshot = createPackagedAirTrafficSnapshot('aoi-1')
+    const maritimeSnapshot = createPackagedMaritimeSnapshot('aoi-1')
+    const satelliteSnapshot = createPackagedSatelliteSnapshot('aoi-1')
     const layerCatalog = buildWorkspaceLayerCatalog({
-      activeLayerIds: ['base-map', 'context-panel', 'static-airports'],
+      activeLayerIds: [
+        'base-map',
+        'context-panel',
+        'static-airports',
+        'commercial-air-traffic',
+        'commercial-maritime-traffic',
+        'specialized-oil-refineries',
+        'satellite-propagated-positions',
+        'satellite-coverage-footprints',
+      ],
       activeDomainIds: [],
       domains: [],
       allowRestrictedExport: false,
       allowedLicenses: ['public', 'internal'],
       aiSummaryAvailable: false,
+      airTrafficSnapshot,
+      maritimeSnapshot,
+      satelliteSnapshot,
       degradeRendering: false,
       familyVisibility: {
         ...createDefaultLayerFamilyVisibility(),
         'verified-workspace': false,
         'static-installations': true,
+        'commercial-air': true,
+        'maritime-awareness': true,
+        'specialized-infrastructure': true,
+        'satellite-coverage': true,
       },
       modelUncertaintyText: 'Range +/- 15%',
     })
@@ -160,16 +183,37 @@ describe('I1 contracts', () => {
         ...createDefaultLayerFamilyVisibility(),
         'verified-workspace': false,
         'static-installations': true,
+        'commercial-air': true,
+        'maritime-awareness': true,
+        'specialized-infrastructure': true,
       },
       familyExpanded: {
         ...createDefaultLayerFamilyExpandedState(),
         'static-installations': true,
+        'maritime-awareness': true,
+        'specialized-infrastructure': true,
+        'satellite-coverage': true,
+      },
+      familyRuntimeState: {
+        'commercial-air': {
+          state: 'cached',
+          stateDetail: 'Cached OpenSky benchmark snapshot is active.',
+        },
+        'maritime-awareness': {
+          state: 'cached',
+          stateDetail: 'Cached governed maritime benchmark is active.',
+        },
       },
     })
 
     const verifiedFamily = familyCatalog.find((entry) => entry.familyId === 'verified-workspace')
     const maritimeFamily = familyCatalog.find((entry) => entry.familyId === 'maritime-awareness')
     const staticFamily = familyCatalog.find((entry) => entry.familyId === 'static-installations')
+    const commercialAirFamily = familyCatalog.find((entry) => entry.familyId === 'commercial-air')
+    const satelliteFamily = familyCatalog.find((entry) => entry.familyId === 'satellite-coverage')
+    const specializedFamily = familyCatalog.find(
+      (entry) => entry.familyId === 'specialized-infrastructure',
+    )
 
     expect(verifiedFamily?.availableInBuild).toBe(true)
     expect(verifiedFamily?.visible).toBe(false)
@@ -181,11 +225,35 @@ describe('I1 contracts', () => {
     expect(staticFamily?.toggleDisabled).toBe(false)
     expect(staticFamily?.selectedMemberCount).toBe(1)
     expect(staticFamily?.visibleMemberCount).toBe(1)
-    expect(maritimeFamily?.state).toBe('blocked')
-    expect(maritimeFamily?.toggleDisabled).toBe(true)
+    expect(commercialAirFamily?.state).toBe('cached')
+    expect(commercialAirFamily?.selectedMemberCount).toBe(1)
+    expect(commercialAirFamily?.defaultSelectedLayerIds).toContain('commercial-air-traffic')
+    expect(satelliteFamily?.availableInBuild).toBe(true)
+    expect(satelliteFamily?.expanded).toBe(true)
+    expect(satelliteFamily?.state).toBe('cached')
+    expect(satelliteFamily?.selectedMemberCount).toBe(2)
+    expect(satelliteFamily?.visibleMemberCount).toBe(2)
+    expect(satelliteFamily?.defaultSelectedLayerIds).toContain('satellite-propagated-positions')
+    expect(maritimeFamily?.availableInBuild).toBe(true)
+    expect(maritimeFamily?.expanded).toBe(true)
+    expect(maritimeFamily?.state).toBe('cached')
+    expect(maritimeFamily?.toggleDisabled).toBe(false)
+    expect(maritimeFamily?.selectedMemberCount).toBe(1)
+    expect(maritimeFamily?.visibleMemberCount).toBe(1)
+    expect(maritimeFamily?.defaultSelectedLayerIds).toContain('commercial-maritime-traffic')
+    expect(specializedFamily?.availableInBuild).toBe(true)
+    expect(specializedFamily?.expanded).toBe(true)
+    expect(specializedFamily?.state).toBe('static-only')
+    expect(specializedFamily?.toggleDisabled).toBe(false)
+    expect(specializedFamily?.selectedMemberCount).toBe(1)
+    expect(specializedFamily?.visibleMemberCount).toBe(1)
+    expect(specializedFamily?.defaultSelectedLayerIds).toContain('specialized-oil-refineries')
   })
 
   it('spatializes the cross-feature runtime state onto the governed map scene', () => {
+    const airTrafficSnapshot = createPackagedAirTrafficSnapshot('aoi-1')
+    const maritimeSnapshot = createPackagedMaritimeSnapshot('aoi-1')
+    const satelliteSnapshot = createPackagedSatelliteSnapshot('aoi-1')
     const domains: ContextDomain[] = [
       {
         domain_id: 'ctx-1',
@@ -206,16 +274,36 @@ describe('I1 contracts', () => {
       },
     ]
     const visibleLayerCatalog = buildWorkspaceLayerCatalog({
-      activeLayerIds: ['base-map', 'audit-overlay', 'static-ports'],
+      activeLayerIds: [
+        'base-map',
+        'audit-overlay',
+        'static-ports',
+        'commercial-air-traffic',
+        'flight-awareness-heuristic',
+        'commercial-maritime-traffic',
+        'maritime-port-awareness',
+        'specialized-oil-refineries',
+        'specialized-water-treatment',
+        'satellite-propagated-positions',
+        'satellite-ground-tracks',
+        'satellite-coverage-footprints',
+      ],
       activeDomainIds: ['ctx-1'],
       domains,
       allowRestrictedExport: false,
       allowedLicenses: ['public', 'internal'],
       aiSummaryAvailable: true,
+      airTrafficSnapshot,
+      maritimeSnapshot,
+      satelliteSnapshot,
       degradeRendering: false,
       familyVisibility: {
         ...createDefaultLayerFamilyVisibility(),
         'static-installations': true,
+        'commercial-air': true,
+        'maritime-awareness': true,
+        'specialized-infrastructure': true,
+        'satellite-coverage': true,
       },
       modelUncertaintyText: 'Range +/- 14%',
     }).filter((entry) => entry.visible)
@@ -341,6 +429,9 @@ describe('I1 contracts', () => {
       mainCanvasCatalog: visibleLayerCatalog.filter((entry) => entry.renderSurface === 'main_canvas'),
       rightPanelCatalog: visibleLayerCatalog.filter((entry) => entry.renderSurface === 'right_panel'),
       dashboardCatalog: visibleLayerCatalog.filter((entry) => entry.renderSurface === 'dashboard_widget'),
+      airTrafficSnapshot,
+      maritimeSnapshot,
+      satelliteSnapshot,
       versionedQuery,
       queryRenderLayer,
       contextDomains: domains,
@@ -376,6 +467,19 @@ describe('I1 contracts', () => {
     expect(scene.signals.features.some((feature) => feature.properties.category === 'scenario')).toBe(true)
     expect(scene.signals.features.some((feature) => feature.properties.category === 'ai')).toBe(true)
     expect(scene.signals.features.some((feature) => feature.properties.category === 'osint')).toBe(true)
+    expect(scene.signals.features.some((feature) => feature.properties.category === 'air_traffic')).toBe(true)
+    expect(scene.signals.features.some((feature) => feature.properties.category === 'awareness')).toBe(true)
+    expect(scene.signals.features.some((feature) => feature.properties.category === 'maritime')).toBe(true)
+    expect(
+      scene.signals.features.some((feature) => feature.properties.category === 'maritime_awareness'),
+    ).toBe(true)
+    expect(
+      scene.signals.features.some(
+        (feature) =>
+          feature.properties.category === 'satellite' ||
+          feature.properties.category === 'satellite_coverage',
+      ),
+    ).toBe(true)
     expect(
       scene.signals.features.some(
         (feature) =>
@@ -383,7 +487,26 @@ describe('I1 contracts', () => {
           feature.properties.label.includes('delta'),
       ),
     ).toBe(true)
+    expect(
+      scene.signals.features.some(
+        (feature) => feature.properties.label === 'Jurong Island Refining Cluster',
+      ),
+    ).toBe(true)
     expect(scene.corridors.features.some((feature) => feature.properties.category === 'model')).toBe(true)
+    expect(scene.corridors.features.some((feature) => feature.properties.category === 'maritime')).toBe(true)
+    expect(
+      scene.corridors.features.some(
+        (feature) => feature.properties.category === 'maritime_awareness',
+      ),
+    ).toBe(true)
+    expect(scene.corridors.features.some((feature) => feature.properties.category === 'satellite')).toBe(true)
+    expect(
+      scene.surfaces.features.some((feature) =>
+        String(feature.properties?.label ?? '').includes('footprint'),
+      ),
+    ).toBe(true)
+    expect(scene.legend.some((entry) => entry.label === 'Commercial Maritime Traffic')).toBe(true)
+    expect(listSpecializedInfrastructureRecordsForLayers(['specialized-water-treatment']).length).toBeGreaterThan(0)
     expect(scene.metrics.find((metric) => metric.label === 'Mapped Features')?.value).not.toBe('0')
   })
 })

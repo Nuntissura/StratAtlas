@@ -1,7 +1,7 @@
 # WP-I1-012 - Maritime Traffic and Port Awareness Layers
 
 Date Opened: 2026-03-10
-Status: BLOCKED
+Status: E2E-VERIFIED
 Iteration: I1
 Workflow Version: 4.0
 Packet Class: IMPLEMENTATION
@@ -36,17 +36,17 @@ Implement maritime movement and maritime-awareness layers only after the source 
 
 ## Required Pre-Work
 
-- `WP-GOV-MAPDATA-002` must be completed first.
+- `WP-GOV-MAPDATA-002` must be completed first and its constrained first-scope rules must remain in force.
 - Confirm `WP-I1-008` has established the grouped layer-family control dock.
 - Confirm task board row exists and status is current.
 - Confirm packet-specific responses to `.gov/Spec/sub-specs/GOV_map_family_intent_guardrails.md` are recorded in the linked sub-spec before status moves beyond `SPEC-MAPPED`.
 
 ## Reality Boundary
 
-- Real Seam: Maritime movement renders as a governed family with truthful live/delayed/cached/licensed labels only after the source and coverage path is approved.
-- User-Visible Win: The map gains shipping awareness without misleading users about source quality or naval coverage.
-- Proof Target: Packet checks prove maritime movement toggles, source-state labels, AOI aggregation, and export/offline behavior that respects provider limits.
-- Allowed Temporary Fallbacks: Regional, delayed, or cached maritime paths are acceptable if explicitly labeled.
+- Real Seam: Maritime movement renders as a governed family with truthful live/delayed/cached/licensed labels only within the constrained source contract approved by `WP-GOV-MAPDATA-002`.
+- User-Visible Win: The map gains shipping awareness without misleading users about source quality, coverage, or naval visibility.
+- Proof Target: Packet checks prove maritime movement toggles, source-state labels, AOI aggregation, and export/offline behavior that respects the constrained first-scope source contract.
+- Allowed Temporary Fallbacks: Regional, delayed, cached, or backend-only user-key live maritime paths are acceptable if explicitly labeled.
 - Promotion Guard: RESEARCH and SCAFFOLD packets do not promote linked requirements or primitives to `E2E-VERIFIED`.
 
 ## In Scope
@@ -116,16 +116,16 @@ Implement maritime movement and maritime-awareness layers only after the source 
 
 ## Fallback Register
 
-- Explicit simulated/mock/sample paths: None allowed for source truth; the packet stays blocked until the maritime source path is resolved.
-- Required labels in code/UI/governance: Maritime source-state labels must distinguish live, delayed, cached, static, and licensed-provider limits.
-- Successor packet or debt owner: `WP-GOV-MAPDATA-002`.
-- Exit condition to remove fallback: Maritime source and coverage truth are governed strongly enough to unblock implementation.
+- Explicit simulated/mock/sample paths: Packaged benchmark or delayed-regional datasets are allowed only when labeled as cached or delayed; no fake global live source may be implied.
+- Required labels in code/UI/governance: Maritime source-state labels must distinguish delayed/regional, cached benchmark, community-feed user-key live, curated static, and licensed global live.
+- Successor packet or debt owner: licensed-provider expansion remains a future governance owner beyond this packet's first scope.
+- Exit condition to remove fallback: A separately governed licensed-provider decision exists for any broader global default live-maritime claim.
 
 ## Change Ledger
 
-- What Became Real: The queue now makes maritime implementation explicitly blocked rather than silently "future work."
-- What Remains Simulated: No maritime movement layer is implemented.
-- Next Blocking Real Seam: Close `WP-GOV-MAPDATA-002`, then move this packet into implementation.
+- What Became Real: The map now ships a governed `Maritime Traffic and Port Awareness` family with cached benchmark vessel movement, separate port-awareness cues, truthful cached/delayed/community/licensed label taxonomy, AOI-focused scene projection, and recorder/bundle restore proof.
+- What Remains Simulated: The current build remains intentionally constrained to a packaged cached benchmark; no default global live shipping feed, no backend-only user-key live enhancement, and no licensed global live maritime provider are implemented.
+- Next Blocking Real Seam: Continue the map-family queue with `WP-I1-013`, while any broader live maritime expansion remains a separately governed successor beyond this packet.
 
 ## Checkpoint Commit Plan
 
@@ -152,14 +152,17 @@ Implement maritime movement and maritime-awareness layers only after the source 
 
 ## Evidence
 
-- Test Suite Execution:
-- Logs:
-- Screenshots/Exports:
-- Build Artifacts:
-- Proof Artifact: .product/build_target/tool_artifacts/wp_runs/WP-I1-012/
+- Test Suite Execution: `powershell -ExecutionPolicy Bypass -File .gov/workflow/wp_checks/check-WP-I1-012.ps1` -> passed; `pnpm exec vitest run src/features/i1/i1.test.ts src/App.test.tsx` -> passed; `pnpm lint` -> passed.
+- Logs: `.product/build_target/tool_artifacts/wp_runs/WP-I1-012/20260311_162912/summary.md`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-012/20260311_162912/UI-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-012/20260311_162912/FUNC-001.log`.
+- Screenshots/Exports: Maritime family recorder and bundle-restore evidence is asserted in `.product/Worktrees/wt_main/src/App.test.tsx`; no manual screenshot bundle was required for the constrained cached-benchmark scope.
+- Build Artifacts: `.product/build_target/tool_artifacts/wp_runs/WP-I1-012/20260311_162912/EXT-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-012/20260311_162912/EXT-002.log`.
+- Proof Artifact: .product/build_target/tool_artifacts/wp_runs/WP-I1-012/20260311_162912/
 - User Sign-off:
 
 ## Progress Log
 
 - 2026-03-10: WP scaffold created via `.gov/repo_scripts/new_work_packet.ps1`.
 - 2026-03-10: Packet rewritten as the explicitly blocked maritime implementation successor pending source-path governance.
+- 2026-03-11: `WP-GOV-MAPDATA-002` closed the maritime source-truth blocker and moved this packet to `SPEC-MAPPED` with constrained first-scope rules: delayed/regional/cached maritime is allowed first, backend-only user-key live enhancement is optional, and default global live or naval movement claims remain out of scope.
+- 2026-03-11: Product seam landed with the constrained maritime family: packaged benchmark vessel movement, separate port-awareness cues, grouped family-dock summary, AOI-focused map projection, and recorder/bundle restore support.
+- 2026-03-11: Official packet proof passed under `.product/build_target/tool_artifacts/wp_runs/WP-I1-012/20260311_162912/`, including app and feature tests, lint, build, Rust verification, and guardrail static checks.

@@ -13,7 +13,10 @@ import process from 'node:process'
 const scriptDir = dirname(fileURLToPath(import.meta.url))
 const productRoot = resolve(scriptDir, '..')
 const repoRoot = resolve(productRoot, '..', '..', '..')
-const baseRequiredAuditEvents = ['bundle.create', 'bundle.open', 'offline.mode_change', 'scenario.export_prepared']
+const baseRequiredAuditEventsForWp = (wpId) =>
+  wpId === 'WP-I1-011'
+    ? ['bundle.create', 'bundle.open']
+    : ['bundle.create', 'bundle.open', 'offline.mode_change', 'scenario.export_prepared']
 
 const parseArgs = (argv) => {
   const options = {}
@@ -258,7 +261,7 @@ const validatePhase = async (phase, phaseDir, logPath) => {
 
   const report = JSON.parse(await readFile(reportPath, 'utf8'))
   const auditEvents = await parseAuditEvents(auditLogPath)
-  const requiredAuditEvents = [...baseRequiredAuditEvents]
+  const requiredAuditEvents = [...baseRequiredAuditEventsForWp(wpId)]
   if (report.requireLiveAi) {
     requiredAuditEvents.push('ai.gateway.submit')
   }
@@ -444,6 +447,20 @@ const validatePhase = async (phase, phaseDir, logPath) => {
     const mapExportMetric = report.metrics.find((metric) => metric.label === '4K map export')
     if (!mapExportMetric || mapExportMetric.passed !== true) {
       throw new Error(`4K map export timing budget failed for ${phase}`)
+    }
+  }
+  if (wpId === 'WP-I1-011') {
+    const requiredI11Assertions = [
+      'satellite_family_visible',
+      'satellite_truth_label_contract',
+      'satellite_map_projection',
+      'satellite_bundle_restore',
+    ]
+    for (const assertionId of requiredI11Assertions) {
+      const assertion = report.assertions.find((entry) => entry.id === assertionId)
+      if (!assertion || !assertion.passed) {
+        throw new Error(`Missing satellite runtime evidence ${assertionId} for ${phase}`)
+      }
     }
   }
   if (report.requireLiveAi) {

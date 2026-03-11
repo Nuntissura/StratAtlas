@@ -1,7 +1,7 @@
 # TS-WP-I1-013 - Spec vs Code Test Suite
 
 Date Opened: 2026-03-10
-Status: SPEC-MAPPED
+Status: E2E-VERIFIED
 Linked Work Packet: WP-I1-013
 Iteration: I1
 
@@ -78,12 +78,12 @@ Validate specialized industrial and water-infrastructure layers with explicit co
 
 ## Execution Summary
 
-- Last Run Date: 2026-03-10
-- Result: Queue packet defined; execution not started
-- Blocking Failures: Waits on `WP-I1-008` and acceptable source QA criteria
-- Evidence Paths: `.gov/Spec/sub-specs/I1_specialized_industrial_and_water_infrastructure_layers.md`; `.gov/workflow/work_packets/WP-I1-013_specialized-industrial-and-water-infrastructure-layers.md`
-- What Became Real: The queue now has a dedicated owner for composite-source industrial/water site layers
-- What Remains Simulated: Product code does not yet render specialized industrial or water-infrastructure sites
-- Next Blocking Real Seam: Implement the family dock and finalize composite-source QA/coverage rules
+- Last Run Date: 2026-03-11
+- Result: Passed
+- Blocking Failures: None
+- Evidence Paths: `.gov/Spec/sub-specs/I1_specialized_industrial_and_water_infrastructure_layers.md`; `.gov/workflow/work_packets/WP-I1-013_specialized-industrial-and-water-infrastructure-layers.md`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-013/20260311_165018/summary.md`
+- What Became Real: A governed specialized-infrastructure family now renders refinery, ore-processing, and water-treatment benchmarks with explicit coverage-gap language, grouped-dock controls, and recorder/bundle restore.
+- What Remains Simulated: The family is still a static curated benchmark with partial AOI coverage and no live operational telemetry.
+- Next Blocking Real Seam: Resume `WP-GOV-SMOKE-001` for broader manual scenario coverage now that the map-family queue is present end to end.
 - Reviewer:
 - User Sign-off:

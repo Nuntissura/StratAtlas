@@ -1,7 +1,7 @@
 # TS-WP-I1-012 - Spec vs Code Test Suite
 
 Date Opened: 2026-03-10
-Status: BLOCKED
+Status: E2E-VERIFIED
 Linked Work Packet: WP-I1-012
 Iteration: I1
 
@@ -20,7 +20,7 @@ Validate maritime implementation once the governing source path exists and again
 - Packet Class: IMPLEMENTATION
 - Real Seam: Maritime movement is implemented only after source truth is governed.
 - Proof Target: Packet verification proves truthful live/delayed/cached/licensed labels, clean maritime map rendering, and conformance with the governed map-family intent checklist.
-- Allowed Fallbacks: None until `WP-GOV-MAPDATA-002` unblocks the packet.
+- Allowed Fallbacks: Delayed/regional/cached maritime and optional backend-only user-key live enhancement are acceptable only within the constrained source contract from `WP-GOV-MAPDATA-002`.
 - Promotion Guard: RESEARCH and SCAFFOLD packets do not promote linked requirements or primitives to E2E-VERIFIED.
 
 ## Test Case Matrix
@@ -78,12 +78,12 @@ Validate maritime implementation once the governing source path exists and again
 
 ## Execution Summary
 
-- Last Run Date: 2026-03-10
-- Result: Blocked by governance
-- Blocking Failures: `WP-GOV-MAPDATA-002` is incomplete
-- Evidence Paths: `.gov/Spec/sub-specs/I1_maritime_traffic_and_port_awareness_layers.md`; `.gov/workflow/work_packets/WP-I1-012_maritime-traffic-and-port-awareness-layers.md`
-- What Became Real: Maritime implementation is now explicitly blocked rather than ambiguously future scope
-- What Remains Simulated: No maritime movement runtime exists
-- Next Blocking Real Seam: Close `WP-GOV-MAPDATA-002`
+- Last Run Date: 2026-03-11
+- Result: Passed
+- Blocking Failures: None
+- Evidence Paths: `.gov/Spec/sub-specs/I1_maritime_traffic_and_port_awareness_layers.md`; `.gov/workflow/work_packets/WP-I1-012_maritime-traffic-and-port-awareness-layers.md`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-012/20260311_162912/summary.md`
+- What Became Real: A governed maritime family now renders cached benchmark vessel movement and separate port-awareness cues in the map runtime, keeps explicit source-truth wording, and restores family state plus maritime snapshot data through recorder save and bundle reopen.
+- What Remains Simulated: The constrained first scope still uses a labeled packaged cached benchmark; backend-only user-key live enhancement and licensed global live maritime remain future governed successors.
+- Next Blocking Real Seam: Continue the queue with `WP-I1-013`; any broader maritime live-source expansion must remain separately governed.
 - Reviewer:
 - User Sign-off:

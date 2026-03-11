@@ -34,6 +34,16 @@ export const preloadCesiumRuntime = async (): Promise<void> => {
 const degreesArray = (positions: Position[]): number[] =>
   positions.flatMap((position) => [position[0], position[1]])
 
+const degreesArrayHeights = (
+  positions: Position[],
+  heightsMeters: number[],
+): number[] =>
+  positions.flatMap((position, index) => [
+    position[0],
+    position[1],
+    heightsMeters[index] ?? heightsMeters[heightsMeters.length - 1] ?? 0,
+  ])
+
 const centerOfPositions = (positions: Position[]): Position => {
   const totals = positions.reduce(
     (accumulator, position) => [accumulator[0] + position[0], accumulator[1] + position[1]] as Position,
@@ -161,7 +171,11 @@ export const syncCesiumRuntimeScene = (
       id: `corridor:${feature.properties.featureId}`,
       name: feature.properties.label,
       polyline: {
-        positions: Cesium.Cartesian3.fromDegreesArray(degreesArray(feature.geometry.coordinates)),
+        positions: feature.properties.altitudeMeters?.length
+          ? Cesium.Cartesian3.fromDegreesArrayHeights(
+              degreesArrayHeights(feature.geometry.coordinates, feature.properties.altitudeMeters),
+            )
+          : Cesium.Cartesian3.fromDegreesArray(degreesArray(feature.geometry.coordinates)),
         width: Math.max(2, feature.properties.width),
         material: Cesium.Color.fromCssColorString(feature.properties.color).withAlpha(0.92),
       },
@@ -182,7 +196,7 @@ export const syncCesiumRuntimeScene = (
       position: Cesium.Cartesian3.fromDegrees(
         feature.geometry.coordinates[0],
         feature.geometry.coordinates[1],
-        95_000 + feature.properties.emphasis * 20_000,
+        feature.properties.altitudeMeters ?? 95_000 + feature.properties.emphasis * 20_000,
       ),
       point: {
         pixelSize: Math.max(10, feature.properties.radius * 1.8),

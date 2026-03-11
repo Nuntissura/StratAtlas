@@ -3,6 +3,19 @@ import {
   type ContextDomain,
   type PresentationType,
 } from '../i7/contextIntake'
+import {
+  AIR_TRAFFIC_LAYER_DEFINITIONS,
+  type AirTrafficSnapshot,
+} from './airTraffic'
+import {
+  MARITIME_LAYER_DEFINITIONS,
+  type MaritimeSnapshot,
+} from './maritime'
+import {
+  SATELLITE_LAYER_DEFINITIONS,
+  type SatelliteSnapshot,
+} from './satellites'
+import { SPECIALIZED_INFRASTRUCTURE_LAYER_DEFINITIONS } from './specializedInfrastructure'
 import { STATIC_INSTALLATION_LAYER_DEFINITIONS } from './staticInstallations'
 
 export type GeometryType = 'point' | 'line' | 'polygon' | 'raster'
@@ -36,6 +49,7 @@ export type LayerFamilyState =
   | 'static-only'
   | 'live'
   | 'delayed'
+  | 'cached'
   | 'heuristic'
   | 'licensed'
   | 'blocked'
@@ -82,6 +96,9 @@ export interface WorkspaceLayerCatalogOptions {
   allowedLicenses: string[]
   aiSummaryAvailable: boolean
   degradeRendering: boolean
+  airTrafficSnapshot?: AirTrafficSnapshot | null
+  maritimeSnapshot?: MaritimeSnapshot | null
+  satelliteSnapshot?: SatelliteSnapshot | null
   modelUncertaintyText: string
   familyVisibility?: Partial<LayerFamilyVisibilityState>
 }
@@ -101,6 +118,7 @@ export interface LayerFamilyCatalogEntry {
   expanded: boolean
   memberEntries: LayerCatalogEntry[]
   memberLayerIds: string[]
+  defaultSelectedLayerIds: string[]
   selectedMemberCount: number
   visibleMemberCount: number
 }
@@ -117,6 +135,12 @@ interface LayerFamilyDefinition {
   realizedStateDetail?: string
   defaultVisible: boolean
   defaultExpanded: boolean
+  defaultSelectedLayerIds?: string[]
+}
+
+export interface LayerFamilyRuntimeStateOverride {
+  state: LayerFamilyState
+  stateDetail: string
 }
 
 export const ARTIFACT_LABELS: ArtifactLabel[] = [
@@ -152,6 +176,7 @@ const LAYER_FAMILY_DEFINITIONS: LayerFamilyDefinition[] = [
     stateDetail: 'This build already ships the family and persists its visibility state.',
     defaultVisible: true,
     defaultExpanded: true,
+    defaultSelectedLayerIds: ['base-map', 'context-panel', 'audit-overlay', 'bundle-metadata'],
   },
   {
     familyId: 'static-installations',
@@ -168,6 +193,7 @@ const LAYER_FAMILY_DEFINITIONS: LayerFamilyDefinition[] = [
       'This family ships as a curated static snapshot with explicit source, cadence, and coverage limits. It does not imply live operational state.',
     defaultVisible: false,
     defaultExpanded: false,
+    defaultSelectedLayerIds: [],
   },
   {
     familyId: 'commercial-air',
@@ -181,6 +207,7 @@ const LAYER_FAMILY_DEFINITIONS: LayerFamilyDefinition[] = [
     stateDetail: 'The source contract exists, but live/delayed payload layers are not implemented in this build.',
     defaultVisible: false,
     defaultExpanded: false,
+    defaultSelectedLayerIds: ['commercial-air-traffic'],
   },
   {
     familyId: 'satellite-coverage',
@@ -192,21 +219,30 @@ const LAYER_FAMILY_DEFINITIONS: LayerFamilyDefinition[] = [
     queueOwner: 'WP-I1-011',
     state: 'unavailable',
     stateDetail: 'The family is reserved in the dock, but no orbital payload is loaded in this build.',
+    realizedState: 'cached',
+    realizedStateDetail:
+      'This family ships as propagated modeled output derived from governed orbital elements with explicit benchmark/live labeling and limited subset scope.',
     defaultVisible: false,
     defaultExpanded: false,
+    defaultSelectedLayerIds: [
+      'satellite-propagated-positions',
+      'satellite-coverage-footprints',
+    ],
   },
   {
     familyId: 'maritime-awareness',
     title: 'Maritime Traffic and Port Awareness',
     description:
-      'Commercial shipping and maritime-awareness overlays will appear here once the governed source path is resolved.',
+      'Commercial maritime movement and port-side awareness overlays appear here under the constrained governed source path.',
     strategicUse:
       'Adds route and port awareness for chokepoints, diversion analysis, and infrastructure correlation.',
     queueOwner: 'WP-I1-012',
-    state: 'blocked',
-    stateDetail: 'Blocked by WP-GOV-MAPDATA-002 until maritime source truth and licensing are governed.',
+    state: 'unavailable',
+    stateDetail:
+      'The constrained maritime source path is governed, but this build has not loaded the maritime runtime payload yet.',
     defaultVisible: false,
     defaultExpanded: false,
+    defaultSelectedLayerIds: ['commercial-maritime-traffic'],
   },
   {
     familyId: 'specialized-infrastructure',
@@ -219,8 +255,15 @@ const LAYER_FAMILY_DEFINITIONS: LayerFamilyDefinition[] = [
     state: 'unavailable',
     stateDetail:
       'Composite source coverage is planned, but specialized infrastructure payload layers are not loaded yet.',
+    realizedState: 'static-only',
+    realizedStateDetail:
+      'This family ships as a curated composite static snapshot with explicit coverage gaps, cluster-level uncertainty notes, and no live operational claims.',
     defaultVisible: false,
     defaultExpanded: false,
+    defaultSelectedLayerIds: [
+      'specialized-oil-refineries',
+      'specialized-water-treatment',
+    ],
   },
 ]
 
@@ -232,6 +275,8 @@ const stateLabel = (state: LayerFamilyState): string => {
       return 'Live'
     case 'delayed':
       return 'Delayed'
+    case 'cached':
+      return 'Cached'
     case 'heuristic':
       return 'Heuristic'
     case 'licensed':
@@ -459,6 +504,180 @@ export const buildWorkspaceLayerCatalog = (
     }
   })
 
+  const airTrafficEntries = options.airTrafficSnapshot
+    ? AIR_TRAFFIC_LAYER_DEFINITIONS.map((definition) => {
+        const declaration: LayerDeclaration = {
+          layerId: definition.layerId,
+          source:
+            definition.layerId === 'commercial-air-traffic'
+              ? options.airTrafficSnapshot?.providerLabel ?? definition.source
+              : definition.source,
+          license: definition.license,
+          cadence:
+            definition.layerId === 'commercial-air-traffic'
+              ? `${options.airTrafficSnapshot?.sourceStateLabel ?? 'Cached snapshot'}`
+              : `${options.airTrafficSnapshot?.sourceStateLabel ?? 'Cached snapshot'} heuristic`,
+          geometryType: 'point',
+          sensitivityClass: definition.sensitivityClass,
+          cachingPolicy: 'memory',
+          familyId: 'commercial-air',
+        }
+        registry.register(declaration)
+        const awarenessCount = options.airTrafficSnapshot?.awarenessFlights.length ?? 0
+        const flightCount = options.airTrafficSnapshot?.flights.length ?? 0
+        return {
+          ...declaration,
+          title: definition.title,
+          artifactLabel:
+            definition.layerId === 'commercial-air-traffic'
+              ? ('Observed Evidence' as const)
+              : ('Curated Context' as const),
+          renderSurface: 'main_canvas' as const,
+          confidenceText:
+            definition.layerId === 'commercial-air-traffic'
+              ? `${flightCount} aircraft in the current focused AOI snapshot.`
+              : `${awarenessCount} heuristic awareness candidate(s) in the current focused AOI snapshot.`,
+          uncertaintyText: `${definition.uncertaintyText} ${options.airTrafficSnapshot?.statusDetail ?? ''}`.trim(),
+          sourceUrl: definition.sourceUrl,
+          coverageText: `${definition.coverageText} Focus ${options.airTrafficSnapshot?.focusAoiLabel ?? 'AOI'}.`,
+          exportAllowed: false,
+          selected: options.activeLayerIds.includes(definition.layerId),
+          visible:
+            options.activeLayerIds.includes(definition.layerId) &&
+            familyVisibility['commercial-air'],
+          degraded:
+            options.degradeRendering ||
+            (options.airTrafficSnapshot?.sourceState ?? 'cached') !== 'live',
+        }
+      })
+    : []
+
+  const maritimeEntries = options.maritimeSnapshot
+    ? MARITIME_LAYER_DEFINITIONS.map((definition) => {
+        const declaration: LayerDeclaration = {
+          layerId: definition.layerId,
+          source: options.maritimeSnapshot?.providerLabel ?? definition.source,
+          license: definition.license,
+          cadence:
+            definition.layerId === 'commercial-maritime-traffic'
+              ? options.maritimeSnapshot?.sourceStateLabel ?? 'Cached benchmark'
+              : `${options.maritimeSnapshot?.sourceStateLabel ?? 'Cached benchmark'} heuristic`,
+          geometryType: definition.layerId === 'commercial-maritime-traffic' ? 'point' : 'line',
+          sensitivityClass: definition.sensitivityClass,
+          cachingPolicy: 'memory',
+          familyId: 'maritime-awareness',
+        }
+        registry.register(declaration)
+        const vesselCount = options.maritimeSnapshot?.vessels.length ?? 0
+        const awarenessCount = options.maritimeSnapshot?.awarenessSignals.length ?? 0
+        const trafficArtifactLabel =
+          options.maritimeSnapshot?.sourceState === 'cached'
+            ? ('Curated Context' as const)
+            : ('Observed Evidence' as const)
+        return {
+          ...declaration,
+          title: definition.title,
+          artifactLabel:
+            definition.layerId === 'commercial-maritime-traffic'
+              ? trafficArtifactLabel
+              : ('Curated Context' as const),
+          renderSurface: 'main_canvas' as const,
+          confidenceText:
+            definition.layerId === 'commercial-maritime-traffic'
+              ? `${vesselCount} governed vessel benchmark record(s) are active around ${options.maritimeSnapshot?.focusAoiLabel ?? 'the focused AOI'}.`
+              : `${awarenessCount} maritime-awareness cue(s) highlight port-side or chokepoint pressure around ${options.maritimeSnapshot?.focusAoiLabel ?? 'the focused AOI'}.`,
+          uncertaintyText: `${definition.uncertaintyText} ${options.maritimeSnapshot?.statusDetail ?? ''}`.trim(),
+          sourceUrl: definition.sourceUrl,
+          coverageText: `${definition.coverageText} Focus ${options.maritimeSnapshot?.focusAoiLabel ?? 'AOI'}.`,
+          exportAllowed: false,
+          selected: options.activeLayerIds.includes(definition.layerId),
+          visible:
+            options.activeLayerIds.includes(definition.layerId) &&
+            familyVisibility['maritime-awareness'],
+          degraded: true,
+        }
+      })
+    : []
+
+  const satelliteEntries = options.satelliteSnapshot
+    ? SATELLITE_LAYER_DEFINITIONS.map((definition) => {
+        const declaration: LayerDeclaration = {
+          layerId: definition.layerId,
+          source: options.satelliteSnapshot?.providerLabel ?? definition.source,
+          license: definition.license,
+          cadence:
+            definition.layerId === 'satellite-propagated-positions'
+              ? `${options.satelliteSnapshot?.sourceStateLabel ?? 'Cached benchmark'} modeled pass window`
+              : `${options.satelliteSnapshot?.sourceStateLabel ?? 'Cached benchmark'} modeled overlay`,
+          geometryType:
+            definition.layerId === 'satellite-coverage-footprints'
+              ? 'polygon'
+              : definition.layerId === 'satellite-ground-tracks'
+                ? 'line'
+                : 'point',
+          sensitivityClass: definition.sensitivityClass,
+          cachingPolicy: 'memory',
+          familyId: 'satellite-coverage',
+        }
+        registry.register(declaration)
+        const passCount = options.satelliteSnapshot?.satellites.length ?? 0
+        const focusCoveredCount =
+          options.satelliteSnapshot?.satellites.filter((entry) => entry.focusCovered).length ?? 0
+        return {
+          ...declaration,
+          title: definition.title,
+          artifactLabel: 'Modeled Output' as const,
+          renderSurface: 'main_canvas' as const,
+          confidenceText:
+            definition.layerId === 'satellite-propagated-positions'
+              ? `${passCount} propagated pass opportunity marker(s) are available around ${options.satelliteSnapshot?.focusAoiLabel ?? 'the active AOI'}.`
+              : definition.layerId === 'satellite-ground-tracks'
+                ? `${passCount} short modeled track corridor(s) are available around the chosen pass windows.`
+                : `${focusCoveredCount} footprint overlap candidate(s) cover the focused AOI in the current modeled window.`,
+          uncertaintyText: `${definition.uncertaintyText} ${options.satelliteSnapshot?.statusDetail ?? ''}`.trim(),
+          sourceUrl: definition.sourceUrl,
+          coverageText: `${definition.coverageText} Focus ${options.satelliteSnapshot?.focusAoiLabel ?? 'AOI'}.`,
+          exportAllowed: true,
+          selected: options.activeLayerIds.includes(definition.layerId),
+          visible:
+            options.activeLayerIds.includes(definition.layerId) &&
+            familyVisibility['satellite-coverage'],
+          degraded:
+            options.degradeRendering || (options.satelliteSnapshot?.sourceState ?? 'cached') !== 'live',
+        }
+      })
+    : []
+
+  const specializedEntries = SPECIALIZED_INFRASTRUCTURE_LAYER_DEFINITIONS.map((definition) => {
+    const declaration: LayerDeclaration = {
+      layerId: definition.layerId,
+      source: definition.source,
+      license: definition.license,
+      cadence: definition.cadence,
+      geometryType: 'point',
+      sensitivityClass: definition.sensitivityClass,
+      cachingPolicy: 'disk',
+      familyId: 'specialized-infrastructure',
+    }
+    registry.register(declaration)
+    return {
+      ...declaration,
+      title: definition.title,
+      artifactLabel: 'Curated Context' as const,
+      renderSurface: 'main_canvas' as const,
+      confidenceText: definition.confidenceText,
+      uncertaintyText: definition.uncertaintyText,
+      sourceUrl: definition.sourceUrl,
+      coverageText: definition.coverageText,
+      exportAllowed: registry.canExport(definition.layerId, exportPolicy),
+      selected: options.activeLayerIds.includes(definition.layerId),
+      visible:
+        options.activeLayerIds.includes(definition.layerId) &&
+        familyVisibility['specialized-infrastructure'],
+      degraded: options.degradeRendering,
+    }
+  })
+
   const curatedContextEntries = options.domains.map((domain) => {
     const layerId = `context-${domain.domain_id}`
     const declaration: LayerDeclaration = {
@@ -523,17 +742,28 @@ export const buildWorkspaceLayerCatalog = (
     },
   ]
 
-  return [...baseEntries, ...staticEntries, ...curatedContextEntries, ...analyticEntries]
+  return [
+    ...baseEntries,
+    ...staticEntries,
+    ...airTrafficEntries,
+    ...maritimeEntries,
+    ...satelliteEntries,
+    ...specializedEntries,
+    ...curatedContextEntries,
+    ...analyticEntries,
+  ]
 }
 
 export const buildLayerFamilyCatalog = ({
   layerCatalog,
   familyVisibility,
   familyExpanded,
+  familyRuntimeState,
 }: {
   layerCatalog: LayerCatalogEntry[]
   familyVisibility?: Partial<LayerFamilyVisibilityState>
   familyExpanded?: Partial<LayerFamilyExpandedState>
+  familyRuntimeState?: Partial<Record<LayerFamilyId, LayerFamilyRuntimeStateOverride>>
 }): LayerFamilyCatalogEntry[] => {
   const resolvedVisibility = resolveLayerFamilyVisibility(familyVisibility)
   const resolvedExpanded = resolveLayerFamilyExpanded(familyExpanded)
@@ -551,11 +781,18 @@ export const buildLayerFamilyCatalog = ({
   return LAYER_FAMILY_DEFINITIONS.map((definition) => {
     const memberEntries = entriesByFamily.get(definition.familyId) ?? []
     const availableInBuild = memberEntries.length > 0
-    const activeState = availableInBuild ? definition.realizedState ?? 'available' : definition.state
-    const activeStateDetail = availableInBuild
-      ? definition.realizedStateDetail ??
-        'This family is live in the current build and persists across recorder saves and bundle reopen.'
-      : definition.stateDetail
+    const runtimeOverride = familyRuntimeState?.[definition.familyId]
+    const activeState = runtimeOverride
+      ? runtimeOverride.state
+      : availableInBuild
+        ? definition.realizedState ?? 'available'
+        : definition.state
+    const activeStateDetail = runtimeOverride
+      ? runtimeOverride.stateDetail
+      : availableInBuild
+        ? definition.realizedStateDetail ??
+          'This family is live in the current build and persists across recorder saves and bundle reopen.'
+        : definition.stateDetail
     return {
       familyId: definition.familyId,
       title: definition.title,
@@ -571,6 +808,7 @@ export const buildLayerFamilyCatalog = ({
       expanded: resolvedExpanded[definition.familyId],
       memberEntries,
       memberLayerIds: memberEntries.map((entry) => entry.layerId),
+      defaultSelectedLayerIds: definition.defaultSelectedLayerIds ?? [],
       selectedMemberCount: memberEntries.filter((entry) => entry.selected).length,
       visibleMemberCount: memberEntries.filter((entry) => entry.visible).length,
     }

@@ -1,7 +1,7 @@
 # WP-I1-011 - Satellite Orbit and Coverage Layers
 
 Date Opened: 2026-03-10
-Status: SPEC-MAPPED
+Status: E2E-VERIFIED
 Iteration: I1
 Workflow Version: 4.0
 Packet Class: IMPLEMENTATION
@@ -123,9 +123,9 @@ Add a governed satellite family that works on the 2D map and 3D globe while trut
 
 ## Change Ledger
 
-- What Became Real: The queue now has a distinct owner for orbital and satellite context rather than burying that work under a generic "other map feeds" bucket.
-- What Remains Simulated: The product does not yet render governed satellite families.
-- Next Blocking Real Seam: Complete the family dock and then add propagated satellite layers with explicit modeled-position labeling.
+- What Became Real: The map now ships a governed `Satellite Orbit and Coverage` family with propagated positions, tracks, and footprints in both 2D and 3D, explicit modeled-output labeling, Tauri-backed orbital refresh, and recorder/bundle restore proof.
+- What Remains Simulated: Browser fallback and offline operation still use a labeled packaged orbital benchmark, and the governed family is intentionally limited to a small catalog subset.
+- Next Blocking Real Seam: Resolve maritime source truth via `WP-GOV-MAPDATA-002`, then continue the queue with `WP-I1-012` and `WP-I1-013`.
 
 ## Checkpoint Commit Plan
 
@@ -152,14 +152,16 @@ Add a governed satellite family that works on the 2D map and 3D globe while trut
 
 ## Evidence
 
-- Test Suite Execution:
-- Logs:
-- Screenshots/Exports:
-- Build Artifacts:
-- Proof Artifact: .product/build_target/tool_artifacts/wp_runs/WP-I1-011/
+- Test Suite Execution: `powershell -ExecutionPolicy Bypass -File .gov/workflow/wp_checks/check-WP-I1-011.ps1` -> passed; `pnpm exec vitest run src/features/i1/i1.test.ts src/App.test.tsx` -> passed; `pnpm lint` -> passed.
+- Logs: `.product/build_target/tool_artifacts/wp_runs/WP-I1-011/20260311_150847/summary.md`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-011/20260311_150847/UI-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-011/20260311_150847/FUNC-001.log`.
+- Screenshots/Exports: Runtime proof and copied bundle evidence under `.product/build_target/tool_artifacts/wp_runs/WP-I1-011/20260311_150847/runtime_smoke/`.
+- Build Artifacts: `.product/build_target/tool_artifacts/wp_runs/WP-I1-011/20260311_150847/EXT-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-011/20260311_150847/EXT-002.log`.
+- Proof Artifact: .product/build_target/tool_artifacts/wp_runs/WP-I1-011/20260311_150847/
 - User Sign-off:
 
 ## Progress Log
 
 - 2026-03-10: WP scaffold created via `.gov/repo_scripts/new_work_packet.ps1`.
 - 2026-03-10: Packet rewritten as the governed satellite-family successor in the map layer queue.
+- 2026-03-11: Product seam landed with governed satellite catalog propagation, grouped family dock integration, Tauri CelesTrak refresh, truthful modeled-output labeling, and 2D/3D scene composition.
+- 2026-03-11: Official packet proof passed under `.product/build_target/tool_artifacts/wp_runs/WP-I1-011/20260311_150847/`, including cold/warm Tauri runtime smoke, bundle reopen proof, lint, build, and Rust verification.

@@ -42,6 +42,16 @@ import {
   type StrategicSolverRequest,
   type StrategicSolverResult,
 } from '../features/i10/gameModeling'
+import {
+  createPackagedAirTrafficSnapshot,
+  type FetchCommercialAirTrafficRequest,
+  type FetchCommercialAirTrafficResult,
+} from '../features/i1/airTraffic'
+import {
+  createPackagedSatelliteSnapshot,
+  type FetchSatelliteElementsRequest,
+  type FetchSatelliteElementsResult,
+} from '../features/i1/satellites'
 
 const FALLBACK_BUNDLES_KEY = 'stratatlas.fallback.bundles'
 const FALLBACK_AUDIT_KEY = 'stratatlas.fallback.audit'
@@ -720,6 +730,42 @@ const fallbackWriteMapExportArtifact = async (
   }
 }
 
+const fallbackFetchCommercialAirTraffic = async (
+  request: FetchCommercialAirTrafficRequest,
+): Promise<FetchCommercialAirTrafficResult> => {
+  const snapshot = createPackagedAirTrafficSnapshot(request.focusAoiId)
+  return {
+    providerLabel: snapshot.providerLabel,
+    sourceUrl: snapshot.sourceUrl,
+    sourceLicense: snapshot.sourceLicense,
+    focusAoiId: snapshot.focusAoiId,
+    focusAoiLabel: snapshot.focusAoiLabel,
+    retrievedAt: snapshot.retrievedAt,
+    sourceState: 'delayed',
+    statusDetail:
+      'Browser/runtime fallback is using the packaged benchmark snapshot because the governed OpenSky adapter only runs in the Tauri runtime.',
+    flights: snapshot.flights,
+  }
+}
+
+const fallbackFetchSatelliteElements = async (
+  request: FetchSatelliteElementsRequest,
+): Promise<FetchSatelliteElementsResult> => {
+  const snapshot = createPackagedSatelliteSnapshot(request.focusAoiId)
+  return {
+    providerLabel: snapshot.providerLabel,
+    sourceUrl: snapshot.sourceUrl,
+    sourceLicense: snapshot.sourceLicense,
+    focusAoiId: snapshot.focusAoiId,
+    focusAoiLabel: snapshot.focusAoiLabel,
+    retrievedAt: snapshot.retrievedAt,
+    sourceState: 'cached',
+    statusDetail:
+      'Browser/runtime fallback is using the packaged orbital benchmark because the governed CelesTrak adapter only runs in the Tauri runtime.',
+    elements: [],
+  }
+}
+
 export const backend = {
   async createBundle(request: CreateBundleRequest): Promise<BundleManifest> {
     if (isTauriRuntime()) {
@@ -855,5 +901,23 @@ export const backend = {
       return invoke<RuntimeSmokeEvidenceResult>('write_runtime_smoke_evidence', { request })
     }
     throw new Error('Runtime smoke evidence requires the Tauri runtime')
+  },
+
+  async fetchCommercialAirTraffic(
+    request: FetchCommercialAirTrafficRequest,
+  ): Promise<FetchCommercialAirTrafficResult> {
+    if (isTauriRuntime()) {
+      return invoke<FetchCommercialAirTrafficResult>('fetch_commercial_air_traffic', { request })
+    }
+    return fallbackFetchCommercialAirTraffic(request)
+  },
+
+  async fetchSatelliteElements(
+    request: FetchSatelliteElementsRequest,
+  ): Promise<FetchSatelliteElementsResult> {
+    if (isTauriRuntime()) {
+      return invoke<FetchSatelliteElementsResult>('fetch_satellite_elements', { request })
+    }
+    return fallbackFetchSatelliteElements(request)
   },
 }

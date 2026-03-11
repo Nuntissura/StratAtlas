@@ -55,6 +55,7 @@ Every future family should be implemented as:
   - MarineCadastre AIS services for U.S.-oriented AIS access and historical/recent maritime coverage
   - Global Fishing Watch for global vessel activity layers, with product truthfulness about latency and vessel scope
 - Research conclusion: true live global commercial shipping likely needs a separately governed licensed AIS provider path. Military/naval shipping awareness should be modeled as a curated static/known-installation layer first, not implied as live global truth.
+- `WP-GOV-MAPDATA-002` closes the governance decision: `WP-I1-012` may proceed only with delayed/regional/cached maritime first, optional backend-only user-key live enhancement second, and a separately governed licensed-provider path for any future default global live claim.
 
 ### 3.4 Satellites
 

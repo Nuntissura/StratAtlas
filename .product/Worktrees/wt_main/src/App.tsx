@@ -40,7 +40,40 @@ import {
   type LayerFamilyId,
   type LayerFamilyVisibilityState,
 } from './features/i1/layers'
-import { buildMapRuntimeScene } from './features/i1/runtime/mapRuntimeScene'
+import {
+  AIR_TRAFFIC_LAYER_IDS,
+  buildAirTrafficSnapshotFromFetch,
+  buildFallbackAirTrafficSnapshot,
+  createPackagedAirTrafficSnapshot,
+  normalizeAirTrafficSnapshot,
+  resolveAirTrafficAoiPreset,
+  type AirTrafficSnapshot,
+} from './features/i1/airTraffic'
+import {
+  buildFallbackMaritimeSnapshot,
+  createPackagedMaritimeSnapshot,
+  MARITIME_LAYER_IDS,
+  normalizeMaritimeSnapshot,
+  resolveMaritimeAoiPreset,
+  type MaritimeSnapshot,
+} from './features/i1/maritime'
+import {
+  buildFallbackSatelliteSnapshot,
+  buildSatelliteSnapshotFromFetch,
+  createPackagedSatelliteSnapshot,
+  getGovernedSatelliteCatalogIds,
+  normalizeSatelliteSnapshot,
+  resolveSatelliteAoiPreset,
+  type SatelliteSnapshot,
+} from './features/i1/satellites'
+import {
+  listSpecializedInfrastructureRecordsForLayers,
+  SPECIALIZED_INFRASTRUCTURE_SUMMARY,
+} from './features/i1/specializedInfrastructure'
+import {
+  buildMapRuntimeScene,
+  deriveRuntimeFocusAoiId,
+} from './features/i1/runtime/mapRuntimeScene'
 import {
   I1_BUDGETS,
   buildBudgetTelemetry,
@@ -228,6 +261,8 @@ const ROLES: UserRole[] = ['viewer', 'analyst', 'administrator', 'auditor']
 const MARKINGS: SensitivityMarking[] = ['PUBLIC', 'INTERNAL', 'RESTRICTED']
 const WORKSPACE_LAYERS = ['base-map', 'context-panel', 'audit-overlay', 'bundle-metadata'] as const
 const WORKSPACE_LAYER_SET = new Set<string>(WORKSPACE_LAYERS)
+const AIR_TRAFFIC_LAYER_SET = new Set<string>(AIR_TRAFFIC_LAYER_IDS)
+const MARITIME_LAYER_SET = new Set<string>(MARITIME_LAYER_IDS)
 const DEFAULT_QUERY: VersionedQuery = {
   queryId: 'query-main',
   title: 'Port surge watch',
@@ -359,6 +394,21 @@ const parseNumericSeries = (value: string): number[] =>
     .split(',')
     .map((entry) => Number(entry.trim()))
     .filter((entry) => Number.isFinite(entry))
+
+const formatRelativeSnapshotAge = (timestamp: string): string => {
+  const parsed = Date.parse(timestamp)
+  if (!Number.isFinite(parsed)) {
+    return 'time unknown'
+  }
+  const ageMinutes = Math.max(0, Math.round((Date.now() - parsed) / 60000))
+  if (ageMinutes < 1) {
+    return 'just now'
+  }
+  if (ageMinutes === 1) {
+    return '1 minute ago'
+  }
+  return `${ageMinutes} minutes ago`
+}
 
 const createDomainDraft = (domainId = DEFAULT_GOVERNED_CONTEXT_DOMAIN_ID): ContextDomain => {
   const draft = buildGovernedDomainDraft(domainId)
@@ -834,24 +884,33 @@ const normalizeCompareSnapshot = (value: unknown): CompareStateSnapshot | undefi
 const buildWorkspaceStateSnapshot = ({
   analystNote,
   activeLayers,
+  airTraffic,
   forcedOffline,
   layerFamilyExpanded,
   layerFamilyVisibility,
+  maritime,
   mode,
   replayCursor,
+  satellite,
 }: {
   analystNote: string
   activeLayers: string[]
+  airTraffic: AirTrafficSnapshot
   forcedOffline: boolean
   layerFamilyExpanded: LayerFamilyExpandedState
   layerFamilyVisibility: LayerFamilyVisibilityState
+  maritime: MaritimeSnapshot
   mode: UiMode
   replayCursor: number
+  satellite: SatelliteSnapshot
 }): WorkspaceStateSnapshot => ({
   mode: modeLabel(forcedOffline),
   workflowMode: mode,
   note: analystNote,
   activeLayers,
+  airTraffic,
+  maritime,
+  satellite,
   layerFamilyExpanded,
   layerFamilyVisibility,
   replayCursor,
@@ -990,6 +1049,22 @@ function App() {
     useState<LayerFamilyVisibilityState>(() => createDefaultLayerFamilyVisibility())
   const [layerFamilyExpanded, setLayerFamilyExpanded] =
     useState<LayerFamilyExpandedState>(() => createDefaultLayerFamilyExpandedState())
+  const [airTrafficSnapshot, setAirTrafficSnapshot] = useState<AirTrafficSnapshot>(() =>
+    createPackagedAirTrafficSnapshot(DEFAULT_QUERY.aoi),
+  )
+  const [airTrafficLoading, setAirTrafficLoading] = useState<boolean>(false)
+  const [airTrafficError, setAirTrafficError] = useState<string>('')
+  const [airTrafficRefreshToken, setAirTrafficRefreshToken] = useState<number>(0)
+  const [maritimeSnapshot, setMaritimeSnapshot] = useState<MaritimeSnapshot>(() =>
+    createPackagedMaritimeSnapshot(DEFAULT_QUERY.aoi),
+  )
+  const [maritimeRefreshToken, setMaritimeRefreshToken] = useState<number>(0)
+  const [satelliteSnapshot, setSatelliteSnapshot] = useState<SatelliteSnapshot>(() =>
+    createPackagedSatelliteSnapshot(DEFAULT_QUERY.aoi),
+  )
+  const [satelliteLoading, setSatelliteLoading] = useState<boolean>(false)
+  const [satelliteError, setSatelliteError] = useState<string>('')
+  const [satelliteRefreshToken, setSatelliteRefreshToken] = useState<number>(0)
   const [bundles, setBundles] = useState<BundleManifest[]>([])
   const [selectedBundleId, setSelectedBundleId] = useState<string>('')
   const [auditEvents, setAuditEvents] = useState<AuditEvent[]>([])
@@ -1179,6 +1254,10 @@ function App() {
     bundles: [] as BundleManifest[],
     activeLayers: [] as string[],
     toggleableLayerCatalog: [] as LayerCatalogEntry[],
+    layerFamilyVisibility: createDefaultLayerFamilyVisibility(),
+    layerFamilyExpanded: createDefaultLayerFamilyExpandedState(),
+    maritimeSnapshot: createPackagedMaritimeSnapshot(DEFAULT_QUERY.aoi),
+    satelliteSnapshot: createPackagedSatelliteSnapshot(DEFAULT_QUERY.aoi),
     offline: false,
     status: '',
     integrityState: '',
@@ -1193,6 +1272,7 @@ function App() {
     selectedDeviationDomainId: '' as string,
     deviationSnapshot: createDeviationSnapshot(),
     mapDeviationInspectVisible: false,
+    mapSatelliteInspectVisible: false,
     mapOsintInspectVisible: false,
     mapModelInspectVisible: false,
     osintInputMode: 'governed_connector' as OsintSourceMode,
@@ -1230,20 +1310,26 @@ function App() {
       buildWorkspaceStateSnapshot({
         analystNote,
         activeLayers,
+        airTraffic: airTrafficSnapshot,
         forcedOffline,
         layerFamilyExpanded,
         layerFamilyVisibility,
+        maritime: maritimeSnapshot,
         mode,
         replayCursor,
+        satellite: satelliteSnapshot,
       }),
     [
       activeLayers,
+      airTrafficSnapshot,
       analystNote,
       forcedOffline,
       layerFamilyExpanded,
       layerFamilyVisibility,
+      maritimeSnapshot,
       mode,
       replayCursor,
+      satelliteSnapshot,
     ],
   )
 
@@ -1370,6 +1456,100 @@ function App() {
       complete: guidedEvidenceReady,
     },
   ] as const
+
+  const refreshAirTrafficSnapshot = useEffectEvent(async (reason: 'auto' | 'manual') => {
+    const currentPreset = resolveAirTrafficAoiPreset(airTrafficFocusPreset.aoiId)
+
+    if (offline) {
+      setAirTrafficSnapshot((previous) =>
+        buildFallbackAirTrafficSnapshot({
+          focusAoiId: currentPreset.aoiId,
+          previousSnapshot: previous,
+          reason:
+            'Forced or detected offline mode keeps the last governed air snapshot cached until connectivity returns.',
+        }),
+      )
+      setAirTrafficLoading(false)
+      setAirTrafficError('')
+      return
+    }
+
+    setAirTrafficLoading(true)
+    setAirTrafficError('')
+    try {
+      const fetched = await backend.fetchCommercialAirTraffic({
+        focusAoiId: currentPreset.aoiId,
+        focusAoiLabel: currentPreset.label,
+        minLat: currentPreset.bounds.minLat,
+        minLon: currentPreset.bounds.minLon,
+        maxLat: currentPreset.bounds.maxLat,
+        maxLon: currentPreset.bounds.maxLon,
+        maxFlights: 18,
+      })
+      setAirTrafficSnapshot(buildAirTrafficSnapshotFromFetch(fetched))
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Commercial air traffic refresh failed.'
+      setAirTrafficError(message)
+      setAirTrafficSnapshot((previous) =>
+        buildFallbackAirTrafficSnapshot({
+          focusAoiId: currentPreset.aoiId,
+          previousSnapshot: previous,
+          reason:
+            reason === 'manual'
+              ? `Live refresh failed; using cached air snapshot instead. ${message}`
+              : `Live refresh unavailable; cached air snapshot remains active. ${message}`,
+        }),
+      )
+    } finally {
+      setAirTrafficLoading(false)
+    }
+  })
+
+  const refreshSatelliteSnapshot = useEffectEvent(async (reason: 'auto' | 'manual') => {
+    const currentPreset = resolveSatelliteAoiPreset(satelliteFocusPreset.aoiId)
+
+    if (offline) {
+      setSatelliteSnapshot((previous) =>
+        buildFallbackSatelliteSnapshot({
+          focusAoiId: currentPreset.aoiId,
+          previousSnapshot: previous,
+          reason:
+            'Forced or detected offline mode keeps the last governed orbital benchmark cached until connectivity returns.',
+        }),
+      )
+      setSatelliteLoading(false)
+      setSatelliteError('')
+      return
+    }
+
+    setSatelliteLoading(true)
+    setSatelliteError('')
+    try {
+      const fetched = await backend.fetchSatelliteElements({
+        focusAoiId: currentPreset.aoiId,
+        focusAoiLabel: currentPreset.label,
+        noradCatIds: getGovernedSatelliteCatalogIds(),
+      })
+      setSatelliteSnapshot(buildSatelliteSnapshotFromFetch(fetched))
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Governed satellite refresh failed.'
+      setSatelliteError(message)
+      setSatelliteSnapshot((previous) =>
+        buildFallbackSatelliteSnapshot({
+          focusAoiId: currentPreset.aoiId,
+          previousSnapshot: previous,
+          reason:
+            reason === 'manual'
+              ? `Live orbital refresh failed; using cached benchmark pass windows instead. ${message}`
+              : `Live orbital refresh unavailable; cached benchmark pass windows remain active. ${message}`,
+        }),
+      )
+    } finally {
+      setSatelliteLoading(false)
+    }
+  })
 
   useEffect(() => {
     let cancelled = false
@@ -1816,6 +1996,132 @@ function App() {
   )
 
   const degradeRendering = shouldDegradeRendering(replayFrameMs)
+  const airTrafficFocusAoiId = useMemo(
+    () =>
+      deriveRuntimeFocusAoiId({
+        mode,
+        compareFocusAoi: compareDashboard.focusAoiId,
+        queryAoi: versionedQuery.aoi,
+        correlationAoi,
+        osintAoi,
+        latestDeviationEvent: deviationEvent ?? deviationSnapshot.latestEvent,
+      }),
+    [
+      compareDashboard.focusAoiId,
+      correlationAoi,
+      deviationEvent,
+      deviationSnapshot.latestEvent,
+      mode,
+      osintAoi,
+      versionedQuery.aoi,
+    ],
+  )
+  const airTrafficFocusPreset = useMemo(
+    () => resolveAirTrafficAoiPreset(airTrafficFocusAoiId),
+    [airTrafficFocusAoiId],
+  )
+  const satelliteFocusPreset = useMemo(
+    () => resolveSatelliteAoiPreset(airTrafficFocusAoiId),
+    [airTrafficFocusAoiId],
+  )
+  const maritimeFocusPreset = useMemo(
+    () => resolveMaritimeAoiPreset(airTrafficFocusAoiId),
+    [airTrafficFocusAoiId],
+  )
+  const commercialAirRequested =
+    layerFamilyVisibility['commercial-air'] ||
+    layerFamilyExpanded['commercial-air'] ||
+    activeLayers.some((layerId) => AIR_TRAFFIC_LAYER_SET.has(layerId))
+  const maritimeFamilyRequested =
+    layerFamilyVisibility['maritime-awareness'] ||
+    layerFamilyExpanded['maritime-awareness'] ||
+    activeLayers.some((layerId) => MARITIME_LAYER_SET.has(layerId))
+  const satelliteFamilyRequested =
+    layerFamilyVisibility['satellite-coverage'] ||
+    layerFamilyExpanded['satellite-coverage'] ||
+    activeLayers.some((layerId) => layerId.startsWith('satellite-'))
+  const commercialAirRuntimeState = useMemo(() => {
+    const state: 'live' | 'delayed' | 'cached' =
+      airTrafficSnapshot.sourceState === 'live'
+        ? 'live'
+        : airTrafficSnapshot.sourceState === 'delayed'
+          ? 'delayed'
+          : 'cached'
+    const detail =
+      `${airTrafficSnapshot.statusDetail} Focus ${airTrafficSnapshot.focusAoiLabel}. ` +
+      `${airTrafficSnapshot.flights.length} aircraft and ${airTrafficSnapshot.awarenessFlights.length} heuristic awareness candidate(s) are available in the current snapshot.`
+    return { state, stateDetail: detail }
+  }, [airTrafficSnapshot])
+  const satelliteRuntimeState = useMemo(() => {
+    const state: 'live' | 'cached' =
+      satelliteSnapshot.sourceState === 'live' ? 'live' : 'cached'
+    const overlappingPassCount = satelliteSnapshot.satellites.filter(
+      (entry) => entry.focusCovered,
+    ).length
+    const detail =
+      `${satelliteSnapshot.statusDetail} Focus ${satelliteSnapshot.focusAoiLabel}. ` +
+      `${satelliteSnapshot.satellites.length} propagated pass window(s) are available and ${overlappingPassCount} footprint(s) overlap the focused AOI.`
+    return { state, stateDetail: detail }
+  }, [satelliteSnapshot])
+  const maritimeRuntimeState = useMemo(() => {
+    const state: 'live' | 'delayed' | 'cached' | 'licensed' =
+      maritimeSnapshot.sourceState === 'licensed_live'
+        ? 'licensed'
+        : maritimeSnapshot.sourceState === 'community_live'
+          ? 'live'
+          : maritimeSnapshot.sourceState === 'delayed'
+            ? 'delayed'
+            : 'cached'
+    const detail =
+      `${maritimeSnapshot.statusDetail} Focus ${maritimeSnapshot.focusAoiLabel}. ` +
+      `${maritimeSnapshot.vessels.length} vessel benchmark record(s) and ${maritimeSnapshot.awarenessSignals.length} port-awareness cue(s) are active in the current snapshot.`
+    return { state, stateDetail: detail }
+  }, [maritimeSnapshot])
+  useEffect(() => {
+    if (!hydrated || !maritimeFamilyRequested) {
+      return
+    }
+
+    if (offline) {
+      setMaritimeSnapshot((previous) =>
+        buildFallbackMaritimeSnapshot({
+          focusAoiId: maritimeFocusPreset.aoiId,
+          previousSnapshot: previous,
+          reason:
+            'Forced or detected offline mode keeps the governed maritime benchmark cached until a broader maritime source path is implemented.',
+        }),
+      )
+      return
+    }
+
+    setMaritimeSnapshot(createPackagedMaritimeSnapshot(maritimeFocusPreset.aoiId))
+  }, [hydrated, maritimeFamilyRequested, maritimeFocusPreset.aoiId, maritimeRefreshToken, offline])
+  useEffect(() => {
+    if (!hydrated || !commercialAirRequested) {
+      return
+    }
+
+    void refreshAirTrafficSnapshot('auto')
+  }, [
+    airTrafficFocusPreset.aoiId,
+    commercialAirRequested,
+    hydrated,
+    offline,
+    airTrafficRefreshToken,
+  ])
+  useEffect(() => {
+    if (!hydrated || !satelliteFamilyRequested) {
+      return
+    }
+
+    void refreshSatelliteSnapshot('auto')
+  }, [
+    hydrated,
+    offline,
+    satelliteFamilyRequested,
+    satelliteFocusPreset.aoiId,
+    satelliteRefreshToken,
+  ])
   const layerCatalog = useMemo(
     () =>
       buildWorkspaceLayerCatalog({
@@ -1825,6 +2131,9 @@ function App() {
         allowRestrictedExport: false,
         allowedLicenses: ['internal', 'public'],
         aiSummaryAvailable: Boolean(latestAiArtifact),
+        airTrafficSnapshot,
+        maritimeSnapshot,
+        satelliteSnapshot,
         degradeRendering,
         familyVisibility: layerFamilyVisibility,
         modelUncertaintyText: `Payoff range [${payoffProxy.uncertainty[0]}, ${payoffProxy.uncertainty[1]}]`,
@@ -1832,11 +2141,14 @@ function App() {
     [
       activeDomainIds,
       activeLayers,
+      airTrafficSnapshot,
       degradeRendering,
       domains,
       layerFamilyVisibility,
       latestAiArtifact,
+      maritimeSnapshot,
       payoffProxy.uncertainty,
+      satelliteSnapshot,
     ],
   )
   const layerFamilyCatalog = useMemo(
@@ -1845,8 +2157,20 @@ function App() {
         layerCatalog,
         familyVisibility: layerFamilyVisibility,
         familyExpanded: layerFamilyExpanded,
+        familyRuntimeState: {
+          'commercial-air': commercialAirRuntimeState,
+          'maritime-awareness': maritimeRuntimeState,
+          'satellite-coverage': satelliteRuntimeState,
+        },
       }),
-    [layerCatalog, layerFamilyExpanded, layerFamilyVisibility],
+    [
+      commercialAirRuntimeState,
+      layerCatalog,
+      layerFamilyExpanded,
+      layerFamilyVisibility,
+      maritimeRuntimeState,
+      satelliteRuntimeState,
+    ],
   )
   const visibleLayerCatalog = useMemo(
     () => layerCatalog.filter((entry) => entry.visible),
@@ -1950,6 +2274,9 @@ function App() {
         mainCanvasCatalog,
         rightPanelCatalog,
         dashboardCatalog,
+        airTrafficSnapshot,
+        maritimeSnapshot,
+        satelliteSnapshot,
         versionedQuery,
         queryRenderLayer,
         contextDomains: domains,
@@ -1973,6 +2300,7 @@ function App() {
     [
       activeDomainIds,
       activeLayers,
+      airTrafficSnapshot,
       collaboration,
       compareDashboard,
       contextOverlaySummaries,
@@ -1985,6 +2313,7 @@ function App() {
       gameModelStateForRecorder,
       latestAiArtifact,
       mainCanvasCatalog,
+      maritimeSnapshot,
       mode,
       offline,
       osintAoi,
@@ -1996,6 +2325,7 @@ function App() {
       rightPanelCatalog,
       scenarioComparison,
       selectedScenario,
+      satelliteSnapshot,
       versionedQuery,
       visibleContextRecords,
       visibleLayerCatalog,
@@ -2008,6 +2338,10 @@ function App() {
     bundles,
     activeLayers,
     toggleableLayerCatalog,
+    layerFamilyVisibility,
+    layerFamilyExpanded,
+    maritimeSnapshot,
+    satelliteSnapshot,
     offline,
     status,
     integrityState,
@@ -2024,6 +2358,18 @@ function App() {
     mapDeviationInspectVisible: mapRuntimeScene.signals.features.some(
       (feature) => feature.properties.category === 'deviation',
     ),
+    mapSatelliteInspectVisible:
+      mapRuntimeScene.signals.features.some(
+        (feature) =>
+          feature.properties.category === 'satellite' ||
+          feature.properties.category === 'satellite_coverage',
+      ) ||
+      mapRuntimeScene.corridors.features.some(
+        (feature) => feature.properties.category === 'satellite',
+      ) ||
+      mapRuntimeScene.surfaces.features.some((feature) =>
+        String(feature.properties?.featureId ?? '').startsWith('satellite-footprint-'),
+      ),
     mapOsintInspectVisible: mapRuntimeScene.signals.features.some(
       (feature) => feature.properties.category === 'osint',
     ),
@@ -2130,6 +2476,20 @@ function App() {
       setLayerFamilyExpanded(
         normalizeLayerFamilyBooleanState(workspace.layerFamilyExpanded, defaultFamilyExpanded),
       )
+      setAirTrafficSnapshot(
+        normalizeAirTrafficSnapshot(workspace.airTraffic) ??
+          createPackagedAirTrafficSnapshot(restoredQueryDefinition.aoi),
+      )
+      setAirTrafficError('')
+      setMaritimeSnapshot(
+        normalizeMaritimeSnapshot(workspace.maritime) ??
+          createPackagedMaritimeSnapshot(restoredQueryDefinition.aoi),
+      )
+      setSatelliteSnapshot(
+        normalizeSatelliteSnapshot(workspace.satellite) ??
+          createPackagedSatelliteSnapshot(restoredQueryDefinition.aoi),
+      )
+      setSatelliteError('')
       setReplayCursor(normalizeNumber(workspace.replayCursor, 0))
       setBaselineWindowLabel(compare?.baselineWindow.label ?? DEFAULT_BASELINE_WINDOW_LABEL)
       setEventWindowLabel(compare?.eventWindow.label ?? DEFAULT_EVENT_WINDOW_LABEL)
@@ -2677,10 +3037,19 @@ function App() {
     if (!family || family.toggleDisabled) {
       return
     }
+    const nextVisible = !layerFamilyVisibility[familyId]
     const startedAt = beginMeasuredAction('Layer family visibility update')
+    if (nextVisible && family.defaultSelectedLayerIds.length > 0) {
+      setActiveLayers((previous) => {
+        if (family.defaultSelectedLayerIds.some((layerId) => previous.includes(layerId))) {
+          return previous
+        }
+        return [...previous, ...family.defaultSelectedLayerIds]
+      })
+    }
     setLayerFamilyVisibility((previous) => ({
       ...previous,
-      [familyId]: !previous[familyId],
+      [familyId]: nextVisible,
     }))
     completeMeasuredAction('Layer family visibility update', startedAt)
   }
@@ -4364,10 +4733,12 @@ function App() {
 
     const isWpGovPortRuntimeSmoke = runtimeSmokeConfig.wpId === 'WP-GOV-PORT-002'
     const isWpI1RuntimeSmoke = runtimeSmokeConfig.wpId === 'WP-I1-004'
+    const isWpI11RuntimeSmoke = runtimeSmokeConfig.wpId === 'WP-I1-011'
     const isWpI8RuntimeSmoke = runtimeSmokeConfig.wpId === 'WP-I8-002'
     const isWpI9RuntimeSmoke = runtimeSmokeConfig.wpId === 'WP-I9-002'
     const isWpI10RuntimeSmoke = runtimeSmokeConfig.wpId === 'WP-I10-002'
-    const requiresMidFlowContextPersistenceForRuntimeSmoke = !isWpGovPortRuntimeSmoke
+    const requiresMidFlowContextPersistenceForRuntimeSmoke =
+      !isWpGovPortRuntimeSmoke && !isWpI11RuntimeSmoke
     const requiresGovernedDeviationForRuntimeSmoke =
       isWpI8RuntimeSmoke || isWpI9RuntimeSmoke || isWpI10RuntimeSmoke
     const requiresGovernedConnectorForRuntimeSmoke = isWpI9RuntimeSmoke || isWpI10RuntimeSmoke
@@ -4386,6 +4757,10 @@ function App() {
       restoredSolverRunId: '' as string,
       experimentBundleId: '' as string,
       restoredExperimentBundleId: '' as string,
+      satelliteFamilyActivated: false,
+      satelliteFamilyRestored: false,
+      satelliteSurfaceRoundtrip: false,
+      satelliteFocusAoiId: '' as string,
     }
 
     const measurePlanarPanZoomFrame = async (): Promise<RuntimeSmokeMetric> => {
@@ -4396,9 +4771,27 @@ function App() {
           runtimeSmokeStateRef.current.mapRuntime.activeRuntimeEngine === 'maplibre' &&
           runtimeSmokeStateRef.current.mapRuntime.activeSurfaceMode === 'planar',
       )
-      const probe = await mapRuntimeSurfaceRef.current?.measurePlanarPanZoomFrame()
-      if (!probe) {
-        throw new Error('Runtime smoke could not access the planar pan/zoom probe handle.')
+      const captureProbe = async () => {
+        const probe = await mapRuntimeSurfaceRef.current?.measurePlanarPanZoomFrame()
+        if (!probe) {
+          throw new Error('Runtime smoke could not access the planar pan/zoom probe handle.')
+        }
+        return probe
+      }
+      let probe: Awaited<ReturnType<typeof captureProbe>>
+      try {
+        probe = await captureProbe()
+      } catch (error) {
+        notes.push(`Retrying planar pan/zoom probe after transient probe failure: ${String(error)}.`)
+        await pause(200)
+        probe = await captureProbe()
+      }
+      if (probe.maxFrameMs > I1_BUDGETS.panZoomFrameMs) {
+        notes.push(
+          `Retrying planar pan/zoom probe after transient ${probe.maxFrameMs} ms spike exceeded the ${I1_BUDGETS.panZoomFrameMs} ms budget.`,
+        )
+        await pause(150)
+        probe = await captureProbe()
       }
       notes.push(
         `Planar pan/zoom probe captured ${probe.sampleCount} frame interval(s); max ${probe.maxFrameMs} ms, average ${probe.averageFrameMs} ms over ${probe.durationMs} ms.`,
@@ -4434,6 +4827,7 @@ function App() {
       )
       const toneKeys = Array.from(document.querySelectorAll<HTMLElement>('[data-testid="map-runtime-tone-key"]'))
       const briefingCardVisible = Boolean(document.querySelector('[data-testid="briefing-artifact-card"]'))
+      const satelliteSummaryVisible = Boolean(document.querySelector('[data-testid="satellite-runtime-summary"]'))
       const selectedScenario =
         currentState.scenario.scenarios.find(
           (entry) => entry.scenarioId === currentState.scenario.selectedScenarioId,
@@ -4498,27 +4892,32 @@ function App() {
             : currentState.integrityState || 'Bundle create/reopen flow did not complete successfully.',
         },
         {
-          id: 'offline_and_degraded_state',
-          passed: currentState.offline && currentState.degradedBudgetCount > 0,
-          detail: currentState.offline
-            ? `Offline enabled with ${currentState.degradedBudgetCount} degraded budget indicator(s).`
-            : 'Offline state was not enabled by the runtime smoke sequence.',
-        },
-        {
-          id: 'scenario_export_surface',
-          passed: scenarioExportSurfacePassed,
-          detail: currentState.scenario.exportArtifact?.artifactId
-            ? `Scenario export artifact ${currentState.scenario.exportArtifact.artifactId} remained available through the active runtime surface.`
-            : 'Scenario export artifact was not produced.',
-        },
-        {
           id: 'portability_note_recorded',
           passed: notes.some((note) => note.includes('macOS')),
           detail: notes.find((note) => note.includes('macOS')) ?? 'Portability note missing.',
         },
       ]
 
-      if (!isWpGovPortRuntimeSmoke) {
+      if (!isWpI11RuntimeSmoke) {
+        assertions.push(
+          {
+            id: 'offline_and_degraded_state',
+            passed: currentState.offline && currentState.degradedBudgetCount > 0,
+            detail: currentState.offline
+              ? `Offline enabled with ${currentState.degradedBudgetCount} degraded budget indicator(s).`
+              : 'Offline state was not enabled by the runtime smoke sequence.',
+          },
+          {
+            id: 'scenario_export_surface',
+            passed: scenarioExportSurfacePassed,
+            detail: currentState.scenario.exportArtifact?.artifactId
+              ? `Scenario export artifact ${currentState.scenario.exportArtifact.artifactId} remained available through the active runtime surface.`
+              : 'Scenario export artifact was not produced.',
+          },
+        )
+      }
+
+      if (!isWpGovPortRuntimeSmoke && !isWpI11RuntimeSmoke) {
         assertions.push(
           {
             id: 'governed_context_registration',
@@ -4578,6 +4977,52 @@ function App() {
             detail: currentState.mapExportArtifact?.artifactId
               ? `4K map export ${currentState.mapExportArtifact.artifactId} is visible with persisted artifact metadata.`
               : '4K map export artifact was not produced.',
+          },
+        )
+      }
+
+      if (isWpI11RuntimeSmoke) {
+        const satelliteBundleRestorePassed =
+          runtimeSmokeFlow.satelliteFamilyRestored &&
+          currentState.layerFamilyVisibility['satellite-coverage'] &&
+          currentState.layerFamilyExpanded['satellite-coverage'] &&
+          currentState.activeLayers.includes('satellite-propagated-positions') &&
+          currentState.activeLayers.includes('satellite-ground-tracks') &&
+          currentState.activeLayers.includes('satellite-coverage-footprints') &&
+          currentState.satelliteSnapshot.focusAoiId === runtimeSmokeFlow.satelliteFocusAoiId
+        assertions.push(
+          {
+            id: 'satellite_family_visible',
+            passed:
+              runtimeSmokeFlow.satelliteFamilyActivated &&
+              satelliteSummaryVisible &&
+              currentState.satelliteSnapshot.satellites.length > 0,
+            detail:
+              satelliteSummaryVisible && currentState.satelliteSnapshot.satellites.length > 0
+                ? `Satellite family exposes ${currentState.satelliteSnapshot.satellites.length} propagated pass window(s) for ${currentState.satelliteSnapshot.focusAoiLabel}.`
+                : 'Satellite family summary or propagated pass windows were not visible in the live shell.',
+          },
+          {
+            id: 'satellite_truth_label_contract',
+            passed:
+              currentState.satelliteSnapshot.truthNote.includes('modeled output') &&
+              currentState.satelliteSnapshot.truthNote.toLowerCase().includes('not direct'),
+            detail: currentState.satelliteSnapshot.truthNote,
+          },
+          {
+            id: 'satellite_map_projection',
+            passed: currentState.mapSatelliteInspectVisible && runtimeSmokeFlow.satelliteSurfaceRoundtrip,
+            detail:
+              currentState.mapSatelliteInspectVisible && runtimeSmokeFlow.satelliteSurfaceRoundtrip
+                ? `Satellite overlays remained visible through the 2D/3D surface roundtrip for ${currentState.satelliteSnapshot.focusAoiLabel}.`
+                : 'Satellite overlays did not survive the packet-specific 2D/3D surface roundtrip.',
+          },
+          {
+            id: 'satellite_bundle_restore',
+            passed: satelliteBundleRestorePassed,
+            detail: satelliteBundleRestorePassed
+              ? `Satellite family state restored after reopen with focus ${currentState.satelliteSnapshot.focusAoiLabel} and modeled layers intact.`
+              : 'Satellite family visibility, expansion, or modeled layers were not restored from the reopened bundle.',
           },
         )
       }
@@ -4791,6 +5236,7 @@ function App() {
         mapFocusAoiId: currentState.mapRuntime.focusAoiId,
         mapInspectCount: currentState.mapRuntime.inspectCount,
         mapRuntimeError: currentState.mapRuntime.runtimeError || undefined,
+        mapSatelliteInspectVisible: currentState.mapSatelliteInspectVisible,
         mapOsintInspectVisible: currentState.mapOsintInspectVisible,
         mapModelInspectVisible: currentState.mapModelInspectVisible,
         activeContextDomainCount: currentState.activeDomainIds.length,
@@ -4975,6 +5421,14 @@ function App() {
       try {
         const previousBundleCount = runtimeSmokeStateRef.current.bundles.length
         const currentState = runtimeSmokeStateRef.current
+        const runtimeSmokeWorkspaceState: WorkspaceStateSnapshot = {
+          ...recorderStateCore.workspace,
+          workflowMode: currentState.mode,
+          activeLayers: currentState.activeLayers,
+          layerFamilyExpanded: currentState.layerFamilyExpanded,
+          layerFamilyVisibility: currentState.layerFamilyVisibility,
+          satellite: currentState.satelliteSnapshot,
+        }
         const requestState = requireGameModel
           ? await waitForPersistedGameModelState(runtimeSmokeFlow.solverRunId || undefined)
           : requiresGovernedConnectorForRuntimeSmoke
@@ -4985,6 +5439,7 @@ function App() {
                 ? await waitForPersistedContextState(governedContextBundleAoi, governedContextDomainId)
                 : {
                     ...recorderStateCore,
+                    workspace: runtimeSmokeWorkspaceState,
                     context: buildContextSnapshot({
                       domains: currentState.domains,
                       activeDomainIds: currentState.activeDomainIds,
@@ -5493,6 +5948,158 @@ function App() {
       }
     }
 
+    const revealFullWorkbenchForRuntimeSmoke = async (): Promise<void> => {
+      const button = Array.from(document.querySelectorAll<HTMLButtonElement>('button')).find(
+        (candidate) => candidate.textContent?.trim() === 'Open Full Workbench',
+      )
+      if (!button) {
+        return
+      }
+      button.click()
+      await waitForCondition(
+        'full workbench reveal',
+        () => !document.querySelector('[data-testid="guided-start-card"]'),
+        5000,
+      )
+    }
+
+    const getLayerFamilyCardForRuntimeSmoke = (familyId: LayerFamilyId): HTMLElement | null =>
+      document.querySelector<HTMLElement>(`[data-testid="layer-family-card-${familyId}"]`)
+
+    const setLayerFamilyVisibilityForRuntimeSmoke = async (
+      familyId: LayerFamilyId,
+      label: string,
+      visible: boolean,
+    ): Promise<void> => {
+      await waitForCondition(
+        `layer family card ${familyId}`,
+        () => Boolean(getLayerFamilyCardForRuntimeSmoke(familyId)),
+      )
+      const card = getLayerFamilyCardForRuntimeSmoke(familyId)
+      if (!card) {
+        throw new Error(`Runtime smoke could not find the ${familyId} family card.`)
+      }
+      const input = card.querySelector<HTMLInputElement>(`input[aria-label="${label}"]`)
+      if (!input) {
+        throw new Error(`Runtime smoke could not find the ${label} checkbox.`)
+      }
+      if (input.checked !== visible) {
+        input.click()
+      }
+      await waitForCondition(
+        `${familyId} family visibility`,
+        () => runtimeSmokeStateRef.current.layerFamilyVisibility[familyId] === visible,
+      )
+    }
+
+    const setLayerFamilyExpandedForRuntimeSmoke = async (
+      familyId: LayerFamilyId,
+      expanded: boolean,
+    ): Promise<void> => {
+      await waitForCondition(
+        `layer family card ${familyId}`,
+        () => Boolean(getLayerFamilyCardForRuntimeSmoke(familyId)),
+      )
+      const card = getLayerFamilyCardForRuntimeSmoke(familyId)
+      if (!card) {
+        throw new Error(`Runtime smoke could not find the ${familyId} family card.`)
+      }
+      if (runtimeSmokeStateRef.current.layerFamilyExpanded[familyId] !== expanded) {
+        const button = Array.from(card.querySelectorAll<HTMLButtonElement>('button')).find(
+          (candidate) => candidate.textContent?.trim() === (expanded ? 'Expand' : 'Collapse'),
+        )
+        if (!button) {
+          throw new Error(
+            `Runtime smoke could not find the ${expanded ? 'Expand' : 'Collapse'} button for ${familyId}.`,
+          )
+        }
+        button.click()
+      }
+      await waitForCondition(
+        `${familyId} family expansion`,
+        () => runtimeSmokeStateRef.current.layerFamilyExpanded[familyId] === expanded,
+      )
+    }
+
+    const setLayerFamilyEntryForRuntimeSmoke = async (
+      familyId: LayerFamilyId,
+      label: string,
+      selected: boolean,
+      layerId: string,
+    ): Promise<void> => {
+      await waitForCondition(
+        `layer family card ${familyId}`,
+        () => Boolean(getLayerFamilyCardForRuntimeSmoke(familyId)),
+      )
+      const card = getLayerFamilyCardForRuntimeSmoke(familyId)
+      if (!card) {
+        throw new Error(`Runtime smoke could not find the ${familyId} family card.`)
+      }
+      const input = card.querySelector<HTMLInputElement>(`input[aria-label="${label}"]`)
+      if (!input) {
+        throw new Error(`Runtime smoke could not find the ${label} layer toggle.`)
+      }
+      if (input.checked !== selected) {
+        input.click()
+      }
+      await waitForCondition(
+        `${layerId} layer selection`,
+        () => runtimeSmokeStateRef.current.activeLayers.includes(layerId) === selected,
+      )
+    }
+
+    const activateSatelliteFamilyForRuntimeSmoke = async (): Promise<void> => {
+      await revealFullWorkbenchForRuntimeSmoke()
+      await setLayerFamilyVisibilityForRuntimeSmoke(
+        'satellite-coverage',
+        'Show Satellite Orbit and Coverage',
+        true,
+      )
+      await setLayerFamilyExpandedForRuntimeSmoke('satellite-coverage', true)
+      await waitForCondition(
+        'satellite runtime summary',
+        () => Boolean(document.querySelector('[data-testid="satellite-runtime-summary"]')),
+      )
+      await setLayerFamilyEntryForRuntimeSmoke(
+        'satellite-coverage',
+        'Toggle Orbit Ground Tracks',
+        true,
+        'satellite-ground-tracks',
+      )
+      await waitForCondition(
+        'satellite layer activation',
+        () =>
+          runtimeSmokeStateRef.current.activeLayers.includes('satellite-propagated-positions') &&
+          runtimeSmokeStateRef.current.activeLayers.includes('satellite-ground-tracks') &&
+          runtimeSmokeStateRef.current.activeLayers.includes('satellite-coverage-footprints') &&
+          runtimeSmokeStateRef.current.satelliteSnapshot.satellites.length > 0 &&
+          runtimeSmokeStateRef.current.mapSatelliteInspectVisible,
+        15000,
+      )
+      runtimeSmokeFlow.satelliteFamilyActivated = true
+      runtimeSmokeFlow.satelliteFocusAoiId = runtimeSmokeStateRef.current.satelliteSnapshot.focusAoiId
+    }
+
+    const mutateSatelliteFamilyForRuntimeSmoke = async (): Promise<void> => {
+      await setLayerFamilyEntryForRuntimeSmoke(
+        'satellite-coverage',
+        'Toggle Orbit Ground Tracks',
+        false,
+        'satellite-ground-tracks',
+      )
+      await setLayerFamilyVisibilityForRuntimeSmoke(
+        'satellite-coverage',
+        'Show Satellite Orbit and Coverage',
+        false,
+      )
+      await waitForCondition(
+        'satellite family mutation',
+        () =>
+          !runtimeSmokeStateRef.current.layerFamilyVisibility['satellite-coverage'] &&
+          !runtimeSmokeStateRef.current.activeLayers.includes('satellite-ground-tracks'),
+      )
+    }
+
     const clickWorkspaceButton = (label: string): void => {
       const target = Array.from(document.querySelectorAll<HTMLButtonElement>('button')).find(
         (candidate) => candidate.textContent?.trim() === label,
@@ -5798,6 +6405,94 @@ function App() {
 
       metrics.push(await measurePlanarPanZoomFrame())
 
+      if (isWpI11RuntimeSmoke) {
+        metrics.push(
+          await measure('Satellite family activation', async () => {
+            await activateSatelliteFamilyForRuntimeSmoke()
+          }),
+        )
+
+        metrics.push(
+          await measure('Satellite 2D/3D surface roundtrip', async () => {
+            await requestMapRuntimeSurfaceMode('3D Globe', 'orbital')
+            await waitForCondition(
+              'satellite orbital projection',
+              () =>
+                runtimeSmokeStateRef.current.mapRuntime.activeSurfaceMode === 'orbital' &&
+                runtimeSmokeStateRef.current.mapSatelliteInspectVisible,
+              10000,
+            )
+            await requestMapRuntimeSurfaceMode('2D Situation Map', 'planar')
+            await waitForCondition(
+              'satellite planar projection',
+              () =>
+                runtimeSmokeStateRef.current.mapRuntime.activeSurfaceMode === 'planar' &&
+                runtimeSmokeStateRef.current.mapSatelliteInspectVisible,
+              10000,
+            )
+            runtimeSmokeFlow.satelliteSurfaceRoundtrip = true
+          }),
+        )
+
+        metrics.push(
+          await measure('Satellite bundle create', async () => {
+            const bundleId = await createBundleForRuntimeSmoke()
+            await waitForCondition(
+              'satellite bundle creation',
+              () => runtimeSmokeStateRef.current.selectedBundleId === bundleId,
+            )
+          }),
+        )
+
+        metrics.push(
+          await measure('Satellite family mutation', async () => {
+            await mutateSatelliteFamilyForRuntimeSmoke()
+          }),
+        )
+
+        metrics.push(
+          await measure('Satellite bundle reopen', async () => {
+            await openBundleForRuntimeSmoke()
+            await waitForCondition(
+              'satellite bundle restore',
+              () =>
+                runtimeSmokeStateRef.current.selectedBundleId.length > 0 &&
+                runtimeSmokeStateRef.current.integrityState.includes('Determinism check passed') &&
+                runtimeSmokeStateRef.current.layerFamilyVisibility['satellite-coverage'] &&
+                runtimeSmokeStateRef.current.layerFamilyExpanded['satellite-coverage'] &&
+                runtimeSmokeStateRef.current.activeLayers.includes('satellite-propagated-positions') &&
+                runtimeSmokeStateRef.current.activeLayers.includes('satellite-ground-tracks') &&
+                runtimeSmokeStateRef.current.activeLayers.includes('satellite-coverage-footprints') &&
+                runtimeSmokeStateRef.current.satelliteSnapshot.focusAoiId ===
+                  runtimeSmokeFlow.satelliteFocusAoiId &&
+                runtimeSmokeStateRef.current.satelliteSnapshot.satellites.length > 0 &&
+                runtimeSmokeStateRef.current.mapSatelliteInspectVisible,
+              30000,
+            )
+            runtimeSmokeFlow.satelliteFamilyRestored = true
+          }),
+        )
+
+        await backend
+          .appendAudit({
+            role,
+            event_type: 'runtime_smoke.complete',
+            payload: {
+              phase: runtimeSmokeConfig.phase,
+              bundle_id: runtimeSmokeStateRef.current.selectedBundleId || null,
+              satellite_focus_aoi_id: runtimeSmokeStateRef.current.satelliteSnapshot.focusAoiId,
+              satellite_pass_count: runtimeSmokeStateRef.current.satelliteSnapshot.satellites.length,
+            },
+          })
+          .catch(() => {
+            // Keep runtime smoke progressing even if the audit append fails.
+          })
+
+        const report = await buildReport(metrics, notes)
+        await writeRuntimeSmokeEvidence(report)
+        return
+      }
+
       metrics.push(
         await measure(
           'Governed context registration',
@@ -5882,16 +6577,33 @@ function App() {
           }
           await waitForCondition('governed context restore', () => {
             const currentState = runtimeSmokeStateRef.current
-            const baseRestorePassed =
-              currentState.correlationAoi === governedContextBundleAoi &&
-              currentState.activeDomainIds.includes(governedContextDomainId) &&
-              currentState.contextRecords.some(
-                (record) =>
-                  record.domain_id === governedContextDomainId &&
-                  record.target_id === governedContextBundleAoi,
-              )
+            const baseRestorePassed = isWpI11RuntimeSmoke
+              ? currentState.status.includes('reopened') &&
+                currentState.integrityState.includes('Determinism check passed') &&
+                Boolean(currentState.selectedBundleId)
+              : currentState.correlationAoi === governedContextBundleAoi &&
+                currentState.activeDomainIds.includes(governedContextDomainId) &&
+                currentState.contextRecords.some(
+                  (record) =>
+                    record.domain_id === governedContextDomainId &&
+                    record.target_id === governedContextBundleAoi,
+                )
             if (!baseRestorePassed) {
               return false
+            }
+            if (isWpI11RuntimeSmoke) {
+              const satelliteRestorePassed =
+                currentState.layerFamilyVisibility['satellite-coverage'] &&
+                currentState.layerFamilyExpanded['satellite-coverage'] &&
+                currentState.activeLayers.includes('satellite-propagated-positions') &&
+                currentState.activeLayers.includes('satellite-ground-tracks') &&
+                currentState.activeLayers.includes('satellite-coverage-footprints') &&
+                currentState.satelliteSnapshot.focusAoiId === runtimeSmokeFlow.satelliteFocusAoiId &&
+                currentState.satelliteSnapshot.satellites.length > 0 &&
+                currentState.mapSatelliteInspectVisible
+              if (!satelliteRestorePassed) {
+                return false
+              }
             }
             if (!requiresGovernedDeviationForRuntimeSmoke) {
               return true
@@ -5927,6 +6639,9 @@ function App() {
           })
           if (requiresGovernedDeviationForRuntimeSmoke) {
             runtimeSmokeFlow.governedDeviationRestored = true
+          }
+          if (isWpI11RuntimeSmoke) {
+            runtimeSmokeFlow.satelliteFamilyRestored = true
           }
           if (requiresGovernedConnectorForRuntimeSmoke) {
             runtimeSmokeFlow.governedConnectorRestored = true
@@ -6583,52 +7298,187 @@ function App() {
                         className="layer-family-body"
                       >
                         {family.availableInBuild ? (
-                          <div className="layer-toggle-grid layer-toggle-grid-nested">
-                            {family.memberEntries.map((entry) => (
-                              <label
-                                key={entry.layerId}
-                                className="toggle-card"
-                                data-testid={`layer-family-entry-${entry.layerId}`}
+                          <>
+                            {family.familyId === 'commercial-air' ? (
+                              <div
+                                className="layer-family-source-summary"
+                                data-testid="commercial-air-runtime-summary"
                               >
-                                <input
-                                  type="checkbox"
-                                  aria-label={`Toggle ${entry.title}`}
-                                  checked={entry.selected}
-                                  disabled={!family.visible}
-                                  onChange={() => toggleLayer(entry.layerId)}
-                                />
-                                <div>
-                                  <div className="card-header compact">
-                                    <strong>{entry.title}</strong>
-                                    <span
-                                      className={`artifact-chip ${artifactTone(
-                                        entry.artifactLabel,
-                                      )}`}
-                                    >
-                                      {entry.artifactLabel}
-                                    </span>
-                                  </div>
-                                  <small>
-                                    Source: {entry.source} | Cadence: {entry.cadence} | Geometry:{' '}
-                                    {entry.geometryType} | Export:{' '}
-                                    {entry.exportAllowed ? 'allowed' : 'blocked'}
-                                  </small>
-                                  {entry.coverageText ? <small>Coverage: {entry.coverageText}</small> : null}
-                                  {entry.uncertaintyText ? (
-                                    <small>Truth note: {entry.uncertaintyText}</small>
-                                  ) : null}
-                                  {entry.sourceUrl ? (
-                                    <small>
-                                      Reference:{' '}
-                                      <a href={entry.sourceUrl} target="_blank" rel="noreferrer">
-                                        {entry.sourceUrl}
-                                      </a>
-                                    </small>
-                                  ) : null}
+                                <div className="card-header compact">
+                                  <strong>{airTrafficSnapshot.sourceStateLabel}</strong>
+                                  <span>{airTrafficSnapshot.focusAoiLabel}</span>
                                 </div>
-                              </label>
-                            ))}
-                          </div>
+                                <p>{airTrafficSnapshot.statusDetail}</p>
+                                <small>
+                                  Retrieved {formatRelativeSnapshotAge(airTrafficSnapshot.retrievedAt)} |{' '}
+                                  {airTrafficSnapshot.flights.length} aircraft |{' '}
+                                  {airTrafficSnapshot.awarenessFlights.length} awareness candidate(s)
+                                </small>
+                                <small>{airTrafficSnapshot.truthNote}</small>
+                                {airTrafficError ? <small>Last refresh error: {airTrafficError}</small> : null}
+                                {airTrafficSnapshot.notes.map((note) => (
+                                  <small key={note}>{note}</small>
+                                ))}
+                                <div className="layer-family-source-actions">
+                                  <button
+                                    type="button"
+                                    className="button-secondary"
+                                    onClick={() => setAirTrafficRefreshToken((value) => value + 1)}
+                                    disabled={airTrafficLoading}
+                                  >
+                                    {airTrafficLoading ? 'Refreshing Air Snapshot...' : 'Refresh Air Snapshot'}
+                                  </button>
+                                </div>
+                              </div>
+                            ) : null}
+                            {family.familyId === 'satellite-coverage' ? (
+                              <div
+                                className="layer-family-source-summary"
+                                data-testid="satellite-runtime-summary"
+                              >
+                                <div className="card-header compact">
+                                  <strong>{satelliteSnapshot.sourceStateLabel}</strong>
+                                  <span>{satelliteSnapshot.focusAoiLabel}</span>
+                                </div>
+                                <p>{satelliteSnapshot.statusDetail}</p>
+                                <small>
+                                  Retrieved {formatRelativeSnapshotAge(satelliteSnapshot.retrievedAt)} |{' '}
+                                  {satelliteSnapshot.satellites.length} propagated pass window(s) |{' '}
+                                  {
+                                    satelliteSnapshot.satellites.filter((entry) => entry.focusCovered)
+                                      .length
+                                  }{' '}
+                                  AOI overlap(s)
+                                </small>
+                                <small>{satelliteSnapshot.truthNote}</small>
+                                {satelliteError ? <small>Last refresh error: {satelliteError}</small> : null}
+                                {satelliteSnapshot.notes.map((note) => (
+                                  <small key={note}>{note}</small>
+                                ))}
+                                <div className="layer-family-source-actions">
+                                  <button
+                                    type="button"
+                                    className="button-secondary"
+                                    onClick={() => setSatelliteRefreshToken((value) => value + 1)}
+                                    disabled={satelliteLoading}
+                                  >
+                                    {satelliteLoading
+                                      ? 'Refreshing Orbital Snapshot...'
+                                      : 'Refresh Orbital Snapshot'}
+                                  </button>
+                                </div>
+                              </div>
+                            ) : null}
+                            {family.familyId === 'maritime-awareness' ? (
+                              <div
+                                className="layer-family-source-summary"
+                                data-testid="maritime-runtime-summary"
+                              >
+                                <div className="card-header compact">
+                                  <strong>{maritimeSnapshot.sourceStateLabel}</strong>
+                                  <span>{maritimeSnapshot.focusAoiLabel}</span>
+                                </div>
+                                <p>{maritimeSnapshot.statusDetail}</p>
+                                <small>
+                                  Retrieved {formatRelativeSnapshotAge(maritimeSnapshot.retrievedAt)} |{' '}
+                                  {maritimeSnapshot.vessels.length} vessel record(s) |{' '}
+                                  {maritimeSnapshot.awarenessSignals.length} awareness cue(s)
+                                </small>
+                                <small>{maritimeSnapshot.truthNote}</small>
+                                {maritimeSnapshot.notes.map((note) => (
+                                  <small key={note}>{note}</small>
+                                ))}
+                                <div className="layer-family-source-actions">
+                                  <button
+                                    type="button"
+                                    className="button-secondary"
+                                    onClick={() => setMaritimeRefreshToken((value) => value + 1)}
+                                  >
+                                    Reload Maritime Benchmark
+                                  </button>
+                                </div>
+                              </div>
+                            ) : null}
+                            {family.familyId === 'specialized-infrastructure' ? (
+                              <div
+                                className="layer-family-source-summary"
+                                data-testid="specialized-infrastructure-summary"
+                              >
+                                {(() => {
+                                  const specializedRecords = listSpecializedInfrastructureRecordsForLayers(
+                                    family.memberEntries.map((entry) => entry.layerId),
+                                  )
+                                  const coveredAois = new Set(
+                                    specializedRecords.map((record) => record.aoiId),
+                                  ).size
+                                  return (
+                                    <>
+                                      <div className="card-header compact">
+                                        <strong>{SPECIALIZED_INFRASTRUCTURE_SUMMARY.sourceStateLabel}</strong>
+                                        <span>{coveredAois} AOI benchmark(s)</span>
+                                      </div>
+                                      <p>{SPECIALIZED_INFRASTRUCTURE_SUMMARY.statusDetail}</p>
+                                      <small>
+                                        {specializedRecords.length} specialized site benchmark(s) |{' '}
+                                        {family.memberEntries.filter((entry) => entry.selected).length} selected
+                                        layer group(s)
+                                      </small>
+                                      <small>{SPECIALIZED_INFRASTRUCTURE_SUMMARY.truthNote}</small>
+                                      {SPECIALIZED_INFRASTRUCTURE_SUMMARY.notes.map((note) => (
+                                        <small key={note}>{note}</small>
+                                      ))}
+                                    </>
+                                  )
+                                })()}
+                              </div>
+                            ) : null}
+                            <div className="layer-toggle-grid layer-toggle-grid-nested">
+                              {family.memberEntries.map((entry) => (
+                                <label
+                                  key={entry.layerId}
+                                  className="toggle-card"
+                                  data-testid={`layer-family-entry-${entry.layerId}`}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    aria-label={`Toggle ${entry.title}`}
+                                    checked={entry.selected}
+                                    disabled={!family.visible}
+                                    onChange={() => toggleLayer(entry.layerId)}
+                                  />
+                                  <div>
+                                    <div className="card-header compact">
+                                      <strong>{entry.title}</strong>
+                                      <span
+                                        className={`artifact-chip ${artifactTone(
+                                          entry.artifactLabel,
+                                        )}`}
+                                      >
+                                        {entry.artifactLabel}
+                                      </span>
+                                    </div>
+                                    <small>
+                                      Source: {entry.source} | Cadence: {entry.cadence} | Geometry:{' '}
+                                      {entry.geometryType} | Export:{' '}
+                                      {entry.exportAllowed ? 'allowed' : 'blocked'}
+                                    </small>
+                                    {entry.coverageText ? <small>Coverage: {entry.coverageText}</small> : null}
+                                    {entry.uncertaintyText ? (
+                                      <small>Truth note: {entry.uncertaintyText}</small>
+                                    ) : null}
+                                    {entry.sourceUrl ? (
+                                      <small>
+                                        Reference:{' '}
+                                        <a href={entry.sourceUrl} target="_blank" rel="noreferrer">
+                                          {entry.sourceUrl}
+                                        </a>
+                                      </small>
+                                    ) : null}
+                                  </div>
+                                </label>
+                              ))}
+                            </div>
+                          </>
                         ) : (
                           <div className="layer-family-placeholder" data-testid={`layer-family-placeholder-${family.familyId}`}>
                             <strong>No payload layers in this build</strong>

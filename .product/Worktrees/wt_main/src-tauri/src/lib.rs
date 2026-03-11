@@ -1,6 +1,6 @@
 use chrono::{DateTime, Utc};
 use postgres::{Client, NoTls};
-use reqwest::header::{AUTHORIZATION, CONTENT_TYPE};
+use reqwest::header::{AUTHORIZATION, CONTENT_TYPE, USER_AGENT};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::{json, Map, Value};
 use sha2::{Digest, Sha256};
@@ -187,6 +187,94 @@ struct QueryContextRecordsResult {
   query_range: ContextTimeRange,
   total_records: usize,
   source: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct FetchCommercialAirTrafficRequest {
+  focus_aoi_id: String,
+  focus_aoi_label: String,
+  min_lat: f64,
+  min_lon: f64,
+  max_lat: f64,
+  max_lon: f64,
+  max_flights: Option<usize>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct AirTrafficFlight {
+  flight_id: String,
+  icao24: String,
+  callsign: String,
+  origin_country: String,
+  coordinates: [f64; 2],
+  altitude_ft: Option<f64>,
+  velocity_kts: Option<f64>,
+  heading_deg: Option<f64>,
+  vertical_rate_fpm: Option<f64>,
+  on_ground: bool,
+  last_contact_at: String,
+  truth_label: String,
+  source_state: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct FetchCommercialAirTrafficResult {
+  provider_label: String,
+  source_url: String,
+  source_license: String,
+  focus_aoi_id: String,
+  focus_aoi_label: String,
+  retrieved_at: String,
+  source_state: String,
+  status_detail: String,
+  flights: Vec<AirTrafficFlight>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct FetchSatelliteElementsRequest {
+  focus_aoi_id: String,
+  focus_aoi_label: String,
+  norad_cat_ids: Vec<u32>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct GovernedSatelliteElement {
+  norad_cat_id: u32,
+  object_name: String,
+  object_id: Option<String>,
+  epoch: String,
+  mean_motion: f64,
+  eccentricity: f64,
+  inclination: f64,
+  ra_of_asc_node: f64,
+  arg_of_pericenter: f64,
+  mean_anomaly: f64,
+  ephemeris_type: Option<i64>,
+  classification_type: Option<String>,
+  element_set_no: Option<i64>,
+  rev_at_epoch: Option<i64>,
+  bstar: Option<f64>,
+  mean_motion_dot: Option<f64>,
+  mean_motion_ddot: Option<f64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct FetchSatelliteElementsResult {
+  provider_label: String,
+  source_url: String,
+  source_license: String,
+  focus_aoi_id: String,
+  focus_aoi_label: String,
+  retrieved_at: String,
+  source_state: String,
+  status_detail: String,
+  elements: Vec<GovernedSatelliteElement>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -3161,6 +3249,390 @@ fn query_context_records(
   })
 }
 
+fn validate_air_traffic_bounds(request: &FetchCommercialAirTrafficRequest) -> CommandResult<()> {
+  if request.focus_aoi_id.trim().is_empty() {
+    return Err("Air traffic focus_aoi_id is required".to_string());
+  }
+  if request.focus_aoi_label.trim().is_empty() {
+    return Err("Air traffic focus_aoi_label is required".to_string());
+  }
+  if request.min_lat >= request.max_lat || request.min_lon >= request.max_lon {
+    return Err("Air traffic bounds are invalid".to_string());
+  }
+  if request.min_lat < -90.0
+    || request.max_lat > 90.0
+    || request.min_lon < -180.0
+    || request.max_lon > 180.0
+  {
+    return Err("Air traffic bounds exceed valid latitude/longitude ranges".to_string());
+  }
+  Ok(())
+}
+
+fn meters_to_feet(value: f64) -> f64 {
+  value * 3.28084
+}
+
+fn meters_per_second_to_knots(value: f64) -> f64 {
+  value * 1.94384
+}
+
+fn meters_per_second_to_feet_per_minute(value: f64) -> f64 {
+  value * 196.850394
+}
+
+fn timestamp_to_rfc3339(timestamp: i64) -> String {
+  DateTime::<Utc>::from_timestamp(timestamp, 0)
+    .unwrap_or_else(Utc::now)
+    .to_rfc3339()
+}
+
+async fn fetch_commercial_air_traffic_internal(
+  request: &FetchCommercialAirTrafficRequest,
+) -> CommandResult<FetchCommercialAirTrafficResult> {
+  validate_air_traffic_bounds(request)?;
+
+  let max_flights = request.max_flights.unwrap_or(18).clamp(1, 36);
+  let source_url = format!(
+    "https://opensky-network.org/api/states/all?lamin={:.4}&lomin={:.4}&lamax={:.4}&lomax={:.4}",
+    request.min_lat, request.min_lon, request.max_lat, request.max_lon
+  );
+
+  let client = reqwest::Client::builder()
+    .timeout(Duration::from_secs(20))
+    .build()
+    .map_err(|error| format!("Failed to construct governed air traffic client: {error}"))?;
+
+  let response = client
+    .get(&source_url)
+    .send()
+    .await
+    .map_err(|error| format!("Commercial air traffic request failed: {error}"))?;
+
+  let status_code = response.status();
+  let response_json = response
+    .json::<Value>()
+    .await
+    .map_err(|error| format!("Failed to parse commercial air traffic response: {error}"))?;
+
+  if !status_code.is_success() {
+    let response_body = response_json.to_string();
+    let truncated = response_body.chars().take(280).collect::<String>();
+    return Err(format!(
+      "Commercial air traffic source returned HTTP {}: {}",
+      status_code.as_u16(),
+      truncated
+    ));
+  }
+
+  let snapshot_time = response_json
+    .get("time")
+    .and_then(Value::as_i64)
+    .unwrap_or_else(|| Utc::now().timestamp());
+  let states = response_json
+    .get("states")
+    .and_then(Value::as_array)
+    .cloned()
+    .unwrap_or_default();
+
+  let mut parsed_flights: Vec<(i64, AirTrafficFlight)> = Vec::new();
+  for state in states {
+    let Some(columns) = state.as_array() else {
+      continue;
+    };
+    if columns.len() < 17 {
+      continue;
+    }
+
+    let icao24 = columns
+      .get(0)
+      .and_then(Value::as_str)
+      .unwrap_or_default()
+      .trim()
+      .to_string();
+    let callsign = columns
+      .get(1)
+      .and_then(Value::as_str)
+      .unwrap_or_default()
+      .trim()
+      .to_string();
+    let origin_country = columns
+      .get(2)
+      .and_then(Value::as_str)
+      .unwrap_or("Unknown")
+      .to_string();
+    let last_contact = columns
+      .get(4)
+      .and_then(Value::as_i64)
+      .unwrap_or(snapshot_time);
+    let longitude = columns.get(5).and_then(Value::as_f64);
+    let latitude = columns.get(6).and_then(Value::as_f64);
+    let Some(longitude) = longitude else {
+      continue;
+    };
+    let Some(latitude) = latitude else {
+      continue;
+    };
+
+    let age_seconds = snapshot_time.saturating_sub(last_contact);
+    let source_state = if age_seconds <= 90 { "live" } else { "delayed" };
+    let altitude_ft = columns
+      .get(13)
+      .and_then(Value::as_f64)
+      .or_else(|| columns.get(7).and_then(Value::as_f64))
+      .map(meters_to_feet);
+    let velocity_kts = columns
+      .get(9)
+      .and_then(Value::as_f64)
+      .map(meters_per_second_to_knots);
+    let heading_deg = columns.get(10).and_then(Value::as_f64);
+    let vertical_rate_fpm = columns
+      .get(11)
+      .and_then(Value::as_f64)
+      .map(meters_per_second_to_feet_per_minute);
+    let on_ground = columns.get(8).and_then(Value::as_bool).unwrap_or(false);
+
+    parsed_flights.push((
+      last_contact,
+      AirTrafficFlight {
+        flight_id: format!(
+          "{}-{}",
+          if icao24.is_empty() { "unknown" } else { &icao24 },
+          last_contact
+        ),
+        icao24,
+        callsign,
+        origin_country,
+        coordinates: [longitude, latitude],
+        altitude_ft,
+        velocity_kts,
+        heading_deg,
+        vertical_rate_fpm,
+        on_ground,
+        last_contact_at: timestamp_to_rfc3339(last_contact),
+        truth_label: format!(
+          "Observed transponder state from OpenSky Network. Last contact age {} s.",
+          age_seconds
+        ),
+        source_state: source_state.to_string(),
+      },
+    ));
+  }
+
+  parsed_flights.sort_by(|left, right| right.0.cmp(&left.0));
+  parsed_flights.truncate(max_flights);
+
+  let flights = parsed_flights
+    .iter()
+    .map(|(_, flight)| flight.clone())
+    .collect::<Vec<_>>();
+  let mean_age_seconds = if parsed_flights.is_empty() {
+    0
+  } else {
+    let total = parsed_flights
+      .iter()
+      .map(|(last_contact, _)| snapshot_time.saturating_sub(*last_contact))
+      .sum::<i64>();
+    total / parsed_flights.len() as i64
+  };
+  let source_state = if mean_age_seconds <= 90 { "live" } else { "delayed" };
+  let status_detail = format!(
+    "OpenSky {} snapshot for {} with {} aircraft inside the focused AOI bounds; mean contact age {} s.",
+    source_state,
+    request.focus_aoi_label,
+    flights.len(),
+    mean_age_seconds
+  );
+
+  Ok(FetchCommercialAirTrafficResult {
+    provider_label: "OpenSky Network state vectors".to_string(),
+    source_url,
+    source_license: "public delayed".to_string(),
+    focus_aoi_id: request.focus_aoi_id.clone(),
+    focus_aoi_label: request.focus_aoi_label.clone(),
+    retrieved_at: timestamp_to_rfc3339(snapshot_time),
+    source_state: source_state.to_string(),
+    status_detail,
+    flights,
+  })
+}
+
+#[tauri::command]
+async fn fetch_commercial_air_traffic(
+  request: FetchCommercialAirTrafficRequest,
+) -> CommandResult<FetchCommercialAirTrafficResult> {
+  fetch_commercial_air_traffic_internal(&request).await
+}
+
+fn value_as_f64(value: &Value, key: &str) -> Option<f64> {
+  value.get(key).and_then(|entry| match entry {
+    Value::Number(number) => number.as_f64(),
+    Value::String(text) => text.parse::<f64>().ok(),
+    _ => None,
+  })
+}
+
+fn value_as_i64(value: &Value, key: &str) -> Option<i64> {
+  value.get(key).and_then(|entry| match entry {
+    Value::Number(number) => number.as_i64(),
+    Value::String(text) => text.parse::<i64>().ok(),
+    _ => None,
+  })
+}
+
+fn value_as_u32(value: &Value, key: &str) -> Option<u32> {
+  value_as_i64(value, key).and_then(|entry| u32::try_from(entry).ok())
+}
+
+fn value_as_string(value: &Value, key: &str) -> Option<String> {
+  value
+    .get(key)
+    .and_then(Value::as_str)
+    .map(|entry| entry.trim().to_string())
+    .filter(|entry| !entry.is_empty())
+}
+
+fn parse_governed_satellite_element(value: &Value) -> Option<GovernedSatelliteElement> {
+  Some(GovernedSatelliteElement {
+    norad_cat_id: value_as_u32(value, "NORAD_CAT_ID")?,
+    object_name: value_as_string(value, "OBJECT_NAME")?,
+    object_id: value_as_string(value, "OBJECT_ID"),
+    epoch: value_as_string(value, "EPOCH")?,
+    mean_motion: value_as_f64(value, "MEAN_MOTION")?,
+    eccentricity: value_as_f64(value, "ECCENTRICITY")?,
+    inclination: value_as_f64(value, "INCLINATION")?,
+    ra_of_asc_node: value_as_f64(value, "RA_OF_ASC_NODE")?,
+    arg_of_pericenter: value_as_f64(value, "ARG_OF_PERICENTER")?,
+    mean_anomaly: value_as_f64(value, "MEAN_ANOMALY")?,
+    ephemeris_type: value_as_i64(value, "EPHEMERIS_TYPE"),
+    classification_type: value_as_string(value, "CLASSIFICATION_TYPE"),
+    element_set_no: value_as_i64(value, "ELEMENT_SET_NO"),
+    rev_at_epoch: value_as_i64(value, "REV_AT_EPOCH"),
+    bstar: value_as_f64(value, "BSTAR"),
+    mean_motion_dot: value_as_f64(value, "MEAN_MOTION_DOT"),
+    mean_motion_ddot: value_as_f64(value, "MEAN_MOTION_DDOT"),
+  })
+}
+
+async fn fetch_satellite_elements_internal(
+  request: &FetchSatelliteElementsRequest,
+) -> CommandResult<FetchSatelliteElementsResult> {
+  let unique_ids = request
+    .norad_cat_ids
+    .iter()
+    .copied()
+    .filter(|entry| *entry > 0)
+    .take(12)
+    .collect::<Vec<_>>();
+  if unique_ids.is_empty() {
+    return Err("Satellite refresh requires at least one NORAD catalog id".to_string());
+  }
+
+  let client = reqwest::Client::builder()
+    .timeout(Duration::from_secs(20))
+    .build()
+    .map_err(|error| format!("Failed to construct governed satellite client: {error}"))?;
+
+  let mut elements: Vec<GovernedSatelliteElement> = Vec::new();
+  let mut warnings: Vec<String> = Vec::new();
+
+  for norad_cat_id in unique_ids {
+    let source_url = format!(
+      "https://celestrak.org/NORAD/elements/gp.php?CATNR={norad_cat_id}&FORMAT=JSON"
+    );
+    let response = client
+      .get(&source_url)
+      .header(USER_AGENT, "StratAtlas/0.1.11 (+https://github.com/)")
+      .send()
+      .await;
+
+    let Ok(response) = response else {
+      warnings.push(format!(
+        "CATNR {norad_cat_id} request failed: {}",
+        response.err().map(|error| error.to_string()).unwrap_or_default()
+      ));
+      continue;
+    };
+
+    if !response.status().is_success() {
+      warnings.push(format!(
+        "CATNR {norad_cat_id} returned HTTP {}",
+        response.status().as_u16()
+      ));
+      continue;
+    }
+
+    let response_json = response
+      .json::<Value>()
+      .await
+      .map_err(|error| format!("Failed to parse satellite response for CATNR {norad_cat_id}: {error}"))?;
+    let Some(rows) = response_json.as_array() else {
+      warnings.push(format!("CATNR {norad_cat_id} returned a non-array payload."));
+      continue;
+    };
+
+    if rows.is_empty() {
+      warnings.push(format!("CATNR {norad_cat_id} returned no orbital elements."));
+      continue;
+    }
+
+    if let Some(parsed) = parse_governed_satellite_element(&rows[0]) {
+      elements.push(parsed);
+    } else {
+      warnings.push(format!(
+        "CATNR {norad_cat_id} payload was missing required OMM fields."
+      ));
+    }
+  }
+
+  if elements.is_empty() {
+    let warning_summary = warnings.join(" ");
+    return Err(format!(
+      "Governed satellite refresh failed for {}. {}",
+      request.focus_aoi_label,
+      if warnings.is_empty() {
+        "No orbital elements were retrieved."
+      } else {
+        &warning_summary
+      }
+    ));
+  }
+
+  let status_detail = if warnings.is_empty() {
+    format!(
+      "CelesTrak live orbital-element refresh retrieved {} governed satellite record(s) for {}.",
+      elements.len(),
+      request.focus_aoi_label
+    )
+  } else {
+    format!(
+      "CelesTrak live orbital-element refresh retrieved {} governed satellite record(s) for {}; some catalog ids were unavailable. {}",
+      elements.len(),
+      request.focus_aoi_label,
+      warnings.join(" ")
+    )
+  };
+
+  Ok(FetchSatelliteElementsResult {
+    provider_label: "CelesTrak GP element sets".to_string(),
+    source_url: "https://celestrak.org/NORAD/documentation/gp-data-formats.php".to_string(),
+    source_license: "public modeled".to_string(),
+    focus_aoi_id: request.focus_aoi_id.clone(),
+    focus_aoi_label: request.focus_aoi_label.clone(),
+    retrieved_at: Utc::now().to_rfc3339(),
+    source_state: "live".to_string(),
+    status_detail,
+    elements,
+  })
+}
+
+#[tauri::command]
+async fn fetch_satellite_elements(
+  request: FetchSatelliteElementsRequest,
+) -> CommandResult<FetchSatelliteElementsResult> {
+  fetch_satellite_elements_internal(&request).await
+}
+
 #[tauri::command]
 fn write_map_export_artifact(
   app: AppHandle,
@@ -3424,6 +3896,8 @@ pub fn run() {
       run_ai_gateway_provider_analysis,
       run_strategic_model_solve,
       query_context_records,
+      fetch_commercial_air_traffic,
+      fetch_satellite_elements,
       write_map_export_artifact,
       write_runtime_smoke_evidence
     ])

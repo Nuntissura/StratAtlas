@@ -343,7 +343,8 @@ button:disabled {
 }
 
 .layer-family-state-badge.state-static-only,
-.layer-family-state-badge.state-licensed {
+.layer-family-state-badge.state-licensed,
+.layer-family-state-badge.state-cached {
   border-color: #756845;
   color: #ead394;
 }
@@ -360,6 +361,30 @@ button:disabled {
   border-radius: 10px;
   border: 1px dashed var(--workbench-border-strong);
   background: rgba(255, 255, 255, 0.03);
+}
+
+.layer-family-source-summary {
+  display: grid;
+  gap: 0.35rem;
+  margin-bottom: 0.75rem;
+  padding: 0.75rem;
+  border: 1px solid var(--workbench-border-strong);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.layer-family-source-summary p {
+  margin: 0;
+}
+
+.layer-family-source-summary small {
+  display: block;
+}
+
+.layer-family-source-actions {
+  display: flex;
+  justify-content: flex-start;
+  margin-top: 0.15rem;
 }
 
 .summary-grid strong {

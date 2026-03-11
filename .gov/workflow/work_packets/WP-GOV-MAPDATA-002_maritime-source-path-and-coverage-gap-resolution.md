@@ -1,7 +1,7 @@
 # WP-GOV-MAPDATA-002 - Maritime Source Path and Coverage Gap Resolution
 
 Date Opened: 2026-03-10
-Status: SPEC-MAPPED
+Status: E2E-VERIFIED
 Iteration: All
 Workflow Version: 4.0
 Packet Class: RESEARCH
@@ -115,9 +115,9 @@ Resolve the maritime source, licensing, latency, and coverage truth gap before t
 
 ## Change Ledger
 
-- What Became Real: The queue now has an explicit governance owner for the maritime source gap instead of pretending shipping can be implemented on the same footing as air traffic.
-- What Remains Simulated: No maritime movement layer is implemented by this packet.
-- Next Blocking Real Seam: Resolve source and coverage truth so `WP-I1-012` can move from blocked into implementation.
+- What Became Real: The repo now has a concrete maritime source decision matrix, a source-state labeling contract, and a constrained unblock path for `WP-I1-012` instead of treating shipping as source-equivalent to air traffic.
+- What Remains Simulated: No maritime movement runtime is implemented by this packet, and no licensed global low-latency maritime provider is wired into the app yet.
+- Next Blocking Real Seam: Implement `WP-I1-012` with delayed/regional/cached maritime plus optional backend-only user-key live enhancement while keeping global-live and naval claims out of scope.
 
 ## Checkpoint Commit Plan
 
@@ -142,14 +142,17 @@ Resolve the maritime source, licensing, latency, and coverage truth gap before t
 
 ## Evidence
 
-- Test Suite Execution:
-- Logs:
-- Screenshots/Exports:
-- Build Artifacts:
-- Proof Artifact: .product/build_target/tool_artifacts/wp_runs/WP-GOV-MAPDATA-002/
+- Test Suite Execution: `.gov/workflow/wp_checks/check-WP-GOV-MAPDATA-002.ps1`
+- Logs: `.product/build_target/tool_artifacts/wp_runs/WP-GOV-MAPDATA-002/20260311_155444/`
+- Screenshots/Exports: N/A; governance-only packet
+- Build Artifacts: Governance validation only
+- Proof Artifact: `.product/build_target/tool_artifacts/wp_runs/WP-GOV-MAPDATA-002/20260311_155444/`
 - User Sign-off:
 
 ## Progress Log
 
 - 2026-03-10: WP scaffold created via `.gov/repo_scripts/new_work_packet.ps1`.
 - 2026-03-10: Packet rewritten as the explicit governance blocker owner for maritime source-path selection and gap closure.
+- 2026-03-11: Official-source review resolved the maritime decision matrix: Marine Cadastre/NOAA AIS archives are acceptable for delayed/regional replay and packaged fallback, backend-only user-key community feeds are acceptable only as optional enhancements, and default publishable global live maritime requires a separately governed licensed-provider path.
+- 2026-03-11: `WP-I1-012` is now unblocked only for a constrained first implementation path with explicit delayed/regional/cached or community-feed labeling and no live naval claim.
+- 2026-03-11: `check-WP-GOV-MAPDATA-002.ps1` passed with proof artifact `.product/build_target/tool_artifacts/wp_runs/WP-GOV-MAPDATA-002/20260311_155444/`.

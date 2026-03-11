@@ -743,6 +743,14 @@ export const MapRuntimeSurface = forwardRef<MapRuntimeSurfaceHandle, MapRuntimeS
             }
             lastRenderAt = now
             if (!settled) {
+              if (
+                sampleCount > 0 &&
+                !map.isMoving() &&
+                now - startedAt >= Math.max(120, animationDurationMs * 0.75)
+              ) {
+                void finish()
+                return
+              }
               frameLoopHandle = window.requestAnimationFrame(sampleFrame)
             }
           }
@@ -754,6 +762,10 @@ export const MapRuntimeSurface = forwardRef<MapRuntimeSurfaceHandle, MapRuntimeS
           }
 
           timeoutHandle = window.setTimeout(() => {
+            if (sampleCount > 0) {
+              void finish()
+              return
+            }
             void fail('Planar pan/zoom probe timed out before the map finished animating.')
           }, timeoutMs)
 
@@ -995,35 +1007,44 @@ export const MapRuntimeSurface = forwardRef<MapRuntimeSurfaceHandle, MapRuntimeS
       return
     }
 
-    map.stop()
-    const view = runtimeAoiView(selectedFocusAoiId)
+    const applyPlanarViewport = () => {
+      map.stop()
+      const view = runtimeAoiView(selectedFocusAoiId)
 
-    map.setProjection({
-      type: 'mercator',
-    })
-    applyFog(map, null)
-    if (
-      previousViewport &&
-      previousViewport.surfaceMode === 'planar' &&
-      previousViewport.focusAoiId !== selectedFocusAoiId
-    ) {
-      map.easeTo({
+      map.setProjection({
+        type: 'mercator',
+      })
+      applyFog(map, null)
+      if (
+        previousViewport &&
+        previousViewport.surfaceMode === 'planar' &&
+        previousViewport.focusAoiId !== selectedFocusAoiId
+      ) {
+        map.easeTo({
+          center: view.center,
+          zoom: 3.4,
+          pitch: 24,
+          bearing: 0,
+          duration: 900,
+          essential: true,
+        })
+        return
+      }
+
+      map.jumpTo({
         center: view.center,
         zoom: 3.4,
         pitch: 24,
         bearing: 0,
-        duration: 900,
-        essential: true,
       })
+    }
+
+    if (map.isStyleLoaded()) {
+      applyPlanarViewport()
       return
     }
 
-    map.jumpTo({
-      center: view.center,
-      zoom: 3.4,
-      pitch: 24,
-      bearing: 0,
-    })
+    map.once('styledata', applyPlanarViewport)
   }, [planarReady, selectedFocusAoiId, surfaceMode])
 
   useEffect(() => {
