@@ -1,6 +1,6 @@
 # SX-WP-GOV-SMOKE-001 - Spec Extraction Snapshot
 
-Generated On: 2026-03-10
+Generated On: 2026-03-11
 Linked Work Packet: WP-GOV-SMOKE-001
 Linked Test Suite: .gov/workflow/wp_test_suites/TS-WP-GOV-SMOKE-001.md
 Linked WP Check Script: .gov/workflow/wp_checks/check-WP-GOV-SMOKE-001.ps1
@@ -23,9 +23,9 @@ Concrete extraction of requirement and primitive obligations this WP must satisf
 
 ## Change Ledger Snapshot
 
-- What Became Real: The repo now has governed screenshot-backed manual smoke evidence for both the baseline packaged shell and the refined current-code guided-start shell, so first-use UX quality can be assessed against real desktop windows instead of inferred from automated proof alone.
-- What Remains Simulated: Broader manual acceptance across 3D, export, reopen, and deeper workflow scenarios is still incomplete; the packet currently proves first-use shell triage and follow-up validation, not full manual acceptance of every mode.
-- Next Blocking Real Seam: Extend manual desktop coverage from first-use shell triage into deeper scenario-by-scenario flows before release-candidate work.
+- What Became Real: The repo now has governed screenshot-backed manual smoke evidence for the baseline portable shell, the rebuilt guided-start shell, and the current governed portable shell after the full `WP-I1-008` through `WP-I1-013` map-family rollout, plus automation-assisted confirmation of real 3D switching, bundle create/reopen, 4K export, and planning/solver interaction on the packaged app.
+- What Remains Simulated: The remaining gap is no longer basic functional doubt about those flows; it is final qualitative user review and ship/no-ship judgment for the resulting UX. No additional raw jsdom-only inference is being used for the validated flows in this slice.
+- Next Blocking Real Seam: User review of the broadened manual smoke evidence, then either a narrow UX follow-on packet or release-candidate governance.
 
 ## Requirement Extraction
 
