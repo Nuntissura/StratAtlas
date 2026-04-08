@@ -61,7 +61,6 @@ Add a localhost-only HTTP server so AI agents can navigate panels, trigger snaps
 - Full UI automation (clicking buttons, filling forms).
 - WebSocket/streaming support.
 - Map interaction commands (pan, zoom, draw) — navigation and snapshots only.
-- TBD - replace before status promotion.
 
 ## Expected Files Touched
 
@@ -75,7 +74,9 @@ Add a localhost-only HTTP server so AI agents can navigate panels, trigger snaps
 - .gov/workflow/wp_test_suites/TS-WP-GOV-BRIDGE-001.md
 - .gov/workflow/wp_spec_extractions/SX-WP-GOV-BRIDGE-001.md
 - .gov/workflow/wp_checks/check-WP-GOV-BRIDGE-001.ps1
-- .product/Worktrees/wt_main/src/<implementation_files>
+- .product/Worktrees/wt_main/src-tauri/src/lib.rs
+- .product/Worktrees/wt_main/src/App.tsx
+- AGENTS.md
 
 ## Interconnection Plan
 

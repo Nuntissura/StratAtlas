@@ -15,17 +15,17 @@ Concrete extraction of requirement and primitive obligations this WP must satisf
 
 ## Reality Boundary Snapshot
 
-- Real Seam: TBD
-- User-Visible Win: TBD
-- Proof Target: TBD
-- Allowed Temporary Fallbacks: TBD
+- Real Seam: see WP for details
+- User-Visible Win: see WP for details
+- Proof Target: see WP for details
+- Allowed Temporary Fallbacks: see WP for details
 - Promotion Guard: RESEARCH and SCAFFOLD packets do not promote linked requirements or primitives to E2E-VERIFIED.
 
 ## Change Ledger Snapshot
 
-- What Became Real: TBD
-- What Remains Simulated: TBD
-- Next Blocking Real Seam: TBD
+- What Became Real: see WP for details
+- What Remains Simulated: see WP for details
+- Next Blocking Real Seam: see WP for details
 
 ## Requirement Extraction
 

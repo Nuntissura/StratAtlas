@@ -1,7 +1,7 @@
 # WP-GOV-DEBUGGER-001 - Built-in Visual Debugger for Agents
 
 Date Opened: 2026-04-09
-Status: SPEC-MAPPED
+Status: IN-PROGRESS
 Iteration: All
 Workflow Version: 4.0
 Packet Class: IMPLEMENTATION
@@ -54,7 +54,6 @@ Add a deterministic application-layer snapshot tool so AI agents can capture the
 
 - WebGL/canvas map tile capture (html2canvas limitation with GPU-rendered content).
 - Video recording or screen streaming.
-- TBD - replace before status promotion.
 
 ## Expected Files Touched
 
@@ -68,7 +67,9 @@ Add a deterministic application-layer snapshot tool so AI agents can capture the
 - .gov/workflow/wp_test_suites/TS-WP-GOV-DEBUGGER-001.md
 - .gov/workflow/wp_spec_extractions/SX-WP-GOV-DEBUGGER-001.md
 - .gov/workflow/wp_checks/check-WP-GOV-DEBUGGER-001.ps1
-- .product/Worktrees/wt_main/src/<implementation_files>
+- .product/Worktrees/wt_main/src-tauri/src/lib.rs
+- .product/Worktrees/wt_main/src/App.tsx
+- AGENTS.md
 
 ## Interconnection Plan
 

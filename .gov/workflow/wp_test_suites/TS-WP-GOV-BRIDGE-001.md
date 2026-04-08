@@ -13,26 +13,26 @@ Validate WP delivery against linked requirements and primitives.
 
 - Linked requirements: REQ-0013, REQ-0019, REQ-0020
 - Linked primitives: PRIM-0071
-- Linked components: TBD
+- Linked components: see WP for details
 
 ## Reality Boundary Assertions
 
 - Packet Class: IMPLEMENTATION
-- Real Seam: TBD
-- Proof Target: TBD
-- Allowed Fallbacks: TBD
+- Real Seam: see WP for details
+- Proof Target: see WP for details
+- Allowed Fallbacks: see WP for details
 - Promotion Guard: RESEARCH and SCAFFOLD packets do not promote linked requirements or primitives to E2E-VERIFIED.
 
 ## Test Case Matrix
 
 | Case ID | Requirement | Primitive | Category | Target | Command/Test | Expected |
 |--------|-------------|-----------|----------|--------|--------------|----------|
-| DEP-001 | REQ-0013 | PRIM-0071 | Dependency | dependency graph | TBD COMMAND | dependencies resolved and policy-compliant |
-| UI-001 | REQ-0013 | PRIM-0071 | UI Contract | required UI contract | TBD TEST FILE | required regions/modes and degraded states pass |
-| FUNC-001 | REQ-0013 | PRIM-0071 | Functionality | golden flow | TBD TEST FILE | golden flow passes deterministically |
-| COR-001 | REQ-0013 | PRIM-0071 | Code Correctness | module contracts | TBD UNIT/INTEGRATION | invariant and regression checks pass |
-| RED-001 | REQ-0013 | PRIM-0071 | Red Team / Abuse | misuse constraints | TBD SECURITY TEST | abuse cases blocked and audited |
-| EXT-001 | REQ-0013 | PRIM-0071 | Additional | perf/offline/reliability | TBD ADDITIONAL TEST | budgets and resilience targets met |
+| DEP-001 | REQ-0013 | PRIM-0071 | Dependency | dependency graph | see WP for details COMMAND | dependencies resolved and policy-compliant |
+| UI-001 | REQ-0013 | PRIM-0071 | UI Contract | required UI contract | see WP for details TEST FILE | required regions/modes and degraded states pass |
+| FUNC-001 | REQ-0013 | PRIM-0071 | Functionality | golden flow | see WP for details TEST FILE | golden flow passes deterministically |
+| COR-001 | REQ-0013 | PRIM-0071 | Code Correctness | module contracts | see WP for details UNIT/INTEGRATION | invariant and regression checks pass |
+| RED-001 | REQ-0013 | PRIM-0071 | Red Team / Abuse | misuse constraints | see WP for details SECURITY TEST | abuse cases blocked and audited |
+| EXT-001 | REQ-0013 | PRIM-0071 | Additional | perf/offline/reliability | see WP for details ADDITIONAL TEST | budgets and resilience targets met |
 
 ## Dependency and Environment Tests
 
