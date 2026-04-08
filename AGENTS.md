@@ -102,6 +102,23 @@ Do not implement:
 - Prefer additive and reversible updates over destructive edits.
 - Keep generated artifacts out of governance folders unless they are governance artifacts by design.
 
+## Built-in Visual Debugger (WP-GOV-DEBUGGER-001)
+
+- Agents can capture a snapshot of the current workbench surface for visual debugging and QA.
+- **Hotkey**: `Ctrl + Shift + S` — saves to `snapshots/manual/` under app data.
+- **JS global**: `window.__stratatlasRequestSnapshot(subfolder?, label?)` — returns absolute file path to saved PNG.
+- Snapshots saved to `<app_data>/stratatlas/snapshots/<subfolder>/<label>_<timestamp>.png`.
+
+## Headless Agent Bridge (WP-GOV-BRIDGE-001)
+
+- Localhost-only HTTP API so agents can navigate and capture without focus stealing.
+- Port written to `<app_data>/stratatlas/agent_bridge_port.txt` on startup.
+- Endpoints:
+  - `GET /agent/health` — liveness check
+  - `GET /agent/state` — current panel
+  - `POST /agent/navigate` — `{"panel":"..."}` switch panel
+  - `POST /agent/snapshot` — `{"subfolder":"...","label":"..."}` capture snapshot, blocks up to 30s
+
 ## 7) Always-Maintained Sentiment
 
 - Treat roadmap and build order as living governance artifacts, not one-time docs.

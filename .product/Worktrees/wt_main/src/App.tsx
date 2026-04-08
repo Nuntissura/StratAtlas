@@ -249,6 +249,9 @@ import {
   type ScenarioTreeNodeType,
   type SolverMethod,
 } from './features/i10/gameModeling'
+import { invoke } from '@tauri-apps/api/core'
+import { listen } from '@tauri-apps/api/event'
+import html2canvas from 'html2canvas'
 import { backend } from './lib/backend'
 import {
   captureRuntimeSmokeWindowSnapshot,
@@ -1550,6 +1553,78 @@ function App() {
       setSatelliteLoading(false)
     }
   })
+
+  // WP-GOV-DEBUGGER-001: Visual debugger hotkey + JS global
+  // WP-GOV-BRIDGE-001: Headless agent bridge event listeners
+  useEffect(() => {
+    const handleKeyDown = async (e: KeyboardEvent) => {
+      if (e.shiftKey && (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+        e.preventDefault()
+        try {
+          const canvas = await html2canvas(document.body)
+          const base64Data = canvas.toDataURL('image/png')
+          const absPath = await invoke<string>('admin_save_snapshot', {
+            base64Data,
+            subfolder: 'manual',
+          })
+          console.log('[Visual Debugger] Snapshot saved:', absPath)
+        } catch (err) {
+          console.error('[Visual Debugger] Snapshot failed', err)
+        }
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+
+    // @ts-ignore
+    window.__stratatlasRequestSnapshot = async (subfolder?: string, label?: string) => {
+      try {
+        const canvas = await html2canvas(document.body)
+        const base64Data = canvas.toDataURL('image/png')
+        return await invoke<string>('admin_save_snapshot', {
+          base64Data,
+          subfolder: subfolder ?? null,
+          label: label ?? null,
+        })
+      } catch (err) {
+        console.error('[Visual Debugger] programmatic capture failed', err)
+        throw err
+      }
+    }
+
+    const unlisteners: Array<() => void> = []
+    ;(async () => {
+      unlisteners.push(
+        await listen<string>('agent-navigate', (_event) => {
+          console.log('[Agent Bridge] navigate request:', _event.payload)
+        })
+      )
+      unlisteners.push(
+        await listen<{ subfolder?: string; label?: string }>('agent-snapshot-request', async (event) => {
+          try {
+            const { subfolder, label } = event.payload ?? {}
+            const canvas = await html2canvas(document.body)
+            const base64Data = canvas.toDataURL('image/png')
+            const absPath = await invoke<string>('admin_save_snapshot', {
+              base64Data,
+              subfolder: subfolder || null,
+              label: label || null,
+            })
+            await invoke('agent_snapshot_complete', { path: absPath })
+          } catch (err) {
+            console.error('[Agent Bridge] snapshot failed', err)
+            await invoke('agent_snapshot_complete', { path: '' }).catch(() => {})
+          }
+        })
+      )
+    })()
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+      // @ts-ignore
+      delete window.__stratatlasRequestSnapshot
+      for (const u of unlisteners) u()
+    }
+  }, [])
 
   useEffect(() => {
     let cancelled = false

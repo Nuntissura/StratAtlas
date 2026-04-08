@@ -3869,6 +3869,168 @@ fn write_runtime_smoke_evidence(
   })
 }
 
+// ---------------------------------------------------------------------------
+// Visual Debugger + Headless Agent Bridge (WP-GOV-DEBUGGER-001 + WP-GOV-BRIDGE-001)
+// ---------------------------------------------------------------------------
+
+use std::sync::{Mutex, OnceLock};
+use std::net::TcpListener;
+
+static AGENT_APP_HANDLE: OnceLock<AppHandle> = OnceLock::new();
+static AGENT_BRIDGE_STATE: OnceLock<std::sync::Arc<Mutex<AgentBridgeInner>>> = OnceLock::new();
+
+#[derive(Debug, Default)]
+struct AgentBridgeInner {
+  current_panel: String,
+  snapshot_tx: Option<std::sync::mpsc::Sender<String>>,
+}
+
+fn agent_bridge_state() -> &'static std::sync::Arc<Mutex<AgentBridgeInner>> {
+  AGENT_BRIDGE_STATE.get_or_init(|| std::sync::Arc::new(Mutex::new(AgentBridgeInner::default())))
+}
+
+#[tauri::command]
+fn admin_save_snapshot(
+  app: AppHandle,
+  base64_data: String,
+  subfolder: Option<String>,
+  label: Option<String>,
+) -> Result<String, String> {
+  let b64 = base64_data.strip_prefix("data:image/png;base64,").unwrap_or(&base64_data);
+  let decoded = base64::engine::general_purpose::STANDARD
+    .decode(b64)
+    .map_err(|e| format!("base64 decode failed: {e}"))?;
+
+  let mut target_dir = app_runtime_root(&app)?;
+  target_dir.push("snapshots");
+  if let Some(sub) = subfolder.as_deref() {
+    let sanitized = sub.replace(['/', '\\', ':', '*', '?', '"', '<', '>', '|'], "_");
+    if !sanitized.is_empty() {
+      target_dir.push(sanitized);
+    }
+  }
+  fs::create_dir_all(&target_dir).map_err(|e| format!("mkdir failed: {e}"))?;
+
+  let label_part = label
+    .map(|l| l.replace(['/', '\\', ':', '*', '?', '"', '<', '>', '|', ' '], "_"))
+    .filter(|l| !l.is_empty());
+  let ts = Utc::now().timestamp_millis();
+  let file_name = match label_part {
+    Some(l) => format!("{l}_{ts}.png"),
+    None => format!("snapshot_{ts}.png"),
+  };
+  let path = target_dir.join(&file_name);
+  fs::write(&path, &decoded).map_err(|e| format!("write failed: {e}"))?;
+  let abs = fs::canonicalize(&path).unwrap_or(path).to_string_lossy().to_string();
+  Ok(abs)
+}
+
+#[tauri::command]
+fn agent_report_state(panel: String) {
+  let mut state = agent_bridge_state().lock().unwrap();
+  state.current_panel = panel;
+}
+
+#[tauri::command]
+fn agent_snapshot_complete(path: String) {
+  let mut state = agent_bridge_state().lock().unwrap();
+  if let Some(tx) = state.snapshot_tx.take() {
+    let _ = tx.send(path);
+  }
+}
+
+fn spawn_agent_bridge(data_dir: &Path) {
+  let port_file = data_dir.join("agent_bridge_port.txt");
+  std::thread::spawn(move || {
+    let listener = match TcpListener::bind("127.0.0.1:0") {
+      Ok(l) => l,
+      Err(_) => return,
+    };
+    let port = match listener.local_addr() {
+      Ok(a) => a.port(),
+      Err(_) => return,
+    };
+    let _ = fs::write(&port_file, port.to_string());
+
+    for stream in listener.incoming().flatten() {
+      let _ = stream.set_read_timeout(Some(Duration::from_secs(5)));
+      let _ = stream.set_write_timeout(Some(Duration::from_secs(5)));
+      handle_agent_request(stream);
+    }
+  });
+}
+
+fn handle_agent_request(mut stream: std::net::TcpStream) {
+  use std::io::{BufRead, BufReader, Read, Write as IoWrite};
+
+  let reader_stream = match stream.try_clone() {
+    Ok(s) => s,
+    Err(_) => return,
+  };
+  let mut reader = BufReader::new(reader_stream);
+  let mut request_line = String::new();
+  if reader.read_line(&mut request_line).is_err() { return; }
+  let parts: Vec<&str> = request_line.trim().split_whitespace().collect();
+  if parts.len() < 2 { return; }
+  let (method, path) = (parts[0], parts[1]);
+
+  let mut content_length: usize = 0;
+  loop {
+    let mut header = String::new();
+    if reader.read_line(&mut header).is_err() || header.trim().is_empty() { break; }
+    if header.to_ascii_lowercase().starts_with("content-length:") {
+      content_length = header.split(':').nth(1).and_then(|v| v.trim().parse().ok()).unwrap_or(0);
+    }
+  }
+  let mut body = vec![0u8; content_length];
+  if content_length > 0 { let _ = reader.read_exact(&mut body); }
+  let body_str = String::from_utf8_lossy(&body);
+
+  let (status, resp) = match (method, path) {
+    ("GET", "/agent/health") => ("200 OK", r#"{"status":"ok"}"#.to_string()),
+    ("GET", "/agent/state") => {
+      let st = agent_bridge_state().lock().unwrap();
+      ("200 OK", format!(r#"{{"current_panel":"{}"}}"#, st.current_panel))
+    }
+    ("POST", "/agent/navigate") => {
+      let parsed: Value = serde_json::from_str(&body_str).unwrap_or(json!({}));
+      let panel = parsed.get("panel").and_then(|v| v.as_str()).unwrap_or("").to_string();
+      if let Some(app) = AGENT_APP_HANDLE.get() {
+        let _ = app.emit("agent-navigate", &panel);
+      }
+      ("200 OK", format!(r#"{{"navigated":"{}"}}"#, panel))
+    }
+    ("POST", "/agent/snapshot") => {
+      let parsed: Value = serde_json::from_str(&body_str).unwrap_or(json!({}));
+      let subfolder = parsed.get("subfolder").and_then(|v| v.as_str()).unwrap_or("").to_string();
+      let label = parsed.get("label").and_then(|v| v.as_str()).unwrap_or("").to_string();
+      let (tx, rx) = std::sync::mpsc::channel::<String>();
+      { agent_bridge_state().lock().unwrap().snapshot_tx = Some(tx); }
+      if let Some(app) = AGENT_APP_HANDLE.get() {
+        let _ = app.emit("agent-snapshot-request", json!({"subfolder": subfolder, "label": label}));
+      }
+      match rx.recv_timeout(Duration::from_secs(30)) {
+        Ok(p) => ("200 OK", format!(r#"{{"path":"{}"}}"#, p.replace('\\', "\\\\"))),
+        Err(_) => {
+          agent_bridge_state().lock().unwrap().snapshot_tx = None;
+          ("504 Gateway Timeout", r#"{"error":"snapshot timed out"}"#.to_string())
+        }
+      }
+    }
+    _ => ("404 Not Found", r#"{"error":"not found"}"#.to_string()),
+  };
+
+  let response = format!(
+    "HTTP/1.1 {status}\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{resp}",
+    resp.len()
+  );
+  let _ = stream.write_all(response.as_bytes());
+  let _ = stream.flush();
+}
+
+use tauri::Emitter;
+use base64::Engine as _;
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
   tauri::Builder::default()
@@ -3880,6 +4042,9 @@ pub fn run() {
             .build(),
         )?;
       }
+      let _ = AGENT_APP_HANDLE.set(app.handle().clone());
+      let data_dir = app_runtime_root(app.handle())?;
+      spawn_agent_bridge(&data_dir);
       Ok(())
     })
     .invoke_handler(tauri::generate_handler![
@@ -3899,7 +4064,10 @@ pub fn run() {
       fetch_commercial_air_traffic,
       fetch_satellite_elements,
       write_map_export_artifact,
-      write_runtime_smoke_evidence
+      write_runtime_smoke_evidence,
+      admin_save_snapshot,
+      agent_report_state,
+      agent_snapshot_complete
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");
