@@ -379,3 +379,7 @@ For quick lookup: "What requirements does this component implement?"
 | WP-I1-013 | I1 | REQ-0013, REQ-0108, REQ-0200, REQ-0201, REQ-0202, REQ-0203, REQ-0211, REQ-0212 | PRIM-0045, PRIM-0046, PRIM-0071 | .gov/workflow/wp_test_suites/TS-WP-I1-013.md | E2E-VERIFIED | .gov/workflow/wp_spec_extractions/SX-WP-I1-013.md; `.product/build_target/tool_artifacts/wp_runs/WP-I1-013/20260311_165018/`; specialized refinery, ore-processing, and water-treatment benchmarks now render as a governed family with explicit coverage-gap labeling, grouped summary help, and recorder/bundle restore |
 
 | WP-GOV-MAPDATA-003 | All | REQ-0011, REQ-0012, REQ-0013, REQ-0019, REQ-0020, REQ-0021, REQ-0022, REQ-0200, REQ-0201 | PRIM-0064, PRIM-0070 | .gov/workflow/wp_test_suites/TS-WP-GOV-MAPDATA-003.md | E2E-VERIFIED | .gov/workflow/wp_spec_extractions/SX-WP-GOV-MAPDATA-003.md; `.product/build_target/tool_artifacts/wp_runs/WP-GOV-MAPDATA-003/20260310_231706/`; checklist hardening in `.gov/Spec/sub-specs/GOV_map_family_intent_guardrails.md`; queue inheritance wired into `WP-I1-008` through `WP-I1-013` |
+
+| WP-GOV-DEBUGGER-001 | All | REQ-0013, REQ-0019, REQ-0020 | PRIM-0071 | .gov/workflow/wp_test_suites/TS-WP-GOV-DEBUGGER-001.md | SPEC-MAPPED | .gov/workflow/wp_spec_extractions/SX-WP-GOV-DEBUGGER-001.md |
+
+| WP-GOV-BRIDGE-001 | All | REQ-0013, REQ-0019, REQ-0020 | PRIM-0071 | .gov/workflow/wp_test_suites/TS-WP-GOV-BRIDGE-001.md | SPEC-MAPPED | .gov/workflow/wp_spec_extractions/SX-WP-GOV-BRIDGE-001.md |

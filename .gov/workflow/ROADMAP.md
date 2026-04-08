@@ -103,6 +103,13 @@ This file is the execution order for capability slices. It is the scheduling bri
 - The `WP-I1-008` through `WP-I1-013` map-family queue is now fully closed under the guardrail checklist.
 - Next correct task: review the broadened `WP-GOV-SMOKE-001` evidence and decide whether another narrow UX/visual refinement packet is justified or whether release-prep governance is now the higher-ROI next move.
 
+## 2C) Agent Tooling Queue
+
+- `WP-GOV-DEBUGGER-001` adds a deterministic visual debugger (html2canvas snapshot + Tauri command + Ctrl+Shift+S hotkey + JS global hook) so agents can capture the workbench surface for visual QA without manual screenshots.
+- `WP-GOV-BRIDGE-001` adds a localhost-only HTTP API (navigate/snapshot/state/health endpoints) so agents can navigate panels and capture snapshots without stealing focus — enabling headless visual audits and automated smoke runs.
+- Sequencing: `WP-GOV-BRIDGE-001` depends on `WP-GOV-DEBUGGER-001` (snapshot infra must exist before the bridge can trigger it).
+- Both packets are cross-cutting tooling and do not block or change the current product remediation queue.
+
 ---
 
 ## 3) Release-Gate Coupling
