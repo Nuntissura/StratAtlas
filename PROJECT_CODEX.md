@@ -50,8 +50,9 @@ Execution loop:
 12. Run preflight: `powershell -ExecutionPolicy Bypass -File .gov/repo_scripts/governance_preflight.ps1`.
 13. Enforce WP template compliance: `powershell -ExecutionPolicy Bypass -File .gov/repo_scripts/enforce_wp_template_compliance.ps1`.
 14. Run the governance-sync checklist in `.gov/workflow/GOVERNANCE_WORKFLOW.md`.
-15. Update WP/test suite/taskboard with outcome + proof artifact path (`.product/build_target/tool_artifacts/wp_runs/<WP-ID>/`), plus `What Became Real`, `What Remains Simulated`, and `Next Blocking Real Seam`.
-16. For installer-impacting WPs, run `powershell -ExecutionPolicy Bypass -File .gov/repo_scripts/build_windows_installer.ps1` and record installer kit path + manifest in WP evidence.
+15. For UI-impacting WPs: if the app is running, use the headless agent bridge to capture visual snapshots of affected panels and include paths in WP evidence. See `AGENTS.md` for endpoint reference.
+16. Update WP/test suite/taskboard with outcome + proof artifact path (`.product/build_target/tool_artifacts/wp_runs/<WP-ID>/`), plus `What Became Real`, `What Remains Simulated`, and `Next Blocking Real Seam`.
+17. For installer-impacting WPs, run `powershell -ExecutionPolicy Bypass -File .gov/repo_scripts/build_windows_installer.ps1` and record installer kit path + manifest in WP evidence.
 
 If an iteration has multiple sequenced WPs:
 

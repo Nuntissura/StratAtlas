@@ -87,6 +87,14 @@ The agent must not implement capabilities prohibited by the spec, including:
 
 If a requested change is ambiguous, high-risk, or conflicts with governance constraints, ask for clarification before implementation.
 
+## 9A) Visual Feedback and Headless Bridge Usage
+
+- After implementing UI changes, the agent SHOULD use the headless agent bridge to capture visual snapshots of affected panels and verify the change visually — not just rely on build-passes.
+- When the app is running, discover the bridge port from `<app_data>/stratatlas/agent_bridge_port.txt` and use `GET /agent/health` to confirm connectivity before issuing navigate/snapshot commands.
+- Never use keyboard/mouse simulation (PowerShell SendKeys, keybd_event, etc.) to interact with the app. Always use the HTTP bridge endpoints instead.
+- When preparing WP evidence, include visual snapshot paths from the bridge in the proof artifact set.
+- See `AGENTS.md` for endpoint reference, example workflows, and when-to-use guidance.
+
 ## 10) Done Standard and Status Integrity
 
 - `E2E-VERIFIED` is the only done state.
