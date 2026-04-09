@@ -107,9 +107,9 @@ This file is the execution order for capability slices. It is the scheduling bri
 
 - `WP-GOV-DEBUGGER-001` is now `IMPLEMENTED`; proof: `.product/build_target/tool_artifacts/wp_runs/WP-GOV-DEBUGGER-001/20260409_044342/`. The app ships a deterministic visual debugger with html2canvas capture, a Tauri snapshot command, `Ctrl+Shift+S`, and `window.__stratatlasRequestSnapshot(...)`. Live desktop snapshot capture is now also exercised under `.product/build_target/tool_artifacts/wp_runs/WP-I1-014/20260409_051858/visual_proof/`.
 - `WP-GOV-BRIDGE-001` is now `IMPLEMENTED`; proof: `.product/build_target/tool_artifacts/wp_runs/WP-GOV-BRIDGE-001/20260409_044342/`. The app now exposes localhost `/agent/health`, `/agent/state`, `/agent/navigate`, and `/agent/snapshot` endpoints, writes the discovery port file, and routes bridge navigation into real shell panel and 2D/3D mode changes. Live bridge reachability plus snapshot flow is now exercised under `.product/build_target/tool_artifacts/wp_runs/WP-I1-014/20260409_051858/visual_proof/`.
-- `WP-GOV-BRIDGE-002` is now `IN-PROGRESS`. It is the cross-cutting follow-on that closes the remaining interaction gap left by `WP-GOV-BRIDGE-001` and surfaced by `WP-I6-004`: the bridge must be able to invoke approved named app actions such as `probe-local-runtime` and await structured completion so live proof no longer depends on seeded recorder state.
+- `WP-GOV-BRIDGE-002` is now `IMPLEMENTED`; proof: `.product/build_target/tool_artifacts/wp_runs/WP-GOV-BRIDGE-002/20260409_224118/`. It closes the remaining interaction gap left by `WP-GOV-BRIDGE-001` and surfaced by `WP-I6-004`: the bridge now invokes approved named app actions such as `probe-local-runtime`, awaits structured completion, returns bounded unsupported-action/timeout errors, and captures live proof without seeded recorder state.
 - Sequencing: `WP-GOV-BRIDGE-001` depends on `WP-GOV-DEBUGGER-001` (snapshot infra must exist before the bridge can trigger it).
-- Sequencing: `WP-GOV-BRIDGE-002` depends on `WP-GOV-BRIDGE-001` for navigation/snapshot transport and on `WP-I6-004` for the initial real workflow it must drive (`probe-local-runtime`).
+- Sequencing: `WP-GOV-BRIDGE-002` depended on `WP-GOV-BRIDGE-001` for navigation/snapshot transport and on `WP-I6-004` for the initial real workflow it now drives (`probe-local-runtime`).
 - Both packets are cross-cutting tooling and do not block or change the current product remediation queue. Their remaining step before any future `E2E-VERIFIED` promotion is user sign-off rather than additional implementation.
 
 ## 2D) UX and Feature Improvement Queue (2026-04-09 inspection)
@@ -125,11 +125,11 @@ Derived from exhaustive visual inspection of the running app. Grouped by categor
 - `WP-I1-017` is now `IMPLEMENTED`; proof: `.product/build_target/tool_artifacts/wp_runs/WP-I1-017/20260409_192533/`. The map shell now renders as a compact HUD with a floating scene capsule, top-right action cluster, contextual drawer, hover/focus helper cards, purposeful motion controls, and a governed settings menu that persists real shell/runtime behavior such as compact chrome, hover helpers, motion profile, live-refresh policy, forced offline mode, and AI gateway profile. Live bridge proof is attached under `visual_proof/`.
 
 ### Feature UX Simplification
-- `WP-I1-018` — Simplify AI gateway and scenario modeling to obvious entry points, not complex config panels
+- `WP-I1-018` is now `IN-PROGRESS`. It simplifies the assistant and scenario surfaces so prompt/fork/compare/export are primary and advanced runtime/modeling controls move behind explicit disclosure; linked sub-spec: `.gov/Spec/sub-specs/I1_ai_and_scenario_ux_simplification.md`.
 
 ### AI Runtime Expansion
 - `WP-I6-003` — IMPLEMENTED: split provider choice from deployment profile and add a governed local executable-backed provider path with LM Studio/Ollama/custom presets for operator-supplied models
-- `WP-I6-004` — IMPLEMENTED: added a first-class in-app local-runtime probe, persisted verification state, and live bridge/debugger proof for the AI settings and assistant surfaces under `.product/build_target/tool_artifacts/wp_runs/WP-I6-004/20260409_214611/`
+- `WP-I6-004` - IMPLEMENTED: added a first-class in-app local-runtime probe, persisted verification state, and initial bridge/debugger proof for the AI settings and assistant surfaces under `.product/build_target/tool_artifacts/wp_runs/WP-I6-004/20260409_214611/`; successor `WP-GOV-BRIDGE-002` later retired the seeded-state screenshot workaround with live `/agent/action` proof under `.product/build_target/tool_artifacts/wp_runs/WP-GOV-BRIDGE-002/20260409_224118/`
 
 ### Global Events Tracking
 - `WP-I7-003` — Global event timeline bar, event markers on map with cluster/expand by zoom, event-to-AOI linking
