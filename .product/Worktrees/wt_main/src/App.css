@@ -112,12 +112,12 @@
 
 .layout {
   display: grid;
-  grid-template-columns: 320px 1fr 320px;
+  grid-template-columns: 300px 1fr 300px;
   gap: 0;
   padding: 0;
   flex: 1;
   position: relative;
-  overflow: hidden;
+  z-index: 5;
 }
 
 .panel {
@@ -814,6 +814,11 @@ button:disabled {
   gap: 0.5rem;
   max-height: calc(100vh - 3rem);
   overflow: auto;
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: none !important;
+  box-shadow: none !important;
 }
 
 .footer-panel {
