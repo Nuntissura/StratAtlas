@@ -6,7 +6,7 @@ Linked Test Suite: .gov/workflow/wp_test_suites/TS-WP-I1-014.md
 Linked WP Check Script: .gov/workflow/wp_checks/check-WP-I1-014.ps1
 Packet Class Snapshot: IMPLEMENTATION
 Workflow Version Snapshot: 4.0
-WP Status Snapshot: IN-PROGRESS
+WP Status Snapshot: IMPLEMENTED
 Iteration: I1
 
 ## Scope
@@ -23,9 +23,9 @@ Concrete extraction of requirement and primitive obligations this WP must satisf
 
 ## Change Ledger Snapshot
 
-- What Became Real: This packet is intended to make the 2D basemap itself operator-selectable and persistent instead of hard-coded to a single live style.
+- What Became Real: The 2D runtime now ships a compact selector for the official OpenFreeMap `Positron`, `Bright`, and `Liberty` styles, persists the chosen style through recorder save, bundle reopen, and warm restore, normalizes invalid restored values back to the governed default, and keeps truthful fallback labels when the live style is unavailable.
 - What Remains Simulated: Satellite imagery, terrain-specific styling, and dark/night variants remain outside this packet and must not be implied by the selector.
-- Next Blocking Real Seam: Implement the selector and restore path in the 2D MapLibre runtime, then verify the live desktop shell visually through the debugger/bridge if available.
+- Next Blocking Real Seam: User review plus the follow-on declutter packet `WP-I1-015`; this packet has no further implementation seam before any future `E2E-VERIFIED` promotion.
 
 ## Requirement Extraction
 

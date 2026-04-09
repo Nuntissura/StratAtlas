@@ -105,21 +105,21 @@ This file is the execution order for capability slices. It is the scheduling bri
 
 ## 2C) Agent Tooling Queue
 
-- `WP-GOV-DEBUGGER-001` is now `IMPLEMENTED`; proof: `.product/build_target/tool_artifacts/wp_runs/WP-GOV-DEBUGGER-001/20260409_044342/`. The app ships a deterministic visual debugger with html2canvas capture, a Tauri snapshot command, `Ctrl+Shift+S`, and `window.__stratatlasRequestSnapshot(...)`.
-- `WP-GOV-BRIDGE-001` is now `IMPLEMENTED`; proof: `.product/build_target/tool_artifacts/wp_runs/WP-GOV-BRIDGE-001/20260409_044342/`. The app now exposes localhost `/agent/health`, `/agent/state`, `/agent/navigate`, and `/agent/snapshot` endpoints, writes the discovery port file, and routes bridge navigation into real shell panel and 2D/3D mode changes.
+- `WP-GOV-DEBUGGER-001` is now `IMPLEMENTED`; proof: `.product/build_target/tool_artifacts/wp_runs/WP-GOV-DEBUGGER-001/20260409_044342/`. The app ships a deterministic visual debugger with html2canvas capture, a Tauri snapshot command, `Ctrl+Shift+S`, and `window.__stratatlasRequestSnapshot(...)`. Live desktop snapshot capture is now also exercised under `.product/build_target/tool_artifacts/wp_runs/WP-I1-014/20260409_051858/visual_proof/`.
+- `WP-GOV-BRIDGE-001` is now `IMPLEMENTED`; proof: `.product/build_target/tool_artifacts/wp_runs/WP-GOV-BRIDGE-001/20260409_044342/`. The app now exposes localhost `/agent/health`, `/agent/state`, `/agent/navigate`, and `/agent/snapshot` endpoints, writes the discovery port file, and routes bridge navigation into real shell panel and 2D/3D mode changes. Live bridge reachability plus snapshot flow is now exercised under `.product/build_target/tool_artifacts/wp_runs/WP-I1-014/20260409_051858/visual_proof/`.
 - Sequencing: `WP-GOV-BRIDGE-001` depends on `WP-GOV-DEBUGGER-001` (snapshot infra must exist before the bridge can trigger it).
-- Both packets are cross-cutting tooling and do not block or change the current product remediation queue. The remaining work is live desktop bridge proof plus user sign-off rather than additional implementation.
+- Both packets are cross-cutting tooling and do not block or change the current product remediation queue. Their remaining step before any future `E2E-VERIFIED` promotion is user sign-off rather than additional implementation.
 
 ## 2D) UX and Feature Improvement Queue (2026-04-09 inspection)
 
 Derived from exhaustive visual inspection of the running app. Grouped by category, ordered by impact.
 
 ### Map Quality
-- `WP-I1-014` — Active first pass: official OpenFreeMap `Positron`, `Bright`, and `Liberty` selector with recorder/bundle restore and truthful fallback messaging; satellite imagery, dark/night, and terrain-specific variants remain future scope
+- `WP-I1-014` is now `IMPLEMENTED`; proof: `.product/build_target/tool_artifacts/wp_runs/WP-I1-014/20260409_051858/`. The 2D runtime now ships official OpenFreeMap `Positron`, `Bright`, and `Liberty` style controls with recorder/bundle restore, invalid-restore normalization, truthful fallback copy, and live bridge snapshot evidence under `visual_proof/`; satellite imagery, dark/night, and terrain-specific variants remain future scope.
 - `WP-I1-016` — 3D globe terrain provider, atmosphere, 3D buildings
 
 ### Declutter
-- `WP-I1-015` — Map-dominant layout (70%+ viewport), panels on-demand, hide empty-state cards, explainers behind (?) help, progressive disclosure
+- `WP-I1-015` — Active first pass: promote the layer-family dock above session controls, explicitly disclose support-only shell detail, and keep the main summary deck compact by default; no new shell framework or floating-overlay rewrite is in scope
 - `WP-I1-017` — Honest live/cached/simulated state labels, hide panels with no data, clear "Connect to load" vs "Cached/sample" distinction
 
 ### Feature UX Simplification
@@ -142,7 +142,7 @@ Derived from exhaustive visual inspection of the running app. Grouped by categor
 - `WP-I0-004` — Demo/tutorial dataset, CSV/GeoJSON/KML export, auto-save/session resume, lazy-load heavy services
 
 ### Recommended priority order
-1. `WP-I1-014` (basemap) + `WP-I1-015` (declutter) — transforms from "LLM demo" to "usable tool"
+1. `WP-I1-015` (declutter) — pairs with the now-implemented `WP-I1-014` basemap upgrade to keep the shell map-dominant and reduce the remaining "LLM demo" feel
 2. `WP-I1-017` (state honesty) — stops showing fake data
 3. `WP-I7-003` (event timeline) — enables the primary use case
 4. `WP-I7-004` (geopolitical baseline) — makes the map meaningful on first launch

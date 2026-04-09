@@ -1,7 +1,7 @@
 # TS-WP-I1-014 - Spec vs Code Test Suite
 
 Date Opened: 2026-04-09
-Status: PLANNED
+Status: EXECUTED
 Linked Work Packet: WP-I1-014
 Iteration: I1
 
@@ -22,9 +22,9 @@ Validate the 2D basemap selector packet against the existing I1 runtime contract
 - Proof Target: Verification proves selector rendering, selected-style persistence, and truthful fallback messaging; live desktop snapshot evidence is preferred when the bridge/runtime is available.
 - Allowed Fallbacks: Only the official `Positron`, `Bright`, and `Liberty` vector styles are in scope; offline or load-failure states may continue to use the existing schematic fallback.
 - Promotion Guard: RESEARCH and SCAFFOLD packets do not promote linked requirements or primitives to E2E-VERIFIED.
-- What Became Real: Pending implementation.
+- What Became Real: The 2D shell now exposes a governed basemap selector for the official OpenFreeMap vector styles, persists the selected style through recorder and bundle restore, and normalizes invalid restored values back to the governed default.
 - What Remains Simulated: Satellite imagery, terrain-specific styling, and dark/night basemap variants remain outside this packet.
-- Next Blocking Real Seam: Wire the selector, restore path, and live runtime proof into the 2D shell.
+- Next Blocking Real Seam: User review plus successor packet `WP-I1-015` before any `E2E-VERIFIED` promotion.
 
 ## Test Case Matrix
 
@@ -39,40 +39,40 @@ Validate the 2D basemap selector packet against the existing I1 runtime contract
 
 ## Dependency and Environment Tests
 
-- [ ] Runtime dependency install/build checks
+- [x] Runtime dependency install/build checks
 - [ ] Platform portability constraints checked
 - [ ] Required style endpoints and fallback path behave as expected
 
 ## UI Contract Tests
 
-- [ ] Selector renders in the map toolbar
-- [ ] Active selection is visually and textually clear
-- [ ] Error and degraded-state UX remains truthful
+- [x] Selector renders in the map toolbar
+- [x] Active selection is visually and textually clear
+- [x] Error and degraded-state UX remains truthful
 
 ## Functional Flow Tests
 
-- [ ] Style selection flow
-- [ ] Deterministic recorder restore path
-- [ ] Bundle reopen path
+- [x] Style selection flow
+- [x] Deterministic recorder restore path
+- [x] Bundle reopen path
 
 ## Code Correctness Tests
 
-- [ ] App/UI regression tests
-- [ ] Restore-value normalization checks
-- [ ] Static checks (lint/type/schema)
+- [x] App/UI regression tests
+- [x] Restore-value normalization checks
+- [x] Static checks (lint/type/schema)
 
 ## Red-Team and Abuse Tests
 
-- [ ] Non-goal enforcement (spec section 3.2)
-- [ ] No fake live-source or imagery claims
-- [ ] Invalid restore values fall back safely
+- [x] Non-goal enforcement (spec section 3.2)
+- [x] No fake live-source or imagery claims
+- [x] Invalid restore values fall back safely
 
 ## Additional Tests
 
 - [ ] Offline behavior
 - [ ] Accessibility/usability checks
-- [ ] Reliability/recovery checks
-- [ ] Visual snapshot proof when desktop runtime is available
+- [x] Reliability/recovery checks
+- [x] Visual snapshot proof when desktop runtime is available
 
 ## Automation Hook
 
@@ -81,12 +81,12 @@ Validate the 2D basemap selector packet against the existing I1 runtime contract
 
 ## Execution Summary
 
-- Last Run Date: Not yet executed
-- Result: Pending
-- Blocking Failures: Pending implementation
-- Evidence Paths: Pending
-- What Became Real: Pending implementation
+- Last Run Date: 2026-04-09
+- Result: PASS for implementation-grade verification
+- Blocking Failures: None in governed packet checks, frontend tests, lint, build, or Rust tests
+- Evidence Paths: `.product/build_target/tool_artifacts/wp_runs/WP-I1-014/20260409_051858/summary.md`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-014/20260409_051858/result.json`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-014/20260409_051858/visual_proof/planar_basemap_selector_live.png`
+- What Became Real: The 2D runtime now exposes a compact OpenFreeMap vector-style selector, persists the selected style through recorder save plus bundle reopen, normalizes invalid restored values to the governed default, and retains truthful fallback copy.
 - What Remains Simulated: Satellite imagery, terrain-specific styling, and dark/night basemap variants remain outside this packet.
-- Next Blocking Real Seam: Implement the selector and restore path in the 2D runtime, then verify it through governed checks and live runtime proof when available.
-- Reviewer: Pending
+- Next Blocking Real Seam: User review plus successor packet `WP-I1-015` before any `E2E-VERIFIED` promotion.
+- Reviewer: Codex
 - User Sign-off: Pending

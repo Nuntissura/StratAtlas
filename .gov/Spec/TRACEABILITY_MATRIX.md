@@ -384,9 +384,9 @@ For quick lookup: "What requirements does this component implement?"
 
 | WP-GOV-BRIDGE-001 | All | REQ-0013, REQ-0019, REQ-0020 | PRIM-0071 | .gov/workflow/wp_test_suites/TS-WP-GOV-BRIDGE-001.md | IMPLEMENTED | .gov/workflow/wp_spec_extractions/SX-WP-GOV-BRIDGE-001.md; `.product/build_target/tool_artifacts/wp_runs/WP-GOV-BRIDGE-001/20260409_044342/`; bridge seam now exposes health/state/navigate/snapshot endpoints and routes real panel aliases plus 2D/3D mode changes |
 
-| WP-I1-014 | I1 | REQ-0200, REQ-0201, REQ-0211 | PRIM-0045, PRIM-0071 | .gov/workflow/wp_test_suites/TS-WP-I1-014.md | IN-PROGRESS | .gov/workflow/wp_spec_extractions/SX-WP-I1-014.md; active packet now targets an official OpenFreeMap vector-style selector with recorder/bundle restore and truthful schematic fallback messaging; proof pending under `.product/build_target/tool_artifacts/wp_runs/WP-I1-014/` |
+| WP-I1-014 | I1 | REQ-0200, REQ-0201, REQ-0211 | PRIM-0045, PRIM-0071 | .gov/workflow/wp_test_suites/TS-WP-I1-014.md | IMPLEMENTED | .gov/workflow/wp_spec_extractions/SX-WP-I1-014.md; `.product/build_target/tool_artifacts/wp_runs/WP-I1-014/20260409_051858/`; the 2D runtime now ships official OpenFreeMap vector-style controls with recorder/bundle restore, invalid-restore normalization, truthful fallback copy, and live bridge snapshot proof under `visual_proof/` |
 
-| WP-I1-015 | I1 | REQ-0011, REQ-0012, REQ-0200, REQ-0212 | PRIM-0071 | .gov/workflow/wp_test_suites/TS-WP-I1-015.md | SPEC-MAPPED | .gov/workflow/wp_spec_extractions/SX-WP-I1-015.md |
+| WP-I1-015 | I1 | REQ-0011, REQ-0012, REQ-0200, REQ-0212 | PRIM-0045, PRIM-0068, PRIM-0071 | .gov/workflow/wp_test_suites/TS-WP-I1-015.md | IN-PROGRESS | .gov/workflow/wp_spec_extractions/SX-WP-I1-015.md; active first pass now targets a data-family-first left rail plus compact main-canvas scene detail disclosure in the existing workbench |
 
 | WP-I1-016 | I1 | REQ-0200, REQ-0201 | PRIM-0045 | .gov/workflow/wp_test_suites/TS-WP-I1-016.md | SPEC-MAPPED | .gov/workflow/wp_spec_extractions/SX-WP-I1-016.md |
 

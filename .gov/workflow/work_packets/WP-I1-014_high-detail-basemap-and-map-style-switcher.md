@@ -1,7 +1,7 @@
 # WP-I1-014 - High-Detail Basemap and Map Style Switcher
 
 Date Opened: 2026-04-09
-Status: IN-PROGRESS
+Status: IMPLEMENTED
 Iteration: I1
 Workflow Version: 4.0
 Packet Class: IMPLEMENTATION
@@ -92,30 +92,30 @@ Add a real operator-controlled 2D basemap style switcher on top of the verified 
 
 ### Dependency and Environment Tests
 - [x] Governance preflight
-- [ ] Runtime dependency install/build checks
+- [x] Runtime dependency install/build checks
 
 ### UI Contract Tests
-- [ ] Selector renders in the 2D runtime toolbar without crowding existing controls
-- [ ] Fallback status still explains offline and load-failure states truthfully
+- [x] Selector renders in the 2D runtime toolbar without crowding existing controls
+- [x] Fallback status still explains offline and load-failure states truthfully
 
 ### Functional Flow Tests
-- [ ] Style selection changes active 2D basemap preference
-- [ ] Recorder persistence and bundle reopen restore the selected style
+- [x] Style selection changes active 2D basemap preference
+- [x] Recorder persistence and bundle reopen restore the selected style
 
 ### Code Correctness Tests
-- [ ] App/UI regression tests
-- [ ] Static analysis (lint/type/schema)
-- [ ] Production build
+- [x] App/UI regression tests
+- [x] Static analysis (lint/type/schema)
+- [x] Production build
 
 ### Red-Team and Abuse Tests
-- [ ] Non-goal enforcement (spec section 3.2)
-- [ ] No misleading live-source framing for the selector
-- [ ] Invalid or unknown basemap-style restore values fall back safely
+- [x] Non-goal enforcement (spec section 3.2)
+- [x] No misleading live-source framing for the selector
+- [x] Invalid or unknown basemap-style restore values fall back safely
 
 ### Additional Tests
 - [ ] Offline behavior
-- [ ] Reliability/recovery
-- [ ] Visual bridge/debugger proof if desktop runtime is available
+- [x] Reliability/recovery
+- [x] Visual bridge/debugger proof if desktop runtime is available
 
 ## Fallback Register
 
@@ -126,9 +126,9 @@ Add a real operator-controlled 2D basemap style switcher on top of the verified 
 
 ## Change Ledger
 
-- What Became Real: This packet is intended to make the 2D basemap itself operator-selectable and persistent instead of hard-coded to a single live style.
+- What Became Real: The 2D runtime now ships a compact selector for the official OpenFreeMap `Positron`, `Bright`, and `Liberty` styles, persists the chosen style through recorder save, bundle reopen, and warm restore, normalizes invalid restored values back to the governed default, and keeps truthful fallback labels when the live style is unavailable.
 - What Remains Simulated: Satellite imagery, terrain-specific styling, and dark/night variants remain outside this packet and must not be implied by the selector.
-- Next Blocking Real Seam: Implement the selector and restore path in the 2D MapLibre runtime, then verify the live desktop shell visually through the debugger/bridge if available.
+- Next Blocking Real Seam: User review plus the follow-on declutter packet `WP-I1-015`; this packet has no further implementation seam before any future `E2E-VERIFIED` promotion.
 
 ## Checkpoint Commit Plan
 
@@ -153,14 +153,17 @@ Add a real operator-controlled 2D basemap style switcher on top of the verified 
 
 ## Evidence
 
-- Test Suite Execution: Pending
-- Logs: Pending
-- Screenshots/Exports: Pending
-- Build Artifacts: Pending
-- Proof Artifact: .product/build_target/tool_artifacts/wp_runs/WP-I1-014/
+- Test Suite Execution: `powershell -ExecutionPolicy Bypass -File .gov/workflow/wp_checks/check-WP-I1-014.ps1` -> passed; `pnpm exec vitest run src/App.test.tsx --reporter=verbose` -> passed (32 tests, including selected-style restore and invalid-style normalization).
+- Logs: `.product/build_target/tool_artifacts/wp_runs/WP-I1-014/20260409_051858/summary.md`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-014/20260409_051858/UI-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-014/20260409_051858/FUNC-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-014/20260409_051858/COR-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-014/20260409_051858/RED-001.log`.
+- Screenshots/Exports: `.product/build_target/tool_artifacts/wp_runs/WP-I1-014/20260409_051858/visual_proof/planar_basemap_selector_live.png`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-014/20260409_051858/visual_proof/agent_state_planar.json`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-014/20260409_051858/visual_proof/agent_health.json`.
+- Build Artifacts: `.product/build_target/tool_artifacts/wp_runs/WP-I1-014/20260409_051858/EXT-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-014/20260409_051858/EXT-002.log`.
+- Proof Artifact: `.product/build_target/tool_artifacts/wp_runs/WP-I1-014/20260409_051858/`
 - User Sign-off: Pending
 
 ## Progress Log
 
 - 2026-04-09: WP scaffold created via .gov/repo_scripts/new_work_packet.ps1.
 - 2026-04-09: Packet rewritten around the actual first seam: official OpenFreeMap vector-style selection plus recorder/bundle persistence on the existing 2D runtime.
+- 2026-04-09: Product seam landed in the verified 2D runtime with compact basemap buttons, persisted style state in recorder/bundle snapshots, and explicit online-versus-fallback copy.
+- 2026-04-09: Added an explicit regression test for invalid restored basemap-style ids so unknown values normalize back to the governed default instead of leaking unsupported state.
+- 2026-04-09: Official packet proof passed under `.product/build_target/tool_artifacts/wp_runs/WP-I1-014/20260409_051858/`, including governed packet checks, frontend tests, lint, build, Rust verification, and live bridge-driven snapshot capture in `visual_proof/`.
