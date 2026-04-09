@@ -1558,7 +1558,31 @@ function App() {
   // WP-GOV-BRIDGE-001: Headless agent bridge event listeners
   useEffect(() => {
     const handleKeyDown = async (e: KeyboardEvent) => {
-      if (e.shiftKey && (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+      const ctrl = e.ctrlKey || e.metaKey
+      const tag = (e.target as HTMLElement)?.tagName
+
+      // WP-I1-020: Keyboard shortcuts (skip when typing in inputs)
+      if (tag !== 'INPUT' && tag !== 'TEXTAREA' && tag !== 'SELECT') {
+        // Ctrl+I — toggle inspector panel
+        if (ctrl && e.key.toLowerCase() === 'i') {
+          e.preventDefault()
+          setInspectorCollapsed((prev) => !prev)
+          return
+        }
+        // Ctrl+B — toggle workspace advanced view
+        if (ctrl && e.key.toLowerCase() === 'b') {
+          e.preventDefault()
+          setWorkspaceAdvancedVisible((prev) => !prev)
+          return
+        }
+        // Escape — collapse all panels (map-only view)
+        if (e.key === 'Escape') {
+          setInspectorCollapsed(true)
+          return
+        }
+      }
+
+      if (e.shiftKey && ctrl && e.key.toLowerCase() === 's') {
         e.preventDefault()
         try {
           const canvas = await html2canvas(document.body)
