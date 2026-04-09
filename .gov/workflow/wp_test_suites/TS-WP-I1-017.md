@@ -1,7 +1,7 @@
 # TS-WP-I1-017 - Spec vs Code Test Suite
 
 Date Opened: 2026-04-09
-Status: PLANNED
+Status: EXECUTED
 Linked Work Packet: WP-I1-017
 Iteration: I1
 
@@ -22,9 +22,9 @@ Validate the HUD/settings packet against the verified map runtime, decluttered s
 - Proof Target: Tests prove the HUD layout, selection-driven detail surface, helper/settings semantics, settings persistence, and visual bridge proof from the running shell when available.
 - Allowed Fallbacks: Non-interactive runtimes may degrade hover into click-only contextual detail; settings persistence may route through the existing recorder/backend path rather than a separate preferences service.
 - Promotion Guard: RESEARCH and SCAFFOLD packets do not promote linked requirements or primitives to `E2E-VERIFIED`.
-- What Became Real: Pending implementation.
-- What Remains Simulated: Pending implementation.
-- Next Blocking Real Seam: Pending implementation.
+- What Became Real: The map runtime now ships a compact HUD, contextual drawer, hover/focus helper cards, motion controls, and a persisted settings surface tied to real shell/runtime behavior.
+- What Remains Simulated: Live desktop proof still falls back to non-interactive helper flows when the runtime cannot mount full interactive map features, so hover can degrade into focus/click disclosure in those environments.
+- Next Blocking Real Seam: User review plus successor packet `WP-I1-018` before any `E2E-VERIFIED` promotion.
 
 ## Test Case Matrix
 
@@ -39,41 +39,41 @@ Validate the HUD/settings packet against the verified map runtime, decluttered s
 
 ## Dependency and Environment Tests
 
-- [ ] Runtime dependency install/build checks
+- [x] Runtime dependency install/build checks
 - [ ] Platform portability constraints checked
-- [ ] HUD/settings shell behaves in the governed runtime
+- [x] HUD/settings shell behaves in the governed runtime
 
 ## UI Contract Tests
 
-- [ ] Compact HUD controls render without removing stable regions
-- [ ] Settings surface is accessible and explicit
-- [ ] Error, fallback, and degraded-state messaging remains visible
+- [x] Compact HUD controls render without removing stable regions
+- [x] Settings surface is accessible and explicit
+- [x] Error, fallback, and degraded-state messaging remains visible
 
 ## Functional Flow Tests
 
-- [ ] Selection and helper flow
-- [ ] Settings interaction flow
-- [ ] Save/restore persistence flow
+- [x] Selection and helper flow
+- [x] Settings interaction flow
+- [x] Save/restore persistence flow
 
 ## Code Correctness Tests
 
-- [ ] App/UI regression tests
-- [ ] Settings persistence checks
-- [ ] Static checks (lint/type/schema)
+- [x] App/UI regression tests
+- [x] Settings persistence checks
+- [x] Static checks (lint/type/schema)
 
 ## Red-Team and Abuse Tests
 
-- [ ] Non-goal enforcement (spec section 3.2)
-- [ ] No fake live-data or autonomy claims in helper/settings UI
-- [ ] Invalid selection and persistence cases
+- [x] Non-goal enforcement (spec section 3.2)
+- [x] No fake live-data or autonomy claims in helper/settings UI
+- [x] Invalid selection and persistence cases
 
 ## Additional Tests
 
 - [ ] Performance budget checks
 - [ ] Offline behavior
-- [ ] Accessibility/usability checks
-- [ ] Reliability/recovery checks
-- [ ] Visual snapshot proof when desktop runtime is available
+- [x] Accessibility/usability checks
+- [x] Reliability/recovery checks
+- [x] Visual snapshot proof when desktop runtime is available
 
 ## Automation Hook
 
@@ -82,12 +82,12 @@ Validate the HUD/settings packet against the verified map runtime, decluttered s
 
 ## Execution Summary
 
-- Last Run Date:
-- Result:
-- Blocking Failures:
-- Evidence Paths:
-- What Became Real:
-- What Remains Simulated:
-- Next Blocking Real Seam:
-- Reviewer:
-- User Sign-off:
+- Last Run Date: 2026-04-09
+- Result: PASS for implementation-grade verification
+- Blocking Failures: None in App regression tests or governed WP checks
+- Evidence Paths: `.product/build_target/tool_artifacts/wp_runs/WP-I1-017/20260409_192533/summary.md`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-017/20260409_192533/result.json`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-017/20260409_192533/visual_proof/map_hud_runtime_1775755811002.png`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-017/20260409_192533/visual_proof/map_hud_navigated_1775755827602.png`
+- What Became Real: The live shell now uses a compact in-map HUD, helper-card hover/focus disclosure, a selection-driven contextual drawer, and a governed settings menu that persists motion, chrome, helper, connectivity, and deployment-profile choices through the recorder state.
+- What Remains Simulated: Desktop bridge proof still uses the fallback runtime path where interactive map hover is unavailable, so helper disclosure is validated through focus/click and live snapshots rather than full pointer-map hover in that environment.
+- Next Blocking Real Seam: User review plus successor packet `WP-I1-018` before any `E2E-VERIFIED` promotion.
+- Reviewer: Codex
+- User Sign-off: Pending

@@ -17,7 +17,7 @@ This file is the execution order for capability slices. It is the scheduling bri
 | 4 | I3 | Collaboration + CRDT + session replay | REQ-0400..REQ-0403 | `.gov/Spec/sub-specs/I3_collaboration_crdt_replay.md` | `WP-I3-001` | Merge-safe collaboration + conflict UX + attribution replay |
 | 5 | I4 | Scenario modeling + constraint propagation + export | REQ-0500..REQ-0504 | `.gov/Spec/sub-specs/I4_scenario_modeling_constraints.md` | `WP-I4-001` | Scenario fork/compare/export workflow passing |
 | 6 | I5 | Query builder + saved/versioned queries | REQ-0600..REQ-0604 | `.gov/Spec/sub-specs/I5_query_builder_versioned_queries.md` | `WP-I5-001`, `WP-I5-002` | Query compose/run/render/save-version workflow passing |
-| 7 | I6 | AI gateway + MCP interface | REQ-0700..REQ-0708 | `.gov/Spec/sub-specs/I6_ai_gateway_mcp.md` | `WP-I6-001`, `WP-I6-002` | Policy-gated AI/MCP with full audit + no raw-path/raw-DB exposure |
+| 7 | I6 | AI gateway + MCP interface | REQ-0700..REQ-0708 | `.gov/Spec/sub-specs/I6_ai_gateway_mcp.md` | `WP-I6-001`, `WP-I6-002`, `WP-I6-003` | Policy-gated AI/MCP with full audit + no raw-path/raw-DB exposure |
 | 8 | I7 | Context intake framework + first domains | REQ-0800..REQ-0810 | `.gov/Spec/sub-specs/I7_context_intake_first_domains.md` | `WP-I7-001`, `WP-I7-002` | Context registry/correlation/offline rules operational |
 | 9 | I8 | Context deviation detection + infrastructure propagation | REQ-0900..REQ-0904 | `.gov/Spec/sub-specs/I8_context_deviation_infrastructure.md` | `WP-I8-001`, `WP-I8-002` | Deviation events emitted + scenario constraint-node propagation |
 | 10 | I9 | OSINT + economic indicators + context-aware queries | REQ-1000..REQ-1003 | `.gov/Spec/sub-specs/I9_osint_economic_context_queries.md` | `WP-I9-001`, `WP-I9-002` | Curated OSINT + verification labels + aggregate-only alerts |
@@ -120,10 +120,13 @@ Derived from exhaustive visual inspection of the running app. Grouped by categor
 
 ### Declutter
 - `WP-I1-015` is now `IMPLEMENTED`; proof: `.product/build_target/tool_artifacts/wp_runs/WP-I1-015/20260409_165612/`. The full workbench now promotes map families above session controls, hides support-only families behind explicit disclosure, keeps the non-guided summary deck compact by default, and includes live desktop bridge snapshot proof under `visual_proof/`.
-- `WP-I1-017` — Compact map HUD, contextual inspector, hover help/tooltips, purposeful motion, and a governed settings surface controlling real shell/runtime behavior such as motion, hover helpers, compact chrome, and live-refresh policy
+- `WP-I1-017` is now `IMPLEMENTED`; proof: `.product/build_target/tool_artifacts/wp_runs/WP-I1-017/20260409_192533/`. The map shell now renders as a compact HUD with a floating scene capsule, top-right action cluster, contextual drawer, hover/focus helper cards, purposeful motion controls, and a governed settings menu that persists real shell/runtime behavior such as compact chrome, hover helpers, motion profile, live-refresh policy, forced offline mode, and AI gateway profile. Live bridge proof is attached under `visual_proof/`.
 
 ### Feature UX Simplification
 - `WP-I1-018` — Simplify AI gateway and scenario modeling to obvious entry points, not complex config panels
+
+### AI Runtime Expansion
+- `WP-I6-003` — Split provider choice from deployment profile and add a governed local executable-backed provider path for operator-supplied models
 
 ### Global Events Tracking
 - `WP-I7-003` — Global event timeline bar, event markers on map with cluster/expand by zoom, event-to-AOI linking
@@ -142,10 +145,11 @@ Derived from exhaustive visual inspection of the running app. Grouped by categor
 - `WP-I0-004` — Demo/tutorial dataset, CSV/GeoJSON/KML export, auto-save/session resume, lazy-load heavy services
 
 ### Recommended priority order
-1. `WP-I1-017` (map HUD/settings) — follows the declutter pass and directly addresses the remaining "map is framed by chrome" problem while keeping the next improvement narrow and provable
-2. `WP-I7-003` (event timeline) — enables the primary use case
-3. `WP-I7-004` (geopolitical baseline) — makes the map meaningful on first launch
-4. Everything else in parallel after the above
+1. `WP-I6-003` (local AI provider + truthful provider selection) — user-directed current packet; closes the real provider-diversity gap and stops the UI from implying deployment profile is provider choice
+2. `WP-I1-018` (AI/scenario UX simplification) — follows the provider cleanup and targets the next biggest ease-of-use problem: dense planning/assistant controls that still ask too much of first-minute users
+3. `WP-I7-003` (event timeline) — enables the primary use case
+4. `WP-I7-004` (geopolitical baseline) — makes the map meaningful on first launch
+5. Everything else in parallel after the above
 
 ---
 

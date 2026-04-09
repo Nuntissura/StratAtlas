@@ -1,7 +1,7 @@
 # WP-I1-017 - Map HUD, Contextual Hover Help, and Governed Settings
 
 Date Opened: 2026-04-09
-Status: SPEC-MAPPED
+Status: IMPLEMENTED
 Iteration: I1
 Workflow Version: 4.0
 Packet Class: IMPLEMENTATION
@@ -133,9 +133,9 @@ Turn the already-decluttered workbench into a more map-led analytical surface by
 
 ## Change Ledger
 
-- What Became Real: Pending implementation.
-- What Remains Simulated: Pending implementation.
-- Next Blocking Real Seam: Pending implementation.
+- What Became Real: The map runtime now renders as a compact in-stage HUD with a floating scene capsule, top-right action cluster, collapsible contextual drawer, hover/focus helper cards, and a bottom provenance/legend tray. A header settings menu now persists compact chrome, hover helpers, contextual drawer policy, motion profile, telemetry chip visibility, ambient effects, live-refresh policy, forced-offline mode, and AI gateway deployment profile through the governed recorder path.
+- What Remains Simulated: The live desktop proof still exercises the fallback runtime in environments without interactive MapLibre/Cesium support, so hover degrades to focus/button helpers there instead of full pointer-map feature hover.
+- Next Blocking Real Seam: User review and successor packet `WP-I1-018` before any `E2E-VERIFIED` promotion.
 
 ## Checkpoint Commit Plan
 
@@ -145,8 +145,8 @@ Turn the already-decluttered workbench into a more map-led analytical surface by
 
 ## Proof of Implementation
 
-- Command Runs: powershell -ExecutionPolicy Bypass -File .gov/workflow/wp_checks/check-WP-I1-017.ps1
-- Proof Artifact: .product/build_target/tool_artifacts/wp_runs/WP-I1-017/
+- Command Runs: `pnpm exec vitest run src/App.test.tsx --reporter=verbose`; `powershell -ExecutionPolicy Bypass -File .gov/workflow/wp_checks/check-WP-I1-017.ps1`
+- Proof Artifact: `.product/build_target/tool_artifacts/wp_runs/WP-I1-017/20260409_192533/`
 - Claim Standard: do not claim completion without linked command output and artifact paths.
 
 ## Exit Criteria
@@ -160,14 +160,15 @@ Turn the already-decluttered workbench into a more map-led analytical surface by
 
 ## Evidence
 
-- Test Suite Execution:
-- Logs:
-- Screenshots/Exports:
-- Build Artifacts:
-- Proof Artifact: .product/build_target/tool_artifacts/wp_runs/WP-I1-017/
-- User Sign-off:
+- Test Suite Execution: `pnpm exec vitest run src/App.test.tsx --reporter=verbose` passed on 2026-04-09 with 35/35 tests.
+- Logs: `.product/build_target/tool_artifacts/wp_runs/WP-I1-017/20260409_192533/UI-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-017/20260409_192533/FUNC-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-017/20260409_192533/COR-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-017/20260409_192533/RED-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-017/20260409_192533/DEP-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-017/20260409_192533/result.json`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-017/20260409_192533/summary.md`
+- Screenshots/Exports: `.product/build_target/tool_artifacts/wp_runs/WP-I1-017/20260409_192533/visual_proof/map_hud_runtime_1775755811002.png`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-017/20260409_192533/visual_proof/map_hud_navigated_1775755827602.png`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-017/20260409_192533/visual_proof/bridge_health.json`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-017/20260409_192533/visual_proof/bridge_state.json`
+- Build Artifacts: `.product/build_target/tool_artifacts/wp_runs/WP-I1-017/20260409_192533/`
+- Proof Artifact: `.product/build_target/tool_artifacts/wp_runs/WP-I1-017/20260409_192533/`
+- User Sign-off: Pending
 
 ## Progress Log
 
 - 2026-04-09: WP scaffold created via .gov/repo_scripts/new_work_packet.ps1.
 - 2026-04-09: Placeholder packet replaced with the active HUD/settings seam: compact map HUD, contextual hover/help, purposeful motion, and governed settings linked to real runtime behavior.
+- 2026-04-09: Product seam implemented in `App.tsx`, `App.css`, `contracts/i0.ts`, `MapRuntimeSurface.tsx`, `MapRuntimeSurface.css`, and `App.test.tsx`; governed test run plus bridge snapshot proof captured under `.product/build_target/tool_artifacts/wp_runs/WP-I1-017/20260409_192533/`.
