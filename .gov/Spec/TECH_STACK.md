@@ -245,9 +245,9 @@ Shared viewport state → switching 2D ↔ 3D preserves camera position and laye
 | Attribute | Value |
 |-----------|-------|
 | Role | Live AI analysis boundary for the governed desktop runtime |
-| Current implementation note | `WP-I6-002` closes the initial live-provider packet with a provider-agnostic Tauri adapter that prefers local Codex CLI on an existing ChatGPT login when available and supports OpenAI Responses API as a governed fallback when configured with valid quota; browser and jsdom contexts remain in explicit simulated mode rather than pretending to be live. |
-| Why chosen | Keeps secrets out of the frontend, preserves offline-safe degradation, lets local operators use an existing ChatGPT/Codex login when available instead of forcing API billing, and leaves room for additional provider adapters without changing the UI or MCP contract. |
-| Risks | The currently verified live adapters are still OpenAI-owned surfaces, so broader provider diversity remains future work even though the contract is now adapter-driven. |
+| Current implementation note | `WP-I6-002` closed the initial live-provider packet with Codex CLI and OpenAI Responses support. `WP-I6-003` extends the same governed adapter with truthful provider selection, recorder-backed local runtime preferences, LM Studio CLI and Ollama CLI detection, and a custom executable path for operator-supplied on-disk models; browser and jsdom contexts remain explicit simulated fallbacks rather than pretending to be live. |
+| Why chosen | Keeps secrets out of the frontend, preserves offline-safe degradation, lets local operators use an existing ChatGPT/Codex login, an already-installed local runtime, or an explicit custom launcher without changing the evidence-linked UI or MCP contract. |
+| Risks | `WP-I6-003` implements local-runtime diversity but does not promote it to `E2E-VERIFIED`; live local generation still depends on operator machine state, model availability, and user-triggered execution, so desktop proof must remain truthful about detected versus exercised runtimes. |
 | Spec alignment | §15.1 gateway mediation, §15.2 evidence-linked labeling and marking inheritance |
 
 ### Governed MCP Adapter — Minimum Tool Surface

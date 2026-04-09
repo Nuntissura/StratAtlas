@@ -1,7 +1,7 @@
 # TS-WP-I6-003 - Spec vs Code Test Suite
 
 Date Opened: 2026-04-09
-Status: PLANNED
+Status: EXECUTED
 Linked Work Packet: WP-I6-003
 Iteration: I6
 
@@ -18,9 +18,9 @@ Validate that `WP-I6-003` keeps the governed AI contract intact while adding tru
 ## Reality Boundary Assertions
 
 - Packet Class: IMPLEMENTATION
-- Real Seam: provider selection persists independently from deployment profile and the Tauri backend can resolve and execute a local model runtime through the governed AI adapter.
-- Proof Target: selector persistence, truthful degraded states, and the local-provider backend contract compile and regressions pass; live local execution is additional evidence when a local runtime is configured.
-- Allowed Fallbacks: browser/jsdom may stay `browser-simulated`; local provider may remain `tauri-unconfigured` until operator configuration exists; no fake provider readiness is allowed.
+- Real Seam: provider selection persists independently from deployment profile, local runtime preferences persist through recorder restore/save, and the Tauri backend can resolve LM Studio/Ollama/custom local runtimes through the governed AI adapter.
+- Proof Target: selector persistence, truthful degraded/live states, and the local-provider backend contract compile and regressions pass; desktop runtime evidence shows detected LM Studio state even when live local generation is not exercised.
+- Allowed Fallbacks: browser/jsdom may stay `browser-simulated`; custom local provider may remain `tauri-unconfigured` until operator configuration exists; no fake provider readiness is allowed and broken screenshots are not treated as proof.
 - Promotion Guard: RESEARCH and SCAFFOLD packets do not promote linked requirements or primitives to `E2E-VERIFIED`.
 
 ## Test Case Matrix
@@ -36,54 +36,54 @@ Validate that `WP-I6-003` keeps the governed AI contract intact while adding tru
 
 ## Dependency and Environment Tests
 
-- [ ] Runtime dependency install/lock integrity
+- [x] Runtime dependency install/lock integrity
 - [ ] Platform portability constraints checked
-- [ ] Required services/adapters available
+- [x] Required services/adapters available
 
 ## UI Contract Tests
 
-- [ ] Required regions
-- [ ] Required modes/states
-- [ ] Error and degraded-state UX
+- [x] Required regions
+- [x] Required modes/states
+- [x] Error and degraded-state UX
 
 ## Functional Flow Tests
 
-- [ ] Golden flow
-- [ ] Deterministic replay path
-- [ ] Export/import or persistence flow
+- [x] Golden flow
+- [x] Deterministic replay path
+- [x] Export/import or persistence flow
 
 ## Code Correctness Tests
 
-- [ ] Unit tests
-- [ ] Integration tests
-- [ ] Static checks (lint/type/schema)
+- [x] Unit tests
+- [x] Integration tests
+- [x] Static checks (lint/type/schema)
 
 ## Red-Team and Abuse Tests
 
-- [ ] Non-goal enforcement (spec section 3.2)
-- [ ] Policy bypass attempts
-- [ ] Invalid input and path abuse cases
+- [x] Non-goal enforcement (spec section 3.2)
+- [x] Policy bypass attempts
+- [x] Invalid input and path abuse cases
 
 ## Additional Tests
 
 - [ ] Performance budget checks
 - [ ] Offline behavior
-- [ ] Accessibility/usability checks
-- [ ] Reliability/recovery checks
+- [x] Accessibility/usability checks
+- [x] Reliability/recovery checks
 
 ## Automation Hook
 
 - Command: powershell -ExecutionPolicy Bypass -File .gov/workflow/wp_checks/check-WP-I6-003.ps1
-- Artifacts: .product/build_target/tool_artifacts/wp_runs/WP-I6-003/
+- Artifacts: `.product/build_target/tool_artifacts/wp_runs/WP-I6-003/20260409_211100/`
 
 ## Execution Summary
 
-- Last Run Date: Not run yet.
-- Result: PLANNED
-- Blocking Failures: None recorded yet.
-- Evidence Paths: Pending first official execution.
-- What Became Real: Governance now defines the provider-selection and local-runtime verification contract.
-- What Remains Simulated: Product implementation and proof are still pending.
-- Next Blocking Real Seam: Implement the local executable provider adapter and persist explicit provider selection through the recorder flow.
+- Last Run Date: 2026-04-09
+- Result: PASS for implementation-grade verification
+- Blocking Failures: None in App/I6/backend regressions, Rust tests, build, or governed WP checks
+- Evidence Paths: `.product/build_target/tool_artifacts/wp_runs/WP-I6-003/20260409_211100/visual_proof/bridge_health.json`; `.product/build_target/tool_artifacts/wp_runs/WP-I6-003/20260409_211100/visual_proof/bridge_state.json`; `.product/build_target/tool_artifacts/wp_runs/WP-I6-003/20260409_211100/visual_proof/recorder_state_local_provider.json`; `.product/build_target/tool_artifacts/wp_runs/WP-I6-003/20260409_211100/visual_proof/local_runtime_detection.txt`; `.product/build_target/tool_artifacts/wp_runs/WP-I6-003/20260409_211100/visual_proof/lmstudio_runtime_ls.txt`; `.product/build_target/tool_artifacts/wp_runs/WP-I6-003/20260409_211100/visual_proof/lmstudio_runtime_survey.txt`; `.product/build_target/tool_artifacts/wp_runs/WP-I6-003/20260409_211100/visual_proof/local_runtime_probe_success.txt`
+- What Became Real: The desktop/runtime seam now keeps provider choice separate from deployment profile, persists local runtime preferences, and resolves LM Studio/Ollama/custom local runtimes through the governed adapter.
+- What Remains Simulated: Browser/jsdom still uses simulated gateway output, and this packet still lacks a desktop in-app screenshot of a generated local-model result because the bridge PNG capture path timed out on this machine. The LM Studio Gemma 4 runtime itself was exercised successfully.
+- Next Blocking Real Seam: Desktop-triggered governed local-model generation artifact capture from within the app plus a cleaner bridge PNG capture path if the current desktop snapshot timeout requires a governed follow-on fix.
 - Reviewer: Codex
 - User Sign-off: Pending

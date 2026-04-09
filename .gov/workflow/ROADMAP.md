@@ -126,7 +126,7 @@ Derived from exhaustive visual inspection of the running app. Grouped by categor
 - `WP-I1-018` — Simplify AI gateway and scenario modeling to obvious entry points, not complex config panels
 
 ### AI Runtime Expansion
-- `WP-I6-003` — Split provider choice from deployment profile and add a governed local executable-backed provider path for operator-supplied models
+- `WP-I6-003` — IMPLEMENTED: split provider choice from deployment profile and add a governed local executable-backed provider path with LM Studio/Ollama/custom presets for operator-supplied models
 
 ### Global Events Tracking
 - `WP-I7-003` — Global event timeline bar, event markers on map with cluster/expand by zoom, event-to-AOI linking
@@ -145,11 +145,10 @@ Derived from exhaustive visual inspection of the running app. Grouped by categor
 - `WP-I0-004` — Demo/tutorial dataset, CSV/GeoJSON/KML export, auto-save/session resume, lazy-load heavy services
 
 ### Recommended priority order
-1. `WP-I6-003` (local AI provider + truthful provider selection) — user-directed current packet; closes the real provider-diversity gap and stops the UI from implying deployment profile is provider choice
-2. `WP-I1-018` (AI/scenario UX simplification) — follows the provider cleanup and targets the next biggest ease-of-use problem: dense planning/assistant controls that still ask too much of first-minute users
-3. `WP-I7-003` (event timeline) — enables the primary use case
-4. `WP-I7-004` (geopolitical baseline) — makes the map meaningful on first launch
-5. Everything else in parallel after the above
+1. `WP-I1-018` (AI/scenario UX simplification) — follows the provider cleanup and targets the next biggest ease-of-use problem: dense planning/assistant controls that still ask too much of first-minute users
+2. `WP-I7-003` (event timeline) — enables the primary use case
+3. `WP-I7-004` (geopolitical baseline) — makes the map meaningful on first launch
+4. Everything else in parallel after the above
 
 ---
 

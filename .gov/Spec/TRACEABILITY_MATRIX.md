@@ -406,4 +406,6 @@ For quick lookup: "What requirements does this component implement?"
 
 | WP-I0-004 | I0 | REQ-0108, REQ-0110, REQ-0111 | PRIM-0071 | .gov/workflow/wp_test_suites/TS-WP-I0-004.md | SPEC-MAPPED | .gov/workflow/wp_spec_extractions/SX-WP-I0-004.md |
 
-| WP-I6-003 | I6 | REQ-0700, REQ-0701, REQ-0702, REQ-0703, REQ-0704, REQ-0705, REQ-0706, REQ-0707, REQ-0708 | PRIM-0052 | .gov/workflow/wp_test_suites/TS-WP-I6-003.md | SPEC-MAPPED | .gov/workflow/wp_spec_extractions/SX-WP-I6-003.md |
+| WP-I6-003 | I6 | REQ-0700, REQ-0701, REQ-0702, REQ-0703, REQ-0704, REQ-0705, REQ-0706, REQ-0707, REQ-0708 | PRIM-0052 | .gov/workflow/wp_test_suites/TS-WP-I6-003.md | IMPLEMENTED | .gov/workflow/wp_spec_extractions/SX-WP-I6-003.md |
+
+| WP-I6-004 | I6 | REQ-0700, REQ-0701, REQ-0702, REQ-0703, REQ-0704, REQ-0705, REQ-0706, REQ-0707, REQ-0708 | PRIM-0052 | .gov/workflow/wp_test_suites/TS-WP-I6-004.md | SPEC-MAPPED | .gov/workflow/wp_spec_extractions/SX-WP-I6-004.md |
