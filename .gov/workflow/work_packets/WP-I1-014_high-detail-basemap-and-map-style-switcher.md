@@ -1,7 +1,7 @@
 # WP-I1-014 - High-Detail Basemap and Map Style Switcher
 
 Date Opened: 2026-04-09
-Status: SPEC-MAPPED
+Status: IN-PROGRESS
 Iteration: I1
 Workflow Version: 4.0
 Packet Class: IMPLEMENTATION
@@ -11,7 +11,7 @@ Linked WP Check Script: .gov/workflow/wp_checks/check-WP-I1-014.ps1
 
 ## Intent
 
-see WP scope
+Replace the blank/minimal map canvas with a high-quality vector tile basemap (OpenStreetMap/MapTiler style tiles), add a basemap style switcher (satellite, terrain, streets, dark), add country borders with labels, capital cities, and ocean detail. The map becomes the full-window background — all other UI floats on top as transparent overlays.
 
 ## Linked Requirements
 
@@ -36,9 +36,9 @@ see WP scope
 
 ## Reality Boundary
 
-- Real Seam: see WP intent and scope
-- User-Visible Win: see WP intent and scope
-- Proof Target: see WP intent and scope
+- Real Seam: MapLibre renders detailed vector tiles with country borders, cities, terrain, and ocean features as the full-window background.
+- User-Visible Win: The app opens to a recognizable, detailed world map instead of a blank dark canvas. Basemap style is switchable.
+- Proof Target: Visual snapshot showing detailed basemap with labels, borders, and style switcher control.
 - Allowed Temporary Fallbacks: see WP intent and scope
 - Promotion Guard: RESEARCH and SCAFFOLD packets do not promote linked requirements or primitives to E2E-VERIFIED.
 

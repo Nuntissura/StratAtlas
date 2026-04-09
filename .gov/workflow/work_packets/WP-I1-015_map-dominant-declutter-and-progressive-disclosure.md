@@ -1,7 +1,7 @@
 # WP-I1-015 - Map-Dominant Declutter and Progressive Disclosure
 
 Date Opened: 2026-04-09
-Status: SPEC-MAPPED
+Status: IN-PROGRESS
 Iteration: I1
 Workflow Version: 4.0
 Packet Class: IMPLEMENTATION
@@ -11,7 +11,7 @@ Linked WP Check Script: .gov/workflow/wp_checks/check-WP-I1-015.ps1
 
 ## Intent
 
-see WP scope
+Rearchitect the shell from a 3-column opaque panel layout to a map-as-full-background design with glassmorphism floating overlays. The map occupies 100% of the window. Panels (Inputs, Inspector, Tray) become transparent frosted-glass overlays that collapse to icon toggles and expand on demand. Replace dark opaque backgrounds (0.9 alpha) with translucent glass (0.15-0.25 alpha + backdrop-blur). Minimize header to a slim transparent top bar. Hide panels with no data by default. Move explainer text behind (?) help buttons.
 
 ## Linked Requirements
 
@@ -37,7 +37,7 @@ see WP scope
 
 ## Reality Boundary
 
-- Real Seam: see WP intent and scope
+- Real Seam: Map is full-window background; panels are translucent floating glass overlays that collapse/expand; header is minimal transparent bar
 - User-Visible Win: see WP intent and scope
 - Proof Target: see WP intent and scope
 - Allowed Temporary Fallbacks: see WP intent and scope
