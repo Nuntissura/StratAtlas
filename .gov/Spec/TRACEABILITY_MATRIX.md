@@ -408,4 +408,6 @@ For quick lookup: "What requirements does this component implement?"
 
 | WP-I6-003 | I6 | REQ-0700, REQ-0701, REQ-0702, REQ-0703, REQ-0704, REQ-0705, REQ-0706, REQ-0707, REQ-0708 | PRIM-0052 | .gov/workflow/wp_test_suites/TS-WP-I6-003.md | IMPLEMENTED | .gov/workflow/wp_spec_extractions/SX-WP-I6-003.md |
 
-| WP-I6-004 | I6 | REQ-0700, REQ-0701, REQ-0702, REQ-0703, REQ-0704, REQ-0705, REQ-0706, REQ-0707, REQ-0708 | PRIM-0052 | .gov/workflow/wp_test_suites/TS-WP-I6-004.md | SPEC-MAPPED | .gov/workflow/wp_spec_extractions/SX-WP-I6-004.md |
+| WP-I6-004 | I6 | REQ-0700, REQ-0701, REQ-0702, REQ-0703, REQ-0704, REQ-0705, REQ-0706, REQ-0707, REQ-0708 | PRIM-0052 | .gov/workflow/wp_test_suites/TS-WP-I6-004.md | IMPLEMENTED | .gov/workflow/wp_spec_extractions/SX-WP-I6-004.md; `.product/build_target/tool_artifacts/wp_runs/WP-I6-004/20260409_214611/` |
+
+| WP-GOV-BRIDGE-002 | All | REQ-0013, REQ-0019, REQ-0020 | PRIM-0075 | .gov/workflow/wp_test_suites/TS-WP-GOV-BRIDGE-002.md | IN-PROGRESS | .gov/workflow/wp_spec_extractions/SX-WP-GOV-BRIDGE-002.md; follow-on to `WP-GOV-BRIDGE-001` and `WP-I6-004`, scoped to approved bridge-driven action invocation and the removal of seeded-state proof for the in-app local-runtime probe |

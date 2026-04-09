@@ -17,7 +17,7 @@ This file is the execution order for capability slices. It is the scheduling bri
 | 4 | I3 | Collaboration + CRDT + session replay | REQ-0400..REQ-0403 | `.gov/Spec/sub-specs/I3_collaboration_crdt_replay.md` | `WP-I3-001` | Merge-safe collaboration + conflict UX + attribution replay |
 | 5 | I4 | Scenario modeling + constraint propagation + export | REQ-0500..REQ-0504 | `.gov/Spec/sub-specs/I4_scenario_modeling_constraints.md` | `WP-I4-001` | Scenario fork/compare/export workflow passing |
 | 6 | I5 | Query builder + saved/versioned queries | REQ-0600..REQ-0604 | `.gov/Spec/sub-specs/I5_query_builder_versioned_queries.md` | `WP-I5-001`, `WP-I5-002` | Query compose/run/render/save-version workflow passing |
-| 7 | I6 | AI gateway + MCP interface | REQ-0700..REQ-0708 | `.gov/Spec/sub-specs/I6_ai_gateway_mcp.md` | `WP-I6-001`, `WP-I6-002`, `WP-I6-003` | Policy-gated AI/MCP with full audit + no raw-path/raw-DB exposure |
+| 7 | I6 | AI gateway + MCP interface | REQ-0700..REQ-0708 | `.gov/Spec/sub-specs/I6_ai_gateway_mcp.md` | `WP-I6-001`, `WP-I6-002`, `WP-I6-003`, `WP-I6-004` | Policy-gated AI/MCP with full audit + no raw-path/raw-DB exposure |
 | 8 | I7 | Context intake framework + first domains | REQ-0800..REQ-0810 | `.gov/Spec/sub-specs/I7_context_intake_first_domains.md` | `WP-I7-001`, `WP-I7-002` | Context registry/correlation/offline rules operational |
 | 9 | I8 | Context deviation detection + infrastructure propagation | REQ-0900..REQ-0904 | `.gov/Spec/sub-specs/I8_context_deviation_infrastructure.md` | `WP-I8-001`, `WP-I8-002` | Deviation events emitted + scenario constraint-node propagation |
 | 10 | I9 | OSINT + economic indicators + context-aware queries | REQ-1000..REQ-1003 | `.gov/Spec/sub-specs/I9_osint_economic_context_queries.md` | `WP-I9-001`, `WP-I9-002` | Curated OSINT + verification labels + aggregate-only alerts |
@@ -107,7 +107,9 @@ This file is the execution order for capability slices. It is the scheduling bri
 
 - `WP-GOV-DEBUGGER-001` is now `IMPLEMENTED`; proof: `.product/build_target/tool_artifacts/wp_runs/WP-GOV-DEBUGGER-001/20260409_044342/`. The app ships a deterministic visual debugger with html2canvas capture, a Tauri snapshot command, `Ctrl+Shift+S`, and `window.__stratatlasRequestSnapshot(...)`. Live desktop snapshot capture is now also exercised under `.product/build_target/tool_artifacts/wp_runs/WP-I1-014/20260409_051858/visual_proof/`.
 - `WP-GOV-BRIDGE-001` is now `IMPLEMENTED`; proof: `.product/build_target/tool_artifacts/wp_runs/WP-GOV-BRIDGE-001/20260409_044342/`. The app now exposes localhost `/agent/health`, `/agent/state`, `/agent/navigate`, and `/agent/snapshot` endpoints, writes the discovery port file, and routes bridge navigation into real shell panel and 2D/3D mode changes. Live bridge reachability plus snapshot flow is now exercised under `.product/build_target/tool_artifacts/wp_runs/WP-I1-014/20260409_051858/visual_proof/`.
+- `WP-GOV-BRIDGE-002` is now `IN-PROGRESS`. It is the cross-cutting follow-on that closes the remaining interaction gap left by `WP-GOV-BRIDGE-001` and surfaced by `WP-I6-004`: the bridge must be able to invoke approved named app actions such as `probe-local-runtime` and await structured completion so live proof no longer depends on seeded recorder state.
 - Sequencing: `WP-GOV-BRIDGE-001` depends on `WP-GOV-DEBUGGER-001` (snapshot infra must exist before the bridge can trigger it).
+- Sequencing: `WP-GOV-BRIDGE-002` depends on `WP-GOV-BRIDGE-001` for navigation/snapshot transport and on `WP-I6-004` for the initial real workflow it must drive (`probe-local-runtime`).
 - Both packets are cross-cutting tooling and do not block or change the current product remediation queue. Their remaining step before any future `E2E-VERIFIED` promotion is user sign-off rather than additional implementation.
 
 ## 2D) UX and Feature Improvement Queue (2026-04-09 inspection)
@@ -127,6 +129,7 @@ Derived from exhaustive visual inspection of the running app. Grouped by categor
 
 ### AI Runtime Expansion
 - `WP-I6-003` — IMPLEMENTED: split provider choice from deployment profile and add a governed local executable-backed provider path with LM Studio/Ollama/custom presets for operator-supplied models
+- `WP-I6-004` — IMPLEMENTED: added a first-class in-app local-runtime probe, persisted verification state, and live bridge/debugger proof for the AI settings and assistant surfaces under `.product/build_target/tool_artifacts/wp_runs/WP-I6-004/20260409_214611/`
 
 ### Global Events Tracking
 - `WP-I7-003` — Global event timeline bar, event markers on map with cluster/expand by zoom, event-to-AOI linking
