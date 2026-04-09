@@ -383,3 +383,25 @@ For quick lookup: "What requirements does this component implement?"
 | WP-GOV-DEBUGGER-001 | All | REQ-0013, REQ-0019, REQ-0020 | PRIM-0071 | .gov/workflow/wp_test_suites/TS-WP-GOV-DEBUGGER-001.md | SPEC-MAPPED | .gov/workflow/wp_spec_extractions/SX-WP-GOV-DEBUGGER-001.md |
 
 | WP-GOV-BRIDGE-001 | All | REQ-0013, REQ-0019, REQ-0020 | PRIM-0071 | .gov/workflow/wp_test_suites/TS-WP-GOV-BRIDGE-001.md | SPEC-MAPPED | .gov/workflow/wp_spec_extractions/SX-WP-GOV-BRIDGE-001.md |
+
+| WP-I1-014 | I1 | REQ-0200, REQ-0201, REQ-0211 | PRIM-0045 | .gov/workflow/wp_test_suites/TS-WP-I1-014.md | SPEC-MAPPED | .gov/workflow/wp_spec_extractions/SX-WP-I1-014.md |
+
+| WP-I1-015 | I1 | REQ-0011, REQ-0012, REQ-0200, REQ-0212 | PRIM-0071 | .gov/workflow/wp_test_suites/TS-WP-I1-015.md | SPEC-MAPPED | .gov/workflow/wp_spec_extractions/SX-WP-I1-015.md |
+
+| WP-I1-016 | I1 | REQ-0200, REQ-0201 | PRIM-0045 | .gov/workflow/wp_test_suites/TS-WP-I1-016.md | SPEC-MAPPED | .gov/workflow/wp_spec_extractions/SX-WP-I1-016.md |
+
+| WP-I1-017 | I1 | REQ-0013, REQ-0200, REQ-0201, REQ-0212 | PRIM-0071 | .gov/workflow/wp_test_suites/TS-WP-I1-017.md | SPEC-MAPPED | .gov/workflow/wp_spec_extractions/SX-WP-I1-017.md |
+
+| WP-I1-018 | I1 | REQ-0013, REQ-0500, REQ-0700 | PRIM-0071 | .gov/workflow/wp_test_suites/TS-WP-I1-018.md | SPEC-MAPPED | .gov/workflow/wp_spec_extractions/SX-WP-I1-018.md |
+
+| WP-I7-003 | I7 | REQ-0800, REQ-0801, REQ-0810 | PRIM-0045, PRIM-0071 | .gov/workflow/wp_test_suites/TS-WP-I7-003.md | SPEC-MAPPED | .gov/workflow/wp_spec_extractions/SX-WP-I7-003.md |
+
+| WP-I7-004 | I7 | REQ-0800, REQ-0801, REQ-0808 | PRIM-0045 | .gov/workflow/wp_test_suites/TS-WP-I7-004.md | SPEC-MAPPED | .gov/workflow/wp_spec_extractions/SX-WP-I7-004.md |
+
+| WP-I10-003 | I10 | REQ-1100, REQ-1101, REQ-1102 | PRIM-0045, PRIM-0071 | .gov/workflow/wp_test_suites/TS-WP-I10-003.md | SPEC-MAPPED | .gov/workflow/wp_spec_extractions/SX-WP-I10-003.md |
+
+| WP-I1-019 | I1 | REQ-0200, REQ-0201, REQ-0211 | PRIM-0045, PRIM-0071 | .gov/workflow/wp_test_suites/TS-WP-I1-019.md | SPEC-MAPPED | .gov/workflow/wp_spec_extractions/SX-WP-I1-019.md |
+
+| WP-I1-020 | I1 | REQ-0013, REQ-0212 | PRIM-0071 | .gov/workflow/wp_test_suites/TS-WP-I1-020.md | SPEC-MAPPED | .gov/workflow/wp_spec_extractions/SX-WP-I1-020.md |
+
+| WP-I0-004 | I0 | REQ-0108, REQ-0110, REQ-0111 | PRIM-0071 | .gov/workflow/wp_test_suites/TS-WP-I0-004.md | SPEC-MAPPED | .gov/workflow/wp_spec_extractions/SX-WP-I0-004.md |

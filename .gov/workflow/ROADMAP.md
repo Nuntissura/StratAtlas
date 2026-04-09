@@ -110,6 +110,44 @@ This file is the execution order for capability slices. It is the scheduling bri
 - Sequencing: `WP-GOV-BRIDGE-001` depends on `WP-GOV-DEBUGGER-001` (snapshot infra must exist before the bridge can trigger it).
 - Both packets are cross-cutting tooling and do not block or change the current product remediation queue.
 
+## 2D) UX and Feature Improvement Queue (2026-04-09 inspection)
+
+Derived from exhaustive visual inspection of the running app. Grouped by category, ordered by impact.
+
+### Map Quality
+- `WP-I1-014` — High-detail basemap, satellite/terrain/street style switcher, country borders, place labels, ocean detail
+- `WP-I1-016` — 3D globe terrain provider, atmosphere, 3D buildings
+
+### Declutter
+- `WP-I1-015` — Map-dominant layout (70%+ viewport), panels on-demand, hide empty-state cards, explainers behind (?) help, progressive disclosure
+- `WP-I1-017` — Honest live/cached/simulated state labels, hide panels with no data, clear "Connect to load" vs "Cached/sample" distinction
+
+### Feature UX Simplification
+- `WP-I1-018` — Simplify AI gateway and scenario modeling to obvious entry points, not complex config panels
+
+### Global Events Tracking
+- `WP-I7-003` — Global event timeline bar, event markers on map with cluster/expand by zoom, event-to-AOI linking
+- `WP-I7-004` — Pre-loaded geopolitical baseline dataset (conflicts, sanctions, alliances), "what's happening now" dashboard
+
+### Game Theory
+- `WP-I10-003` — Pre-built game theory templates (prisoner's dilemma, arms race, trade negotiation), visual scenario tree, map-to-game linkage
+
+### Region Focus
+- `WP-I1-019` — Focus Region mode (zoom + filter to region), region profile cards with key facts, regional comparison
+
+### UX Polish
+- `WP-I1-020` — Keyboard shortcuts, dark mode refinement, first-use onboarding guide, loading indicators, Recovery demotion
+
+### Data and Performance
+- `WP-I0-004` — Demo/tutorial dataset, CSV/GeoJSON/KML export, auto-save/session resume, lazy-load heavy services
+
+### Recommended priority order
+1. `WP-I1-014` (basemap) + `WP-I1-015` (declutter) — transforms from "LLM demo" to "usable tool"
+2. `WP-I1-017` (state honesty) — stops showing fake data
+3. `WP-I7-003` (event timeline) — enables the primary use case
+4. `WP-I7-004` (geopolitical baseline) — makes the map meaningful on first launch
+5. Everything else in parallel after the above
+
 ---
 
 ## 3) Release-Gate Coupling
