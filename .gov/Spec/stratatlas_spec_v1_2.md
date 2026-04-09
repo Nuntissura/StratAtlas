@@ -444,11 +444,13 @@ On reconnection, the UI MUST:
 ### 11.1 Information Architecture (Stable Regions)
 The UI MUST implement stable regions:
 
-- Global header (project, marking, offline/sync state, time mode)
-- Left panel (layers + AOI manager)
-- Right panel (provenance/coverage/confidence/details + context panel)
-- Bottom panel (timeline, compare controls)
-- Main canvas (2D/3D map/globe)
+- Global header (project, marking, offline/sync state, time mode) — compact transparent bar
+- Left panel (layers + AOI manager + workspace controls) — translucent glass overlay, collapsible
+- Right panel (provenance/coverage/confidence/details + context panel) — translucent glass overlay, collapsible via Ctrl+I
+- Bottom panel (timeline, compare controls, bundle registry) — translucent glass tray, collapsible
+- Main canvas (2D/3D map/globe) — fills the entire viewport as background; all other regions float above it
+
+Current implementation note (v1.2.5): The shell uses a glassmorphism design with translucent panels (backdrop-filter blur) floating over a full-viewport MapLibre/Cesium canvas. Panels collapse to maximize map visibility; Escape key collapses all panels to map-only view.
 
 ### 11.2 Modes (State Machine)
 The UI MUST define explicit modes with enabled/disabled controls:
@@ -509,6 +511,34 @@ If a state change exceeds the 300 ms feedback target, the UI MUST show non-block
 
 ### 11.6 Accessibility
 StratAtlas SHOULD meet WCAG/508-level accessibility expectations (keyboard operation, non-color-only semantics).
+
+### 11.7 Keyboard Shortcuts [NEW in v1.2.5]
+
+StratAtlas SHOULD provide keyboard shortcuts for common workbench actions:
+- Ctrl+I — toggle Inspector panel visibility
+- Ctrl+B — toggle workspace advanced view
+- Escape — collapse all panels to map-only view
+- Ctrl+Shift+S — capture visual debugger snapshot
+
+Shortcuts MUST be disabled when focus is in input, textarea, or select fields.
+
+### 11.8 Visual Design Language [NEW in v1.2.5]
+
+The workbench SHOULD use a glassmorphism design language where:
+- The map canvas fills the entire viewport as the background layer.
+- Side panels (Inputs, Inspector) float as translucent glass overlays with backdrop-filter blur.
+- The header is a slim transparent bar with compact status indicators.
+- Cards, buttons, and form controls use translucent backgrounds with subtle white borders.
+- The center column is fully transparent so the map shows through.
+- Panels are collapsible so the analyst can maximize map visibility.
+
+### 11.9 Agent Tooling Surface [NEW in v1.2.5]
+
+StratAtlas SHOULD provide agent-facing tooling for automated testing and visual QA:
+- **Visual debugger**: A Tauri command (`admin_save_snapshot`) that captures the WebView body as a PNG snapshot with optional subfolder and label organization. Triggered by Ctrl+Shift+S hotkey or `window.__stratatlasRequestSnapshot()` JS global.
+- **Headless agent bridge**: A localhost-only HTTP server (127.0.0.1, random port) that accepts JSON commands for panel navigation (`POST /agent/navigate`), snapshot capture (`POST /agent/snapshot`), state queries (`GET /agent/state`), and health checks (`GET /agent/health`). Port written to `agent_bridge_port.txt` in app data on startup.
+- Agent tooling MUST NOT require window focus, keyboard simulation, or mouse automation.
+- Agent tooling MUST bind only to localhost and MUST NOT expose any remote access surface.
 
 ---
 
