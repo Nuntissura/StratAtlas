@@ -2,6 +2,7 @@ import type { UiMode } from '../features/i1/modes'
 import type { AirTrafficSnapshot } from '../features/i1/airTraffic'
 import type { MaritimeSnapshot } from '../features/i1/maritime'
 import type { SatelliteSnapshot } from '../features/i1/satellites'
+import type { MapBasemapStyleId } from '../features/i1/runtime/basemaps'
 import type { CompareStateSnapshot } from '../features/i2/baselineDelta'
 import type { CollaborationStateSnapshot } from '../features/i3/collaboration'
 import type { ScenarioStateSnapshot } from '../features/i4/scenarios'
@@ -91,6 +92,7 @@ export interface WorkspaceStateSnapshot {
   workflowMode: UiMode
   note: string
   activeLayers: string[]
+  basemapStyleId?: MapBasemapStyleId
   layerFamilyVisibility?: Record<string, boolean>
   layerFamilyExpanded?: Record<string, boolean>
   airTraffic?: AirTrafficSnapshot

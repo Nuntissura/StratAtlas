@@ -3879,10 +3879,56 @@ use std::net::TcpListener;
 static AGENT_APP_HANDLE: OnceLock<AppHandle> = OnceLock::new();
 static AGENT_BRIDGE_STATE: OnceLock<std::sync::Arc<Mutex<AgentBridgeInner>>> = OnceLock::new();
 
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct AgentBridgeFrontendState {
+  current_panel: String,
+  left_panel_view: String,
+  main_panel_view: String,
+  right_panel_view: String,
+  bottom_panel_view: String,
+  active_bundle_id: Option<String>,
+  map_mode: String,
+  surface_mode: String,
+  inspector_collapsed: bool,
+  tray_collapsed: bool,
+}
+
+#[derive(Debug, Clone, Serialize)]
+struct AgentBridgeStateResponse {
+  current_panel: String,
+  left_panel_view: String,
+  main_panel_view: String,
+  right_panel_view: String,
+  bottom_panel_view: String,
+  active_bundle_id: Option<String>,
+  map_mode: String,
+  surface_mode: String,
+  inspector_collapsed: bool,
+  tray_collapsed: bool,
+}
+
 #[derive(Debug, Default)]
 struct AgentBridgeInner {
-  current_panel: String,
+  state: AgentBridgeFrontendState,
   snapshot_tx: Option<std::sync::mpsc::Sender<String>>,
+}
+
+impl From<&AgentBridgeFrontendState> for AgentBridgeStateResponse {
+  fn from(state: &AgentBridgeFrontendState) -> Self {
+    Self {
+      current_panel: state.current_panel.clone(),
+      left_panel_view: state.left_panel_view.clone(),
+      main_panel_view: state.main_panel_view.clone(),
+      right_panel_view: state.right_panel_view.clone(),
+      bottom_panel_view: state.bottom_panel_view.clone(),
+      active_bundle_id: state.active_bundle_id.clone(),
+      map_mode: state.map_mode.clone(),
+      surface_mode: state.surface_mode.clone(),
+      inspector_collapsed: state.inspector_collapsed,
+      tray_collapsed: state.tray_collapsed,
+    }
+  }
 }
 
 fn agent_bridge_state() -> &'static std::sync::Arc<Mutex<AgentBridgeInner>> {
@@ -3926,9 +3972,9 @@ fn admin_save_snapshot(
 }
 
 #[tauri::command]
-fn agent_report_state(panel: String) {
+fn agent_report_state(report: AgentBridgeFrontendState) {
   let mut state = agent_bridge_state().lock().unwrap();
-  state.current_panel = panel;
+  state.state = report;
 }
 
 #[tauri::command]
@@ -3987,18 +4033,37 @@ fn handle_agent_request(mut stream: std::net::TcpStream) {
   let body_str = String::from_utf8_lossy(&body);
 
   let (status, resp) = match (method, path) {
-    ("GET", "/agent/health") => ("200 OK", r#"{"status":"ok"}"#.to_string()),
+    ("GET", "/agent/health") => ("200 OK", json!({ "status": "ok" }).to_string()),
     ("GET", "/agent/state") => {
       let st = agent_bridge_state().lock().unwrap();
-      ("200 OK", format!(r#"{{"current_panel":"{}"}}"#, st.current_panel))
+      (
+        "200 OK",
+        serde_json::to_string(&AgentBridgeStateResponse::from(&st.state))
+          .unwrap_or_else(|_| "{}".to_string()),
+      )
     }
     ("POST", "/agent/navigate") => {
       let parsed: Value = serde_json::from_str(&body_str).unwrap_or(json!({}));
       let panel = parsed.get("panel").and_then(|v| v.as_str()).unwrap_or("").to_string();
+      {
+        let mut state = agent_bridge_state().lock().unwrap();
+        state.state.current_panel = panel.clone();
+        match panel.as_str() {
+          "2d" | "planar" => {
+            state.state.map_mode = "2d".to_string();
+            state.state.surface_mode = "planar".to_string();
+          }
+          "3d" | "orbital" => {
+            state.state.map_mode = "3d".to_string();
+            state.state.surface_mode = "orbital".to_string();
+          }
+          _ => {}
+        }
+      }
       if let Some(app) = AGENT_APP_HANDLE.get() {
         let _ = app.emit("agent-navigate", &panel);
       }
-      ("200 OK", format!(r#"{{"navigated":"{}"}}"#, panel))
+      ("200 OK", json!({ "navigated": panel }).to_string())
     }
     ("POST", "/agent/snapshot") => {
       let parsed: Value = serde_json::from_str(&body_str).unwrap_or(json!({}));
@@ -4010,14 +4075,14 @@ fn handle_agent_request(mut stream: std::net::TcpStream) {
         let _ = app.emit("agent-snapshot-request", json!({"subfolder": subfolder, "label": label}));
       }
       match rx.recv_timeout(Duration::from_secs(30)) {
-        Ok(p) => ("200 OK", format!(r#"{{"path":"{}"}}"#, p.replace('\\', "\\\\"))),
+        Ok(p) => ("200 OK", json!({ "path": p }).to_string()),
         Err(_) => {
           agent_bridge_state().lock().unwrap().snapshot_tx = None;
-          ("504 Gateway Timeout", r#"{"error":"snapshot timed out"}"#.to_string())
+          ("504 Gateway Timeout", json!({ "error": "snapshot timed out" }).to_string())
         }
       }
     }
-    _ => ("404 Not Found", r#"{"error":"not found"}"#.to_string()),
+    _ => ("404 Not Found", json!({ "error": "not found" }).to_string()),
   };
 
   let response = format!(

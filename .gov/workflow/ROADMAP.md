@@ -119,8 +119,8 @@ Derived from exhaustive visual inspection of the running app. Grouped by categor
 - `WP-I1-016` — 3D globe terrain provider, atmosphere, 3D buildings
 
 ### Declutter
-- `WP-I1-015` — Active first pass: promote the layer-family dock above session controls, explicitly disclose support-only shell detail, and keep the main summary deck compact by default; no new shell framework or floating-overlay rewrite is in scope
-- `WP-I1-017` — Honest live/cached/simulated state labels, hide panels with no data, clear "Connect to load" vs "Cached/sample" distinction
+- `WP-I1-015` is now `IMPLEMENTED`; proof: `.product/build_target/tool_artifacts/wp_runs/WP-I1-015/20260409_165612/`. The full workbench now promotes map families above session controls, hides support-only families behind explicit disclosure, keeps the non-guided summary deck compact by default, and includes live desktop bridge snapshot proof under `visual_proof/`.
+- `WP-I1-017` — Compact map HUD, contextual inspector, hover help/tooltips, purposeful motion, and a governed settings surface controlling real shell/runtime behavior such as motion, hover helpers, compact chrome, and live-refresh policy
 
 ### Feature UX Simplification
 - `WP-I1-018` — Simplify AI gateway and scenario modeling to obvious entry points, not complex config panels
@@ -142,11 +142,10 @@ Derived from exhaustive visual inspection of the running app. Grouped by categor
 - `WP-I0-004` — Demo/tutorial dataset, CSV/GeoJSON/KML export, auto-save/session resume, lazy-load heavy services
 
 ### Recommended priority order
-1. `WP-I1-015` (declutter) — pairs with the now-implemented `WP-I1-014` basemap upgrade to keep the shell map-dominant and reduce the remaining "LLM demo" feel
-2. `WP-I1-017` (state honesty) — stops showing fake data
-3. `WP-I7-003` (event timeline) — enables the primary use case
-4. `WP-I7-004` (geopolitical baseline) — makes the map meaningful on first launch
-5. Everything else in parallel after the above
+1. `WP-I1-017` (map HUD/settings) — follows the declutter pass and directly addresses the remaining "map is framed by chrome" problem while keeping the next improvement narrow and provable
+2. `WP-I7-003` (event timeline) — enables the primary use case
+3. `WP-I7-004` (geopolitical baseline) — makes the map meaningful on first launch
+4. Everything else in parallel after the above
 
 ---
 

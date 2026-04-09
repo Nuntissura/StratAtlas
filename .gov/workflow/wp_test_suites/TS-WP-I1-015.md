@@ -1,7 +1,7 @@
 # TS-WP-I1-015 - Spec vs Code Test Suite
 
 Date Opened: 2026-04-09
-Status: PLANNED
+Status: EXECUTED
 Linked Work Packet: WP-I1-015
 Iteration: I1
 
@@ -22,9 +22,9 @@ Validate the declutter packet against the verified workbench shell, current map-
 - Proof Target: Tests prove the new disclosure controls, family ordering, compact scene summary default, and preserved stable-region/accessibility contract.
 - Allowed Fallbacks: Support-only families and telemetry remain available, but only behind explicit disclosure; no floating overlay shell is promised here.
 - Promotion Guard: RESEARCH and SCAFFOLD packets do not promote linked requirements or primitives to `E2E-VERIFIED`.
-- What Became Real: Pending implementation.
+- What Became Real: The left rail now leads with the layer-family dock, support-only families hide behind an explicit disclosure button, and the non-guided summary deck keeps scene detail compact until the analyst asks for it.
 - What Remains Simulated: No new map data or workflow capability is added by this packet.
-- Next Blocking Real Seam: Implement the declutter seam in the current shell and capture governed proof.
+- Next Blocking Real Seam: User review plus successor packet `WP-I1-017` before any `E2E-VERIFIED` promotion.
 
 ## Test Case Matrix
 
@@ -39,40 +39,40 @@ Validate the declutter packet against the verified workbench shell, current map-
 
 ## Dependency and Environment Tests
 
-- [ ] Runtime dependency install/build checks
+- [x] Runtime dependency install/build checks
 - [ ] Platform portability constraints checked
-- [ ] Shell hierarchy changes behave in the governed runtime
+- [x] Shell hierarchy changes behave in the governed runtime
 
 ## UI Contract Tests
 
-- [ ] Map-family value appears above session-control forms
-- [ ] Support-only family disclosure is explicit and accessible
-- [ ] Main-canvas scene detail is compact by default and revealable on demand
+- [x] Map-family value appears above session-control forms
+- [x] Support-only family disclosure is explicit and accessible
+- [x] Main-canvas scene detail is compact by default and revealable on demand
 
 ## Functional Flow Tests
 
-- [ ] Left-rail declutter flow
-- [ ] Compact-summary reveal/hide flow
-- [ ] Existing map-family interactions still work after the hierarchy change
+- [x] Left-rail declutter flow
+- [x] Compact-summary reveal/hide flow
+- [x] Existing map-family interactions still work after the hierarchy change
 
 ## Code Correctness Tests
 
-- [ ] App/UI regression tests
-- [ ] Disclosure-state regression checks
-- [ ] Static checks (lint/type/schema)
+- [x] App/UI regression tests
+- [x] Disclosure-state regression checks
+- [x] Static checks (lint/type/schema)
 
 ## Red-Team and Abuse Tests
 
-- [ ] Non-goal enforcement (spec section 3.2)
-- [ ] No loss of required labeling semantics
-- [ ] Hidden controls remain reachable and explicit
+- [x] Non-goal enforcement (spec section 3.2)
+- [x] No loss of required labeling semantics
+- [x] Hidden controls remain reachable and explicit
 
 ## Additional Tests
 
 - [ ] Offline behavior
-- [ ] Accessibility/usability checks
-- [ ] Reliability/recovery checks
-- [ ] Visual snapshot proof when desktop runtime is available
+- [x] Accessibility/usability checks
+- [x] Reliability/recovery checks
+- [x] Visual snapshot proof when desktop runtime is available
 
 ## Automation Hook
 
@@ -81,12 +81,12 @@ Validate the declutter packet against the verified workbench shell, current map-
 
 ## Execution Summary
 
-- Last Run Date: Not yet executed
-- Result: Pending
-- Blocking Failures: Pending implementation
-- Evidence Paths: Pending
-- What Became Real: Pending implementation
+- Last Run Date: 2026-04-09
+- Result: PASS for implementation-grade verification
+- Blocking Failures: None in governed packet checks, App regression tests, lint, build, or Rust tests
+- Evidence Paths: `.product/build_target/tool_artifacts/wp_runs/WP-I1-015/20260409_165612/summary.md`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-015/20260409_165612/result.json`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-015/20260409_165612/visual_proof/full_workbench_declutter_live.png`
+- What Became Real: The left rail now prioritizes the layer-family dock above session controls, support-only families stay hidden until explicitly requested, and the full-workbench summary keeps legend/telemetry/layer-detail clutter behind a governed disclosure toggle.
 - What Remains Simulated: No new map data or workflow capability is added by this packet.
-- Next Blocking Real Seam: Implement the left-rail and compact-summary declutter seam in the current shell and then capture governed proof.
-- Reviewer: Pending
+- Next Blocking Real Seam: User review plus successor packet `WP-I1-017` before any `E2E-VERIFIED` promotion.
+- Reviewer: Codex
 - User Sign-off: Pending

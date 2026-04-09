@@ -29,6 +29,11 @@ import {
   type MapRuntimeTelemetry,
 } from './features/i1/runtime/mapRuntimeTelemetry'
 import {
+  DEFAULT_MAP_BASEMAP_STYLE_ID,
+  normalizeMapBasemapStyleId,
+  type MapBasemapStyleId,
+} from './features/i1/runtime/basemaps'
+import {
   ARTIFACT_LABELS,
   artifactTone,
   buildLayerFamilyCatalog,
@@ -888,6 +893,7 @@ const buildWorkspaceStateSnapshot = ({
   analystNote,
   activeLayers,
   airTraffic,
+  basemapStyleId,
   forcedOffline,
   layerFamilyExpanded,
   layerFamilyVisibility,
@@ -899,6 +905,7 @@ const buildWorkspaceStateSnapshot = ({
   analystNote: string
   activeLayers: string[]
   airTraffic: AirTrafficSnapshot
+  basemapStyleId: MapBasemapStyleId
   forcedOffline: boolean
   layerFamilyExpanded: LayerFamilyExpandedState
   layerFamilyVisibility: LayerFamilyVisibilityState
@@ -911,6 +918,7 @@ const buildWorkspaceStateSnapshot = ({
   workflowMode: mode,
   note: analystNote,
   activeLayers,
+  basemapStyleId,
   airTraffic,
   maritime,
   satellite,
@@ -1038,6 +1046,52 @@ type MainCanvasDeckView = 'summary' | 'workflow' | 'artifacts'
 type RightPanelView = 'context' | 'monitor' | 'planning' | 'audit'
 type BottomPanelView = 'bundles' | 'activity'
 
+declare global {
+  interface Window {
+    __stratatlasRequestSnapshot?: (subfolder?: string, label?: string) => Promise<string>
+    __stratatlasNavigate?: (panel: string) => Promise<void>
+  }
+}
+
+const isTauriRuntime = (): boolean =>
+  typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window
+
+const toAgentBridgeMapMode = (
+  surfaceMode: MapRuntimeTelemetry['activeSurfaceMode'],
+): '2d' | '3d' => (surfaceMode === 'orbital' ? '3d' : '2d')
+
+const resolveAgentBridgeCurrentPanel = ({
+  leftPanelView,
+  mainCanvasDeckView,
+  rightPanelView,
+  bottomPanelView,
+  inspectorCollapsed,
+  trayCollapsed,
+  workspaceCompactView,
+}: {
+  leftPanelView: LeftPanelView
+  mainCanvasDeckView: MainCanvasDeckView
+  rightPanelView: RightPanelView
+  bottomPanelView: BottomPanelView
+  inspectorCollapsed: boolean
+  trayCollapsed: boolean
+  workspaceCompactView: boolean
+}): string => {
+  if (workspaceCompactView) {
+    return 'start'
+  }
+  if (leftPanelView !== 'workspace') {
+    return leftPanelView
+  }
+  if (!inspectorCollapsed) {
+    return rightPanelView
+  }
+  if (!trayCollapsed) {
+    return bottomPanelView
+  }
+  return mainCanvasDeckView === 'summary' ? 'map' : mainCanvasDeckView
+}
+
 function App() {
   const [role, setRole] = useState<UserRole>('analyst')
   const [marking, setMarking] = useState<SensitivityMarking>('INTERNAL')
@@ -1052,6 +1106,9 @@ function App() {
     useState<LayerFamilyVisibilityState>(() => createDefaultLayerFamilyVisibility())
   const [layerFamilyExpanded, setLayerFamilyExpanded] =
     useState<LayerFamilyExpandedState>(() => createDefaultLayerFamilyExpandedState())
+  const [mapBasemapStyleId, setMapBasemapStyleId] = useState<MapBasemapStyleId>(
+    DEFAULT_MAP_BASEMAP_STYLE_ID,
+  )
   const [airTrafficSnapshot, setAirTrafficSnapshot] = useState<AirTrafficSnapshot>(() =>
     createPackagedAirTrafficSnapshot(DEFAULT_QUERY.aoi),
   )
@@ -1083,6 +1140,8 @@ function App() {
   const [openPanelInfoId, setOpenPanelInfoId] = useState<PanelInfoId | null>(null)
   const [guidedStartDismissed, setGuidedStartDismissed] = useState<boolean>(false)
   const [workspaceAdvancedVisible, setWorkspaceAdvancedVisible] = useState<boolean>(false)
+  const [showSupportLayerFamilies, setShowSupportLayerFamilies] = useState<boolean>(false)
+  const [showSceneDetails, setShowSceneDetails] = useState<boolean>(false)
   const [inspectorCollapsed, setInspectorCollapsed] = useState<boolean>(true)
   const [trayCollapsed, setTrayCollapsed] = useState<boolean>(true)
   const [replayCursor, setReplayCursor] = useState<number>(0)
@@ -1314,6 +1373,7 @@ function App() {
         analystNote,
         activeLayers,
         airTraffic: airTrafficSnapshot,
+        basemapStyleId: mapBasemapStyleId,
         forcedOffline,
         layerFamilyExpanded,
         layerFamilyVisibility,
@@ -1326,6 +1386,7 @@ function App() {
       activeLayers,
       airTrafficSnapshot,
       analystNote,
+      mapBasemapStyleId,
       forcedOffline,
       layerFamilyExpanded,
       layerFamilyVisibility,
@@ -1413,6 +1474,27 @@ function App() {
   const showGuidedStart = !guidedStartDismissed && !hasMeaningfulSessionProgress
   const workspaceCompactView =
     leftPanelView === 'workspace' && showGuidedStart && !workspaceAdvancedVisible
+  const agentBridgeCurrentPanel = useMemo(
+    () =>
+      resolveAgentBridgeCurrentPanel({
+        leftPanelView,
+        mainCanvasDeckView,
+        rightPanelView,
+        bottomPanelView,
+        inspectorCollapsed,
+        trayCollapsed,
+        workspaceCompactView,
+      }),
+    [
+      bottomPanelView,
+      inspectorCollapsed,
+      leftPanelView,
+      mainCanvasDeckView,
+      rightPanelView,
+      trayCollapsed,
+      workspaceCompactView,
+    ],
+  )
   const guidedContextReady = activeDomainIds.length > 0
   const guidedAnalysisReady =
     queryResultCount > 0 || savedQueryVersions.length > 0 || Boolean(savedQueryArtifact)
@@ -1554,6 +1636,97 @@ function App() {
     }
   })
 
+  const handleAgentNavigate = useEffectEvent(async (requestedPanel: string) => {
+    const panel = requestedPanel.trim().toLowerCase()
+    if (!panel) {
+      return
+    }
+
+    switch (panel) {
+      case 'map':
+      case 'main':
+      case 'summary':
+        startTransition(() => setMainCanvasDeckView('summary'))
+        return
+      case 'workflow':
+        startTransition(() => setMainCanvasDeckView('workflow'))
+        return
+      case 'artifacts':
+        startTransition(() => setMainCanvasDeckView('artifacts'))
+        return
+      case 'workspace':
+      case 'start':
+        startTransition(() => {
+          setLeftPanelView('workspace')
+          if (panel === 'start') {
+            setWorkspaceAdvancedVisible(false)
+          }
+        })
+        return
+      case 'query':
+        startTransition(() => setLeftPanelView('query'))
+        return
+      case 'assistant':
+      case 'ai':
+        startTransition(() => setLeftPanelView('assistant'))
+        return
+      case 'context':
+        startTransition(() => {
+          setInspectorCollapsed(false)
+          setRightPanelView('context')
+        })
+        return
+      case 'monitor':
+      case 'alerts':
+        startTransition(() => {
+          setInspectorCollapsed(false)
+          setRightPanelView('monitor')
+        })
+        return
+      case 'planning':
+      case 'scenario':
+      case 'game':
+        startTransition(() => {
+          setInspectorCollapsed(false)
+          setRightPanelView('planning')
+        })
+        return
+      case 'audit':
+        startTransition(() => {
+          setInspectorCollapsed(false)
+          setRightPanelView('audit')
+        })
+        return
+      case 'bundles':
+        startTransition(() => {
+          setTrayCollapsed(false)
+          setBottomPanelView('bundles')
+        })
+        return
+      case 'activity':
+      case 'status':
+        startTransition(() => {
+          setTrayCollapsed(false)
+          setBottomPanelView('activity')
+        })
+        return
+      case '2d':
+      case 'planar':
+        if (mapRuntimeSurfaceRef.current) {
+          await mapRuntimeSurfaceRef.current.switchSurfaceMode('planar')
+        }
+        return
+      case '3d':
+      case 'orbital':
+        if (mapRuntimeSurfaceRef.current) {
+          await mapRuntimeSurfaceRef.current.switchSurfaceMode('orbital')
+        }
+        return
+      default:
+        console.warn('[Agent Bridge] unsupported navigation target:', requestedPanel)
+    }
+  })
+
   // WP-GOV-DEBUGGER-001: Visual debugger hotkey + JS global
   // WP-GOV-BRIDGE-001: Headless agent bridge event listeners
   useEffect(() => {
@@ -1599,7 +1772,6 @@ function App() {
     }
     window.addEventListener('keydown', handleKeyDown)
 
-    // @ts-ignore
     window.__stratatlasRequestSnapshot = async (subfolder?: string, label?: string) => {
       try {
         const canvas = await html2canvas(document.body)
@@ -1614,41 +1786,84 @@ function App() {
         throw err
       }
     }
+    window.__stratatlasNavigate = async (panel: string) => {
+      await handleAgentNavigate(panel)
+    }
 
     const unlisteners: Array<() => void> = []
-    ;(async () => {
-      unlisteners.push(
-        await listen<string>('agent-navigate', (_event) => {
-          console.log('[Agent Bridge] navigate request:', _event.payload)
-        })
-      )
-      unlisteners.push(
-        await listen<{ subfolder?: string; label?: string }>('agent-snapshot-request', async (event) => {
-          try {
-            const { subfolder, label } = event.payload ?? {}
-            const canvas = await html2canvas(document.body)
-            const base64Data = canvas.toDataURL('image/png')
-            const absPath = await invoke<string>('admin_save_snapshot', {
-              base64Data,
-              subfolder: subfolder || null,
-              label: label || null,
+    if (isTauriRuntime()) {
+      ;(async () => {
+        unlisteners.push(
+          await listen<string>('agent-navigate', (event) => {
+            void handleAgentNavigate(event.payload).catch((error) => {
+              console.error('[Agent Bridge] navigate failed', error)
             })
-            await invoke('agent_snapshot_complete', { path: absPath })
-          } catch (err) {
-            console.error('[Agent Bridge] snapshot failed', err)
-            await invoke('agent_snapshot_complete', { path: '' }).catch(() => {})
-          }
-        })
-      )
-    })()
+          })
+        )
+        unlisteners.push(
+          await listen<{ subfolder?: string; label?: string }>(
+            'agent-snapshot-request',
+            async (event) => {
+              try {
+                const { subfolder, label } = event.payload ?? {}
+                const canvas = await html2canvas(document.body)
+                const base64Data = canvas.toDataURL('image/png')
+                const absPath = await invoke<string>('admin_save_snapshot', {
+                  base64Data,
+                  subfolder: subfolder || null,
+                  label: label || null,
+                })
+                await invoke('agent_snapshot_complete', { path: absPath })
+              } catch (err) {
+                console.error('[Agent Bridge] snapshot failed', err)
+                await invoke('agent_snapshot_complete', { path: '' }).catch(() => {})
+              }
+            },
+          ),
+        )
+      })()
+    }
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown)
-      // @ts-ignore
       delete window.__stratatlasRequestSnapshot
+      delete window.__stratatlasNavigate
       for (const u of unlisteners) u()
     }
   }, [])
+
+  useEffect(() => {
+    if (!isTauriRuntime()) {
+      return
+    }
+
+    void invoke<void>('agent_report_state', {
+      state: {
+        currentPanel: agentBridgeCurrentPanel,
+        leftPanelView,
+        mainPanelView: mainCanvasDeckView,
+        rightPanelView,
+        bottomPanelView,
+        activeBundleId: selectedBundleId || null,
+        mapMode: toAgentBridgeMapMode(mapRuntimeTelemetry.activeSurfaceMode),
+        surfaceMode: mapRuntimeTelemetry.activeSurfaceMode,
+        inspectorCollapsed,
+        trayCollapsed,
+      },
+    }).catch((error) => {
+      console.error('[Agent Bridge] state report failed', error)
+    })
+  }, [
+    agentBridgeCurrentPanel,
+    bottomPanelView,
+    inspectorCollapsed,
+    leftPanelView,
+    mainCanvasDeckView,
+    mapRuntimeTelemetry.activeSurfaceMode,
+    rightPanelView,
+    selectedBundleId,
+    trayCollapsed,
+  ])
 
   useEffect(() => {
     let cancelled = false
@@ -2271,6 +2486,18 @@ function App() {
       satelliteRuntimeState,
     ],
   )
+  const supportLayerFamilyCatalog = useMemo(
+    () => layerFamilyCatalog.filter((family) => family.familyId === 'verified-workspace'),
+    [layerFamilyCatalog],
+  )
+  const primaryLayerFamilyCatalog = useMemo(
+    () => layerFamilyCatalog.filter((family) => family.familyId !== 'verified-workspace'),
+    [layerFamilyCatalog],
+  )
+  const displayedLayerFamilyCatalog = useMemo(
+    () => (showSupportLayerFamilies ? layerFamilyCatalog : primaryLayerFamilyCatalog),
+    [layerFamilyCatalog, primaryLayerFamilyCatalog, showSupportLayerFamilies],
+  )
   const visibleLayerCatalog = useMemo(
     () => layerCatalog.filter((entry) => entry.visible),
     [layerCatalog],
@@ -2362,6 +2589,10 @@ function App() {
     () => budgetTelemetry.filter((probe) => probe.degraded).length,
     [budgetTelemetry],
   )
+  const supportLayerFamilyCount = supportLayerFamilyCatalog.length
+  const supportLayerFamilyLabel =
+    supportLayerFamilyCount === 1 ? 'support family' : 'support families'
+  const compactSceneWarningActive = degradedBudgetCount > 0 || stateFeedback.degraded
   const mapRuntimeScene = useMemo(
     () =>
       buildMapRuntimeScene({
@@ -2569,6 +2800,7 @@ function App() {
       setMode(isUiMode(workspace.workflowMode) ? workspace.workflowMode : 'offline')
       setForcedOffline(Boolean(workspace.forcedOffline))
       setActiveLayers(normalizeStringArray(workspace.activeLayers))
+      setMapBasemapStyleId(normalizeMapBasemapStyleId(workspace.basemapStyleId))
       setLayerFamilyVisibility(
         normalizeLayerFamilyBooleanState(workspace.layerFamilyVisibility, defaultFamilyVisibility),
       )
@@ -7290,53 +7522,37 @@ function App() {
 
           {leftPanelView === 'workspace' && !workspaceCompactView ? (
             <div className="panel-view">
-            <h3>Workspace Controls</h3>
-            <label className="field">
-              Role
-              <select value={role} onChange={(event) => setRole(event.target.value as UserRole)}>
-                {ROLES.map((currentRole) => (
-                  <option key={currentRole} value={currentRole}>
-                    {currentRole}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="field">
-              Marking
-              <select
-                value={marking}
-                onChange={(event) => setMarking(event.target.value as SensitivityMarking)}
-              >
-                {MARKINGS.map((currentMarking) => (
-                  <option key={currentMarking} value={currentMarking}>
-                    {currentMarking}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="field">
-              Mode
-              <select value={mode} onChange={(event) => onModeChange(event.target.value as UiMode)}>
-                {REQUIRED_UI_MODES.map((currentMode) => (
-                  <option key={currentMode} value={currentMode}>
-                    {currentMode}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="field">
-              Analyst Note
-              <textarea
-                value={analystNote}
-                onChange={(event) => setAnalystNote(event.target.value)}
-                rows={4}
-              />
-            </label>
-
-            <div className="field">
-              Layer Families
-              <div className="layer-family-dock" data-testid="layer-family-dock">
-                {layerFamilyCatalog.map((family) => (
+              <h3>Workspace Controls</h3>
+              <div className="workspace-priority-stack">
+                <div className="field workspace-priority-field">
+                  <div className="section-heading-row">
+                    <div className="section-heading-copy">
+                      <strong>Layer Families</strong>
+                      <p>Turn on the governed map families first, then adjust session metadata if needed.</p>
+                    </div>
+                    {supportLayerFamilyCount > 0 ? (
+                      <button
+                        type="button"
+                        className="button-ghost section-detail-toggle"
+                        aria-expanded={showSupportLayerFamilies}
+                        aria-controls="layer-family-dock"
+                        onClick={() => setShowSupportLayerFamilies((value) => !value)}
+                      >
+                        {showSupportLayerFamilies
+                          ? `Hide ${supportLayerFamilyCount} ${supportLayerFamilyLabel}`
+                          : `Show ${supportLayerFamilyCount} ${supportLayerFamilyLabel}`}
+                      </button>
+                    ) : null}
+                  </div>
+                  {supportLayerFamilyCount > 0 ? (
+                    <p className="status-line">
+                      {showSupportLayerFamilies
+                        ? 'Support families stay available for provenance and policy checks.'
+                        : `${supportLayerFamilyCount} ${supportLayerFamilyLabel} hidden until requested.`}
+                    </p>
+                  ) : null}
+                  <div className="layer-family-dock" data-testid="layer-family-dock">
+                    {displayedLayerFamilyCatalog.map((family) => (
                   <article
                     key={family.familyId}
                     className={`layer-family-card ${
@@ -7590,27 +7806,86 @@ function App() {
                       </div>
                     ) : null}
                   </article>
-                ))}
-              </div>
-            </div>
+                    ))}
+                  </div>
+                </div>
 
-            <div className="controls">
-              <button onClick={onCreateBundle} disabled={busy}>
-                Create Bundle
-              </button>
-              <button onClick={onOpenBundle} disabled={busy || !selectedBundleId}>
-                Reopen Bundle
-              </button>
-              <button onClick={onToggleForcedOffline} disabled={busy}>
-                {forcedOffline ? 'Disable Forced Offline' : 'Force Offline Mode'}
-              </button>
-            </div>
-            <p className="status-line">{status}</p>
-            <p className="status-line">{integrityState}</p>
-            <p className="status-line">
-              Recorder snapshot: {workspaceSnapshot.uiVersion} | Context links:{' '}
-              {activeDomainIds.length}
-            </p>
+                <article
+                  className="sub-panel workspace-session-panel"
+                  data-testid="workspace-session-controls"
+                >
+                  <div className="section-heading-row">
+                    <div className="section-heading-copy">
+                      <h3>Session Controls</h3>
+                      <p>
+                        Role, marking, mode, and analyst notes stay available without outranking
+                        the live map families.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="workspace-session-stack">
+                    <label className="field">
+                      Role
+                      <select value={role} onChange={(event) => setRole(event.target.value as UserRole)}>
+                        {ROLES.map((currentRole) => (
+                          <option key={currentRole} value={currentRole}>
+                            {currentRole}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="field">
+                      Marking
+                      <select
+                        value={marking}
+                        onChange={(event) => setMarking(event.target.value as SensitivityMarking)}
+                      >
+                        {MARKINGS.map((currentMarking) => (
+                          <option key={currentMarking} value={currentMarking}>
+                            {currentMarking}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="field">
+                      Mode
+                      <select value={mode} onChange={(event) => onModeChange(event.target.value as UiMode)}>
+                        {REQUIRED_UI_MODES.map((currentMode) => (
+                          <option key={currentMode} value={currentMode}>
+                            {currentMode}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="field">
+                      Analyst Note
+                      <textarea
+                        value={analystNote}
+                        onChange={(event) => setAnalystNote(event.target.value)}
+                        rows={4}
+                      />
+                    </label>
+                  </div>
+                </article>
+              </div>
+
+              <div className="controls">
+                <button onClick={onCreateBundle} disabled={busy}>
+                  Create Bundle
+                </button>
+                <button onClick={onOpenBundle} disabled={busy || !selectedBundleId}>
+                  Reopen Bundle
+                </button>
+                <button onClick={onToggleForcedOffline} disabled={busy}>
+                  {forcedOffline ? 'Disable Forced Offline' : 'Force Offline Mode'}
+                </button>
+              </div>
+              <p className="status-line">{status}</p>
+              <p className="status-line">{integrityState}</p>
+              <p className="status-line">
+                Recorder snapshot: {workspaceSnapshot.uiVersion} | Context links:{' '}
+                {activeDomainIds.length}
+              </p>
             </div>
           ) : null}
 
@@ -7954,6 +8229,7 @@ function App() {
           <MapRuntimeSurface
             ref={mapRuntimeSurfaceRef}
             scene={mapRuntimeScene}
+            basemapStyleId={mapBasemapStyleId}
             mode={mode}
             marking={marking}
             visibleLayerCount={visibleLayerCatalog.length}
@@ -7962,6 +8238,7 @@ function App() {
             exportBusy={busy && stateFeedback.action === '4K map export'}
             exportBlockedReason={mapExportBlockedReason}
             latestExportArtifactId={mapExportArtifact?.artifactId}
+            onBasemapStyleChange={setMapBasemapStyleId}
             onTelemetryChange={setMapRuntimeTelemetry}
             onRequestExport={onExportMapImage}
             onSurfaceModeFeedback={onMapSurfaceModeFeedback}
@@ -8060,146 +8337,183 @@ function App() {
                 </div>
               </article>
 
-              <div className="legend-row" aria-label="Artifact label legend">
-                {ARTIFACT_LABELS.map((label) => (
-                  <span key={label} className={`artifact-chip ${artifactTone(label)}`}>
-                    {label}
-                  </span>
-                ))}
-              </div>
-
               {!showGuidedStart && (
-                <div className="telemetry-grid">
-                  {budgetTelemetry.map((probe) => (
-                    <article
-                      key={probe.label}
-                      className={`telemetry-card ${probe.degraded ? 'degraded' : ''}`}
+                <article className="sub-panel scene-disclosure-panel">
+                  <div className="section-heading-row">
+                    <div className="section-heading-copy">
+                      <h3>Scene Details</h3>
+                      <p>
+                        Keep the map dominant until you explicitly open legend, telemetry, and
+                        layer metadata.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      className="button-ghost section-detail-toggle"
+                      aria-expanded={showSceneDetails}
+                      aria-controls="main-scene-detail-region"
+                      onClick={() => setShowSceneDetails((value) => !value)}
                     >
-                      <span className="metric-label">{probe.label}</span>
-                      <strong>
-                        {probe.measuredMs} ms / {probe.budgetMs} ms budget
-                      </strong>
-                      <p>{probe.degraded ? 'Degraded aggregation in effect.' : 'Within budget.'}</p>
-                    </article>
-                  ))}
-                  <article
-                    className={`telemetry-card ${stateFeedback.degraded ? 'degraded' : ''}`}
-                    data-testid="state-feedback-card"
-                  >
-                    <span className="metric-label">State feedback</span>
-                    <strong>{stateFeedback.action}</strong>
-                    <p>{stateFeedback.message}</p>
-                    <small>
-                      {stateFeedback.showProgress
-                        ? 'Non-blocking progress visible.'
-                        : 'No blocking progress required.'}
-                    </small>
-                  </article>
-                </div>
+                      {showSceneDetails ? 'Hide scene details' : 'Show scene details'}
+                    </button>
+                  </div>
+                  <p className="status-line">
+                    {showSceneDetails
+                      ? 'Telemetry, legend, layer detail, and support widgets are expanded below.'
+                      : 'Legend, telemetry, layer detail, and support widgets stay hidden until requested.'}
+                  </p>
+                  {compactSceneWarningActive ? (
+                    <p className="status-line warning">Degraded aggregation in effect.</p>
+                  ) : null}
+                </article>
               )}
 
-              <div className="surface-grid">
-                {mainCanvasCatalog.length === 0 && (
-                  <article className="surface-card">
-                    <strong>No visible main-canvas layers</strong>
-                    <p>Enable a governed layer to populate the workspace surface.</p>
-                  </article>
-                )}
-                {mainCanvasCatalog.map((entry) => (
-                  <article
-                    key={entry.layerId}
-                    className={`surface-card ${entry.degraded ? 'degraded' : ''}`}
-                  >
-                    <div className="card-header">
-                      <div>
-                        <span className={`artifact-chip ${artifactTone(entry.artifactLabel)}`}>
-                          {entry.artifactLabel}
-                        </span>
-                        <h3>{entry.title}</h3>
-                      </div>
-                      <span
-                        className={`policy-pill ${entry.exportAllowed ? 'allowed' : 'blocked'}`}
-                      >
-                        Export: {entry.exportAllowed ? 'allowed' : 'blocked'}
+              {(showGuidedStart || showSceneDetails) && (
+                <div id="main-scene-detail-region" className="scene-detail-region">
+                  <div className="legend-row" aria-label="Artifact label legend">
+                    {ARTIFACT_LABELS.map((label) => (
+                      <span key={label} className={`artifact-chip ${artifactTone(label)}`}>
+                        {label}
                       </span>
-                    </div>
-                    <p>{entry.confidenceText}</p>
-                    {entry.uncertaintyText && (
-                      <p className="uncertainty-line">Uncertainty: {entry.uncertaintyText}</p>
-                    )}
-                    <dl className="meta-grid">
-                      <div>
-                        <dt>Source</dt>
-                        <dd>{entry.source}</dd>
-                      </div>
-                      <div>
-                        <dt>Cadence</dt>
-                        <dd>{entry.cadence}</dd>
-                      </div>
-                      <div>
-                        <dt>Geometry</dt>
-                        <dd>{entry.geometryType}</dd>
-                      </div>
-                      <div>
-                        <dt>Sensitivity</dt>
-                        <dd>{entry.sensitivityClass}</dd>
-                      </div>
-                      <div>
-                        <dt>Cache</dt>
-                        <dd>{entry.cachingPolicy}</dd>
-                      </div>
-                      <div>
-                        <dt>Render surface</dt>
-                        <dd>{entry.renderSurface}</dd>
-                      </div>
-                    </dl>
-                    {entry.degraded && (
-                      <p className="status-line warning">
-                        Aggregation mode active to stay within the {I1_BUDGETS.panZoomFrameMs} ms
-                        frame budget.
-                      </p>
-                    )}
-                  </article>
-                ))}
-              </div>
+                    ))}
+                  </div>
 
-              {!showGuidedStart && dashboardCatalog.length > 0 && (
-                <div className="sub-panel">
-                  <h3>Support widgets</h3>
-                  <div className="mini-grid">
-                    {dashboardCatalog.map((entry) => (
-                      <article key={entry.layerId} className="surface-card compact">
-                        <span className={`artifact-chip ${artifactTone(entry.artifactLabel)}`}>
-                          {entry.artifactLabel}
-                        </span>
-                        <strong>{entry.title}</strong>
+                  {!showGuidedStart && (
+                    <div className="telemetry-grid">
+                      {budgetTelemetry.map((probe) => (
+                        <article
+                          key={probe.label}
+                          className={`telemetry-card ${probe.degraded ? 'degraded' : ''}`}
+                        >
+                          <span className="metric-label">{probe.label}</span>
+                          <strong>
+                            {probe.measuredMs} ms / {probe.budgetMs} ms budget
+                          </strong>
+                          <p>{probe.degraded ? 'Degraded aggregation in effect.' : 'Within budget.'}</p>
+                        </article>
+                      ))}
+                      <article
+                        className={`telemetry-card ${stateFeedback.degraded ? 'degraded' : ''}`}
+                        data-testid="state-feedback-card"
+                      >
+                        <span className="metric-label">State feedback</span>
+                        <strong>{stateFeedback.action}</strong>
+                        <p>{stateFeedback.message}</p>
                         <small>
-                          Source: {entry.source} | Cadence: {entry.cadence}
+                          {stateFeedback.showProgress
+                            ? 'Non-blocking progress visible.'
+                            : 'No blocking progress required.'}
                         </small>
+                      </article>
+                    </div>
+                  )}
+
+                  <div className="surface-grid">
+                    {mainCanvasCatalog.length === 0 && (
+                      <article className="surface-card">
+                        <strong>No visible main-canvas layers</strong>
+                        <p>Enable a governed layer to populate the workspace surface.</p>
+                      </article>
+                    )}
+                    {mainCanvasCatalog.map((entry) => (
+                      <article
+                        key={entry.layerId}
+                        className={`surface-card ${entry.degraded ? 'degraded' : ''}`}
+                      >
+                        <div className="card-header">
+                          <div>
+                            <span className={`artifact-chip ${artifactTone(entry.artifactLabel)}`}>
+                              {entry.artifactLabel}
+                            </span>
+                            <h3>{entry.title}</h3>
+                          </div>
+                          <span
+                            className={`policy-pill ${entry.exportAllowed ? 'allowed' : 'blocked'}`}
+                          >
+                            Export: {entry.exportAllowed ? 'allowed' : 'blocked'}
+                          </span>
+                        </div>
+                        <p>{entry.confidenceText}</p>
+                        {entry.uncertaintyText && (
+                          <p className="uncertainty-line">Uncertainty: {entry.uncertaintyText}</p>
+                        )}
+                        <dl className="meta-grid">
+                          <div>
+                            <dt>Source</dt>
+                            <dd>{entry.source}</dd>
+                          </div>
+                          <div>
+                            <dt>Cadence</dt>
+                            <dd>{entry.cadence}</dd>
+                          </div>
+                          <div>
+                            <dt>Geometry</dt>
+                            <dd>{entry.geometryType}</dd>
+                          </div>
+                          <div>
+                            <dt>Sensitivity</dt>
+                            <dd>{entry.sensitivityClass}</dd>
+                          </div>
+                          <div>
+                            <dt>Cache</dt>
+                            <dd>{entry.cachingPolicy}</dd>
+                          </div>
+                          <div>
+                            <dt>Render surface</dt>
+                            <dd>{entry.renderSurface}</dd>
+                          </div>
+                        </dl>
+                        {entry.degraded && (
+                          <p className="status-line warning">
+                            Aggregation mode active to stay within the {I1_BUDGETS.panZoomFrameMs} ms
+                            frame budget.
+                          </p>
+                        )}
                       </article>
                     ))}
                   </div>
+
+                  {!showGuidedStart && dashboardCatalog.length > 0 && (
+                    <div className="sub-panel">
+                      <h3>Support widgets</h3>
+                      <div className="mini-grid">
+                        {dashboardCatalog.map((entry) => (
+                          <article key={entry.layerId} className="surface-card compact">
+                            <span className={`artifact-chip ${artifactTone(entry.artifactLabel)}`}>
+                              {entry.artifactLabel}
+                            </span>
+                            <strong>{entry.title}</strong>
+                            <small>
+                              Source: {entry.source} | Cadence: {entry.cadence}
+                            </small>
+                          </article>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {modeledOutputEntry && (
+                    <article
+                      className={`artifact-callout ${artifactTone(modeledOutputEntry.artifactLabel)}`}
+                    >
+                      <div className="card-header compact">
+                        <span
+                          className={`artifact-chip ${artifactTone(modeledOutputEntry.artifactLabel)}`}
+                        >
+                          {modeledOutputEntry.artifactLabel}
+                        </span>
+                        <span>{modeledOutputEntry.title}</span>
+                      </div>
+                      <p>
+                        Payoff proxy: {payoffProxy.metric} {payoffProxy.value}
+                      </p>
+                      <p>Compare delta cells: [{densityDelta.delta.join(', ')}]</p>
+                      <small>Uncertainty: {modeledOutputEntry.uncertaintyText}</small>
+                    </article>
+                  )}
                 </div>
               )}
             </div>
-
-            {modeledOutputEntry && (
-              <article className={`artifact-callout ${artifactTone(modeledOutputEntry.artifactLabel)}`}>
-                <div className="card-header compact">
-                  <span
-                    className={`artifact-chip ${artifactTone(modeledOutputEntry.artifactLabel)}`}
-                  >
-                    {modeledOutputEntry.artifactLabel}
-                  </span>
-                  <span>{modeledOutputEntry.title}</span>
-                </div>
-                <p>
-                  Payoff proxy: {payoffProxy.metric} {payoffProxy.value}
-                </p>
-                <p>Compare delta cells: [{densityDelta.delta.join(', ')}]</p>
-                <small>Uncertainty: {modeledOutputEntry.uncertaintyText}</small>
-              </article>
-            )}
             </div>
           ) : null}
 

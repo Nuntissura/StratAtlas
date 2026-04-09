@@ -272,6 +272,44 @@ button:disabled {
   border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
+.workspace-priority-stack,
+.workspace-session-stack,
+.scene-detail-region {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.workspace-priority-field {
+  margin-bottom: 0;
+}
+
+.section-heading-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: flex-start;
+}
+
+.section-heading-copy {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.section-heading-copy p {
+  margin: 0;
+  color: var(--workbench-muted);
+}
+
+.section-detail-toggle {
+  align-self: flex-start;
+}
+
+.workspace-session-panel,
+.scene-disclosure-panel {
+  margin-bottom: 0;
+}
+
 .layer-family-dock,
 .layer-family-body,
 .layer-family-card-actions {

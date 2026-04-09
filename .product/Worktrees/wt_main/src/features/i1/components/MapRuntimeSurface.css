@@ -34,6 +34,24 @@
   justify-content: flex-end;
 }
 
+.map-runtime-style-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 0.22rem;
+}
+
+.map-runtime-style-label {
+  color: #bad3f6;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.map-runtime-style-group button {
+  min-width: 4.8rem;
+}
+
 .map-runtime-export-button {
   min-width: 9.5rem;
   background: linear-gradient(180deg, #163b61, #0d2741);
@@ -405,6 +423,18 @@
 
 .map-runtime-actions {
   justify-content: flex-end;
+}
+
+.map-runtime-style-picker {
+  gap: 0.18rem;
+}
+
+.map-runtime-style-label {
+  color: #aebccc;
+}
+
+.map-runtime-style-group button {
+  min-width: 4.3rem;
 }
 
 .map-runtime-export-button {

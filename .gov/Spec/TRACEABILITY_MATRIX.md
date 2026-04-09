@@ -386,11 +386,11 @@ For quick lookup: "What requirements does this component implement?"
 
 | WP-I1-014 | I1 | REQ-0200, REQ-0201, REQ-0211 | PRIM-0045, PRIM-0071 | .gov/workflow/wp_test_suites/TS-WP-I1-014.md | IMPLEMENTED | .gov/workflow/wp_spec_extractions/SX-WP-I1-014.md; `.product/build_target/tool_artifacts/wp_runs/WP-I1-014/20260409_051858/`; the 2D runtime now ships official OpenFreeMap vector-style controls with recorder/bundle restore, invalid-restore normalization, truthful fallback copy, and live bridge snapshot proof under `visual_proof/` |
 
-| WP-I1-015 | I1 | REQ-0011, REQ-0012, REQ-0200, REQ-0212 | PRIM-0045, PRIM-0068, PRIM-0071 | .gov/workflow/wp_test_suites/TS-WP-I1-015.md | IN-PROGRESS | .gov/workflow/wp_spec_extractions/SX-WP-I1-015.md; active first pass now targets a data-family-first left rail plus compact main-canvas scene detail disclosure in the existing workbench |
+| WP-I1-015 | I1 | REQ-0011, REQ-0012, REQ-0200, REQ-0212 | PRIM-0045, PRIM-0068, PRIM-0071 | .gov/workflow/wp_test_suites/TS-WP-I1-015.md | IMPLEMENTED | .gov/workflow/wp_spec_extractions/SX-WP-I1-015.md; proof: `.product/build_target/tool_artifacts/wp_runs/WP-I1-015/20260409_165612/`; the live workbench now promotes the layer-family dock above session controls, hides support-only families behind explicit disclosure, and keeps non-guided scene detail compact until requested |
 
 | WP-I1-016 | I1 | REQ-0200, REQ-0201 | PRIM-0045 | .gov/workflow/wp_test_suites/TS-WP-I1-016.md | SPEC-MAPPED | .gov/workflow/wp_spec_extractions/SX-WP-I1-016.md |
 
-| WP-I1-017 | I1 | REQ-0013, REQ-0200, REQ-0201, REQ-0212 | PRIM-0071 | .gov/workflow/wp_test_suites/TS-WP-I1-017.md | SPEC-MAPPED | .gov/workflow/wp_spec_extractions/SX-WP-I1-017.md |
+| WP-I1-017 | I1 | REQ-0011, REQ-0012, REQ-0013, REQ-0200, REQ-0201, REQ-0211, REQ-0212 | PRIM-0045, PRIM-0068, PRIM-0071 | .gov/workflow/wp_test_suites/TS-WP-I1-017.md | SPEC-MAPPED | .gov/workflow/wp_spec_extractions/SX-WP-I1-017.md |
 
 | WP-I1-018 | I1 | REQ-0013, REQ-0500, REQ-0700 | PRIM-0071 | .gov/workflow/wp_test_suites/TS-WP-I1-018.md | SPEC-MAPPED | .gov/workflow/wp_spec_extractions/SX-WP-I1-018.md |
 

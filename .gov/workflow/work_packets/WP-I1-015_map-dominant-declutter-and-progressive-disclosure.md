@@ -1,7 +1,7 @@
 # WP-I1-015 - Map-Dominant Declutter and Progressive Disclosure
 
 Date Opened: 2026-04-09
-Status: IN-PROGRESS
+Status: IMPLEMENTED
 Iteration: I1
 Workflow Version: 4.0
 Packet Class: IMPLEMENTATION
@@ -88,32 +88,32 @@ Use the current manual-smoke findings to reduce the remaining "LLM demo" feel in
 ## Spec-Test Coverage Plan
 
 ### Dependency and Environment Tests
-- [ ] Dependency graph/lock integrity tests
+- [x] Dependency graph/lock integrity tests
 - [ ] Runtime compatibility checks
 
 ### UI Contract Tests
-- [ ] Required regions/modes/states
-- [ ] Error/degraded-state UX
+- [x] Required regions/modes/states
+- [x] Error/degraded-state UX
 
 ### Functional Flow Tests
-- [ ] Golden flow and edge cases
-- [ ] Persistence/replay/export flows
+- [x] Golden flow and edge cases
+- [x] Persistence/replay/export flows
 
 ### Code Correctness Tests
-- [ ] Unit tests
-- [ ] Integration tests
-- [ ] Static analysis (lint/type/schema)
+- [x] Unit tests
+- [x] Integration tests
+- [x] Static analysis (lint/type/schema)
 
 ### Red-Team and Abuse Tests
-- [ ] Non-goal enforcement (spec section 3.2)
-- [ ] Policy bypass scenarios
-- [ ] Adversarial/invalid input cases
+- [x] Non-goal enforcement (spec section 3.2)
+- [x] Policy bypass scenarios
+- [x] Adversarial/invalid input cases
 
 ### Additional Tests
 - [ ] Performance budgets
 - [ ] Offline behavior
-- [ ] Reliability/recovery
-- [ ] Visual bridge/debugger proof if desktop runtime is available
+- [x] Reliability/recovery
+- [x] Visual bridge/debugger proof if desktop runtime is available
 
 ## Fallback Register
 
@@ -124,9 +124,9 @@ Use the current manual-smoke findings to reduce the remaining "LLM demo" feel in
 
 ## Change Ledger
 
-- What Became Real: Governance now fixes the first declutter seam as a data-family-first left rail plus an on-demand main-canvas detail stack instead of the previous placeholder "glass overlay" rewrite.
+- What Became Real: The live workbench now puts the layer-family dock above session controls, hides the support-only `verified-workspace` family behind explicit disclosure, and defaults the non-guided summary deck to a calmer map-first state where legend, telemetry, layer metadata, support widgets, and modeled-output detail open only on demand.
 - What Remains Simulated: No new map data, new workflows, or floating-overlay shell system are promised by this packet.
-- Next Blocking Real Seam: Implement the left-rail and summary-deck disclosure changes in the live workbench, then capture packet-grade proof and bridge snapshots.
+- Next Blocking Real Seam: User review plus successor packet `WP-I1-017` before any `E2E-VERIFIED` promotion.
 
 ## Checkpoint Commit Plan
 
@@ -151,14 +151,17 @@ Use the current manual-smoke findings to reduce the remaining "LLM demo" feel in
 
 ## Evidence
 
-- Test Suite Execution: Pending
-- Logs: Pending
-- Screenshots/Exports: Pending
-- Build Artifacts: Pending
-- Proof Artifact: .product/build_target/tool_artifacts/wp_runs/WP-I1-015/
+- Test Suite Execution: `powershell -ExecutionPolicy Bypass -File .gov/workflow/wp_checks/check-WP-I1-015.ps1` -> passed; `pnpm exec vitest run src/App.test.tsx --reporter=verbose` -> passed (33 tests, including layer-order, support-family disclosure, and compact-summary reveal/hide coverage).
+- Logs: `.product/build_target/tool_artifacts/wp_runs/WP-I1-015/20260409_165612/summary.md`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-015/20260409_165612/UI-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-015/20260409_165612/FUNC-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-015/20260409_165612/COR-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-015/20260409_165612/RED-001.log`.
+- Screenshots/Exports: `.product/build_target/tool_artifacts/wp_runs/WP-I1-015/20260409_165612/visual_proof/full_workbench_declutter_live.png`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-015/20260409_165612/visual_proof/agent_state_planar.json`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-015/20260409_165612/visual_proof/agent_health.json`.
+- Build Artifacts: `.product/build_target/tool_artifacts/wp_runs/WP-I1-015/20260409_165612/EXT-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-015/20260409_165612/EXT-002.log`.
+- Proof Artifact: `.product/build_target/tool_artifacts/wp_runs/WP-I1-015/20260409_165612/`
 - User Sign-off: Pending
 
 ## Progress Log
 
 - 2026-04-09: WP scaffold created via .gov/repo_scripts/new_work_packet.ps1.
 - 2026-04-09: Placeholder packet replaced with a bounded declutter seam based on the current `WP-GOV-SMOKE-001` findings: map families first, support-family disclosure, and compact main-canvas summary detail.
+- 2026-04-09: Product seam landed in the live shell: the left rail now prioritizes the layer-family dock, support-only families stay hidden until explicitly requested, and the summary deck defaults to a calmer map-first disclosure state.
+- 2026-04-09: Added regression coverage for dock ordering, support-family reveal, and compact-summary detail disclosure without breaking existing map-family persistence flows.
+- 2026-04-09: Official packet proof passed under `.product/build_target/tool_artifacts/wp_runs/WP-I1-015/20260409_165612/`, including governed packet checks, App regression tests, lint, build, Rust verification, and live bridge-driven snapshot capture in `visual_proof/`.

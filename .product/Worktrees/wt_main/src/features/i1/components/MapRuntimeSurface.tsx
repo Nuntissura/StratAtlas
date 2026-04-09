@@ -32,6 +32,11 @@ import {
   type SurfaceMode,
 } from '../runtime/mapRuntimeTelemetry'
 import {
+  getMapBasemapStyle,
+  MAP_BASEMAP_STYLES,
+  type MapBasemapStyleId,
+} from '../runtime/basemaps'
+import {
   buildMapRuntimeExportCapture,
   type MapRuntimeExportCapture,
 } from '../runtime/mapRuntimeExport'
@@ -46,6 +51,7 @@ import type { UiMode } from '../modes'
 
 interface MapRuntimeSurfaceProps {
   scene: MapRuntimeScene
+  basemapStyleId: MapBasemapStyleId
   mode: UiMode
   marking: SensitivityMarking
   visibleLayerCount: number
@@ -54,6 +60,7 @@ interface MapRuntimeSurfaceProps {
   exportBusy?: boolean
   exportBlockedReason?: string
   latestExportArtifactId?: string
+  onBasemapStyleChange?: (basemapStyleId: MapBasemapStyleId) => void
   onTelemetryChange?: (telemetry: MapRuntimeTelemetry) => void
   onRequestExport?: () => void | Promise<void>
   onSurfaceModeFeedback?: (surfaceMode: SurfaceMode, measuredMs: number) => void
@@ -134,8 +141,6 @@ const GRATICULE: Exclude<GeoJSONSourceSpecification['data'], string> = {
     },
   ],
 }
-
-const ONLINE_BASEMAP_STYLE_URL = 'https://tiles.openfreemap.org/styles/liberty'
 
 type BasemapState = 'online-live' | 'fallback-offline' | 'fallback-load-failure' | 'fallback-runtime'
 
@@ -344,6 +349,7 @@ const selectAoiId = (feature?: MapGeoJSONFeature): string | undefined => {
 
 export const MapRuntimeSurface = forwardRef<MapRuntimeSurfaceHandle, MapRuntimeSurfaceProps>(function MapRuntimeSurface({
   scene,
+  basemapStyleId,
   mode,
   marking,
   visibleLayerCount,
@@ -352,6 +358,7 @@ export const MapRuntimeSurface = forwardRef<MapRuntimeSurfaceHandle, MapRuntimeS
   exportBusy = false,
   exportBlockedReason = '',
   latestExportArtifactId = '',
+  onBasemapStyleChange,
   onTelemetryChange,
   onRequestExport,
   onSurfaceModeFeedback,
@@ -397,9 +404,10 @@ export const MapRuntimeSurface = forwardRef<MapRuntimeSurfaceHandle, MapRuntimeS
   })
 
   const onlineBasemapConfirmedRef = useRef<boolean>(false)
-  const basemapStyleRef = useRef<'online' | 'fallback'>(
+  const basemapSourceRef = useRef<'online' | 'fallback'>(
     interactiveSupportedRef.current && !offline ? 'online' : 'fallback',
   )
+  const activeBasemapStyleIdRef = useRef<MapBasemapStyleId>(basemapStyleId)
   const basemapLoadTimeoutRef = useRef<number>(0)
 
   useEffect(() => {
@@ -439,7 +447,7 @@ export const MapRuntimeSurface = forwardRef<MapRuntimeSurfaceHandle, MapRuntimeS
   ) => {
     clearBasemapLoadTimeout()
     onlineBasemapConfirmedRef.current = false
-    basemapStyleRef.current = 'fallback'
+    basemapSourceRef.current = 'fallback'
     setBasemapState(nextState)
     if (message) {
       setMapError(message)
@@ -448,12 +456,17 @@ export const MapRuntimeSurface = forwardRef<MapRuntimeSurfaceHandle, MapRuntimeS
     syncPlanarSceneAfterStyleChange(map)
   })
 
-  const applyOnlineBasemap = useEffectEvent((map: MapLibreMap) => {
+  const applyOnlineBasemap = useEffectEvent((
+    map: MapLibreMap,
+    nextBasemapStyleId: MapBasemapStyleId,
+  ) => {
     clearBasemapLoadTimeout()
-    basemapStyleRef.current = 'online'
+    basemapSourceRef.current = 'online'
+    activeBasemapStyleIdRef.current = nextBasemapStyleId
     onlineBasemapConfirmedRef.current = false
     setBasemapState('online-live')
-    map.setStyle(ONLINE_BASEMAP_STYLE_URL)
+    setMapError('')
+    map.setStyle(getMapBasemapStyle(nextBasemapStyleId).styleUrl)
     syncPlanarSceneAfterStyleChange(map)
     basemapLoadTimeoutRef.current = window.setTimeout(() => {
       if (!onlineBasemapConfirmedRef.current && mapRef.current === map) {
@@ -465,6 +478,24 @@ export const MapRuntimeSurface = forwardRef<MapRuntimeSurfaceHandle, MapRuntimeS
       }
     }, 6000)
   })
+
+  useEffect(() => {
+    if (!interactiveSupportedRef.current) {
+      setBasemapState('fallback-runtime')
+      return
+    }
+    if (!mapRef.current || !planarReady || offline) {
+      return
+    }
+    if (
+      basemapSourceRef.current === 'online' &&
+      activeBasemapStyleIdRef.current === basemapStyleId &&
+      basemapState === 'online-live'
+    ) {
+      return
+    }
+    applyOnlineBasemap(mapRef.current, basemapStyleId)
+  }, [applyOnlineBasemap, basemapState, basemapStyleId, offline, planarReady])
 
   useEffect(() => {
     sceneRef.current = scene
@@ -857,7 +888,9 @@ export const MapRuntimeSurface = forwardRef<MapRuntimeSurfaceHandle, MapRuntimeS
       const initialView = runtimeAoiView(sceneRef.current.focusAoiId)
       const map = new maplibregl.Map(({
         container: planarContainerRef.current,
-        style: offlineRef.current ? createFallbackStyle() : ONLINE_BASEMAP_STYLE_URL,
+        style: offlineRef.current
+          ? createFallbackStyle()
+          : getMapBasemapStyle(basemapStyleId).styleUrl,
         center: initialView.center,
         zoom: 3.2,
         pitch: 24,
@@ -869,7 +902,8 @@ export const MapRuntimeSurface = forwardRef<MapRuntimeSurfaceHandle, MapRuntimeS
       } as MapOptions & { preserveDrawingBuffer: boolean }))
 
       mapRef.current = map
-      basemapStyleRef.current = offlineRef.current ? 'fallback' : 'online'
+      basemapSourceRef.current = offlineRef.current ? 'fallback' : 'online'
+      activeBasemapStyleIdRef.current = basemapStyleId
       setBasemapState(offlineRef.current ? 'fallback-offline' : 'online-live')
       map.addControl(new maplibregl.NavigationControl({ showCompass: true }), 'top-right')
       map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right')
@@ -890,7 +924,7 @@ export const MapRuntimeSurface = forwardRef<MapRuntimeSurfaceHandle, MapRuntimeS
       map.once('styledata', markPlanarReady)
       map.once('render', markPlanarReady)
       map.on('load', () => {
-        if (basemapStyleRef.current === 'online') {
+        if (basemapSourceRef.current === 'online') {
           onlineBasemapConfirmedRef.current = true
           clearBasemapLoadTimeout()
           setBasemapState('online-live')
@@ -918,7 +952,7 @@ export const MapRuntimeSurface = forwardRef<MapRuntimeSurfaceHandle, MapRuntimeS
       })
       map.on('error', (event) => {
         const message = event.error instanceof Error ? event.error.message : 'Map runtime error'
-        if (basemapStyleRef.current === 'online' && !onlineBasemapConfirmedRef.current) {
+        if (basemapSourceRef.current === 'online' && !onlineBasemapConfirmedRef.current) {
           applyFallbackBasemap(
             map,
             'fallback-load-failure',
@@ -980,16 +1014,16 @@ export const MapRuntimeSurface = forwardRef<MapRuntimeSurfaceHandle, MapRuntimeS
     }
 
     if (offline) {
-      if (basemapStyleRef.current !== 'fallback' || basemapState !== 'fallback-offline') {
+      if (basemapSourceRef.current !== 'fallback' || basemapState !== 'fallback-offline') {
         applyFallbackBasemap(mapRef.current, 'fallback-offline')
       }
       return
     }
 
-    if (basemapStyleRef.current === 'fallback' && basemapState === 'fallback-offline') {
-      applyOnlineBasemap(mapRef.current)
+    if (basemapSourceRef.current === 'fallback' && basemapState === 'fallback-offline') {
+      applyOnlineBasemap(mapRef.current, basemapStyleId)
     }
-  }, [basemapState, offline, planarReady])
+  }, [applyOnlineBasemap, basemapState, basemapStyleId, offline, planarReady])
 
   useEffect(() => {
     if (!mapRef.current || !planarReady) {
@@ -1145,9 +1179,10 @@ export const MapRuntimeSurface = forwardRef<MapRuntimeSurfaceHandle, MapRuntimeS
 
   const selectedInspect =
     scene.inspectCards.find((card) => card.id === selectedInspectId) ?? scene.inspectCards[0]
+  const activeBasemapStyle = getMapBasemapStyle(basemapStyleId)
   const basemapStatusLabel =
     basemapState === 'online-live'
-      ? 'OpenFreeMap basemap'
+      ? `${activeBasemapStyle.label} basemap`
       : basemapState === 'fallback-load-failure'
         ? 'Schematic fallback basemap'
         : basemapState === 'fallback-offline'
@@ -1188,6 +1223,29 @@ export const MapRuntimeSurface = forwardRef<MapRuntimeSurfaceHandle, MapRuntimeS
             >
               3D Globe
             </button>
+          </div>
+          <div className="map-runtime-style-picker">
+            <span className="map-runtime-style-label">2D basemap</span>
+            <div
+              className="map-runtime-toggle-group map-runtime-style-group"
+              aria-label="2D basemap style"
+              data-testid="map-runtime-basemap-style-group"
+            >
+              {MAP_BASEMAP_STYLES.map((style) => (
+                <button
+                  key={style.id}
+                  type="button"
+                  className={basemapStyleId === style.id ? 'is-active' : ''}
+                  aria-label={`Use ${style.label} basemap`}
+                  aria-pressed={basemapStyleId === style.id}
+                  data-testid={`map-runtime-basemap-style-${style.id}`}
+                  onClick={() => onBasemapStyleChange?.(style.id)}
+                  title={style.description}
+                >
+                  {style.label}
+                </button>
+              ))}
+            </div>
           </div>
           <button
             type="button"

@@ -6,7 +6,7 @@ Linked Test Suite: .gov/workflow/wp_test_suites/TS-WP-I1-015.md
 Linked WP Check Script: .gov/workflow/wp_checks/check-WP-I1-015.ps1
 Packet Class Snapshot: IMPLEMENTATION
 Workflow Version Snapshot: 4.0
-WP Status Snapshot: IN-PROGRESS
+WP Status Snapshot: IMPLEMENTED
 Iteration: I1
 
 ## Scope
@@ -23,9 +23,9 @@ Concrete extraction of requirement and primitive obligations this WP must satisf
 
 ## Change Ledger Snapshot
 
-- What Became Real: Governance now fixes the first declutter seam as a data-family-first left rail plus an on-demand main-canvas detail stack instead of the previous placeholder "glass overlay" rewrite.
+- What Became Real: The live workbench now puts the layer-family dock above session controls, hides the support-only `verified-workspace` family behind explicit disclosure, and defaults the non-guided summary deck to a calmer map-first state where legend, telemetry, layer metadata, support widgets, and modeled-output detail open only on demand.
 - What Remains Simulated: No new map data, new workflows, or floating-overlay shell system are promised by this packet.
-- Next Blocking Real Seam: Implement the left-rail and summary-deck disclosure changes in the live workbench, then capture packet-grade proof and bridge snapshots.
+- Next Blocking Real Seam: User review plus successor packet `WP-I1-017` before any `E2E-VERIFIED` promotion.
 
 ## Requirement Extraction
 

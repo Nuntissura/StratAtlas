@@ -44,6 +44,7 @@ import {
   runGameSolver,
   setSelectedGameScenario,
 } from './features/i10/gameModeling'
+import type { MapBasemapStyleId } from './features/i1/runtime/basemaps'
 import { backend } from './lib/backend'
 
 const buildStoredCollaborationSnapshot = (sharedNote: string, viewState: string) => {
@@ -636,56 +637,39 @@ describe('App', () => {
     ).toBeInTheDocument()
   })
 
-  it('renders the static family as a real dock payload and restores it from recorder persistence and bundle reopen', async () => {
+  it('persists the selected basemap style through recorder state, bundle reopen, and warm restore', async () => {
     const user = userEvent.setup()
     const firstRender = render(<App />)
 
     await revealFullWorkbenchIfAvailable(user)
 
-    const dock = await screen.findByTestId('layer-family-dock')
-    expect(within(dock).getByTestId('layer-family-card-verified-workspace')).toBeInTheDocument()
-    expect(within(dock).getByTestId('layer-family-state-static-installations')).toHaveTextContent(
-      'Static-only',
-    )
+    const surface = await screen.findByTestId('map-runtime-surface')
+    const brightButton = within(surface).getByRole('button', { name: 'Use Bright basemap' })
+    const positronButton = within(surface).getByRole('button', { name: 'Use Positron basemap' })
 
-    const staticFamilyCard = within(dock).getByTestId('layer-family-card-static-installations')
-    await user.click(within(staticFamilyCard).getByRole('checkbox', { name: 'Show Static Installations' }))
-    await user.click(within(staticFamilyCard).getByRole('button', { name: 'Expand' }))
-    expect(
-      within(
-        await within(staticFamilyCard).findByTestId('layer-family-entry-static-airports'),
-      ).getByText(/Representative AOI benchmark only; not comprehensive global airport coverage\./),
-    ).toBeInTheDocument()
-    await user.click(within(staticFamilyCard).getByRole('checkbox', { name: 'Toggle Commercial Airports' }))
+    await user.click(brightButton)
+    expect(brightButton).toHaveAttribute('aria-pressed', 'true')
+    expect(positronButton).toHaveAttribute('aria-pressed', 'false')
 
     await waitFor(async () => {
       const restored = await backend.loadRecorderState()
-      expect(restored.state?.workspace.layerFamilyVisibility?.['static-installations']).toBe(true)
-      expect(restored.state?.workspace.layerFamilyExpanded?.['static-installations']).toBe(true)
-      expect(restored.state?.workspace.activeLayers).toContain('static-airports')
+      expect(restored.state?.workspace.basemapStyleId).toBe('bright')
     })
 
-    expect(
-      within(staticFamilyCard).getByRole('checkbox', { name: 'Toggle Commercial Airports' }),
-    ).toBeChecked()
     await user.click(screen.getByRole('button', { name: 'Create Bundle' }))
     expect((await screen.findAllByText(/Bundle .* created/)).length).toBeGreaterThan(0)
 
-    await user.click(within(staticFamilyCard).getByRole('checkbox', { name: 'Show Static Installations' }))
-    expect(within(staticFamilyCard).getByRole('checkbox', { name: 'Show Static Installations' })).not.toBeChecked()
+    await user.click(positronButton)
+    expect(positronButton).toHaveAttribute('aria-pressed', 'true')
+
     await user.click(screen.getByRole('button', { name: 'Reopen Bundle' }))
     await waitFor(() =>
       expect(
-        within(screen.getByTestId('layer-family-card-static-installations')).getByRole('checkbox', {
-          name: 'Show Static Installations',
+        within(screen.getByTestId('map-runtime-surface')).getByRole('button', {
+          name: 'Use Bright basemap',
         }),
-      ).toBeChecked(),
+      ).toHaveAttribute('aria-pressed', 'true'),
     )
-    expect(
-      within(screen.getByTestId('layer-family-card-static-installations')).getByRole('checkbox', {
-        name: 'Toggle Commercial Airports',
-      }),
-    ).toBeChecked()
 
     firstRender.unmount()
 
@@ -694,12 +678,181 @@ describe('App', () => {
     await revealFullWorkbenchIfAvailable(secondUser)
 
     expect(
-      screen.getByRole('checkbox', { name: 'Show Static Installations' }),
-    ).toBeChecked()
-    expect(
-      screen.getByRole('checkbox', { name: 'Toggle Commercial Airports' }),
-    ).toBeChecked()
+      screen.getByRole('button', { name: 'Use Bright basemap' }),
+    ).toHaveAttribute('aria-pressed', 'true')
   })
+
+  it('normalizes invalid restored basemap style ids back to the governed default', async () => {
+    const user = userEvent.setup()
+
+    await backend.saveRecorderState({
+      role: 'analyst',
+      state: {
+        workspace: {
+          mode: 'Analysis',
+          workflowMode: 'replay',
+          note: 'Hydrated invalid basemap style',
+          activeLayers: ['base-map'],
+          basemapStyleId: 'unexpected-style' as unknown as MapBasemapStyleId,
+          replayCursor: 12,
+          forcedOffline: false,
+          uiVersion: 'wp-i1-014-invalid-restore',
+        },
+        query: buildStoredQueryState({
+          version: 2,
+          speedThreshold: 24,
+        }),
+        context: buildStoredContextSnapshot({
+          domains: [
+            {
+              domain_id: 'ctx-1',
+              domain_name: 'Port Throughput',
+              domain_class: 'economic_indicator',
+              source_name: 'UNCTAD',
+              source_url: 'https://example.test/context',
+              license: 'public',
+              update_cadence: 'monthly',
+              spatial_binding: 'aoi_correlated',
+              temporal_resolution: 'monthly',
+              sensitivity_class: 'PUBLIC',
+              confidence_baseline: 'A',
+              methodology_notes: 'Official aggregation',
+              offline_behavior: 'pre_cacheable',
+              presentation_type: 'map_overlay',
+              prohibited_uses: ['MUST NOT be used for individual entity tracking'],
+            },
+          ],
+          activeDomainIds: ['ctx-1'],
+          correlationAoi: 'aoi-7',
+        }),
+        compare: undefined,
+        collaboration: undefined,
+        scenario: undefined,
+        ai: undefined,
+        deviation: undefined,
+        osint: undefined,
+        gameModel: undefined,
+        selectedBundleId: undefined,
+        savedAt: '2026-04-09T04:40:00.000Z',
+      },
+    })
+
+    render(<App />)
+    await revealFullWorkbenchIfAvailable(user)
+
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Use Liberty basemap' })).toHaveAttribute(
+        'aria-pressed',
+        'true',
+      ),
+    )
+    expect(screen.getByRole('button', { name: 'Use Bright basemap' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    )
+    expect(screen.getByRole('button', { name: 'Use Positron basemap' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    )
+
+    await waitFor(async () => {
+      const restored = await backend.loadRecorderState()
+      expect(restored.state?.workspace.basemapStyleId).toBe('liberty')
+    })
+  })
+
+  it(
+    'renders the static family as a real dock payload and restores it from recorder persistence and bundle reopen',
+    async () => {
+      const user = userEvent.setup()
+      const firstRender = render(<App />)
+
+      await revealFullWorkbenchIfAvailable(user)
+
+      const dock = await screen.findByTestId('layer-family-dock')
+      const sessionControls = screen.getByTestId('workspace-session-controls')
+      expect(
+        dock.compareDocumentPosition(sessionControls) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy()
+      expect(within(dock).queryByTestId('layer-family-card-verified-workspace')).not.toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Show 1 support family' })).toHaveAttribute(
+        'aria-expanded',
+        'false',
+      )
+      await user.click(screen.getByRole('button', { name: 'Show 1 support family' }))
+      expect(screen.getByRole('button', { name: 'Hide 1 support family' })).toHaveAttribute(
+        'aria-expanded',
+        'true',
+      )
+      expect(within(dock).getByTestId('layer-family-card-verified-workspace')).toBeInTheDocument()
+      expect(within(dock).getByTestId('layer-family-state-static-installations')).toHaveTextContent(
+        'Static-only',
+      )
+
+      const staticFamilyCard = within(dock).getByTestId('layer-family-card-static-installations')
+      await user.click(
+        within(staticFamilyCard).getByRole('checkbox', { name: 'Show Static Installations' }),
+      )
+      await user.click(within(staticFamilyCard).getByRole('button', { name: 'Expand' }))
+      expect(
+        within(
+          await within(staticFamilyCard).findByTestId('layer-family-entry-static-airports'),
+        ).getByText(/Representative AOI benchmark only; not comprehensive global airport coverage\./),
+      ).toBeInTheDocument()
+      await user.click(
+        within(staticFamilyCard).getByRole('checkbox', { name: 'Toggle Commercial Airports' }),
+      )
+
+      await waitFor(async () => {
+        const restored = await backend.loadRecorderState()
+        expect(restored.state?.workspace.layerFamilyVisibility?.['static-installations']).toBe(true)
+        expect(restored.state?.workspace.layerFamilyExpanded?.['static-installations']).toBe(true)
+        expect(restored.state?.workspace.activeLayers).toContain('static-airports')
+      })
+
+      expect(
+        within(staticFamilyCard).getByRole('checkbox', { name: 'Toggle Commercial Airports' }),
+      ).toBeChecked()
+      await user.click(screen.getByRole('button', { name: 'Create Bundle' }))
+      expect((await screen.findAllByText(/Bundle .* created/)).length).toBeGreaterThan(0)
+
+      await user.click(
+        within(staticFamilyCard).getByRole('checkbox', { name: 'Show Static Installations' }),
+      )
+      expect(
+        within(staticFamilyCard).getByRole('checkbox', { name: 'Show Static Installations' }),
+      ).not.toBeChecked()
+      await user.click(screen.getByRole('button', { name: 'Reopen Bundle' }))
+      await waitFor(() =>
+        expect(
+          within(screen.getByTestId('layer-family-card-static-installations')).getByRole(
+            'checkbox',
+            {
+              name: 'Show Static Installations',
+            },
+          ),
+        ).toBeChecked(),
+      )
+      expect(
+        within(screen.getByTestId('layer-family-card-static-installations')).getByRole(
+          'checkbox',
+          {
+            name: 'Toggle Commercial Airports',
+          },
+        ),
+      ).toBeChecked()
+
+      firstRender.unmount()
+
+      const secondUser = userEvent.setup()
+      render(<App />)
+      await revealFullWorkbenchIfAvailable(secondUser)
+
+      expect(screen.getByRole('checkbox', { name: 'Show Static Installations' })).toBeChecked()
+      expect(screen.getByRole('checkbox', { name: 'Toggle Commercial Airports' })).toBeChecked()
+    },
+    10000,
+  )
 
   it('renders commercial air traffic separately from heuristic awareness and restores the family from bundle state', async () => {
     const user = userEvent.setup()
@@ -1567,6 +1720,29 @@ describe('App', () => {
     ).toBeInTheDocument()
     await openMainCanvasTab(user, 'Summary')
     expect(screen.getByText('Degraded aggregation in effect.')).toBeInTheDocument()
+  })
+
+  it('keeps full-workbench scene detail hidden until explicitly requested', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    await revealFullWorkbenchIfAvailable(user)
+
+    expect(screen.getByRole('button', { name: 'Show scene details' })).toHaveAttribute(
+      'aria-expanded',
+      'false',
+    )
+    expect(screen.queryByTestId('state-feedback-card')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Artifact label legend')).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Show scene details' }))
+
+    expect(screen.getByRole('button', { name: 'Hide scene details' })).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    )
+    expect(screen.getByTestId('state-feedback-card')).toBeInTheDocument()
+    expect(screen.getByLabelText('Artifact label legend')).toBeInTheDocument()
   })
 
   it(
