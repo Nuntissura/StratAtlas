@@ -125,14 +125,14 @@ Derived from exhaustive visual inspection of the running app. Grouped by categor
 - `WP-I1-017` is now `IMPLEMENTED`; proof: `.product/build_target/tool_artifacts/wp_runs/WP-I1-017/20260409_192533/`. The map shell now renders as a compact HUD with a floating scene capsule, top-right action cluster, contextual drawer, hover/focus helper cards, purposeful motion controls, and a governed settings menu that persists real shell/runtime behavior such as compact chrome, hover helpers, motion profile, live-refresh policy, forced offline mode, and AI gateway profile. Live bridge proof is attached under `visual_proof/`.
 
 ### Feature UX Simplification
-- `WP-I1-018` is now `IN-PROGRESS`. It simplifies the assistant and scenario surfaces so prompt/fork/compare/export are primary and advanced runtime/modeling controls move behind explicit disclosure; linked sub-spec: `.gov/Spec/sub-specs/I1_ai_and_scenario_ux_simplification.md`.
+- `WP-I1-018` is now `IMPLEMENTED`; proof: `.product/build_target/tool_artifacts/wp_runs/WP-I1-018/20260410_004711/`. The assistant now leads with a workflow-first AI card, the scenario surface now leads with fork/compare/export, advanced runtime/modeling controls stay behind explicit disclosure, and live desktop bridge proof is attached under `visual_proof/`; linked sub-spec: `.gov/Spec/sub-specs/I1_ai_and_scenario_ux_simplification.md`.
 
 ### AI Runtime Expansion
 - `WP-I6-003` — IMPLEMENTED: split provider choice from deployment profile and add a governed local executable-backed provider path with LM Studio/Ollama/custom presets for operator-supplied models
 - `WP-I6-004` - IMPLEMENTED: added a first-class in-app local-runtime probe, persisted verification state, and initial bridge/debugger proof for the AI settings and assistant surfaces under `.product/build_target/tool_artifacts/wp_runs/WP-I6-004/20260409_214611/`; successor `WP-GOV-BRIDGE-002` later retired the seeded-state screenshot workaround with live `/agent/action` proof under `.product/build_target/tool_artifacts/wp_runs/WP-GOV-BRIDGE-002/20260409_224118/`
 
 ### Global Events Tracking
-- `WP-I7-003` — Global event timeline bar, event markers on map with cluster/expand by zoom, event-to-AOI linking
+- `WP-I7-003` — IN-PROGRESS: derive a global event timeline from the already-real deviation/OSINT seams, add zoom-aware map event markers, and wire event-to-AOI linking through the live map runtime
 - `WP-I7-004` — Pre-loaded geopolitical baseline dataset (conflicts, sanctions, alliances), "what's happening now" dashboard
 
 ### Game Theory
@@ -148,9 +148,9 @@ Derived from exhaustive visual inspection of the running app. Grouped by categor
 - `WP-I0-004` — Demo/tutorial dataset, CSV/GeoJSON/KML export, auto-save/session resume, lazy-load heavy services
 
 ### Recommended priority order
-1. `WP-I1-018` (AI/scenario UX simplification) — follows the provider cleanup and targets the next biggest ease-of-use problem: dense planning/assistant controls that still ask too much of first-minute users
-2. `WP-I7-003` (event timeline) — enables the primary use case
-3. `WP-I7-004` (geopolitical baseline) — makes the map meaningful on first launch
+1. `WP-I7-003` (event timeline) — enables the primary use case
+2. `WP-I7-004` (geopolitical baseline) — makes the map meaningful on first launch
+3. `WP-I1-016` (3D globe terrain and atmosphere detail) — strengthens the map-first surface that the recent UX packets clarified
 4. Everything else in parallel after the above
 
 ---
