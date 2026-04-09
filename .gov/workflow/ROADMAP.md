@@ -1,6 +1,6 @@
 ﻿# StratAtlas - Roadmap and Build Order
 
-Date: 2026-03-09
+Date: 2026-04-09
 Source anchors: `.gov/Spec/stratatlas_spec_v1_2.md` section 19 and `.gov/Spec/REQUIREMENTS_INDEX.md`
 
 This file is the execution order for capability slices. It is the scheduling bridge between the spec and day-to-day work packets.
@@ -105,17 +105,17 @@ This file is the execution order for capability slices. It is the scheduling bri
 
 ## 2C) Agent Tooling Queue
 
-- `WP-GOV-DEBUGGER-001` adds a deterministic visual debugger (html2canvas snapshot + Tauri command + Ctrl+Shift+S hotkey + JS global hook) so agents can capture the workbench surface for visual QA without manual screenshots.
-- `WP-GOV-BRIDGE-001` adds a localhost-only HTTP API (navigate/snapshot/state/health endpoints) so agents can navigate panels and capture snapshots without stealing focus — enabling headless visual audits and automated smoke runs.
+- `WP-GOV-DEBUGGER-001` is now `IMPLEMENTED`; proof: `.product/build_target/tool_artifacts/wp_runs/WP-GOV-DEBUGGER-001/20260409_044342/`. The app ships a deterministic visual debugger with html2canvas capture, a Tauri snapshot command, `Ctrl+Shift+S`, and `window.__stratatlasRequestSnapshot(...)`.
+- `WP-GOV-BRIDGE-001` is now `IMPLEMENTED`; proof: `.product/build_target/tool_artifacts/wp_runs/WP-GOV-BRIDGE-001/20260409_044342/`. The app now exposes localhost `/agent/health`, `/agent/state`, `/agent/navigate`, and `/agent/snapshot` endpoints, writes the discovery port file, and routes bridge navigation into real shell panel and 2D/3D mode changes.
 - Sequencing: `WP-GOV-BRIDGE-001` depends on `WP-GOV-DEBUGGER-001` (snapshot infra must exist before the bridge can trigger it).
-- Both packets are cross-cutting tooling and do not block or change the current product remediation queue.
+- Both packets are cross-cutting tooling and do not block or change the current product remediation queue. The remaining work is live desktop bridge proof plus user sign-off rather than additional implementation.
 
 ## 2D) UX and Feature Improvement Queue (2026-04-09 inspection)
 
 Derived from exhaustive visual inspection of the running app. Grouped by category, ordered by impact.
 
 ### Map Quality
-- `WP-I1-014` — High-detail basemap, satellite/terrain/street style switcher, country borders, place labels, ocean detail
+- `WP-I1-014` — Active first pass: official OpenFreeMap `Positron`, `Bright`, and `Liberty` selector with recorder/bundle restore and truthful fallback messaging; satellite imagery, dark/night, and terrain-specific variants remain future scope
 - `WP-I1-016` — 3D globe terrain provider, atmosphere, 3D buildings
 
 ### Declutter

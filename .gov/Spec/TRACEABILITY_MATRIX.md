@@ -1,7 +1,7 @@
 # StratAtlas - Traceability Matrix
 
 **Spec Version:** v1.2.4  
-**Last Updated:** 2026-03-11  
+**Last Updated:** 2026-04-09  
 **Governance:** See `SPEC_GOVERNANCE.md` for maintenance rules.
 
 ---
@@ -380,11 +380,11 @@ For quick lookup: "What requirements does this component implement?"
 
 | WP-GOV-MAPDATA-003 | All | REQ-0011, REQ-0012, REQ-0013, REQ-0019, REQ-0020, REQ-0021, REQ-0022, REQ-0200, REQ-0201 | PRIM-0064, PRIM-0070 | .gov/workflow/wp_test_suites/TS-WP-GOV-MAPDATA-003.md | E2E-VERIFIED | .gov/workflow/wp_spec_extractions/SX-WP-GOV-MAPDATA-003.md; `.product/build_target/tool_artifacts/wp_runs/WP-GOV-MAPDATA-003/20260310_231706/`; checklist hardening in `.gov/Spec/sub-specs/GOV_map_family_intent_guardrails.md`; queue inheritance wired into `WP-I1-008` through `WP-I1-013` |
 
-| WP-GOV-DEBUGGER-001 | All | REQ-0013, REQ-0019, REQ-0020 | PRIM-0071 | .gov/workflow/wp_test_suites/TS-WP-GOV-DEBUGGER-001.md | SPEC-MAPPED | .gov/workflow/wp_spec_extractions/SX-WP-GOV-DEBUGGER-001.md |
+| WP-GOV-DEBUGGER-001 | All | REQ-0013, REQ-0019, REQ-0020 | PRIM-0071 | .gov/workflow/wp_test_suites/TS-WP-GOV-DEBUGGER-001.md | IMPLEMENTED | .gov/workflow/wp_spec_extractions/SX-WP-GOV-DEBUGGER-001.md; `.product/build_target/tool_artifacts/wp_runs/WP-GOV-DEBUGGER-001/20260409_044342/`; debugger seam now writes governed workbench snapshots through the Tauri command, hotkey path, and JS hook |
 
-| WP-GOV-BRIDGE-001 | All | REQ-0013, REQ-0019, REQ-0020 | PRIM-0071 | .gov/workflow/wp_test_suites/TS-WP-GOV-BRIDGE-001.md | SPEC-MAPPED | .gov/workflow/wp_spec_extractions/SX-WP-GOV-BRIDGE-001.md |
+| WP-GOV-BRIDGE-001 | All | REQ-0013, REQ-0019, REQ-0020 | PRIM-0071 | .gov/workflow/wp_test_suites/TS-WP-GOV-BRIDGE-001.md | IMPLEMENTED | .gov/workflow/wp_spec_extractions/SX-WP-GOV-BRIDGE-001.md; `.product/build_target/tool_artifacts/wp_runs/WP-GOV-BRIDGE-001/20260409_044342/`; bridge seam now exposes health/state/navigate/snapshot endpoints and routes real panel aliases plus 2D/3D mode changes |
 
-| WP-I1-014 | I1 | REQ-0200, REQ-0201, REQ-0211 | PRIM-0045 | .gov/workflow/wp_test_suites/TS-WP-I1-014.md | SPEC-MAPPED | .gov/workflow/wp_spec_extractions/SX-WP-I1-014.md |
+| WP-I1-014 | I1 | REQ-0200, REQ-0201, REQ-0211 | PRIM-0045, PRIM-0071 | .gov/workflow/wp_test_suites/TS-WP-I1-014.md | IN-PROGRESS | .gov/workflow/wp_spec_extractions/SX-WP-I1-014.md; active packet now targets an official OpenFreeMap vector-style selector with recorder/bundle restore and truthful schematic fallback messaging; proof pending under `.product/build_target/tool_artifacts/wp_runs/WP-I1-014/` |
 
 | WP-I1-015 | I1 | REQ-0011, REQ-0012, REQ-0200, REQ-0212 | PRIM-0071 | .gov/workflow/wp_test_suites/TS-WP-I1-015.md | SPEC-MAPPED | .gov/workflow/wp_spec_extractions/SX-WP-I1-015.md |
 

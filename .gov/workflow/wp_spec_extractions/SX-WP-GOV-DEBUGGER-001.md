@@ -6,7 +6,7 @@ Linked Test Suite: .gov/workflow/wp_test_suites/TS-WP-GOV-DEBUGGER-001.md
 Linked WP Check Script: .gov/workflow/wp_checks/check-WP-GOV-DEBUGGER-001.ps1
 Packet Class Snapshot: IMPLEMENTATION
 Workflow Version Snapshot: 4.0
-WP Status Snapshot: SPEC-MAPPED
+WP Status Snapshot: IMPLEMENTED
 Iteration: All
 
 ## Scope
@@ -15,17 +15,17 @@ Concrete extraction of requirement and primitive obligations this WP must satisf
 
 ## Reality Boundary Snapshot
 
-- Real Seam: see WP for details
-- User-Visible Win: see WP for details
-- Proof Target: see WP for details
-- Allowed Temporary Fallbacks: see WP for details
-- Promotion Guard: RESEARCH and SCAFFOLD packets do not promote linked requirements or primitives to E2E-VERIFIED.
+- Real Seam: A Tauri command accepts PNG bytes from the WebView, writes the file under the governed app-data runtime root, and returns the absolute saved path.
+- User-Visible Win: Agents can capture the live workbench for visual QA, and operators can trigger the same flow manually with `Ctrl+Shift+S`.
+- Proof Target: Snapshot files are written under the governed app-data runtime root in `stratatlas/snapshots/{subfolder}/` with label-based filenames, and the frontend exposes the capture flow through both the hotkey path and `window.__stratatlasRequestSnapshot(subfolder?, label?)`.
+- Allowed Temporary Fallbacks: html2canvas captures the live DOM, so GPU-only or WebGL-only map content may not appear exactly as the on-screen compositor renders it.
+- Promotion Guard: RESEARCH and SCAFFOLD packets do not promote linked requirements or primitives to `E2E-VERIFIED`.
 
 ## Change Ledger Snapshot
 
-- What Became Real: see WP for details
-- What Remains Simulated: see WP for details
-- Next Blocking Real Seam: see WP for details
+- What Became Real: `admin_save_snapshot` persists PNG captures under the governed app-data runtime root, `Ctrl+Shift+S` triggers manual capture, and `window.__stratatlasRequestSnapshot(subfolder?, label?)` exposes the same flow for agent-triggered visual QA.
+- What Remains Simulated: html2canvas still captures the DOM rather than guaranteed GPU or compositor output, so map imagery fidelity depends on what the WebView exposes to DOM capture.
+- Next Blocking Real Seam: `WP-GOV-BRIDGE-001` completes the agent-tooling vertical by adding focus-safe HTTP navigation and structured bridge state reporting.
 
 ## Requirement Extraction
 

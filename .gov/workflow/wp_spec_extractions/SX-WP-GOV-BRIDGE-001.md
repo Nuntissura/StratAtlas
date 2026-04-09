@@ -6,7 +6,7 @@ Linked Test Suite: .gov/workflow/wp_test_suites/TS-WP-GOV-BRIDGE-001.md
 Linked WP Check Script: .gov/workflow/wp_checks/check-WP-GOV-BRIDGE-001.ps1
 Packet Class Snapshot: IMPLEMENTATION
 Workflow Version Snapshot: 4.0
-WP Status Snapshot: SPEC-MAPPED
+WP Status Snapshot: IMPLEMENTED
 Iteration: All
 
 ## Scope
@@ -15,17 +15,17 @@ Concrete extraction of requirement and primitive obligations this WP must satisf
 
 ## Reality Boundary Snapshot
 
-- Real Seam: see WP for details
-- User-Visible Win: see WP for details
-- Proof Target: see WP for details
-- Allowed Temporary Fallbacks: see WP for details
-- Promotion Guard: RESEARCH and SCAFFOLD packets do not promote linked requirements or primitives to E2E-VERIFIED.
+- Real Seam: A localhost-only HTTP server inside the Tauri runtime accepts JSON requests for health, state, navigation, and snapshot capture while the frontend reports current shell state back to the backend.
+- User-Visible Win: Agents can audit or debug the app without stealing focus from the operator, and can move between major shell tabs plus 2D/3D surface modes programmatically.
+- Proof Target: `/agent/health` responds, `/agent/state` returns current panel plus bundle and map metadata, `/agent/navigate` routes to live panel aliases, and `/agent/snapshot` still resolves through the governed snapshot path.
+- Allowed Temporary Fallbacks: Snapshot fidelity still inherits html2canvas DOM-only limitations from `WP-GOV-DEBUGGER-001`.
+- Promotion Guard: RESEARCH and SCAFFOLD packets do not promote linked requirements or primitives to `E2E-VERIFIED`.
 
 ## Change Ledger Snapshot
 
-- What Became Real: see WP for details
-- What Remains Simulated: see WP for details
-- Next Blocking Real Seam: see WP for details
+- What Became Real: The backend now serves structured bridge state, writes the discovery port file, and accepts snapshot plus navigation requests; the frontend now handles navigation aliases, reports current shell state, and exposes `window.__stratatlasNavigate(panel)` for in-WebView agent use.
+- What Remains Simulated: Snapshot output still depends on html2canvas DOM capture, so GPU-only map rendering is not guaranteed to appear exactly as the native compositor renders it.
+- Next Blocking Real Seam: Run a live desktop bridge smoke pass against the built app, capture snapshot artifacts through the HTTP bridge, and obtain user sign-off.
 
 ## Requirement Extraction
 

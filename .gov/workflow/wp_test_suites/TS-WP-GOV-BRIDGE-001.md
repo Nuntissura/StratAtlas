@@ -1,89 +1,85 @@
 # TS-WP-GOV-BRIDGE-001 - Spec vs Code Test Suite
 
 Date Opened: 2026-04-09
-Status: PLANNED
+Status: EXECUTED
 Linked Work Packet: WP-GOV-BRIDGE-001
 Iteration: All
 
 ## Scope
 
-Validate WP delivery against linked requirements and primitives.
+Validate that the headless agent bridge routes real shell navigation targets, reports truthful bridge state, and remains governed by packet-level evidence.
 
 ## Inputs
 
 - Linked requirements: REQ-0013, REQ-0019, REQ-0020
 - Linked primitives: PRIM-0071
-- Linked components: see WP for details
+- Linked components: `.product/Worktrees/wt_main/src/App.tsx`, `.product/Worktrees/wt_main/src-tauri/src/lib.rs`, `AGENTS.md`
 
 ## Reality Boundary Assertions
 
 - Packet Class: IMPLEMENTATION
-- Real Seam: see WP for details
-- Proof Target: see WP for details
-- Allowed Fallbacks: see WP for details
-- Promotion Guard: RESEARCH and SCAFFOLD packets do not promote linked requirements or primitives to E2E-VERIFIED.
+- Real Seam: Localhost bridge server plus frontend navigation/state reporting.
+- Proof Target: Structured `/agent/state` payload, real panel alias routing, port file discovery, and snapshot handoff path.
+- Allowed Fallbacks: Snapshot fidelity still inherits DOM-only capture limitations from the debugger packet.
+- Promotion Guard: RESEARCH and SCAFFOLD packets do not promote linked requirements or primitives to `E2E-VERIFIED`.
 
 ## Test Case Matrix
 
 | Case ID | Requirement | Primitive | Category | Target | Command/Test | Expected |
 |--------|-------------|-----------|----------|--------|--------------|----------|
-| DEP-001 | REQ-0013 | PRIM-0071 | Dependency | dependency graph | see WP for details COMMAND | dependencies resolved and policy-compliant |
-| UI-001 | REQ-0013 | PRIM-0071 | UI Contract | required UI contract | see WP for details TEST FILE | required regions/modes and degraded states pass |
-| FUNC-001 | REQ-0013 | PRIM-0071 | Functionality | golden flow | see WP for details TEST FILE | golden flow passes deterministically |
-| COR-001 | REQ-0013 | PRIM-0071 | Code Correctness | module contracts | see WP for details UNIT/INTEGRATION | invariant and regression checks pass |
-| RED-001 | REQ-0013 | PRIM-0071 | Red Team / Abuse | misuse constraints | see WP for details SECURITY TEST | abuse cases blocked and audited |
-| EXT-001 | REQ-0013 | PRIM-0071 | Additional | perf/offline/reliability | see WP for details ADDITIONAL TEST | budgets and resilience targets met |
+| DEP-001 | REQ-0019 | PRIM-0071 | Dependency | Governance and repo integrity | `powershell -ExecutionPolicy Bypass -File .gov/repo_scripts/governance_preflight.ps1` | Governance checks pass before implementation evidence is recorded. |
+| UI-001 | REQ-0013 | PRIM-0071 | UI Contract | App shell integration | `pnpm exec vitest run src/App.test.tsx --reporter=verbose` | Existing shell behavior still passes after bridge wiring. |
+| FUNC-001 | REQ-0020 | PRIM-0071 | Functionality | Frontend/backend integration | `pnpm build` | TypeScript compilation and production bundling succeed with bridge code present. |
+| COR-001 | REQ-0020 | PRIM-0071 | Code Correctness | Rust bridge contracts | `cargo test --manifest-path src-tauri/Cargo.toml` | Rust unit tests pass and the bridge state response compiles cleanly. |
+| RED-001 | REQ-0019 | PRIM-0071 | Red Team / Abuse | Governed packet enforcement | `powershell -ExecutionPolicy Bypass -File .gov/workflow/wp_checks/check-WP-GOV-BRIDGE-001.ps1` | WP runner passes and records governed proof artifacts. |
+| EXT-001 | REQ-0013 | PRIM-0071 | Additional | Static quality gate | `pnpm lint` | Frontend code passes lint with no new violations. |
 
 ## Dependency and Environment Tests
 
-- [ ] Runtime dependency install/lock integrity
-- [ ] Platform portability constraints checked
-- [ ] Required services/adapters available
+- [x] Governance preflight
+- [x] Runtime dependency resolution through production build
+- [ ] Live desktop bridge reachability and curl proof
 
 ## UI Contract Tests
 
-- [ ] Required regions
-- [ ] Required modes/states
-- [ ] Error and degraded-state UX
+- [x] Existing app shell tests still pass
+- [ ] Live desktop bridge smoke captured through the running app
 
 ## Functional Flow Tests
 
-- [ ] Golden flow
-- [ ] Deterministic replay path
-- [ ] Export/import or persistence flow
+- [x] Bridge state wiring compiles across frontend and backend
+- [x] Panel alias routing and map-mode alias routing are implemented
+- [ ] Curl-based live bridge proof against a running desktop session
 
 ## Code Correctness Tests
 
-- [ ] Unit tests
-- [ ] Integration tests
-- [ ] Static checks (lint/type/schema)
+- [x] Frontend test suite
+- [x] Rust unit tests
+- [x] Lint
 
 ## Red-Team and Abuse Tests
 
-- [ ] Non-goal enforcement (spec section 3.2)
-- [ ] Policy bypass attempts
-- [ ] Invalid input and path abuse cases
+- [x] Governed WP runner
+- [x] Listener remains localhost-only
 
 ## Additional Tests
 
-- [ ] Performance budget checks
-- [ ] Offline behavior
-- [ ] Accessibility/usability checks
-- [ ] Reliability/recovery checks
+- [x] Production build
+- [ ] Live desktop evidence capture
 
 ## Automation Hook
 
-- Command: powershell -ExecutionPolicy Bypass -File .gov/workflow/wp_checks/check-WP-GOV-BRIDGE-001.ps1
-- Artifacts: .product/build_target/tool_artifacts/wp_runs/WP-GOV-BRIDGE-001/
+- Command: `powershell -ExecutionPolicy Bypass -File .gov/workflow/wp_checks/check-WP-GOV-BRIDGE-001.ps1`
+- Artifacts: `.product/build_target/tool_artifacts/wp_runs/WP-GOV-BRIDGE-001/20260409_044342/`
 
 ## Execution Summary
 
-- Last Run Date:
-- Result:
-- Blocking Failures:
-- Evidence Paths:
-- What Became Real:
-- What Remains Simulated:
-- Next Blocking Real Seam:
-- Reviewer:
-- User Sign-off:
+- Last Run Date: 2026-04-09
+- Result: PASS for implementation-grade verification
+- Blocking Failures: None in build, lint, Rust tests, frontend tests, or governed WP checks
+- Evidence Paths: `.product/build_target/tool_artifacts/wp_runs/WP-GOV-BRIDGE-001/20260409_044342/summary.md`; `.product/build_target/tool_artifacts/wp_runs/WP-GOV-BRIDGE-001/20260409_044342/result.json`
+- What Became Real: The bridge now reports structured shell state, routes real panel aliases, and exposes a focus-safe navigation hook across frontend and backend.
+- What Remains Simulated: No live desktop curl-driven proof bundle was captured in this pass, and snapshots still inherit DOM-only capture limits.
+- Next Blocking Real Seam: Run a live desktop bridge smoke pass and obtain user sign-off before any `E2E-VERIFIED` promotion.
+- Reviewer: Codex
+- User Sign-off: Pending
