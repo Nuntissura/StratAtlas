@@ -2342,6 +2342,12 @@ function App() {
           setInspectorCollapsed((prev) => !prev)
           return
         }
+        // Ctrl+T — toggle bottom tray panel
+        if (ctrl && e.key.toLowerCase() === 't') {
+          e.preventDefault()
+          setTrayCollapsed((prev) => !prev)
+          return
+        }
         // Ctrl+B — toggle workspace advanced view
         if (ctrl && e.key.toLowerCase() === 'b') {
           e.preventDefault()
@@ -8240,6 +8246,26 @@ function App() {
               <span className="pill neutral">Query v{versionedQuery.version}</span>
             </div>
           )}
+          <div className="header-panel-toggles">
+            <button
+              type="button"
+              className={`settings-trigger ${!inspectorCollapsed ? 'is-active' : ''}`}
+              aria-pressed={!inspectorCollapsed}
+              aria-label="Toggle inspector panel"
+              onClick={() => setInspectorCollapsed((prev) => !prev)}
+            >
+              Inspector
+            </button>
+            <button
+              type="button"
+              className={`settings-trigger ${!trayCollapsed ? 'is-active' : ''}`}
+              aria-pressed={!trayCollapsed}
+              aria-label="Toggle tray panel"
+              onClick={() => setTrayCollapsed((prev) => !prev)}
+            >
+              Tray
+            </button>
+          </div>
           <div className="settings-shell">
             <button
               type="button"
@@ -11920,8 +11946,7 @@ function App() {
             </div>
           ) : null}
         </section>
-      </main>
-      <footer
+        <footer
         className={`panel footer-panel ${trayCollapsed ? 'is-collapsed' : ''}`}
         data-testid="region-bottom-panel"
       >
@@ -12125,7 +12150,8 @@ function App() {
           </div>
           </div>
         ) : null}
-      </footer>
+        </footer>
+      </main>
     </div>
   )
 }

@@ -672,24 +672,6 @@ button:disabled {
   font-size: 0.9rem;
 }
 
-@media (max-width: 1320px) {
-  .layout {
-    grid-template-columns: 1fr;
-  }
-
-  .summary-grid,
-  .telemetry-grid,
-  .surface-grid,
-  .meta-grid,
-  .compare-form-grid,
-  .delta-summary-grid,
-  .delta-cell-grid,
-  .overlay-grid,
-  .briefing-element-list {
-    grid-template-columns: 1fr;
-  }
-}
-
 /* WP-I1-005 workbench restyle overrides */
 
 :root {
@@ -756,6 +738,12 @@ button:disabled {
 .status-block.is-guided {
   gap: 0.4rem;
   max-width: 34rem;
+}
+
+.header-panel-toggles {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
 }
 
 .settings-shell {
@@ -1041,6 +1029,7 @@ button:disabled {
   flex: 1;
   min-height: 0;
   grid-template-columns: 300px 1fr 300px;
+  grid-template-rows: 1fr auto;
   gap: 0;
   padding: 0;
   align-items: stretch;
@@ -1094,6 +1083,7 @@ button:disabled {
 }
 
 .footer-panel {
+  grid-column: 1 / -1;
   margin: 0;
   gap: 0.5rem;
   background: rgba(11, 17, 26, 0.55);
@@ -1104,7 +1094,6 @@ button:disabled {
   padding: 0.6rem 1rem;
   max-height: 220px;
   overflow-y: auto;
-  z-index: 15;
 }
 
 .panel h2,
@@ -1481,6 +1470,14 @@ button.button-ghost:hover:not(:disabled) {
 }
 
 @media (max-width: 1320px) {
+  .layout {
+    grid-template-columns: 220px 1fr 220px;
+  }
+
+  .layout.layout-inspector-collapsed {
+    grid-template-columns: 240px 1fr 48px;
+  }
+
   .workspace,
   .audit-panel,
   .map-panel {
@@ -1488,7 +1485,8 @@ button.button-ghost:hover:not(:disabled) {
   }
 
   .footer-panel {
-    margin: 0 0.85rem 0.85rem;
+    margin: 0;
+    padding: 0.6rem 0.85rem;
   }
 
   .bottom-summary-grid {
@@ -1500,12 +1498,29 @@ button.button-ghost:hover:not(:disabled) {
   .guided-map-strip {
     grid-template-columns: 1fr;
   }
+
+  .summary-grid,
+  .telemetry-grid,
+  .surface-grid,
+  .meta-grid,
+  .compare-form-grid,
+  .delta-summary-grid,
+  .delta-cell-grid,
+  .overlay-grid,
+  .briefing-element-list {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 1120px) {
   .layout,
   .layout.layout-inspector-collapsed {
     grid-template-columns: 1fr;
+    grid-template-rows: auto;
+  }
+
+  .footer-panel {
+    grid-column: 1;
   }
 
   .header {
@@ -1516,6 +1531,10 @@ button.button-ghost:hover:not(:disabled) {
     width: 100%;
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .header-panel-toggles {
+    align-self: flex-end;
   }
 
   .status-block {

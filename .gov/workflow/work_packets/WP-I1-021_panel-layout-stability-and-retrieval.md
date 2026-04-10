@@ -1,7 +1,7 @@
 # WP-I1-021 - Panel Layout Stability and Retrieval
 
 Date Opened: 2026-04-10
-Status: SPEC-MAPPED
+Status: IMPLEMENTED
 Iteration: I1
 Workflow Version: 4.0
 Packet Class: IMPLEMENTATION
@@ -112,9 +112,9 @@ Fix panel overlap, hidden-by-default retrievability, and rigid grid breakpoints 
 
 ## Change Ledger
 
-- What Became Real: TBD (updated at implementation)
-- What Remains Simulated: TBD (updated at implementation)
-- Next Blocking Real Seam: TBD (updated at implementation)
+- What Became Real: Persistent header toggles for Inspector and Tray (always visible regardless of panel state); footer integrated into CSS grid flow (pushes content instead of overlaying); intermediate 1320px breakpoint reduces side panels to 220px; dead 1320px `.layout` rule removed and merged; Ctrl+T keyboard shortcut for tray toggle.
+- What Remains Simulated: Nothing — all changes are direct CSS/JSX layout fixes in the live desktop shell.
+- Next Blocking Real Seam: Live desktop visual proof via bridge audit-sweep + user sign-off.
 
 ## Checkpoint Commit Plan
 
@@ -139,13 +139,14 @@ Fix panel overlap, hidden-by-default retrievability, and rigid grid breakpoints 
 
 ## Evidence
 
-- Test Suite Execution:
-- Logs:
-- Screenshots/Exports:
-- Build Artifacts:
+- Test Suite Execution: 90/90 passed (vitest), TypeScript clean, ESLint clean
+- Logs: N/A
+- Screenshots/Exports: pending live bridge audit-sweep
+- Build Artifacts: pending
 - Proof Artifact: .product/build_target/tool_artifacts/wp_runs/WP-I1-021/
-- User Sign-off:
+- User Sign-off: pending
 
 ## Progress Log
 
 - 2026-04-10: WP scaffold created via .gov/repo_scripts/new_work_packet.ps1.
+- 2026-04-10: Implementation complete — persistent header toggles, footer grid integration, intermediate breakpoint fix. 90/90 tests pass, TypeScript clean.
