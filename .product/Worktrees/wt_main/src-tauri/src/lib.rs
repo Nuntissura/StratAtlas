@@ -1,5 +1,10 @@
+use aes_gcm::{
+    aead::{Aead, KeyInit},
+    Aes256Gcm, Nonce,
+};
 use chrono::{DateTime, Utc};
 use postgres::{Client, NoTls};
+use rand::RngCore;
 use reqwest::header::{AUTHORIZATION, CONTENT_TYPE, USER_AGENT};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::{json, Map, Value};
@@ -552,6 +557,11 @@ const DEFAULT_CODEX_PROVIDER_LABEL: &str = "Codex CLI";
 const DEFAULT_CODEX_PROVIDER_MODEL: &str = "account-default";
 const DEFAULT_CODEX_REASONING_EFFORT: &str = "low";
 const DEFAULT_AI_PROVIDER_SELECTION: &str = "auto";
+const DEFAULT_ANTHROPIC_PROVIDER_LABEL: &str = "Anthropic Claude API";
+const DEFAULT_ANTHROPIC_PROVIDER_MODEL: &str = "claude-sonnet-4-20250514";
+const DEFAULT_ANTHROPIC_ENDPOINT: &str = "https://api.anthropic.com/v1/messages";
+const DEFAULT_ANTHROPIC_VERSION: &str = "2023-06-01";
+const CREDENTIAL_FILE_NAME: &str = "provider_credentials.json";
 const DEFAULT_LOCAL_PROVIDER_LABEL: &str = "Local Model Runtime";
 const DEFAULT_LOCAL_PROVIDER_MODEL: &str = "operator-configured";
 const DEFAULT_LOCAL_RUNTIME_PROFILE: &str = "auto_detect";
@@ -563,6 +573,7 @@ const CUSTOM_LOCAL_PROVIDER_LABEL: &str = "Custom local runtime";
 enum LiveAiProviderKind {
     CodexCli,
     OpenAiResponses,
+    AnthropicClaude,
     LocalModel,
 }
 
@@ -609,6 +620,7 @@ fn normalize_ai_provider_selection(value: Option<&str>) -> String {
         .as_str()
     {
         "openai_api" => "openai_responses".to_string(),
+        "anthropic" | "claude" => "anthropic_claude".to_string(),
         "local" | "local_runtime" => "local_model".to_string(),
         other => other.to_string(),
     }
@@ -1030,36 +1042,40 @@ fn local_provider_config(
   }
 }
 
-fn openai_provider_status() -> AiGatewayProviderStatus {
-    let api_key = env::var("STRATATLAS_OPENAI_API_KEY").ok();
-    let model = env::var("STRATATLAS_OPENAI_MODEL")
-        .ok()
-        .filter(|value| !value.trim().is_empty())
+fn openai_provider_status(app: &AppHandle) -> AiGatewayProviderStatus {
+    let creds = read_stored_credentials(app).unwrap_or_default();
+    let api_key = creds
+        .openai_api_key
+        .filter(|k| !k.trim().is_empty())
+        .or_else(|| env::var("STRATATLAS_OPENAI_API_KEY").ok().filter(|v| !v.trim().is_empty()));
+    let model = creds
+        .openai_model
+        .filter(|v| !v.trim().is_empty())
+        .or_else(|| env::var("STRATATLAS_OPENAI_MODEL").ok().filter(|v| !v.trim().is_empty()))
         .unwrap_or_else(|| DEFAULT_AI_PROVIDER_MODEL.to_string());
 
     match api_key {
-    Some(key) if !key.trim().is_empty() => AiGatewayProviderStatus {
-      provider_id: "openai_responses".to_string(),
-      runtime: "tauri-live".to_string(),
-      available: true,
-      provider_label: DEFAULT_AI_PROVIDER_LABEL.to_string(),
-      model,
-      detail: format!(
-        "{} is configured through the governed Tauri runtime.",
-        DEFAULT_AI_PROVIDER_LABEL
-      ),
-    },
-    _ => AiGatewayProviderStatus {
-      provider_id: "openai_responses".to_string(),
-      runtime: "tauri-unconfigured".to_string(),
-      available: false,
-      provider_label: DEFAULT_AI_PROVIDER_LABEL.to_string(),
-      model,
-      detail:
-        "Set STRATATLAS_OPENAI_API_KEY to enable governed live AI calls through the Tauri runtime."
-          .to_string(),
-    },
-  }
+        Some(_) => AiGatewayProviderStatus {
+            provider_id: "openai_responses".to_string(),
+            runtime: "tauri-live".to_string(),
+            available: true,
+            provider_label: DEFAULT_AI_PROVIDER_LABEL.to_string(),
+            model,
+            detail: format!(
+                "{} is configured through the governed Tauri runtime.",
+                DEFAULT_AI_PROVIDER_LABEL
+            ),
+        },
+        None => AiGatewayProviderStatus {
+            provider_id: "openai_responses".to_string(),
+            runtime: "tauri-unconfigured".to_string(),
+            available: false,
+            provider_label: DEFAULT_AI_PROVIDER_LABEL.to_string(),
+            model,
+            detail: "Configure an OpenAI API key in Settings to enable governed live AI calls."
+                .to_string(),
+        },
+    }
 }
 
 fn local_provider_status(
@@ -1228,12 +1244,14 @@ fn codex_provider_status() -> AiGatewayProviderStatus {
 }
 
 fn resolve_ai_provider(
+    app: &AppHandle,
     provider_selection: Option<String>,
     local_provider_settings: Option<LocalAiProviderSettings>,
 ) -> ResolvedAiProvider {
     let requested = requested_ai_provider(provider_selection);
     let codex = codex_provider_status();
-    let openai = openai_provider_status();
+    let openai = openai_provider_status(app);
+    let anthropic = anthropic_provider_status(app);
     let (local, local_config) = local_provider_status(local_provider_settings.as_ref());
 
     match requested.as_str() {
@@ -1247,6 +1265,11 @@ fn resolve_ai_provider(
             status: openai,
             local_config: None,
         },
+        "anthropic_claude" => ResolvedAiProvider {
+            kind: LiveAiProviderKind::AnthropicClaude,
+            status: anthropic,
+            local_config: None,
+        },
         "local_model" => ResolvedAiProvider {
             kind: LiveAiProviderKind::LocalModel,
             status: local,
@@ -1257,6 +1280,12 @@ fn resolve_ai_provider(
                 ResolvedAiProvider {
                     kind: LiveAiProviderKind::CodexCli,
                     status: codex,
+                    local_config: None,
+                }
+            } else if anthropic.available {
+                ResolvedAiProvider {
+                    kind: LiveAiProviderKind::AnthropicClaude,
+                    status: anthropic,
                     local_config: None,
                 }
             } else if local.available {
@@ -1277,10 +1306,11 @@ fn resolve_ai_provider(
 }
 
 fn ai_provider_status_from_env(
+    app: &AppHandle,
     provider_selection: Option<String>,
     local_provider_settings: Option<LocalAiProviderSettings>,
 ) -> AiGatewayProviderStatus {
-    resolve_ai_provider(provider_selection, local_provider_settings).status
+    resolve_ai_provider(app, provider_selection, local_provider_settings).status
 }
 
 fn build_ai_gateway_user_prompt(request: &AiGatewayProviderAnalysisRequest) -> String {
@@ -1697,11 +1727,16 @@ fn run_codex_cli_provider_analysis(
 }
 
 async fn run_openai_provider_analysis(
+    app: &AppHandle,
     request: &AiGatewayProviderAnalysisRequest,
     status: &AiGatewayProviderStatus,
 ) -> CommandResult<AiGatewayProviderAnalysisResult> {
-    let api_key = env::var("STRATATLAS_OPENAI_API_KEY")
-        .map_err(|_| "Missing STRATATLAS_OPENAI_API_KEY for live AI provider access".to_string())?;
+    let creds = read_stored_credentials(app)?;
+    let api_key = creds
+        .openai_api_key
+        .filter(|k| !k.trim().is_empty())
+        .or_else(|| env::var("STRATATLAS_OPENAI_API_KEY").ok().filter(|v| !v.trim().is_empty()))
+        .ok_or("Missing OpenAI API key for live AI provider access")?;
     let endpoint = env::var("STRATATLAS_OPENAI_BASE_URL")
         .ok()
         .filter(|value| !value.trim().is_empty())
@@ -1759,6 +1794,142 @@ async fn run_openai_provider_analysis(
 
     Ok(AiGatewayProviderAnalysisResult {
         provider_id: "openai_responses".to_string(),
+        runtime: "tauri-live".to_string(),
+        provider_label: status.provider_label.clone(),
+        model: status.model.clone(),
+        output_text,
+        request_id,
+        degraded: false,
+        generated_at: Utc::now().to_rfc3339(),
+    })
+}
+
+fn anthropic_provider_status(app: &AppHandle) -> AiGatewayProviderStatus {
+    let creds = read_stored_credentials(app).unwrap_or_default();
+    let api_key = creds
+        .anthropic_api_key
+        .filter(|k| !k.trim().is_empty())
+        .or_else(|| env::var("STRATATLAS_ANTHROPIC_API_KEY").ok().filter(|v| !v.trim().is_empty()));
+    let model = creds
+        .anthropic_model
+        .filter(|v| !v.trim().is_empty())
+        .or_else(|| env::var("STRATATLAS_ANTHROPIC_MODEL").ok().filter(|v| !v.trim().is_empty()))
+        .unwrap_or_else(|| DEFAULT_ANTHROPIC_PROVIDER_MODEL.to_string());
+
+    match api_key {
+        Some(_) => AiGatewayProviderStatus {
+            provider_id: "anthropic_claude".to_string(),
+            runtime: "tauri-live".to_string(),
+            available: true,
+            provider_label: DEFAULT_ANTHROPIC_PROVIDER_LABEL.to_string(),
+            model,
+            detail: format!(
+                "{} is configured through the governed Tauri runtime.",
+                DEFAULT_ANTHROPIC_PROVIDER_LABEL
+            ),
+        },
+        None => AiGatewayProviderStatus {
+            provider_id: "anthropic_claude".to_string(),
+            runtime: "tauri-unconfigured".to_string(),
+            available: false,
+            provider_label: DEFAULT_ANTHROPIC_PROVIDER_LABEL.to_string(),
+            model,
+            detail: "Configure an Anthropic API key in Settings to enable governed Claude calls."
+                .to_string(),
+        },
+    }
+}
+
+fn extract_anthropic_output_text(response_json: &Value) -> CommandResult<String> {
+    let content = response_json
+        .get("content")
+        .and_then(Value::as_array)
+        .ok_or("Anthropic response missing content array")?;
+    let text: String = content
+        .iter()
+        .filter(|block| block.get("type").and_then(Value::as_str) == Some("text"))
+        .filter_map(|block| block.get("text").and_then(Value::as_str))
+        .collect::<Vec<_>>()
+        .join("");
+    if text.is_empty() {
+        return Err("Anthropic response contained no text content blocks".to_string());
+    }
+    Ok(text)
+}
+
+async fn run_anthropic_provider_analysis(
+    app: &AppHandle,
+    request: &AiGatewayProviderAnalysisRequest,
+    status: &AiGatewayProviderStatus,
+) -> CommandResult<AiGatewayProviderAnalysisResult> {
+    let creds = read_stored_credentials(app)?;
+    let api_key = creds
+        .anthropic_api_key
+        .filter(|k| !k.trim().is_empty())
+        .or_else(|| env::var("STRATATLAS_ANTHROPIC_API_KEY").ok().filter(|v| !v.trim().is_empty()))
+        .ok_or("Missing Anthropic API key for live AI provider access")?;
+
+    let endpoint = env::var("STRATATLAS_ANTHROPIC_BASE_URL")
+        .ok()
+        .filter(|value| !value.trim().is_empty())
+        .unwrap_or_else(|| DEFAULT_ANTHROPIC_ENDPOINT.to_string());
+
+    let timeout_ms = env::var("STRATATLAS_ANTHROPIC_TIMEOUT_MS")
+        .ok()
+        .and_then(|value| value.parse::<u64>().ok())
+        .unwrap_or(60_000);
+
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_millis(timeout_ms))
+        .build()
+        .map_err(|error| format!("Failed to construct governed AI client: {error}"))?;
+
+    let body = json!({
+        "model": status.model,
+        "max_tokens": 4096,
+        "messages": [{
+            "role": "user",
+            "content": build_ai_gateway_user_prompt(request)
+        }]
+    });
+
+    let response = client
+        .post(&endpoint)
+        .header("x-api-key", &api_key)
+        .header("anthropic-version", DEFAULT_ANTHROPIC_VERSION)
+        .header(CONTENT_TYPE, "application/json")
+        .json(&body)
+        .send()
+        .await
+        .map_err(|error| format!("Governed AI provider request failed: {error}"))?;
+
+    let status_code = response.status();
+    let response_json = response
+        .json::<Value>()
+        .await
+        .map_err(|error| format!("Failed to parse governed AI provider response: {error}"))?;
+
+    if !status_code.is_success() {
+        let truncated = response_json
+            .to_string()
+            .chars()
+            .take(280)
+            .collect::<String>();
+        return Err(format!(
+            "Governed AI provider returned HTTP {}: {}",
+            status_code.as_u16(),
+            truncated
+        ));
+    }
+
+    let output_text = extract_anthropic_output_text(&response_json)?;
+    let request_id = response_json
+        .get("id")
+        .and_then(Value::as_str)
+        .map(|value| value.to_string());
+
+    Ok(AiGatewayProviderAnalysisResult {
+        provider_id: "anthropic_claude".to_string(),
         runtime: "tauri-live".to_string(),
         provider_label: status.provider_label.clone(),
         model: status.model.clone(),
@@ -1834,6 +2005,241 @@ fn app_runtime_root(app: &AppHandle) -> CommandResult<PathBuf> {
     })?;
     Ok(root)
 }
+
+// --- Credential storage (WP-I6-005) ---
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+struct StoredProviderCredentials {
+    openai_api_key: Option<String>,
+    anthropic_api_key: Option<String>,
+    openai_model: Option<String>,
+    anthropic_model: Option<String>,
+    active_provider: Option<String>,
+    updated_at: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct SaveProviderCredentialRequest {
+    provider_id: String,
+    api_key: String,
+    model: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct ProviderCredentialStatus {
+    provider_id: String,
+    configured: bool,
+    validated: bool,
+    provider_label: String,
+    model: String,
+    detail: String,
+    validated_at: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct ValidateProviderCredentialRequest {
+    provider_id: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct ValidateProviderCredentialResult {
+    provider_id: String,
+    valid: bool,
+    provider_label: String,
+    model: String,
+    detail: String,
+    validated_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct RemoveProviderCredentialRequest {
+    provider_id: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct SetActiveProviderRequest {
+    provider_id: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct AllProviderCredentialStatuses {
+    providers: Vec<ProviderCredentialStatus>,
+    active_provider: String,
+}
+
+fn credentials_dir(app: &AppHandle) -> CommandResult<PathBuf> {
+    let path = app_runtime_root(app)?.join("credentials");
+    fs::create_dir_all(&path).map_err(|error| {
+        format!(
+            "Failed to create credentials directory {}: {error}",
+            path.display()
+        )
+    })?;
+    Ok(path)
+}
+
+fn credentials_path(app: &AppHandle) -> CommandResult<PathBuf> {
+    Ok(credentials_dir(app)?.join(CREDENTIAL_FILE_NAME))
+}
+
+fn derive_credential_encryption_key(app: &AppHandle) -> CommandResult<[u8; 32]> {
+    let root = app_runtime_root(app)?;
+    let seed = format!("stratatlas-credential-key-v1:{}", root.display());
+    let mut hasher = Sha256::new();
+    hasher.update(seed.as_bytes());
+    let digest = hasher.finalize();
+    let mut key = [0u8; 32];
+    key.copy_from_slice(&digest);
+    Ok(key)
+}
+
+fn encrypt_credentials(plaintext: &[u8], key: &[u8; 32]) -> CommandResult<String> {
+    let cipher = Aes256Gcm::new(key.into());
+    let mut nonce_bytes = [0u8; 12];
+    rand::rngs::OsRng.fill_bytes(&mut nonce_bytes);
+    let nonce = Nonce::from_slice(&nonce_bytes);
+    let ciphertext = cipher
+        .encrypt(nonce, plaintext)
+        .map_err(|error| format!("Credential encryption failed: {error}"))?;
+    let mut combined = nonce_bytes.to_vec();
+    combined.extend_from_slice(&ciphertext);
+    Ok(base64::Engine::encode(
+        &base64::engine::general_purpose::STANDARD,
+        &combined,
+    ))
+}
+
+fn decrypt_credentials(encoded: &str, key: &[u8; 32]) -> CommandResult<Vec<u8>> {
+    let combined = base64::Engine::decode(
+        &base64::engine::general_purpose::STANDARD,
+        encoded.trim(),
+    )
+    .map_err(|error| format!("Credential base64 decode failed: {error}"))?;
+    if combined.len() < 12 {
+        return Err("Credential data too short to contain nonce".to_string());
+    }
+    let (nonce_bytes, ciphertext) = combined.split_at(12);
+    let cipher = Aes256Gcm::new(key.into());
+    let nonce = Nonce::from_slice(nonce_bytes);
+    cipher
+        .decrypt(nonce, ciphertext)
+        .map_err(|error| format!("Credential decryption failed: {error}"))
+}
+
+fn read_stored_credentials(app: &AppHandle) -> CommandResult<StoredProviderCredentials> {
+    let path = credentials_path(app)?;
+    if !path.exists() {
+        return Ok(StoredProviderCredentials::default());
+    }
+    let encoded = fs::read_to_string(&path)
+        .map_err(|error| format!("Failed to read credential file: {error}"))?;
+    if encoded.trim().is_empty() {
+        return Ok(StoredProviderCredentials::default());
+    }
+    let key = derive_credential_encryption_key(app)?;
+    let plaintext = decrypt_credentials(&encoded, &key)?;
+    serde_json::from_slice(&plaintext)
+        .map_err(|error| format!("Failed to parse credential store: {error}"))
+}
+
+fn write_stored_credentials(
+    app: &AppHandle,
+    creds: &StoredProviderCredentials,
+) -> CommandResult<()> {
+    let path = credentials_path(app)?;
+    let plaintext =
+        serde_json::to_vec(creds).map_err(|error| format!("Failed to serialize credentials: {error}"))?;
+    let key = derive_credential_encryption_key(app)?;
+    let encoded = encrypt_credentials(&plaintext, &key)?;
+    fs::write(&path, encoded)
+        .map_err(|error| format!("Failed to write credential file: {error}"))
+}
+
+fn credential_status_for_provider(
+    provider_id: &str,
+    creds: &StoredProviderCredentials,
+) -> ProviderCredentialStatus {
+    match provider_id {
+        "openai_responses" => {
+            let configured = creds
+                .openai_api_key
+                .as_ref()
+                .map(|k| !k.trim().is_empty())
+                .unwrap_or(false)
+                || env::var("STRATATLAS_OPENAI_API_KEY")
+                    .ok()
+                    .map(|k| !k.trim().is_empty())
+                    .unwrap_or(false);
+            let model = creds
+                .openai_model
+                .clone()
+                .filter(|v| !v.trim().is_empty())
+                .or_else(|| env::var("STRATATLAS_OPENAI_MODEL").ok().filter(|v| !v.trim().is_empty()))
+                .unwrap_or_else(|| DEFAULT_AI_PROVIDER_MODEL.to_string());
+            ProviderCredentialStatus {
+                provider_id: "openai_responses".to_string(),
+                configured,
+                validated: false,
+                provider_label: DEFAULT_AI_PROVIDER_LABEL.to_string(),
+                model,
+                detail: if configured {
+                    "API key configured. Click Validate to verify.".to_string()
+                } else {
+                    "No API key configured. Enter your OpenAI API key above.".to_string()
+                },
+                validated_at: None,
+            }
+        }
+        "anthropic_claude" => {
+            let configured = creds
+                .anthropic_api_key
+                .as_ref()
+                .map(|k| !k.trim().is_empty())
+                .unwrap_or(false)
+                || env::var("STRATATLAS_ANTHROPIC_API_KEY")
+                    .ok()
+                    .map(|k| !k.trim().is_empty())
+                    .unwrap_or(false);
+            let model = creds
+                .anthropic_model
+                .clone()
+                .filter(|v| !v.trim().is_empty())
+                .or_else(|| env::var("STRATATLAS_ANTHROPIC_MODEL").ok().filter(|v| !v.trim().is_empty()))
+                .unwrap_or_else(|| DEFAULT_ANTHROPIC_PROVIDER_MODEL.to_string());
+            ProviderCredentialStatus {
+                provider_id: "anthropic_claude".to_string(),
+                configured,
+                validated: false,
+                provider_label: DEFAULT_ANTHROPIC_PROVIDER_LABEL.to_string(),
+                model,
+                detail: if configured {
+                    "API key configured. Click Validate to verify.".to_string()
+                } else {
+                    "No API key configured. Enter your Anthropic API key above.".to_string()
+                },
+                validated_at: None,
+            }
+        }
+        _ => ProviderCredentialStatus {
+            provider_id: provider_id.to_string(),
+            configured: false,
+            validated: false,
+            provider_label: provider_id.to_string(),
+            model: String::new(),
+            detail: format!("Unknown provider: {provider_id}"),
+            validated_at: None,
+        },
+    }
+}
+
+// --- End credential storage ---
 
 fn bundles_dir(app: &AppHandle) -> CommandResult<PathBuf> {
     let path = app_runtime_root(app)?.join("bundles");
@@ -4095,10 +4501,12 @@ fn get_control_plane_state(app: AppHandle) -> CommandResult<ControlPlaneState> {
 
 #[tauri::command]
 fn get_ai_gateway_provider_status(
+    app: AppHandle,
     provider_selection: Option<String>,
     local_provider_config: Option<LocalAiProviderSettings>,
 ) -> CommandResult<AiGatewayProviderStatus> {
     Ok(ai_provider_status_from_env(
+        &app,
         provider_selection,
         local_provider_config,
     ))
@@ -4113,6 +4521,7 @@ fn probe_local_ai_runtime(
 
 #[tauri::command]
 async fn run_ai_gateway_provider_analysis(
+    app: AppHandle,
     request: AiGatewayProviderAnalysisRequest,
 ) -> CommandResult<AiGatewayProviderAnalysisResult> {
     if !is_valid_marking(&request.marking) {
@@ -4120,6 +4529,7 @@ async fn run_ai_gateway_provider_analysis(
     }
 
     let provider = resolve_ai_provider(
+        &app,
         Some(request.provider_selection.clone()),
         Some(request.local_provider_config.clone()),
     );
@@ -4130,7 +4540,10 @@ async fn run_ai_gateway_provider_analysis(
     match provider.kind {
         LiveAiProviderKind::CodexCli => run_codex_cli_provider_analysis(&request, &provider.status),
         LiveAiProviderKind::OpenAiResponses => {
-            run_openai_provider_analysis(&request, &provider.status).await
+            run_openai_provider_analysis(&app, &request, &provider.status).await
+        }
+        LiveAiProviderKind::AnthropicClaude => {
+            run_anthropic_provider_analysis(&app, &request, &provider.status).await
         }
         LiveAiProviderKind::LocalModel => {
             let local_config = provider.local_config.as_ref().ok_or_else(|| {
@@ -5029,6 +5442,209 @@ fn agent_action_complete(completion: AgentBridgeActionCompletion) {
     }
 }
 
+// --- Credential management commands (WP-I6-005) ---
+
+#[tauri::command]
+fn save_provider_credential(
+    app: AppHandle,
+    request: SaveProviderCredentialRequest,
+) -> CommandResult<ProviderCredentialStatus> {
+    let mut creds = read_stored_credentials(&app)?;
+    match request.provider_id.as_str() {
+        "openai_responses" => {
+            creds.openai_api_key = Some(request.api_key);
+            if let Some(model) = request.model {
+                creds.openai_model = Some(model);
+            }
+        }
+        "anthropic_claude" => {
+            creds.anthropic_api_key = Some(request.api_key);
+            if let Some(model) = request.model {
+                creds.anthropic_model = Some(model);
+            }
+        }
+        other => return Err(format!("Unsupported provider for credential storage: {other}")),
+    }
+    creds.updated_at = Some(Utc::now().to_rfc3339());
+    write_stored_credentials(&app, &creds)?;
+    Ok(credential_status_for_provider(&request.provider_id, &creds))
+}
+
+#[tauri::command]
+fn remove_provider_credential(
+    app: AppHandle,
+    request: RemoveProviderCredentialRequest,
+) -> CommandResult<ProviderCredentialStatus> {
+    let mut creds = read_stored_credentials(&app)?;
+    match request.provider_id.as_str() {
+        "openai_responses" => {
+            creds.openai_api_key = None;
+        }
+        "anthropic_claude" => {
+            creds.anthropic_api_key = None;
+        }
+        other => return Err(format!("Unsupported provider for credential removal: {other}")),
+    }
+    creds.updated_at = Some(Utc::now().to_rfc3339());
+    write_stored_credentials(&app, &creds)?;
+    Ok(credential_status_for_provider(&request.provider_id, &creds))
+}
+
+#[tauri::command]
+async fn validate_provider_credential(
+    app: AppHandle,
+    request: ValidateProviderCredentialRequest,
+) -> CommandResult<ValidateProviderCredentialResult> {
+    let creds = read_stored_credentials(&app)?;
+    let now = Utc::now().to_rfc3339();
+
+    let (api_key, endpoint, provider_label, model, build_request) = match request.provider_id.as_str() {
+        "openai_responses" => {
+            let key = creds
+                .openai_api_key
+                .filter(|k| !k.trim().is_empty())
+                .or_else(|| env::var("STRATATLAS_OPENAI_API_KEY").ok().filter(|v| !v.trim().is_empty()))
+                .ok_or("No OpenAI API key configured")?;
+            let ep = env::var("STRATATLAS_OPENAI_BASE_URL")
+                .ok()
+                .filter(|v| !v.trim().is_empty())
+                .unwrap_or_else(|| DEFAULT_AI_PROVIDER_ENDPOINT.to_string());
+            let mdl = creds
+                .openai_model
+                .filter(|v| !v.trim().is_empty())
+                .unwrap_or_else(|| DEFAULT_AI_PROVIDER_MODEL.to_string());
+            (key, ep, DEFAULT_AI_PROVIDER_LABEL.to_string(), mdl, "openai")
+        }
+        "anthropic_claude" => {
+            let key = creds
+                .anthropic_api_key
+                .filter(|k| !k.trim().is_empty())
+                .or_else(|| env::var("STRATATLAS_ANTHROPIC_API_KEY").ok().filter(|v| !v.trim().is_empty()))
+                .ok_or("No Anthropic API key configured")?;
+            let ep = env::var("STRATATLAS_ANTHROPIC_BASE_URL")
+                .ok()
+                .filter(|v| !v.trim().is_empty())
+                .unwrap_or_else(|| DEFAULT_ANTHROPIC_ENDPOINT.to_string());
+            let mdl = creds
+                .anthropic_model
+                .filter(|v| !v.trim().is_empty())
+                .unwrap_or_else(|| DEFAULT_ANTHROPIC_PROVIDER_MODEL.to_string());
+            (key, ep, DEFAULT_ANTHROPIC_PROVIDER_LABEL.to_string(), mdl, "anthropic")
+        }
+        other => return Err(format!("Unsupported provider for validation: {other}")),
+    };
+
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(15))
+        .build()
+        .map_err(|error| format!("Failed to construct validation client: {error}"))?;
+
+    let response = match build_request {
+        "openai" => {
+            let body = json!({
+                "model": model,
+                "input": [{"role": "user", "content": "Reply with exactly OK"}]
+            });
+            client
+                .post(&endpoint)
+                .header(AUTHORIZATION, format!("Bearer {api_key}"))
+                .header(CONTENT_TYPE, "application/json")
+                .json(&body)
+                .send()
+                .await
+        }
+        _ => {
+            let body = json!({
+                "model": model,
+                "max_tokens": 8,
+                "messages": [{"role": "user", "content": "Reply with exactly OK"}]
+            });
+            client
+                .post(&endpoint)
+                .header("x-api-key", &api_key)
+                .header("anthropic-version", DEFAULT_ANTHROPIC_VERSION)
+                .header(CONTENT_TYPE, "application/json")
+                .json(&body)
+                .send()
+                .await
+        }
+    };
+
+    match response {
+        Ok(resp) if resp.status().is_success() => Ok(ValidateProviderCredentialResult {
+            provider_id: request.provider_id,
+            valid: true,
+            provider_label,
+            model,
+            detail: "API key validated successfully.".to_string(),
+            validated_at: now,
+        }),
+        Ok(resp) => {
+            let status = resp.status();
+            let body = resp.text().await.unwrap_or_default();
+            let truncated = body.chars().take(200).collect::<String>();
+            Ok(ValidateProviderCredentialResult {
+                provider_id: request.provider_id,
+                valid: false,
+                provider_label,
+                model,
+                detail: format!("Validation failed (HTTP {}): {}", status.as_u16(), truncated),
+                validated_at: now,
+            })
+        }
+        Err(error) => Ok(ValidateProviderCredentialResult {
+            provider_id: request.provider_id,
+            valid: false,
+            provider_label,
+            model,
+            detail: format!("Validation request failed: {error}"),
+            validated_at: now,
+        }),
+    }
+}
+
+#[tauri::command]
+fn get_all_provider_credential_statuses(
+    app: AppHandle,
+) -> CommandResult<AllProviderCredentialStatuses> {
+    let creds = read_stored_credentials(&app)?;
+    let active = creds
+        .active_provider
+        .clone()
+        .unwrap_or_else(|| DEFAULT_AI_PROVIDER_SELECTION.to_string());
+    Ok(AllProviderCredentialStatuses {
+        providers: vec![
+            credential_status_for_provider("openai_responses", &creds),
+            credential_status_for_provider("anthropic_claude", &creds),
+        ],
+        active_provider: active,
+    })
+}
+
+#[tauri::command]
+fn set_active_provider(
+    app: AppHandle,
+    request: SetActiveProviderRequest,
+) -> CommandResult<AllProviderCredentialStatuses> {
+    let mut creds = read_stored_credentials(&app)?;
+    creds.active_provider = Some(request.provider_id);
+    creds.updated_at = Some(Utc::now().to_rfc3339());
+    write_stored_credentials(&app, &creds)?;
+    let active = creds
+        .active_provider
+        .clone()
+        .unwrap_or_else(|| DEFAULT_AI_PROVIDER_SELECTION.to_string());
+    Ok(AllProviderCredentialStatuses {
+        providers: vec![
+            credential_status_for_provider("openai_responses", &creds),
+            credential_status_for_provider("anthropic_claude", &creds),
+        ],
+        active_provider: active,
+    })
+}
+
+// --- End credential management commands ---
+
 fn spawn_agent_bridge(data_dir: &Path) {
     let port_file = data_dir.join("agent_bridge_port.txt");
     std::thread::spawn(move || {
@@ -5282,7 +5898,12 @@ pub fn run() {
             admin_save_snapshot,
             agent_report_state,
             agent_snapshot_complete,
-            agent_action_complete
+            agent_action_complete,
+            save_provider_credential,
+            remove_provider_credential,
+            validate_provider_credential,
+            get_all_provider_credential_statuses,
+            set_active_provider
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

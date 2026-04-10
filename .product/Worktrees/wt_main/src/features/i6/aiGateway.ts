@@ -4,7 +4,12 @@ export type AiGatewayMarking = 'PUBLIC' | 'INTERNAL' | 'RESTRICTED'
 
 export type DeploymentProfileId = 'connected' | 'restricted' | 'air_gapped'
 
-export type AiGatewayProviderId = 'auto' | 'codex_cli' | 'openai_responses' | 'local_model'
+export type AiGatewayProviderId =
+  | 'auto'
+  | 'codex_cli'
+  | 'openai_responses'
+  | 'anthropic_claude'
+  | 'local_model'
 
 export type LocalAiRuntimeProfileId =
   | 'auto_detect'
@@ -297,6 +302,12 @@ export const AI_GATEWAY_PROVIDER_OPTIONS: AiGatewayProviderOption[] = [
     description: 'Use the OpenAI Responses API through the governed Tauri runtime when configured.',
   },
   {
+    id: 'anthropic_claude',
+    label: 'Anthropic Claude',
+    description:
+      'Use the Anthropic Messages API through the governed Tauri runtime when an API key is configured.',
+  },
+  {
     id: 'local_model',
     label: 'Local model runtime',
     description:
@@ -409,6 +420,7 @@ const isAiGatewayProviderId = (value: unknown): value is AiGatewayProviderId =>
   value === 'auto' ||
   value === 'codex_cli' ||
   value === 'openai_responses' ||
+  value === 'anthropic_claude' ||
   value === 'local_model'
 
 const isLocalAiRuntimeProfileId = (value: unknown): value is LocalAiRuntimeProfileId =>
@@ -1230,4 +1242,48 @@ export const executeMcpTool = (request: McpExecutionRequest): McpToolResult => {
     payload,
     invocation,
   }
+}
+
+// --- Credential management types (WP-I6-005) ---
+
+export interface ProviderCredentialStatus {
+  providerId: string
+  configured: boolean
+  validated: boolean
+  providerLabel: string
+  model: string
+  detail: string
+  validatedAt?: string
+}
+
+export interface AllProviderCredentialStatuses {
+  providers: ProviderCredentialStatus[]
+  activeProvider: string
+}
+
+export interface SaveProviderCredentialRequest {
+  providerId: string
+  apiKey: string
+  model?: string
+}
+
+export interface ValidateProviderCredentialRequest {
+  providerId: string
+}
+
+export interface ValidateProviderCredentialResult {
+  providerId: string
+  valid: boolean
+  providerLabel: string
+  model: string
+  detail: string
+  validatedAt: string
+}
+
+export interface RemoveProviderCredentialRequest {
+  providerId: string
+}
+
+export interface SetActiveProviderRequest {
+  providerId: string
 }

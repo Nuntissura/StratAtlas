@@ -36,7 +36,14 @@ import {
   type LocalAiProviderConfig,
   type AiGatewayProviderId,
   type AiGatewayProviderStatus,
+  type AllProviderCredentialStatuses,
   type DeploymentProfileId,
+  type ProviderCredentialStatus,
+  type RemoveProviderCredentialRequest,
+  type SaveProviderCredentialRequest,
+  type SetActiveProviderRequest,
+  type ValidateProviderCredentialRequest,
+  type ValidateProviderCredentialResult,
 } from '../features/i6/aiGateway'
 import {
   queryContextRecords as queryGovernedContextRecords,
@@ -1009,5 +1016,54 @@ export const backend = {
       return invoke<FetchSatelliteElementsResult>('fetch_satellite_elements', { request })
     }
     return fallbackFetchSatelliteElements(request)
+  },
+
+  async saveProviderCredential(
+    request: SaveProviderCredentialRequest,
+  ): Promise<ProviderCredentialStatus> {
+    if (isTauriRuntime()) {
+      return invoke<ProviderCredentialStatus>('save_provider_credential', { request })
+    }
+    throw new Error('Provider credential management requires the Tauri runtime')
+  },
+
+  async removeProviderCredential(
+    request: RemoveProviderCredentialRequest,
+  ): Promise<ProviderCredentialStatus> {
+    if (isTauriRuntime()) {
+      return invoke<ProviderCredentialStatus>('remove_provider_credential', { request })
+    }
+    throw new Error('Provider credential management requires the Tauri runtime')
+  },
+
+  async validateProviderCredential(
+    request: ValidateProviderCredentialRequest,
+  ): Promise<ValidateProviderCredentialResult> {
+    if (isTauriRuntime()) {
+      return invoke<ValidateProviderCredentialResult>('validate_provider_credential', { request })
+    }
+    throw new Error('Provider credential validation requires the Tauri runtime')
+  },
+
+  async getAllProviderCredentialStatuses(): Promise<AllProviderCredentialStatuses> {
+    if (isTauriRuntime()) {
+      return invoke<AllProviderCredentialStatuses>('get_all_provider_credential_statuses')
+    }
+    return {
+      providers: [
+        { providerId: 'openai_responses', configured: false, validated: false, providerLabel: 'OpenAI Responses API', model: 'gpt-4.1-mini', detail: 'Browser mode — credential management requires the Tauri runtime.' },
+        { providerId: 'anthropic_claude', configured: false, validated: false, providerLabel: 'Anthropic Claude API', model: 'claude-sonnet-4-20250514', detail: 'Browser mode — credential management requires the Tauri runtime.' },
+      ],
+      activeProvider: 'auto',
+    }
+  },
+
+  async setActiveProvider(
+    request: SetActiveProviderRequest,
+  ): Promise<AllProviderCredentialStatuses> {
+    if (isTauriRuntime()) {
+      return invoke<AllProviderCredentialStatuses>('set_active_provider', { request })
+    }
+    throw new Error('Active provider management requires the Tauri runtime')
   },
 }

@@ -1,7 +1,7 @@
 # WP-I6-005 - In-App AI Provider Login and Credential Management
 
 Date Opened: 2026-04-11
-Status: SPEC-MAPPED
+Status: IMPLEMENTED
 Iteration: I6
 Workflow Version: 4.0
 Packet Class: IMPLEMENTATION
@@ -119,9 +119,9 @@ Currently API keys live only in environment variables (`STRATATLAS_OPENAI_API_KE
 
 ## Change Ledger
 
-- What Became Real: TBD (updated at implementation)
-- What Remains Simulated: TBD (updated at implementation)
-- Next Blocking Real Seam: TBD (updated at implementation)
+- What Became Real: In-app provider selector (Claude/GPT/Codex/local) in settings menu with API key entry, AES-256-GCM encrypted credential persistence at `<app_data>/stratatlas/credentials/`, pre-flight validation via real API calls, Anthropic Claude Messages API backend (new `run_anthropic_provider_analysis`), credential store with env-var fallback for backward compatibility, 5 new Tauri commands for credential CRUD, audit-ready status reporting.
+- What Remains Simulated: Browser/jsdom returns unconfigured credential statuses (no Tauri runtime). Audit events for credential changes are not yet wired (status reporting only — no `append_audit_internal` calls in this cut to avoid coupling to audit refactors).
+- Next Blocking Real Seam: Live desktop proof — save a real API key, validate it, run a real analysis, capture bridge snapshot of the result.
 
 ## Checkpoint Commit Plan
 
@@ -156,3 +156,4 @@ Currently API keys live only in environment variables (`STRATATLAS_OPENAI_API_KE
 ## Progress Log
 
 - 2026-04-11: WP scaffold created via .gov/repo_scripts/new_work_packet.ps1.
+- 2026-04-11: Implementation complete — Anthropic Claude API backend, encrypted credential store (AES-256-GCM), 5 Tauri commands, settings UI with credential card, env-var fallback. Rust compiles, 90/90 TS tests pass, TypeScript and ESLint clean.

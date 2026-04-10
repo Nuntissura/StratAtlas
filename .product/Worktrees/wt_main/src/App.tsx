@@ -178,6 +178,7 @@ import {
   type DeploymentProfileId,
   type LocalAiProviderConfig,
   type LocalAiRuntimeProfileId,
+  type AllProviderCredentialStatuses,
   type McpInvocationRecord,
   type McpToolName,
 } from './features/i6/aiGateway'
@@ -1366,6 +1367,12 @@ function App() {
   )
   const [latestLocalRuntimeProbe, setLatestLocalRuntimeProbe] =
     useState<AiGatewayLocalRuntimeProbeResult | undefined>(undefined)
+  const [providerCredentialStatuses, setProviderCredentialStatuses] =
+    useState<AllProviderCredentialStatuses | null>(null)
+  const [credentialSavePending, setCredentialSavePending] = useState<string | null>(null)
+  const [credentialValidatePending, setCredentialValidatePending] = useState<string | null>(null)
+  const [openaiApiKeyInput, setOpenaiApiKeyInput] = useState<string>('')
+  const [anthropicApiKeyInput, setAnthropicApiKeyInput] = useState<string>('')
   const [assistantAdvancedVisible, setAssistantAdvancedVisible] = useState<boolean>(false)
   const [localRuntimeProbePending, setLocalRuntimeProbePending] = useState<boolean>(false)
   const [aiPrompt, setAiPrompt] = useState<string>('Summarize this selected bundle.')
@@ -2329,6 +2336,10 @@ function App() {
   // WP-GOV-DEBUGGER-001: Visual debugger hotkey + JS global
   // WP-GOV-BRIDGE-001: Headless agent bridge event listeners
   // WP-GOV-BRIDGE-002: Stable named action bridge for real UI workflows
+  useEffect(() => {
+    loadProviderCredentialStatuses()
+  }, [])
+
   useEffect(() => {
     const handleKeyDown = async (e: KeyboardEvent) => {
       const ctrl = e.ctrlKey || e.metaKey
@@ -3774,6 +3785,75 @@ function App() {
   const updateAiProviderSelection = (providerId: AiGatewayProviderId): void => {
     setLatestLocalRuntimeProbe(undefined)
     setAiProviderSelectionId(providerId)
+    void backend.setActiveProvider({ providerId }).then(setProviderCredentialStatuses).catch(() => {})
+  }
+
+  const loadProviderCredentialStatuses = (): void => {
+    void backend.getAllProviderCredentialStatuses().then((statuses) => {
+      setProviderCredentialStatuses(statuses)
+      if (statuses.activeProvider && statuses.activeProvider !== 'auto') {
+        setAiProviderSelectionId(statuses.activeProvider as AiGatewayProviderId)
+      }
+    }).catch(() => {})
+  }
+
+  const onSaveProviderCredential = (providerId: string, apiKey: string): void => {
+    setCredentialSavePending(providerId)
+    void backend
+      .saveProviderCredential({ providerId, apiKey })
+      .then((status) => {
+        setProviderCredentialStatuses((prev) =>
+          prev
+            ? {
+                ...prev,
+                providers: prev.providers.map((p) => (p.providerId === providerId ? status : p)),
+              }
+            : prev,
+        )
+        if (providerId === 'openai_responses') setOpenaiApiKeyInput('')
+        if (providerId === 'anthropic_claude') setAnthropicApiKeyInput('')
+        setCredentialSavePending(null)
+        onValidateProviderCredential(providerId)
+      })
+      .catch(() => setCredentialSavePending(null))
+  }
+
+  const onValidateProviderCredential = (providerId: string): void => {
+    setCredentialValidatePending(providerId)
+    void backend
+      .validateProviderCredential({ providerId })
+      .then((result) => {
+        setProviderCredentialStatuses((prev) =>
+          prev
+            ? {
+                ...prev,
+                providers: prev.providers.map((p) =>
+                  p.providerId === providerId
+                    ? { ...p, validated: result.valid, detail: result.detail, validatedAt: result.validatedAt }
+                    : p,
+                ),
+              }
+            : prev,
+        )
+        setCredentialValidatePending(null)
+      })
+      .catch(() => setCredentialValidatePending(null))
+  }
+
+  const onRemoveProviderCredential = (providerId: string): void => {
+    void backend
+      .removeProviderCredential({ providerId })
+      .then((status) => {
+        setProviderCredentialStatuses((prev) =>
+          prev
+            ? {
+                ...prev,
+                providers: prev.providers.map((p) => (p.providerId === providerId ? status : p)),
+              }
+            : prev,
+        )
+      })
+      .catch(() => {})
   }
 
   const updateDeploymentProfile = (profileId: DeploymentProfileId): void => {
@@ -8461,6 +8541,90 @@ function App() {
                       ))}
                     </select>
                   </label>
+                  {(aiProviderSelectionId === 'openai_responses' || aiProviderSelectionId === 'anthropic_claude') ? (
+                    <div className="settings-credential-card" data-testid="provider-credential-card">
+                      <div className="card-header compact">
+                        <strong>
+                          {AI_GATEWAY_PROVIDER_OPTIONS.find((p) => p.id === aiProviderSelectionId)?.label ?? aiProviderSelectionId} credentials
+                        </strong>
+                        <span
+                          className={`credential-status-badge credential-status-${
+                            providerCredentialStatuses?.providers.find((p) => p.providerId === aiProviderSelectionId)?.validated
+                              ? 'validated'
+                              : providerCredentialStatuses?.providers.find((p) => p.providerId === aiProviderSelectionId)?.configured
+                                ? 'configured'
+                                : 'unconfigured'
+                          }`}
+                        >
+                          {providerCredentialStatuses?.providers.find((p) => p.providerId === aiProviderSelectionId)?.validated
+                            ? 'Validated'
+                            : providerCredentialStatuses?.providers.find((p) => p.providerId === aiProviderSelectionId)?.configured
+                              ? 'Key saved'
+                              : 'Not configured'}
+                        </span>
+                      </div>
+                      <p>
+                        Enter your API key below. The key is stored securely in the governed desktop runtime and never
+                        exposed to the browser context.
+                      </p>
+                      <label className="settings-text-row">
+                        <span className="settings-label">API key</span>
+                        <input
+                          type="password"
+                          aria-label={`${AI_GATEWAY_PROVIDER_OPTIONS.find((p) => p.id === aiProviderSelectionId)?.label ?? ''} API key`}
+                          value={aiProviderSelectionId === 'anthropic_claude' ? anthropicApiKeyInput : openaiApiKeyInput}
+                          placeholder={aiProviderSelectionId === 'anthropic_claude' ? 'sk-ant-...' : 'sk-...'}
+                          onChange={(e) =>
+                            aiProviderSelectionId === 'anthropic_claude'
+                              ? setAnthropicApiKeyInput(e.target.value)
+                              : setOpenaiApiKeyInput(e.target.value)
+                          }
+                          autoComplete="off"
+                        />
+                      </label>
+                      <div className="credential-actions">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            onSaveProviderCredential(
+                              aiProviderSelectionId,
+                              aiProviderSelectionId === 'anthropic_claude' ? anthropicApiKeyInput : openaiApiKeyInput,
+                            )
+                          }
+                          disabled={
+                            credentialSavePending !== null ||
+                            (aiProviderSelectionId === 'anthropic_claude' ? anthropicApiKeyInput : openaiApiKeyInput).trim().length === 0
+                          }
+                        >
+                          {credentialSavePending === aiProviderSelectionId ? 'Saving\u2026' : 'Save key'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => onValidateProviderCredential(aiProviderSelectionId)}
+                          disabled={
+                            credentialValidatePending !== null ||
+                            !providerCredentialStatuses?.providers.find((p) => p.providerId === aiProviderSelectionId)?.configured
+                          }
+                        >
+                          {credentialValidatePending === aiProviderSelectionId ? 'Validating\u2026' : 'Validate'}
+                        </button>
+                        {providerCredentialStatuses?.providers.find((p) => p.providerId === aiProviderSelectionId)?.configured ? (
+                          <button
+                            type="button"
+                            className="credential-remove-button"
+                            onClick={() => onRemoveProviderCredential(aiProviderSelectionId)}
+                          >
+                            Remove key
+                          </button>
+                        ) : null}
+                      </div>
+                      {providerCredentialStatuses?.providers.find((p) => p.providerId === aiProviderSelectionId) ? (
+                        <small className="settings-inline-note">
+                          {providerCredentialStatuses.providers.find((p) => p.providerId === aiProviderSelectionId)?.detail}
+                        </small>
+                      ) : null}
+                    </div>
+                  ) : null}
                   {localAiSettingsVisible ? (
                     <>
                       <label className="settings-select-row">

@@ -873,6 +873,7 @@ button:disabled {
   line-height: 1.45;
 }
 
+.settings-credential-card,
 .settings-local-probe-card,
 .probe-status-panel {
   display: grid;
@@ -881,6 +882,45 @@ button:disabled {
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 10px;
   background: rgba(12, 18, 29, 0.55);
+}
+
+.settings-credential-card p {
+  margin: 0;
+  color: var(--workbench-muted);
+  font-size: 0.82rem;
+}
+
+.credential-actions {
+  display: flex;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+}
+
+.credential-remove-button {
+  color: #e06060;
+}
+
+.credential-status-badge {
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 0.15rem 0.45rem;
+  border-radius: 6px;
+}
+
+.credential-status-validated {
+  color: #33cc77;
+  border: 1px solid rgba(51, 204, 119, 0.25);
+}
+
+.credential-status-configured {
+  color: #ddaa33;
+  border: 1px solid rgba(221, 170, 51, 0.25);
+}
+
+.credential-status-unconfigured {
+  color: var(--workbench-muted);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .settings-local-probe-card p,
