@@ -1,7 +1,7 @@
 # WP-GOV-AI-REALIGN-001 - AI Gateway Governance Status Correction
 
 Date Opened: 2026-04-11
-Status: SPEC-MAPPED
+Status: IMPLEMENTED
 Iteration: All
 Workflow Version: 4.0
 Packet Class: VERIFICATION
@@ -123,9 +123,9 @@ This packet downgrades the overstated claims to match implementation reality and
 
 ## Change Ledger
 
-- What Became Real: TBD (updated at execution)
-- What Remains Simulated: TBD (updated at execution)
-- Next Blocking Real Seam: TBD (updated at execution)
+- What Became Real: REQ-0700..0708 downgraded from E2E-VERIFIED to IMPLEMENTED in REQUIREMENTS_INDEX. PRIM-0052 and PRIM-0053 downgraded from E2E-VERIFIED to IMPLEMENTED in PRIMITIVES_INDEX with cited justification and successor references. Gate G annotated with downgrade note in TRACEABILITY_MATRIX. Taskboard updated.
+- What Remains Simulated: N/A — governance-only correction.
+- Next Blocking Real Seam: WP-I6-005 (in-app provider credentials) is the next implementation packet that can re-earn status.
 
 ## Checkpoint Commit Plan
 
@@ -150,13 +150,14 @@ This packet downgrades the overstated claims to match implementation reality and
 
 ## Evidence
 
-- Test Suite Execution:
-- Logs:
-- Screenshots/Exports:
-- Build Artifacts:
-- Proof Artifact: .product/build_target/tool_artifacts/wp_runs/WP-GOV-AI-REALIGN-001/
-- User Sign-off:
+- Test Suite Execution: N/A — governance-only edits
+- Logs: N/A
+- Screenshots/Exports: N/A
+- Build Artifacts: N/A
+- Proof Artifact: Git diff of this commit showing each downgraded status
+- User Sign-off: pending
 
 ## Progress Log
 
 - 2026-04-11: WP scaffold created via .gov/repo_scripts/new_work_packet.ps1.
+- 2026-04-11: Executed — downgraded REQ-0700..0708 to IMPLEMENTED, PRIM-0052/0053 to IMPLEMENTED with cited justifications and successor references, annotated Gate G in traceability matrix.

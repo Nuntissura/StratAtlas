@@ -271,7 +271,7 @@ REQ-ID | Component(s) | Test(s) | Iteration | Verified
 | Gate D - Offline Operability | Offline bundle workflow in fallback runtime and app shell | REQ-0108 | 2026-03-05 |
 | Gate E - Performance | Packet-grade governed Tauri runtime budget proof and I1 performance suite checks | REQ-0014..REQ-0016, REQ-0112, REQ-0206..REQ-0211 | 2026-03-08 |
 | Gate F - Context Integrity | Context intake, deviation, and governed OSINT runtime proofs with provenance, graceful-degradation, and non-primary-evidence labeling checks | REQ-0800..REQ-0810 | 2026-03-08 |
-| Gate G - AI Safety | Live governed provider smoke, gateway policy tests, labeling tests, and audited MCP runtime proof | REQ-0700..REQ-0708, REQ-0011, REQ-0012 | 2026-03-08 |
+| Gate G - AI Safety | Live governed provider smoke, gateway policy tests, labeling tests, and audited MCP runtime proof | REQ-0700..REQ-0708, REQ-0011, REQ-0012 | 2026-03-08 (downgraded to IMPLEMENTED by WP-GOV-AI-REALIGN-001: MCP is type-only, OpenAI proof used Codex CLI workaround, no in-app credentials, local inference unproven; successors: WP-I6-005/006/007) |
 | Gate H - Desktop Portability and Startup | Platform-neutral path handling, startup budgets, hosted macOS runtime smoke, installer lifecycle controls, governed release topology/changelog policy, and version contract enforcement | REQ-0014..REQ-0018, REQ-0023..REQ-0036 | 2026-03-09 |
 
 ---

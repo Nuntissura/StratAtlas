@@ -138,7 +138,7 @@ Derived from exhaustive visual inspection of the running app. Grouped by categor
 - `WP-I6-004` - IMPLEMENTED: added a first-class in-app local-runtime probe, persisted verification state, and initial bridge/debugger proof for the AI settings and assistant surfaces under `.product/build_target/tool_artifacts/wp_runs/WP-I6-004/20260409_214611/`; successor `WP-GOV-BRIDGE-002` later retired the seeded-state screenshot workaround with live `/agent/action` proof under `.product/build_target/tool_artifacts/wp_runs/WP-GOV-BRIDGE-002/20260409_224118/`
 
 ### AI Technical Depth (2026-04-11 audit)
-- `WP-GOV-AI-REALIGN-001` — SPEC-MAPPED: downgrade overstated E2E-VERIFIED claims on REQ-0700..0708 and PRIM-0052/0053 to IMPLEMENTED; sub-spec approvals all Pending, OpenAI proof used Codex CLI workaround, MCP is type-only, local inference unproven; blocking: must execute before the implementation packets below can re-earn status
+- `WP-GOV-AI-REALIGN-001` is now `IMPLEMENTED`: downgraded REQ-0700..0708 and PRIM-0052/0053 from E2E-VERIFIED to IMPLEMENTED with cited justifications; Gate G annotated in traceability matrix; awaits user sign-off
 - `WP-I6-005` — SPEC-MAPPED: in-app provider selector (Claude/GPT/local), API key entry, pre-flight validation, secure credential persistence in settings menu; test with Claude/GPT consumer data plans first, then API billing keys; depends on WP-GOV-AI-REALIGN-001
 - `WP-I6-006` — SPEC-MAPPED: replace simulated frontend MCP tool execution with a real JSON-RPC MCP client in the Tauri backend; depends on WP-GOV-AI-REALIGN-001
 - `WP-I6-007` — SPEC-MAPPED: prove full local inference cycle in live desktop app (LM Studio or Ollama); depends on WP-I6-005 (needs in-app provider config to drive the flow)
