@@ -415,3 +415,5 @@ For quick lookup: "What requirements does this component implement?"
 | WP-GOV-DEBUGGER-002 | All | REQ-0013, REQ-0019, REQ-0020 | PRIM-0075 | .gov/workflow/wp_test_suites/TS-WP-GOV-DEBUGGER-002.md | SPEC-MAPPED | .gov/workflow/wp_spec_extractions/SX-WP-GOV-DEBUGGER-002.md |
 
 | WP-GOV-BRIDGE-003 | All | REQ-0013, REQ-0019, REQ-0020 | PRIM-0075 | .gov/workflow/wp_test_suites/TS-WP-GOV-BRIDGE-003.md | SPEC-MAPPED | .gov/workflow/wp_spec_extractions/SX-WP-GOV-BRIDGE-003.md |
+
+| WP-I1-021 | I1 | REQ-0200, REQ-0212 | PRIM-0005 | .gov/workflow/wp_test_suites/TS-WP-I1-021.md | SPEC-MAPPED | .gov/workflow/wp_spec_extractions/SX-WP-I1-021.md |

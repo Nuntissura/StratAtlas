@@ -127,6 +127,9 @@ Derived from exhaustive visual inspection of the running app. Grouped by categor
 - `WP-I1-015` is now `IMPLEMENTED`; proof: `.product/build_target/tool_artifacts/wp_runs/WP-I1-015/20260409_165612/`. The full workbench now promotes map families above session controls, hides support-only families behind explicit disclosure, keeps the non-guided summary deck compact by default, and includes live desktop bridge snapshot proof under `visual_proof/`.
 - `WP-I1-017` is now `IMPLEMENTED`; proof: `.product/build_target/tool_artifacts/wp_runs/WP-I1-017/20260409_192533/`. The map shell now renders as a compact HUD with a floating scene capsule, top-right action cluster, contextual drawer, hover/focus helper cards, purposeful motion controls, and a governed settings menu that persists real shell/runtime behavior such as compact chrome, hover helpers, motion profile, live-refresh policy, forced offline mode, and AI gateway profile. Live bridge proof is attached under `visual_proof/`.
 
+### Panel Layout Stability
+- `WP-I1-021` — SPEC-MAPPED: fix panel overlap, hidden-by-default retrievability (inspector/tray both collapsed with no external toggle), footer overlay on map canvas, and rigid grid breakpoint gap between 1120px and 1320px
+
 ### Feature UX Simplification
 - `WP-I1-018` is now `IMPLEMENTED`; proof: `.product/build_target/tool_artifacts/wp_runs/WP-I1-018/20260410_004711/`. The assistant now leads with a workflow-first AI card, the scenario surface now leads with fork/compare/export, advanced runtime/modeling controls stay behind explicit disclosure, and live desktop bridge proof is attached under `visual_proof/`; linked sub-spec: `.gov/Spec/sub-specs/I1_ai_and_scenario_ux_simplification.md`.
 

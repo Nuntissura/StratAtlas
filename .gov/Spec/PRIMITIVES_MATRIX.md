@@ -248,3 +248,5 @@ PRIM-ID | WP | REQs | Components | Tests | Tech/Tools | Combined With | Verifica
 | PRIM-0075 | WP-GOV-DEBUGGER-002 | REQ-0013, REQ-0019, REQ-0020 | TBD COMPONENTS | TBD TESTS | TBD TECH/TOOLS | TBD COMBINED PRIMITIVES/TOOLS | SPEC-MAPPED | 2026-04-10 |
 
 | PRIM-0075 | WP-GOV-BRIDGE-003 | REQ-0013, REQ-0019, REQ-0020 | TBD COMPONENTS | TBD TESTS | TBD TECH/TOOLS | TBD COMBINED PRIMITIVES/TOOLS | SPEC-MAPPED | 2026-04-10 |
+
+| PRIM-0005 | WP-I1-021 | REQ-0200, REQ-0212 | App.tsx (layout grid, panel state, header toggles), App.css (grid columns, collapse rules, footer integration, breakpoints) | TS-WP-I1-021 UI-001..UI-006, COR-001..COR-002, VISUAL-001 | CSS Grid, React state, Headless Bridge | Stable region contract: all four regions always reachable, non-overlapping, with persistent toggle affordance | SPEC-MAPPED | 2026-04-10 |
