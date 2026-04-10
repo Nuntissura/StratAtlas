@@ -6,7 +6,7 @@ Linked Test Suite: .gov/workflow/wp_test_suites/TS-WP-GOV-BRIDGE-003.md
 Linked WP Check Script: .gov/workflow/wp_checks/check-WP-GOV-BRIDGE-003.ps1
 Packet Class Snapshot: IMPLEMENTATION
 Workflow Version Snapshot: 4.0
-WP Status Snapshot: SPEC-MAPPED
+WP Status Snapshot: IMPLEMENTED
 Iteration: All
 
 ## Scope
