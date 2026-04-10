@@ -50,7 +50,7 @@ Execution loop:
 12. Run preflight: `powershell -ExecutionPolicy Bypass -File .gov/repo_scripts/governance_preflight.ps1`.
 13. Enforce WP template compliance: `powershell -ExecutionPolicy Bypass -File .gov/repo_scripts/enforce_wp_template_compliance.ps1`.
 14. Run the governance-sync checklist in `.gov/workflow/GOVERNANCE_WORKFLOW.md`.
-15. For UI-impacting WPs: if the app is running, use the headless agent bridge to capture visual snapshots of affected panels and include paths in WP evidence. See `AGENTS.md` for endpoint reference.
+15. For UI-impacting WPs: if the app is running, use the headless agent bridge to navigate affected panels, invoke approved named actions, and capture visual snapshots of the resulting state. Do not use keyboard/mouse simulation or seeded-state shortcuts when the bridge can drive the real workflow. See `AGENTS.md` for endpoint reference.
 16. Update WP/test suite/taskboard with outcome + proof artifact path (`.product/build_target/tool_artifacts/wp_runs/<WP-ID>/`), plus `What Became Real`, `What Remains Simulated`, and `Next Blocking Real Seam`.
 17. For installer-impacting WPs, run `powershell -ExecutionPolicy Bypass -File .gov/repo_scripts/build_windows_installer.ps1` and record installer kit path + manifest in WP evidence.
 
@@ -107,6 +107,16 @@ For desktop/build outputs:
 - release changelog ledger -> `.gov/workflow/changelog/`
 
 Every build should be attributable to a Work Packet and reflected on the Task Board.
+
+## 7A) Desktop UI Verification
+
+- For live desktop UI work, prefer the built-in toolchain over manual interaction:
+  - `GET /agent/health`, `GET /agent/state`, `POST /agent/navigate`, `POST /agent/action`, and `POST /agent/snapshot`
+  - `window.__stratatlasNavigate(panel)`
+  - `window.__stratatlasInvokeAgentAction(action, payload?)`
+  - `window.__stratatlasRequestSnapshot(subfolder?, label?)`
+- Use `/agent/action` only for approved named workflows such as `probe-local-runtime`; do not turn the bridge into generic click automation.
+- Do not use PowerShell `SendKeys`, `keybd_event`, mouse injection, or recorder-state seeding as the default path when the headless bridge can exercise the real flow.
 
 ## 8) Installer Lifecycle Contract (Windows)
 

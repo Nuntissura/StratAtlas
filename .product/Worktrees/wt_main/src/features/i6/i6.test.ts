@@ -4,8 +4,10 @@ import {
   MCP_MINIMUM_TOOLS,
   collectEvidenceRefs,
   createBrowserSimulatedAiProviderStatus,
+  createBrowserSimulatedLocalRuntimeProbeResult,
   createUnavailableAiProviderStatus,
   evaluateAiGatewayPolicy,
+  normalizeAiGatewaySnapshot,
   executeMcpTool,
   runAiGatewayAnalysis,
   submitAiAnalysis,
@@ -168,6 +170,7 @@ describe('I6 ai gateway and mcp', () => {
     const result = submitAiAnalysis({
       role: 'analyst',
       marking: 'INTERNAL',
+      providerSelection: 'auto',
       deploymentProfile: 'connected',
       allowed: policy.analysisAllowed,
       refs,
@@ -196,6 +199,7 @@ describe('I6 ai gateway and mcp', () => {
       {
         role: 'analyst',
         marking: 'INTERNAL',
+        providerSelection: 'auto',
         deploymentProfile: 'connected',
         allowed: policy.analysisAllowed,
         refs,
@@ -226,6 +230,7 @@ describe('I6 ai gateway and mcp', () => {
       {
         role: 'administrator',
         marking: 'INTERNAL',
+        providerSelection: 'auto',
         deploymentProfile: 'connected',
         allowed: policy.analysisAllowed,
         refs,
@@ -234,6 +239,7 @@ describe('I6 ai gateway and mcp', () => {
       },
       {
         providerStatus: {
+          providerId: 'openai_responses',
           runtime: 'tauri-live',
           available: true,
           providerLabel: 'OpenAI Responses API',
@@ -241,6 +247,7 @@ describe('I6 ai gateway and mcp', () => {
           detail: 'Configured through Tauri runtime.',
         },
         runProviderAnalysis: async () => ({
+          providerId: 'openai_responses',
           runtime: 'tauri-live',
           providerLabel: 'OpenAI Responses API',
           model: 'gpt-4.1-mini',
@@ -285,6 +292,7 @@ describe('I6 ai gateway and mcp', () => {
       submitAiAnalysis({
         role: 'administrator',
         marking: 'INTERNAL',
+        providerSelection: 'auto',
         deploymentProfile: 'connected',
         allowed: true,
         refs,
@@ -301,6 +309,7 @@ describe('I6 ai gateway and mcp', () => {
         {
           role: 'administrator',
           marking: 'INTERNAL',
+          providerSelection: 'auto',
           deploymentProfile: 'connected',
           allowed: true,
           refs,
@@ -313,6 +322,150 @@ describe('I6 ai gateway and mcp', () => {
         },
       ),
     ).rejects.toThrow(/provider unavailable/i)
+  })
+
+  it('preserves explicit local-provider selection in simulated and live gateway paths', async () => {
+    const refs = collectEvidenceRefs(manifest)
+
+    const simulated = await runAiGatewayAnalysis(
+      {
+        role: 'administrator',
+        marking: 'INTERNAL',
+        providerSelection: 'local_model',
+        localProviderConfig: {
+          runtimeProfile: 'lmstudio_cli',
+          modelIdentifier: 'lmstudio-community/gemma-4-31b-it',
+          executablePath: '',
+          argsJson: '',
+          modelPath: '',
+          workdir: '',
+        },
+        deploymentProfile: 'connected',
+        allowed: true,
+        refs,
+        prompt: 'Summarize governed evidence only.',
+      },
+      {
+        providerStatus: createBrowserSimulatedAiProviderStatus('local_model', {
+          runtimeProfile: 'lmstudio_cli',
+          modelIdentifier: 'lmstudio-community/gemma-4-31b-it',
+          executablePath: '',
+          argsJson: '',
+          modelPath: '',
+          workdir: '',
+        }),
+      },
+    )
+
+    expect(simulated.gatewayRuntime).toBe('browser-simulated')
+    expect(simulated.lineage).toContain('provider_selection:local_model')
+    expect(simulated.uncertaintyText).toMatch(/Tauri runtime/i)
+    expect(simulated.providerModel).toBe('lmstudio-community/gemma-4-31b-it')
+
+    const live = await runAiGatewayAnalysis(
+      {
+        role: 'administrator',
+        marking: 'INTERNAL',
+        providerSelection: 'local_model',
+        localProviderConfig: {
+          runtimeProfile: 'ollama_cli',
+          modelIdentifier: 'gemma3:latest',
+          executablePath: '',
+          argsJson: '',
+          modelPath: '',
+          workdir: '',
+        },
+        deploymentProfile: 'connected',
+        allowed: true,
+        refs,
+        prompt: 'Summarize governed evidence only.',
+      },
+      {
+        providerStatus: {
+          providerId: 'local_model',
+          runtime: 'tauri-live',
+          available: true,
+          providerLabel: 'Local Model Runtime',
+          model: 'gemma-local',
+          detail: 'Configured through a governed local runtime.',
+        },
+        runProviderAnalysis: async (providerRequest) => {
+          expect(providerRequest.localProviderConfig).toMatchObject({
+            runtimeProfile: 'ollama_cli',
+            modelIdentifier: 'gemma3:latest',
+          })
+          return {
+          providerId: 'local_model',
+          runtime: 'tauri-live',
+          providerLabel: 'Local Model Runtime',
+          model: 'gemma-local',
+          outputText: 'Local governed provider summary.',
+          degraded: false,
+          generatedAt: '2026-03-06T00:13:00.000Z',
+          }
+        },
+      },
+    )
+
+    expect(live.providerLabel).toBe('Local Model Runtime')
+    expect(live.providerModel).toBe('gemma-local')
+    expect(live.lineage).toContain('provider_selection:local_model')
+    expect(live.degraded).toBe(false)
+  })
+
+  it('normalizes persisted local-runtime probe results inside the gateway snapshot', () => {
+    const snapshot = normalizeAiGatewaySnapshot({
+      deploymentProfile: 'restricted',
+      providerSelection: 'local_model',
+      localProviderConfig: {
+        runtimeProfile: 'lmstudio_cli',
+        modelIdentifier: 'google/gemma-4-26b-a4b',
+        executablePath: '',
+        argsJson: '',
+        modelPath: '',
+        workdir: '',
+      },
+      latestLocalRuntimeProbe: {
+        runtime: 'tauri-live',
+        providerLabel: 'LM Studio CLI',
+        model: 'google/gemma-4-26b-a4b',
+        outcome: 'success',
+        detail: 'LM Studio CLI executed a governed local runtime probe successfully.',
+        outputText: 'READY_LOCAL_OK',
+        durationMs: 987,
+        probedAt: '2026-04-09T20:45:00.000Z',
+      },
+    })
+
+    expect(snapshot.deploymentProfile).toBe('restricted')
+    expect(snapshot.providerSelection).toBe('local_model')
+    expect(snapshot.latestLocalRuntimeProbe).toMatchObject({
+      providerId: 'local_model',
+      runtime: 'tauri-live',
+      providerLabel: 'LM Studio CLI',
+      model: 'google/gemma-4-26b-a4b',
+      outcome: 'success',
+      outputText: 'READY_LOCAL_OK',
+      durationMs: 987,
+    })
+  })
+
+  it('keeps browser probe fallbacks explicitly simulated and policy-aware', () => {
+    const result = createBrowserSimulatedLocalRuntimeProbeResult('air_gapped', {
+      runtimeProfile: 'ollama_cli',
+      modelIdentifier: 'gemma4:local',
+      executablePath: '',
+      argsJson: '',
+      modelPath: '',
+      workdir: '',
+    })
+
+    expect(result.providerId).toBe('local_model')
+    expect(result.runtime).toBe('browser-simulated')
+    expect(result.outcome).toBe('simulated')
+    expect(result.providerLabel).toContain('Ollama')
+    expect(result.detail).toMatch(/requires the governed Tauri runtime/i)
+    expect(result.detail).toMatch(/blocks governed AI execution/i)
   })
 
   it('defines the required mcp minimum tool surface and returns path-agnostic results', () => {
@@ -343,6 +496,7 @@ describe('I6 ai gateway and mcp', () => {
     const analysis = submitAiAnalysis({
       role: 'administrator',
       marking: 'INTERNAL',
+      providerSelection: 'auto',
       deploymentProfile: 'connected',
       allowed: policy.analysisAllowed,
       refs,

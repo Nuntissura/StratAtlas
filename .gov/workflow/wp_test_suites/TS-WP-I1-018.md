@@ -1,7 +1,7 @@
 # TS-WP-I1-018 - Spec vs Code Test Suite
 
 Date Opened: 2026-04-09
-Status: IN-PROGRESS
+Status: IMPLEMENTED
 Linked Work Packet: WP-I1-018
 Iteration: I1
 
@@ -36,33 +36,33 @@ Validate that the assistant and scenario surfaces become easier to use by defaul
 
 ## Dependency and Environment Tests
 
-- [ ] Runtime dependency install/lock integrity
-- [ ] Platform portability constraints checked
-- [ ] Required services/adapters available
+- [x] Runtime dependency install/lock integrity
+- [x] Platform portability constraints checked
+- [x] Required services/adapters available
 
 ## UI Contract Tests
 
-- [ ] Required regions
-- [ ] Required modes/states
-- [ ] Error and degraded-state UX
+- [x] Required regions
+- [x] Required modes/states
+- [x] Error and degraded-state UX
 
 ## Functional Flow Tests
 
-- [ ] Golden flow
-- [ ] Deterministic replay path
-- [ ] Export/import or persistence flow
+- [x] Golden flow
+- [x] Deterministic replay path
+- [x] Export/import or persistence flow
 
 ## Code Correctness Tests
 
-- [ ] Unit tests
-- [ ] Integration tests
-- [ ] Static checks (lint/type/schema)
+- [x] Unit tests
+- [x] Integration tests
+- [x] Static checks (lint/type/schema)
 
 ## Red-Team and Abuse Tests
 
-- [ ] Non-goal enforcement (spec section 3.2)
-- [ ] Policy bypass attempts
-- [ ] Invalid input and path abuse cases
+- [x] Non-goal enforcement (spec section 3.2)
+- [x] Policy bypass attempts
+- [x] Invalid input and path abuse cases
 
 ## Additional Tests
 
@@ -78,12 +78,12 @@ Validate that the assistant and scenario surfaces become easier to use by defaul
 
 ## Execution Summary
 
-- Last Run Date:
-- Result:
-- Blocking Failures:
-- Evidence Paths:
-- What Became Real:
-- What Remains Simulated:
-- Next Blocking Real Seam:
-- Reviewer:
-- User Sign-off:
+- Last Run Date: 2026-04-10
+- Result: PASS
+- Blocking Failures: None
+- Evidence Paths: `.product/build_target/tool_artifacts/wp_runs/WP-I1-018/20260410_004711/summary.md`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-018/20260410_004711/visual_proof/assistant_default_live.png`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-018/20260410_004711/visual_proof/scenario_workflow_live.png`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-018/20260410_004711/visual_proof_summary.md`
+- What Became Real: the live shell now exposes workflow-first assistant and scenario cards with default-hidden advanced controls, and the bridge can enter scenario workflow state directly for runtime proof.
+- What Remains Simulated: browser/jsdom remains a non-desktop proof environment relative to the live Tauri shell.
+- Next Blocking Real Seam: no further implementation seam remains inside this packet; user sign-off is the remaining gate before any `E2E-VERIFIED` promotion.
+- Reviewer: Codex
+- User Sign-off: Pending

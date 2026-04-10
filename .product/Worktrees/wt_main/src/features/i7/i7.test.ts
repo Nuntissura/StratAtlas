@@ -15,6 +15,9 @@ import {
   materializeGovernedContextRecords,
   resolveGovernedDomainRegistration,
 } from './governedDomains'
+import { buildGlobalEventTimeline } from './eventTimeline'
+import { detectDeviation } from '../i8/deviation'
+import { aggregateAlerts, buildOsintEvent } from '../i9/osint'
 
 const baseDomain: ContextDomain = {
   domain_id: 'ctx-1',
@@ -181,5 +184,114 @@ describe('I7 context intake', () => {
       ]),
     )
     expect(records.at(-1)?.value_label).toBe('11 index')
+  })
+
+  it('builds a deterministic global event timeline with truthful metadata', () => {
+    const deviationEvent =
+      detectDeviation(
+        [
+          { ts: '2026-03-06T08:00:00.000Z', value: 100 },
+          { ts: '2026-03-06T10:00:00.000Z', value: 102 },
+        ],
+        [
+          { ts: '2026-03-06T12:00:00.000Z', value: 64 },
+          { ts: '2026-03-06T14:00:00.000Z', value: 59 },
+        ],
+        0.2,
+        'infrastructure',
+        {
+          domainId: baseDomain.domain_id,
+          domainName: baseDomain.domain_name,
+          targetId: 'aoi-7',
+          confidenceBaseline: baseDomain.confidence_baseline,
+        },
+      ) ?? undefined
+
+    const osintEvents = [
+      buildOsintEvent({
+        source: 'ACLED',
+        verification: 'confirmed',
+        aoi: 'aoi-7',
+        category: 'security_advisory',
+        summary: 'Port disruption remains active in curated reporting.',
+        retrievedAt: '2026-03-06T18:00:00.000Z',
+        sourceMode: 'governed_connector',
+        connectorId: 'logistics-disruption-watch',
+      }),
+      buildOsintEvent({
+        source: 'ReliefWeb',
+        verification: 'reported',
+        aoi: 'aoi-1',
+        category: 'natural_disaster',
+        summary: 'Weather spillover may affect Singapore throughput.',
+        retrievedAt: '2026-03-06T16:00:00.000Z',
+      }),
+    ]
+
+    const timeline = buildGlobalEventTimeline({
+      domains: [baseDomain],
+      latestDeviationEvent: deviationEvent,
+      osintSummary: aggregateAlerts(osintEvents, 'aoi-7'),
+      osintEvents,
+    })
+
+    expect(deviationEvent).toBeDefined()
+    expect(timeline.map((entry) => entry.eventId)).toEqual([
+      expect.stringContaining('osint-alert-aoi-7'),
+      osintEvents[0].event_id,
+      osintEvents[1].event_id,
+      deviationEvent!.eventId,
+    ])
+    expect(timeline[0]).toMatchObject({
+      aggregateOnly: true,
+      mapEligible: true,
+    })
+    expect(timeline[1]).toMatchObject({
+      source: 'ACLED',
+      cadence: 'Connector snapshot',
+      confidence: 'Verification confirmed',
+      mapEligible: true,
+    })
+    expect(timeline[3]).toMatchObject({
+      source: 'UNCTAD',
+      cadence: 'Derived from monthly',
+    })
+  })
+
+  it('keeps non-map context events in the timeline while marking them as timeline-only', () => {
+    const timelineOnlyDomain: ContextDomain = {
+      ...baseDomain,
+      domain_id: 'ctx-sidebar',
+      domain_name: 'Commodity Index',
+      presentation_type: 'sidebar_timeseries',
+    }
+    const deviationEvent =
+      detectDeviation(
+        [
+          { ts: '2026-03-06T08:00:00.000Z', value: 10 },
+          { ts: '2026-03-06T10:00:00.000Z', value: 10 },
+        ],
+        [
+          { ts: '2026-03-06T12:00:00.000Z', value: 18 },
+        ],
+        0.2,
+        'trade_flow',
+        {
+          domainId: timelineOnlyDomain.domain_id,
+          domainName: timelineOnlyDomain.domain_name,
+          targetId: 'aoi-1',
+          confidenceBaseline: timelineOnlyDomain.confidence_baseline,
+        },
+      ) ?? undefined
+
+    const timeline = buildGlobalEventTimeline({
+      domains: [timelineOnlyDomain],
+      latestDeviationEvent: deviationEvent,
+      osintEvents: [],
+    })
+
+    expect(timeline).toHaveLength(1)
+    expect(timeline[0]?.mapEligible).toBe(false)
+    expect(timeline[0]?.aggregateOnly).toBe(false)
   })
 })

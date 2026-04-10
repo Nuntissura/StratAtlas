@@ -11,6 +11,9 @@ import type {
   RuntimeSmokeReport,
   SensitivityMarking,
   UserRole,
+  WorkspaceLiveDataMode,
+  WorkspaceMotionProfile,
+  WorkspaceUiSettings,
 } from './contracts/i0'
 import type {
   ContextSnapshot,
@@ -23,6 +26,7 @@ import { REQUIRED_UI_MODES, REQUIRED_UI_REGIONS } from './features/i1/modes'
 import {
   MapRuntimeSurface,
   type MapRuntimeSurfaceHandle,
+  type MapRuntimeSelectionCommand,
 } from './features/i1/components/MapRuntimeSurface'
 import {
   DEFAULT_MAP_RUNTIME_TELEMETRY,
@@ -78,6 +82,7 @@ import {
 import {
   buildMapRuntimeScene,
   deriveRuntimeFocusAoiId,
+  runtimeAoiLabel,
 } from './features/i1/runtime/mapRuntimeScene'
 import {
   I1_BUDGETS,
@@ -150,7 +155,12 @@ import {
   resolveQueryDomainIds,
 } from './features/i5/queryRuntime'
 import {
+  AI_GATEWAY_PROVIDER_OPTIONS,
+  DEFAULT_AI_PROVIDER_ID,
+  DEFAULT_LOCAL_AI_PROVIDER_CONFIG,
+  LOCAL_AI_RUNTIME_OPTIONS,
   createBrowserSimulatedAiProviderStatus,
+  createBrowserSimulatedLocalRuntimeProbeResult,
   createUnavailableAiProviderStatus,
   DEPLOYMENT_PROFILES,
   MCP_MINIMUM_TOOLS,
@@ -158,11 +168,16 @@ import {
   evaluateAiGatewayPolicy,
   executeMcpTool,
   normalizeAiGatewaySnapshot,
+  normalizeLocalAiProviderConfig,
   runAiGatewayAnalysis,
   type AiGatewayArtifact,
+  type AiGatewayLocalRuntimeProbeResult,
+  type AiGatewayProviderId,
   type AiGatewayProviderStatus,
   type AiGatewaySnapshot,
   type DeploymentProfileId,
+  type LocalAiProviderConfig,
+  type LocalAiRuntimeProfileId,
   type McpInvocationRecord,
   type McpToolName,
 } from './features/i6/aiGateway'
@@ -178,6 +193,10 @@ import {
   type ContextRecord,
   type ContextTimeRange,
 } from './features/i7/contextIntake'
+import {
+  buildGlobalEventTimeline,
+  type GlobalEventTimelineEntry,
+} from './features/i7/eventTimeline'
 import {
   buildGovernedDomainDraft,
   DEFAULT_GOVERNED_CONTEXT_DOMAIN_ID,
@@ -342,6 +361,15 @@ const DEFAULT_GAME_NODE_TYPE: ScenarioTreeNodeType = 'decision'
 const DEFAULT_GAME_SOLVER_METHOD: SolverMethod = 'minimax_regret'
 const DEFAULT_GAME_SOLVER_SEED = '29'
 const DEFAULT_GAME_MONTE_CARLO_SAMPLES = '24'
+const DEFAULT_WORKSPACE_SETTINGS: WorkspaceUiSettings = {
+  compactChrome: true,
+  hoverHelpers: true,
+  autoOpenContextualInspector: true,
+  motionProfile: 'full',
+  telemetryChips: true,
+  ambientMapEffects: true,
+  liveDataMode: 'live_when_available',
+}
 
 type PanelInfoId = 'left' | 'main' | 'right' | 'bottom'
 
@@ -417,6 +445,12 @@ const formatRelativeSnapshotAge = (timestamp: string): string => {
   }
   return `${ageMinutes} minutes ago`
 }
+
+const formatTimelineCategoryLabel = (value: GlobalEventTimelineEntry['category']): string =>
+  value
+    .split('_')
+    .map((segment) => segment[0].toUpperCase() + segment.slice(1))
+    .join(' ')
 
 const createDomainDraft = (domainId = DEFAULT_GOVERNED_CONTEXT_DOMAIN_ID): ContextDomain => {
   const draft = buildGovernedDomainDraft(domainId)
@@ -900,6 +934,7 @@ const buildWorkspaceStateSnapshot = ({
   maritime,
   mode,
   replayCursor,
+  settings,
   satellite,
 }: {
   analystNote: string
@@ -912,12 +947,14 @@ const buildWorkspaceStateSnapshot = ({
   maritime: MaritimeSnapshot
   mode: UiMode
   replayCursor: number
+  settings: WorkspaceUiSettings
   satellite: SatelliteSnapshot
 }): WorkspaceStateSnapshot => ({
   mode: modeLabel(forcedOffline),
   workflowMode: mode,
   note: analystNote,
   activeLayers,
+  settings,
   basemapStyleId,
   airTraffic,
   maritime,
@@ -926,7 +963,7 @@ const buildWorkspaceStateSnapshot = ({
   layerFamilyVisibility,
   replayCursor,
   forcedOffline,
-  uiVersion: 'i1-workspace-surface',
+  uiVersion: 'i1-workspace-surface-hud',
 })
 
 const normalizeLayerFamilyBooleanState = <TState extends Record<string, boolean>>(
@@ -945,6 +982,47 @@ const normalizeLayerFamilyBooleanState = <TState extends Record<string, boolean>
     }
   }
   return next
+}
+
+const isWorkspaceMotionProfile = (value: unknown): value is WorkspaceMotionProfile =>
+  value === 'full' || value === 'reduced'
+
+const isWorkspaceLiveDataMode = (value: unknown): value is WorkspaceLiveDataMode =>
+  value === 'live_when_available' || value === 'cached_only'
+
+const normalizeWorkspaceSettings = (value: unknown): WorkspaceUiSettings => {
+  if (!isRecord(value)) {
+    return DEFAULT_WORKSPACE_SETTINGS
+  }
+
+  return {
+    compactChrome:
+      typeof value.compactChrome === 'boolean'
+        ? value.compactChrome
+        : DEFAULT_WORKSPACE_SETTINGS.compactChrome,
+    hoverHelpers:
+      typeof value.hoverHelpers === 'boolean'
+        ? value.hoverHelpers
+        : DEFAULT_WORKSPACE_SETTINGS.hoverHelpers,
+    autoOpenContextualInspector:
+      typeof value.autoOpenContextualInspector === 'boolean'
+        ? value.autoOpenContextualInspector
+        : DEFAULT_WORKSPACE_SETTINGS.autoOpenContextualInspector,
+    motionProfile: isWorkspaceMotionProfile(value.motionProfile)
+      ? value.motionProfile
+      : DEFAULT_WORKSPACE_SETTINGS.motionProfile,
+    telemetryChips:
+      typeof value.telemetryChips === 'boolean'
+        ? value.telemetryChips
+        : DEFAULT_WORKSPACE_SETTINGS.telemetryChips,
+    ambientMapEffects:
+      typeof value.ambientMapEffects === 'boolean'
+        ? value.ambientMapEffects
+        : DEFAULT_WORKSPACE_SETTINGS.ambientMapEffects,
+    liveDataMode: isWorkspaceLiveDataMode(value.liveDataMode)
+      ? value.liveDataMode
+      : DEFAULT_WORKSPACE_SETTINGS.liveDataMode,
+  }
 }
 
 const buildQueryStateSnapshot = ({
@@ -996,17 +1074,45 @@ const buildContextSnapshot = ({
 
 const buildAiSnapshot = ({
   deploymentProfile,
+  providerSelection,
+  localProviderConfig,
   latestAnalysis,
   latestMcpInvocation,
+  latestLocalRuntimeProbe,
 }: {
   deploymentProfile: DeploymentProfileId
+  providerSelection: AiGatewayProviderId
+  localProviderConfig: LocalAiProviderConfig
   latestAnalysis?: AiGatewayArtifact
   latestMcpInvocation?: McpInvocationRecord
+  latestLocalRuntimeProbe?: AiGatewayLocalRuntimeProbeResult
 }): AiGatewaySnapshot => ({
   deploymentProfile,
+  providerSelection,
+  localProviderConfig,
   latestAnalysis,
   latestMcpInvocation,
+  latestLocalRuntimeProbe,
 })
+
+const formatLocalRuntimeProbeOutcome = (
+  probe?: AiGatewayLocalRuntimeProbeResult,
+): string => {
+  if (!probe) {
+    return 'Not probed yet.'
+  }
+
+  switch (probe.outcome) {
+    case 'success':
+      return 'Probe succeeded'
+    case 'failure':
+      return 'Probe failed'
+    case 'simulated':
+      return 'Probe unavailable in browser fallback'
+    default:
+      return 'Probe unavailable'
+  }
+}
 
 const createDefaultCollaborationSnapshot = (): CollaborationStateSnapshot =>
   createCollaborationSnapshot(
@@ -1044,12 +1150,23 @@ const collectRuntimeSmokeRegionChecks = (): RuntimeSmokeRegionCheck[] =>
 type LeftPanelView = 'workspace' | 'query' | 'assistant'
 type MainCanvasDeckView = 'summary' | 'workflow' | 'artifacts'
 type RightPanelView = 'context' | 'monitor' | 'planning' | 'audit'
-type BottomPanelView = 'bundles' | 'activity'
+type BottomPanelView = 'bundles' | 'activity' | 'timeline'
+type AgentBridgeActionRequest = {
+  action: string
+  payload?: unknown
+}
+type AgentBridgeActionCompletion = {
+  action: string
+  success: boolean
+  message?: string
+  result?: unknown
+}
 
 declare global {
   interface Window {
     __stratatlasRequestSnapshot?: (subfolder?: string, label?: string) => Promise<string>
     __stratatlasNavigate?: (panel: string) => Promise<void>
+    __stratatlasInvokeAgentAction?: (action: string, payload?: unknown) => Promise<unknown>
   }
 }
 
@@ -1068,6 +1185,7 @@ const resolveAgentBridgeCurrentPanel = ({
   inspectorCollapsed,
   trayCollapsed,
   workspaceCompactView,
+  settingsMenuOpen,
 }: {
   leftPanelView: LeftPanelView
   mainCanvasDeckView: MainCanvasDeckView
@@ -1076,7 +1194,11 @@ const resolveAgentBridgeCurrentPanel = ({
   inspectorCollapsed: boolean
   trayCollapsed: boolean
   workspaceCompactView: boolean
+  settingsMenuOpen: boolean
 }): string => {
+  if (settingsMenuOpen) {
+    return 'settings'
+  }
   if (workspaceCompactView) {
     return 'start'
   }
@@ -1138,12 +1260,15 @@ function App() {
   const [rightPanelView, setRightPanelView] = useState<RightPanelView>('context')
   const [bottomPanelView, setBottomPanelView] = useState<BottomPanelView>('bundles')
   const [openPanelInfoId, setOpenPanelInfoId] = useState<PanelInfoId | null>(null)
+  const [settingsMenuOpen, setSettingsMenuOpen] = useState<boolean>(false)
   const [guidedStartDismissed, setGuidedStartDismissed] = useState<boolean>(false)
   const [workspaceAdvancedVisible, setWorkspaceAdvancedVisible] = useState<boolean>(false)
   const [showSupportLayerFamilies, setShowSupportLayerFamilies] = useState<boolean>(false)
   const [showSceneDetails, setShowSceneDetails] = useState<boolean>(false)
   const [inspectorCollapsed, setInspectorCollapsed] = useState<boolean>(true)
   const [trayCollapsed, setTrayCollapsed] = useState<boolean>(true)
+  const [workspaceSettings, setWorkspaceSettings] =
+    useState<WorkspaceUiSettings>(DEFAULT_WORKSPACE_SETTINGS)
   const [replayCursor, setReplayCursor] = useState<number>(0)
   const [replayFrameMs, setReplayFrameMs] = useState<number>(32)
   const [baselineWindowLabel, setBaselineWindowLabel] =
@@ -1171,6 +1296,10 @@ function App() {
     useState<string>(DEFAULT_QUERY_EXECUTION_SUMMARY)
   const [deploymentProfileId, setDeploymentProfileId] =
     useState<DeploymentProfileId>(DEFAULT_DEPLOYMENT_PROFILE)
+  const [aiProviderSelectionId, setAiProviderSelectionId] =
+    useState<AiGatewayProviderId>(DEFAULT_AI_PROVIDER_ID)
+  const [localAiProviderConfig, setLocalAiProviderConfig] =
+    useState<LocalAiProviderConfig>(DEFAULT_LOCAL_AI_PROVIDER_CONFIG)
   const [selectedMcpTool, setSelectedMcpTool] = useState<McpToolName>(DEFAULT_MCP_TOOL)
   const [latestAiArtifact, setLatestAiArtifact] = useState<AiGatewayArtifact | undefined>(
     undefined,
@@ -1178,6 +1307,10 @@ function App() {
   const [latestMcpInvocation, setLatestMcpInvocation] = useState<McpInvocationRecord | undefined>(
     undefined,
   )
+  const [latestLocalRuntimeProbe, setLatestLocalRuntimeProbe] =
+    useState<AiGatewayLocalRuntimeProbeResult | undefined>(undefined)
+  const [assistantAdvancedVisible, setAssistantAdvancedVisible] = useState<boolean>(false)
+  const [localRuntimeProbePending, setLocalRuntimeProbePending] = useState<boolean>(false)
   const [aiPrompt, setAiPrompt] = useState<string>('Summarize this selected bundle.')
   const [aiSummary, setAiSummary] = useState<string>('')
   const [aiProviderStatus, setAiProviderStatus] = useState<AiGatewayProviderStatus>(
@@ -1292,6 +1425,7 @@ function App() {
     useState<string>(DEFAULT_HYPOTHETICAL_ENTITY_SOURCE)
   const [scenarioEntityConfidenceInput, setScenarioEntityConfidenceInput] =
     useState<EntityConfidence>(DEFAULT_HYPOTHETICAL_ENTITY_CONFIDENCE)
+  const [scenarioAdvancedVisible, setScenarioAdvancedVisible] = useState<boolean>(false)
   const [compareArtifact, setCompareArtifact] = useState<CompareArtifact | null>(null)
   const [briefingBundleArtifact, setBriefingBundleArtifact] = useState<BriefingBundle | null>(null)
   const [briefingArtifact, setBriefingArtifact] = useState<BriefingArtifactPreview | null>(null)
@@ -1306,6 +1440,10 @@ function App() {
   const lastSavedFingerprint = useRef<string>('')
   const contextPersistenceVersionRef = useRef<number>(0)
   const mapRuntimeSurfaceRef = useRef<MapRuntimeSurfaceHandle | null>(null)
+  const eventSelectionRequestRef = useRef<number>(0)
+  const [mapRuntimeSelectionCommand, setMapRuntimeSelectionCommand] =
+    useState<MapRuntimeSelectionCommand | null>(null)
+  const compactChromePreferenceRef = useRef<boolean>(DEFAULT_WORKSPACE_SETTINGS.compactChrome)
   const runtimeSmokeStarted = useRef<boolean>(false)
   const runtimeSmokeStartMs = useRef<number>(performance.now())
   const runtimeSmokeShellReadyMs = useRef<number | null>(null)
@@ -1352,7 +1490,23 @@ function App() {
     aiProviderStatus: createBrowserSimulatedAiProviderStatus(),
     latestAiArtifact: null as AiGatewayArtifact | null,
     latestMcpInvocation: null as McpInvocationRecord | null,
+    latestLocalRuntimeProbe: null as AiGatewayLocalRuntimeProbeResult | null,
   })
+
+  const focusGlobalEvent = (entry: GlobalEventTimelineEntry): void => {
+    eventSelectionRequestRef.current += 1
+    setGuidedStartDismissed(true)
+    setWorkspaceAdvancedVisible(true)
+    setMainCanvasDeckView('summary')
+    setTrayCollapsed(false)
+    setBottomPanelView('timeline')
+    setMapRuntimeSelectionCommand({
+      requestId: eventSelectionRequestRef.current,
+      focusAoiId: entry.aoiId,
+      inspectId: entry.mapEligible ? entry.inspectId : undefined,
+      openContext: true,
+    })
+  }
 
   const tryMarkRuntimeSmokeShellReady = useEffectEvent(() => {
     if (!runtimeSmokeConfig.enabled || runtimeSmokeShellReadyMs.current !== null) {
@@ -1380,6 +1534,7 @@ function App() {
         maritime: maritimeSnapshot,
         mode,
         replayCursor,
+        settings: workspaceSettings,
         satellite: satelliteSnapshot,
       }),
     [
@@ -1393,6 +1548,7 @@ function App() {
       maritimeSnapshot,
       mode,
       replayCursor,
+      workspaceSettings,
       satelliteSnapshot,
     ],
   )
@@ -1484,6 +1640,7 @@ function App() {
         inspectorCollapsed,
         trayCollapsed,
         workspaceCompactView,
+        settingsMenuOpen,
       }),
     [
       bottomPanelView,
@@ -1491,6 +1648,7 @@ function App() {
       leftPanelView,
       mainCanvasDeckView,
       rightPanelView,
+      settingsMenuOpen,
       trayCollapsed,
       workspaceCompactView,
     ],
@@ -1559,6 +1717,20 @@ function App() {
       return
     }
 
+    if (workspaceSettings.liveDataMode === 'cached_only') {
+      setAirTrafficSnapshot((previous) =>
+        buildFallbackAirTrafficSnapshot({
+          focusAoiId: currentPreset.aoiId,
+          previousSnapshot: previous,
+          reason:
+            'Cached-only live refresh policy is active, so the governed packaged or cached air snapshot remains in use until you re-enable live refresh.',
+        }),
+      )
+      setAirTrafficLoading(false)
+      setAirTrafficError('')
+      return
+    }
+
     setAirTrafficLoading(true)
     setAirTrafficError('')
     try {
@@ -1608,6 +1780,20 @@ function App() {
       return
     }
 
+    if (workspaceSettings.liveDataMode === 'cached_only') {
+      setSatelliteSnapshot((previous) =>
+        buildFallbackSatelliteSnapshot({
+          focusAoiId: currentPreset.aoiId,
+          previousSnapshot: previous,
+          reason:
+            'Cached-only live refresh policy is active, so the governed benchmark orbital snapshot remains in use until live refresh is re-enabled.',
+        }),
+      )
+      setSatelliteLoading(false)
+      setSatelliteError('')
+      return
+    }
+
     setSatelliteLoading(true)
     setSatelliteError('')
     try {
@@ -1641,6 +1827,9 @@ function App() {
     if (!panel) {
       return
     }
+    if (panel !== 'settings' && panel !== 'ai-settings') {
+      startTransition(() => setSettingsMenuOpen(false))
+    }
 
     switch (panel) {
       case 'map':
@@ -1670,6 +1859,13 @@ function App() {
       case 'ai':
         startTransition(() => setLeftPanelView('assistant'))
         return
+      case 'settings':
+      case 'ai-settings':
+        startTransition(() => {
+          setSettingsMenuOpen(true)
+          setLeftPanelView('assistant')
+        })
+        return
       case 'context':
         startTransition(() => {
           setInspectorCollapsed(false)
@@ -1684,7 +1880,33 @@ function App() {
         })
         return
       case 'planning':
+        startTransition(() => {
+          setInspectorCollapsed(false)
+          setRightPanelView('planning')
+        })
+        return
       case 'scenario':
+        startTransition(() => {
+          setGuidedStartDismissed(true)
+          setWorkspaceAdvancedVisible(true)
+          setLeftPanelView('workspace')
+          setMode('scenario')
+          setMainCanvasDeckView('workflow')
+          setInspectorCollapsed(false)
+          setRightPanelView('planning')
+        })
+        return
+      case 'compare':
+        startTransition(() => {
+          setGuidedStartDismissed(true)
+          setWorkspaceAdvancedVisible(true)
+          setLeftPanelView('workspace')
+          setMode('compare')
+          setMainCanvasDeckView('workflow')
+          setInspectorCollapsed(false)
+          setRightPanelView('planning')
+        })
+        return
       case 'game':
         startTransition(() => {
           setInspectorCollapsed(false)
@@ -1710,6 +1932,13 @@ function App() {
           setBottomPanelView('activity')
         })
         return
+      case 'timeline':
+      case 'events':
+        startTransition(() => {
+          setTrayCollapsed(false)
+          setBottomPanelView('timeline')
+        })
+        return
       case '2d':
       case 'planar':
         if (mapRuntimeSurfaceRef.current) {
@@ -1727,8 +1956,186 @@ function App() {
     }
   })
 
+  const handleAgentAction = useEffectEvent(
+    async (requestedAction: AgentBridgeActionRequest): Promise<AgentBridgeActionCompletion> => {
+      const normalizedAction = requestedAction.action.trim().toLowerCase()
+
+      if (!normalizedAction) {
+        return {
+          action: '',
+          success: false,
+          message: 'Missing agent action.',
+        }
+      }
+
+      switch (normalizedAction) {
+        case 'probe-local-runtime':
+        case 'probe_local_runtime':
+        case 'probe-local-ai-runtime': {
+          let deploymentProfileOverride: DeploymentProfileId | undefined
+          let localProviderConfigOverride: LocalAiProviderConfig | undefined
+          if (requestedAction.payload && typeof requestedAction.payload === 'object') {
+            const payload = requestedAction.payload as Record<string, unknown>
+            if (
+              typeof payload.deploymentProfile === 'string' &&
+              DEPLOYMENT_PROFILES.some((profile) => profile.id === payload.deploymentProfile)
+            ) {
+              deploymentProfileOverride = payload.deploymentProfile as DeploymentProfileId
+            }
+
+            const localProviderOverrideSeed: LocalAiProviderConfig = {
+              ...localAiProviderConfig,
+            }
+            let hasLocalProviderOverride = false
+            for (const field of [
+              'runtimeProfile',
+              'modelIdentifier',
+              'executablePath',
+              'modelPath',
+              'argsJson',
+              'workdir',
+            ] as const) {
+              if (
+                field === 'runtimeProfile' &&
+                typeof payload[field] === 'string' &&
+                LOCAL_AI_RUNTIME_OPTIONS.some((option) => option.id === payload[field])
+              ) {
+                localProviderOverrideSeed.runtimeProfile = payload[field] as LocalAiRuntimeProfileId
+                hasLocalProviderOverride = true
+                continue
+              }
+              if (field !== 'runtimeProfile' && typeof payload[field] === 'string') {
+                localProviderOverrideSeed[field] = payload[field]
+                hasLocalProviderOverride = true
+              }
+            }
+            if (hasLocalProviderOverride) {
+              localProviderConfigOverride = normalizeLocalAiProviderConfig(localProviderOverrideSeed)
+            }
+          }
+
+          const result = await onProbeLocalRuntime({
+            deploymentProfile: deploymentProfileOverride,
+            localProviderConfig: localProviderConfigOverride,
+          })
+          return {
+            action: 'probe-local-runtime',
+            success: true,
+            message: `Local runtime probe completed with ${formatLocalRuntimeProbeOutcome(result)}.`,
+            result,
+          }
+        }
+        case 'focus-global-event':
+        case 'focus_global_event':
+        case 'select-global-event': {
+          const payload =
+            requestedAction.payload && typeof requestedAction.payload === 'object'
+              ? (requestedAction.payload as Record<string, unknown>)
+              : {}
+          const requestedIndex =
+            typeof payload.index === 'number' && Number.isInteger(payload.index) ? payload.index : 0
+          const selectedEntry =
+            (typeof payload.eventId === 'string'
+              ? globalEventTimeline.find((entry) => entry.eventId === payload.eventId)
+              : undefined) ??
+            (typeof payload.inspectId === 'string'
+              ? globalEventTimeline.find((entry) => entry.inspectId === payload.inspectId)
+              : undefined) ??
+            (typeof payload.aoiId === 'string'
+              ? globalEventTimeline.find((entry) => entry.aoiId === payload.aoiId)
+              : undefined) ??
+            globalEventTimeline[requestedIndex]
+
+          if (!selectedEntry) {
+            return {
+              action: 'focus-global-event',
+              success: false,
+              message: 'No global events are available to focus.',
+            }
+          }
+
+          focusGlobalEvent(selectedEntry)
+          await new Promise((resolve) => window.setTimeout(resolve, 80))
+          return {
+            action: 'focus-global-event',
+            success: true,
+            message: `Focused ${selectedEntry.label} for ${selectedEntry.aoiLabel}.`,
+            result: {
+              eventId: selectedEntry.eventId,
+              inspectId: selectedEntry.inspectId,
+              aoiId: selectedEntry.aoiId,
+              label: selectedEntry.label,
+              aggregateOnly: selectedEntry.aggregateOnly,
+              mapEligible: selectedEntry.mapEligible,
+            },
+          }
+        }
+        case 'open-bundle':
+        case 'open_bundle':
+        case 'reopen-bundle':
+        case 'open-latest-bundle': {
+          const payload =
+            requestedAction.payload && typeof requestedAction.payload === 'object'
+              ? (requestedAction.payload as Record<string, unknown>)
+              : {}
+          const requestedBundleId =
+            typeof payload.bundleId === 'string' ? payload.bundleId.trim() : ''
+          const targetBundle =
+            (requestedBundleId
+              ? bundles.find((bundle) => bundle.bundle_id === requestedBundleId)
+              : undefined) ?? bundles[0]
+
+          if (!targetBundle) {
+            return {
+              action: 'open-bundle',
+              success: false,
+              message: 'No governed bundles are available to open.',
+            }
+          }
+
+          const result = await backend.openBundle(targetBundle.bundle_id, role)
+          applyRecorderState(result.state, result.manifest.bundle_id)
+          lastSavedFingerprint.current = serializeRecorderFingerprint({
+            workspace: result.state.workspace,
+            query: result.state.query,
+            context: result.state.context,
+            compare: result.state.compare,
+            collaboration: result.state.collaboration,
+            scenario: result.state.scenario,
+            ai: result.state.ai,
+            deviation: result.state.deviation,
+            osint: result.state.osint,
+            gameModel: result.state.gameModel,
+            selectedBundleId: result.manifest.bundle_id,
+          })
+          await refresh()
+          setStatus(`Bundle ${result.manifest.bundle_id} reopened`)
+          setIntegrityState('Determinism check passed during reopen')
+          await new Promise((resolve) => window.setTimeout(resolve, 80))
+          return {
+            action: 'open-bundle',
+            success: true,
+            message: `Bundle ${result.manifest.bundle_id} reopened.`,
+            result: {
+              bundleId: result.manifest.bundle_id,
+              createdAt: result.manifest.created_at,
+              marking: result.manifest.marking,
+            },
+          }
+        }
+        default:
+          return {
+            action: normalizedAction,
+            success: false,
+            message: `Unsupported agent action: ${requestedAction.action}`,
+          }
+      }
+    },
+  )
+
   // WP-GOV-DEBUGGER-001: Visual debugger hotkey + JS global
   // WP-GOV-BRIDGE-001: Headless agent bridge event listeners
+  // WP-GOV-BRIDGE-002: Stable named action bridge for real UI workflows
   useEffect(() => {
     const handleKeyDown = async (e: KeyboardEvent) => {
       const ctrl = e.ctrlKey || e.metaKey
@@ -1789,6 +2196,13 @@ function App() {
     window.__stratatlasNavigate = async (panel: string) => {
       await handleAgentNavigate(panel)
     }
+    window.__stratatlasInvokeAgentAction = async (action: string, payload?: unknown) => {
+      const completion = await handleAgentAction({ action, payload })
+      if (!completion.success) {
+        throw new Error(completion.message ?? `Agent action failed: ${action}`)
+      }
+      return completion.result ?? null
+    }
 
     const unlisteners: Array<() => void> = []
     if (isTauriRuntime()) {
@@ -1821,6 +2235,30 @@ function App() {
             },
           ),
         )
+        unlisteners.push(
+          await listen<AgentBridgeActionRequest>('agent-action-request', async (event) => {
+            try {
+              const completion = await handleAgentAction(
+                event.payload ?? {
+                  action: '',
+                },
+              )
+              await invoke('agent_action_complete', { completion })
+            } catch (error) {
+              console.error('[Agent Bridge] action failed', error)
+              await invoke('agent_action_complete', {
+                completion: {
+                  action: event.payload?.action ?? '',
+                  success: false,
+                  message:
+                    error instanceof Error
+                      ? error.message
+                      : 'Agent action failed unexpectedly.',
+                },
+              }).catch(() => {})
+            }
+          }),
+        )
       })()
     }
 
@@ -1828,6 +2266,7 @@ function App() {
       window.removeEventListener('keydown', handleKeyDown)
       delete window.__stratatlasRequestSnapshot
       delete window.__stratatlasNavigate
+      delete window.__stratatlasInvokeAgentAction
       for (const u of unlisteners) u()
     }
   }, [])
@@ -1838,7 +2277,7 @@ function App() {
     }
 
     void invoke<void>('agent_report_state', {
-      state: {
+      report: {
         currentPanel: agentBridgeCurrentPanel,
         leftPanelView,
         mainPanelView: mainCanvasDeckView,
@@ -2264,6 +2703,23 @@ function App() {
       osintSnapshot.thresholdRefs,
     ],
   )
+  const globalEventTimeline = useMemo(
+    () =>
+      buildGlobalEventTimeline({
+        domains,
+        latestDeviationEvent: deviationEvent ?? deviationSnapshot.latestEvent,
+        osintSummary,
+        osintEvents: osintSnapshot.events,
+        resolveAoiLabel: runtimeAoiLabel,
+      }),
+    [
+      deviationEvent,
+      deviationSnapshot.latestEvent,
+      domains,
+      osintSnapshot.events,
+      osintSummary,
+    ],
+  )
   const osintStateForRecorder = useMemo(
     () => ({
       ...osintSnapshot,
@@ -2422,6 +2878,7 @@ function App() {
     hydrated,
     offline,
     airTrafficRefreshToken,
+    workspaceSettings.liveDataMode,
   ])
   useEffect(() => {
     if (!hydrated || !satelliteFamilyRequested) {
@@ -2435,6 +2892,7 @@ function App() {
     satelliteFamilyRequested,
     satelliteFocusPreset.aoiId,
     satelliteRefreshToken,
+    workspaceSettings.liveDataMode,
   ])
   const layerCatalog = useMemo(
     () =>
@@ -2560,14 +3018,39 @@ function App() {
       }),
     [aiEvidenceRefs, deploymentProfileId, marking, offline, role],
   )
+  const selectedAiProviderOption = useMemo(
+    () =>
+      AI_GATEWAY_PROVIDER_OPTIONS.find((provider) => provider.id === aiProviderSelectionId) ??
+      AI_GATEWAY_PROVIDER_OPTIONS[0],
+    [aiProviderSelectionId],
+  )
+  const selectedLocalAiRuntimeOption = useMemo(
+    () =>
+      LOCAL_AI_RUNTIME_OPTIONS.find((option) => option.id === localAiProviderConfig.runtimeProfile) ??
+      LOCAL_AI_RUNTIME_OPTIONS[0],
+    [localAiProviderConfig.runtimeProfile],
+  )
+  const localAiSettingsVisible =
+    aiProviderSelectionId === 'auto' || aiProviderSelectionId === 'local_model'
+  const localAiUsesCustomExecutable = localAiProviderConfig.runtimeProfile === 'custom_executable'
   const aiSnapshot = useMemo(
     () =>
       buildAiSnapshot({
         deploymentProfile: deploymentProfileId,
+        providerSelection: aiProviderSelectionId,
+        localProviderConfig: localAiProviderConfig,
         latestAnalysis: latestAiArtifact,
         latestMcpInvocation,
+        latestLocalRuntimeProbe,
       }),
-    [deploymentProfileId, latestAiArtifact, latestMcpInvocation],
+    [
+      aiProviderSelectionId,
+      deploymentProfileId,
+      latestAiArtifact,
+      latestLocalRuntimeProbe,
+      latestMcpInvocation,
+      localAiProviderConfig,
+    ],
   )
   const budgetTelemetry = useMemo(
     () =>
@@ -2624,6 +3107,7 @@ function App() {
         osintSummary,
         osintEvents: osintSnapshot.events,
         osintAoi,
+        timelineEvents: globalEventTimeline,
         gameModelSnapshot: gameModelStateForRecorder,
         payoffProxy,
       }),
@@ -2649,6 +3133,7 @@ function App() {
       osintAoi,
       osintSnapshot.events,
       osintSummary,
+      globalEventTimeline,
       payoffProxy,
       queryRenderLayer,
       replayCursor,
@@ -2721,6 +3206,7 @@ function App() {
     aiProviderStatus,
     latestAiArtifact: latestAiArtifact ?? null,
     latestMcpInvocation: latestMcpInvocation ?? null,
+    latestLocalRuntimeProbe: latestLocalRuntimeProbe ?? null,
   }
 
   useEffect(() => {
@@ -2807,6 +3293,7 @@ function App() {
       setLayerFamilyExpanded(
         normalizeLayerFamilyBooleanState(workspace.layerFamilyExpanded, defaultFamilyExpanded),
       )
+      setWorkspaceSettings(normalizeWorkspaceSettings(workspace.settings))
       setAirTrafficSnapshot(
         normalizeAirTrafficSnapshot(workspace.airTraffic) ??
           createPackagedAirTrafficSnapshot(restoredQueryDefinition.aoi),
@@ -2880,8 +3367,11 @@ function App() {
       setQueryRenderLayer(normalizeQueryRenderLayer(query.renderLayer))
       setSavedQueryArtifact(normalizeSavedQueryArtifact(query.savedArtifact))
       setDeploymentProfileId(aiState.deploymentProfile)
+      setAiProviderSelectionId(aiState.providerSelection)
+      setLocalAiProviderConfig(aiState.localProviderConfig ?? DEFAULT_LOCAL_AI_PROVIDER_CONFIG)
       setLatestAiArtifact(aiState.latestAnalysis)
       setLatestMcpInvocation(aiState.latestMcpInvocation)
+      setLatestLocalRuntimeProbe(aiState.latestLocalRuntimeProbe)
       setAiSummary(aiState.latestAnalysis?.content ?? '')
       setSelectedMcpTool(DEFAULT_MCP_TOOL)
       setDeviationSnapshot(deviationState)
@@ -3040,8 +3530,45 @@ function App() {
     setTrayCollapsed(false)
   }
 
+  const onSelectGlobalEvent = (entry: GlobalEventTimelineEntry): void => {
+    focusGlobalEvent(entry)
+  }
+
   const onTogglePanelInfo = (panelId: PanelInfoId): void => {
     setOpenPanelInfoId((previous) => (previous === panelId ? null : panelId))
+  }
+
+  const updateWorkspaceSettings = (
+    patch:
+      | Partial<WorkspaceUiSettings>
+      | ((current: WorkspaceUiSettings) => WorkspaceUiSettings),
+  ): void => {
+    setWorkspaceSettings((current) =>
+      typeof patch === 'function' ? patch(current) : { ...current, ...patch },
+    )
+  }
+
+  const updateLocalAiProviderConfig = (
+    patch:
+      | Partial<LocalAiProviderConfig>
+      | ((current: LocalAiProviderConfig) => LocalAiProviderConfig),
+  ): void => {
+    setLatestLocalRuntimeProbe(undefined)
+    setLocalAiProviderConfig((current) =>
+      normalizeLocalAiProviderConfig(
+        typeof patch === 'function' ? patch(current) : { ...current, ...patch },
+      ),
+    )
+  }
+
+  const updateAiProviderSelection = (providerId: AiGatewayProviderId): void => {
+    setLatestLocalRuntimeProbe(undefined)
+    setAiProviderSelectionId(providerId)
+  }
+
+  const updateDeploymentProfile = (profileId: DeploymentProfileId): void => {
+    setLatestLocalRuntimeProbe(undefined)
+    setDeploymentProfileId(profileId)
   }
 
   const renderPanelExplainer = (panelId: PanelInfoId) => {
@@ -3170,14 +3697,70 @@ function App() {
   }, [])
 
   useEffect(() => {
+    let cancelled = false
+    const loadProviderStatus = async (): Promise<void> => {
+      try {
+        const providerStatus = await backend.getAiGatewayProviderStatus(
+          aiProviderSelectionId,
+          localAiProviderConfig,
+        )
+        if (!cancelled) {
+          setAiProviderStatus(providerStatus)
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setAiProviderStatus(
+            createUnavailableAiProviderStatus(
+              `Failed to inspect governed AI provider status: ${String(error)}`,
+              selectedAiProviderOption.label,
+              aiProviderSelectionId,
+            ),
+          )
+        }
+      }
+    }
+
+    void loadProviderStatus()
+    return () => {
+      cancelled = true
+    }
+  }, [aiProviderSelectionId, localAiProviderConfig, selectedAiProviderOption.label])
+
+  useEffect(() => {
     if (!hydrated || !hasMeaningfulSessionProgress) {
       return
     }
     setGuidedStartDismissed(true)
     setWorkspaceAdvancedVisible(true)
-    setInspectorCollapsed(false)
-    setTrayCollapsed(false)
-  }, [hasMeaningfulSessionProgress, hydrated])
+    if (!workspaceSettings.compactChrome) {
+      setInspectorCollapsed(false)
+      setTrayCollapsed(false)
+    }
+  }, [hasMeaningfulSessionProgress, hydrated, workspaceSettings.compactChrome])
+
+  useEffect(() => {
+    if (!hydrated) {
+      return
+    }
+    if (compactChromePreferenceRef.current === workspaceSettings.compactChrome) {
+      return
+    }
+    compactChromePreferenceRef.current = workspaceSettings.compactChrome
+    if (workspaceSettings.compactChrome) {
+      setInspectorCollapsed(true)
+      setTrayCollapsed(true)
+      return
+    }
+    if (hasMeaningfulSessionProgress || workspaceAdvancedVisible) {
+      setInspectorCollapsed(false)
+      setTrayCollapsed(false)
+    }
+  }, [
+    hasMeaningfulSessionProgress,
+    hydrated,
+    workspaceAdvancedVisible,
+    workspaceSettings.compactChrome,
+  ])
 
   useEffect(() => {
     if (!hydrated) {
@@ -3410,9 +3993,11 @@ function App() {
     completeMeasuredAction('Replay budget probe update', startedAt)
   }
 
-  const onToggleForcedOffline = async () => {
+  const applyForcedOfflineSetting = async (next: boolean) => {
+    if (next === forcedOffline) {
+      return
+    }
     const startedAt = beginMeasuredAction('Offline mode change')
-    const next = !forcedOffline
     setForcedOffline(next)
     try {
       await backend.appendAudit({
@@ -3426,6 +4011,10 @@ function App() {
       // No-op in environments without backend persistence.
       completeMeasuredAction('Offline mode change', startedAt)
     }
+  }
+
+  const onToggleForcedOffline = async () => {
+    await applyForcedOfflineSetting(!forcedOffline)
   }
 
   const updateQueryDefinition = (
@@ -4125,6 +4714,78 @@ function App() {
       })
   }
 
+  const onProbeLocalRuntime = async (overrides?: {
+    deploymentProfile?: DeploymentProfileId
+    localProviderConfig?: LocalAiProviderConfig
+  }): Promise<AiGatewayLocalRuntimeProbeResult> => {
+    const startedAt = beginMeasuredAction('AI local runtime probe')
+    const effectiveDeploymentProfile = overrides?.deploymentProfile ?? deploymentProfileId
+    const effectiveLocalProviderConfig = overrides?.localProviderConfig ?? localAiProviderConfig
+    if (overrides?.deploymentProfile || overrides?.localProviderConfig) {
+      startTransition(() => {
+        if (overrides?.deploymentProfile) {
+          setDeploymentProfileId(overrides.deploymentProfile)
+        }
+        if (overrides?.localProviderConfig) {
+          setLocalAiProviderConfig(overrides.localProviderConfig)
+        }
+      })
+    }
+    setLocalRuntimeProbePending(true)
+    try {
+      const result = await backend.probeLocalAiRuntime({
+        deploymentProfile: effectiveDeploymentProfile,
+        localProviderConfig: effectiveLocalProviderConfig,
+      })
+      setLatestLocalRuntimeProbe(result)
+      setStatus(`${formatLocalRuntimeProbeOutcome(result)} via ${result.providerLabel} / ${result.model}`)
+      appendAiAudit('ai.gateway.local_probe', {
+        status: result.outcome,
+        deployment_profile: effectiveDeploymentProfile,
+        provider_selection: aiProviderSelectionId,
+        local_runtime_profile: effectiveLocalProviderConfig.runtimeProfile,
+        local_model_identifier: effectiveLocalProviderConfig.modelIdentifier,
+        provider_label: result.providerLabel,
+        provider_model: result.model,
+        provider_runtime: result.runtime,
+        detail: result.detail,
+        duration_ms: result.durationMs ?? null,
+      })
+      completeMeasuredAction('AI local runtime probe', startedAt)
+      return result
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      const fallbackProbe = createBrowserSimulatedLocalRuntimeProbeResult(
+        effectiveDeploymentProfile,
+        effectiveLocalProviderConfig,
+      )
+      const result: AiGatewayLocalRuntimeProbeResult = {
+        ...fallbackProbe,
+        runtime: 'tauri-unconfigured',
+        outcome: 'failure',
+        detail: message,
+        probedAt: new Date().toISOString(),
+      }
+      setLatestLocalRuntimeProbe(result)
+      setStatus(message)
+      appendAiAudit('ai.gateway.local_probe', {
+        status: 'failure',
+        deployment_profile: effectiveDeploymentProfile,
+        provider_selection: aiProviderSelectionId,
+        local_runtime_profile: effectiveLocalProviderConfig.runtimeProfile,
+        local_model_identifier: effectiveLocalProviderConfig.modelIdentifier,
+        provider_label: result.providerLabel,
+        provider_model: result.model,
+        provider_runtime: result.runtime,
+        detail: message,
+      })
+      completeMeasuredAction('AI local runtime probe', startedAt)
+      return result
+    } finally {
+      setLocalRuntimeProbePending(false)
+    }
+  }
+
   const onSubmitAiSummary = async () => {
     const startedAt = beginMeasuredAction('AI interpretation update')
     if (!selectedBundle) {
@@ -4135,6 +4796,9 @@ function App() {
         status: 'denied',
         reason: 'missing_bundle',
         deployment_profile: deploymentProfileId,
+        provider_selection: aiProviderSelectionId,
+        local_runtime_profile: localAiProviderConfig.runtimeProfile,
+        local_model_identifier: localAiProviderConfig.modelIdentifier,
       })
       completeMeasuredAction('AI interpretation update', startedAt)
       return
@@ -4144,6 +4808,8 @@ function App() {
       const result = await runAiGatewayAnalysis({
         role,
         marking,
+        providerSelection: aiProviderSelectionId,
+        localProviderConfig: localAiProviderConfig,
         deploymentProfile: deploymentProfileId,
         allowed: aiPolicy.analysisAllowed,
         prompt: aiPrompt,
@@ -4159,6 +4825,9 @@ function App() {
         status: 'allowed',
         bundle_id: selectedBundle.bundle_id,
         deployment_profile: deploymentProfileId,
+        provider_selection: aiProviderSelectionId,
+        local_runtime_profile: localAiProviderConfig.runtimeProfile,
+        local_model_identifier: localAiProviderConfig.modelIdentifier,
         artifact_id: result.artifactId,
         marking: result.marking,
         ref_count: result.refs.length,
@@ -4178,9 +4847,13 @@ function App() {
         status: 'denied',
         bundle_id: selectedBundle.bundle_id,
         deployment_profile: deploymentProfileId,
+        provider_selection: aiProviderSelectionId,
+        local_runtime_profile: localAiProviderConfig.runtimeProfile,
+        local_model_identifier: localAiProviderConfig.modelIdentifier,
         reason: message,
         ref_count: aiEvidenceRefs.length,
         provider_runtime: aiProviderStatus.runtime,
+        provider_label: aiProviderStatus.providerLabel,
         provider_detail: aiProviderStatus.detail,
       })
       completeMeasuredAction('AI interpretation update', startedAt)
@@ -7339,29 +8012,380 @@ function App() {
           <h1>StratAtlas</h1>
           <p>Governed map-first workbench</p>
         </div>
-        {showGuidedStart ? (
-          <div className="status-block is-guided">
-            <span className={offline ? 'pill offline' : 'pill online'}>
-              {offline ? 'OFFLINE' : 'ONLINE'}
-            </span>
-            <span className="pill neutral">Mode: {mode}</span>
-            <span className="pill neutral">Next: {guidedNextActionLabel}</span>
-            <span className="pill neutral">
-              Evidence: {selectedBundleId ? 'captured' : 'not captured'}
-            </span>
+        <div className="header-actions">
+          {showGuidedStart ? (
+            <div className="status-block is-guided">
+              <span className={offline ? 'pill offline' : 'pill online'}>
+                {offline ? 'OFFLINE' : 'ONLINE'}
+              </span>
+              <span className="pill neutral">Mode: {mode}</span>
+              <span className="pill neutral">Next: {guidedNextActionLabel}</span>
+              <span className="pill neutral">
+                Evidence: {selectedBundleId ? 'captured' : 'not captured'}
+              </span>
+            </div>
+          ) : (
+            <div className="status-block">
+              <span className={offline ? 'pill offline' : 'pill online'}>
+                {offline ? 'OFFLINE' : 'ONLINE'}
+              </span>
+              <span className="pill neutral">Role: {role}</span>
+              <span className="pill neutral">Marking: {marking}</span>
+              <span className="pill neutral">Mode: {mode}</span>
+              <span className="pill neutral">Bundle: {selectedBundleId || 'none'}</span>
+              <span className="pill neutral">Query v{versionedQuery.version}</span>
+            </div>
+          )}
+          <div className="settings-shell">
+            <button
+              type="button"
+              className={`settings-trigger ${settingsMenuOpen ? 'is-active' : ''}`}
+              aria-expanded={settingsMenuOpen}
+              aria-controls="workspace-settings-menu"
+              aria-label="Open workspace settings"
+              onClick={() => setSettingsMenuOpen((previous) => !previous)}
+            >
+              Settings
+            </button>
+            {settingsMenuOpen ? (
+              <section
+                id="workspace-settings-menu"
+                className="settings-menu"
+                aria-label="Workspace settings"
+                data-testid="workspace-settings-menu"
+              >
+                <div className="settings-menu-header">
+                  <div>
+                    <strong>Workspace settings</strong>
+                    <p>
+                      Govern the shell, motion, and runtime data policy without leaving the map.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    className="settings-close-button"
+                    aria-label="Close workspace settings"
+                    onClick={() => setSettingsMenuOpen(false)}
+                  >
+                    Close
+                  </button>
+                </div>
+
+                <div className="settings-section">
+                  <div className="settings-section-heading">
+                    <strong>Map shell</strong>
+                    <span>Frontend</span>
+                  </div>
+                  <label className="settings-toggle-row">
+                    <div>
+                      <strong>Compact map chrome</strong>
+                      <p>Collapse support panes by default so the map stays central.</p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      aria-label="Compact map chrome"
+                      checked={workspaceSettings.compactChrome}
+                      onChange={(event) =>
+                        updateWorkspaceSettings({ compactChrome: event.target.checked })
+                      }
+                    />
+                  </label>
+                  <label className="settings-toggle-row">
+                    <div>
+                      <strong>Hover helpers</strong>
+                      <p>Show point-of-use helper cards on focus, legend, and inspect targets.</p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      aria-label="Hover helpers"
+                      checked={workspaceSettings.hoverHelpers}
+                      onChange={(event) =>
+                        updateWorkspaceSettings({ hoverHelpers: event.target.checked })
+                      }
+                    />
+                  </label>
+                  <label className="settings-toggle-row">
+                    <div>
+                      <strong>Auto-open contextual drawer</strong>
+                      <p>Open map details when a user clicks an AOI, signal, or legend item.</p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      aria-label="Auto-open contextual drawer"
+                      checked={workspaceSettings.autoOpenContextualInspector}
+                      onChange={(event) =>
+                        updateWorkspaceSettings({
+                          autoOpenContextualInspector: event.target.checked,
+                        })
+                      }
+                    />
+                  </label>
+                  <label className="settings-toggle-row">
+                    <div>
+                      <strong>Telemetry chips</strong>
+                      <p>Show budget, basemap, and runtime policy chips on the HUD.</p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      aria-label="Telemetry chips"
+                      checked={workspaceSettings.telemetryChips}
+                      onChange={(event) =>
+                        updateWorkspaceSettings({ telemetryChips: event.target.checked })
+                      }
+                    />
+                  </label>
+                  <label className="settings-toggle-row">
+                    <div>
+                      <strong>Ambient map effects</strong>
+                      <p>Keep the runtime surface animated with subtle glows and staged reveals.</p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      aria-label="Ambient map effects"
+                      checked={workspaceSettings.ambientMapEffects}
+                      onChange={(event) =>
+                        updateWorkspaceSettings({ ambientMapEffects: event.target.checked })
+                      }
+                    />
+                  </label>
+                  <label className="settings-select-row">
+                    <span className="settings-label">Motion profile</span>
+                    <select
+                      aria-label="Motion profile"
+                      value={workspaceSettings.motionProfile}
+                      onChange={(event) =>
+                        updateWorkspaceSettings({
+                          motionProfile: event.target.value as WorkspaceMotionProfile,
+                        })
+                      }
+                    >
+                      <option value="full">Full motion</option>
+                      <option value="reduced">Reduced motion</option>
+                    </select>
+                  </label>
+                </div>
+
+                <div className="settings-section">
+                  <div className="settings-section-heading">
+                    <strong>Runtime policy</strong>
+                    <span>Frontend + backend</span>
+                  </div>
+                  <label className="settings-toggle-row">
+                    <div>
+                      <strong>Force offline mode</strong>
+                      <p>Use governed cached sources and record the connectivity mode change.</p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      aria-label="Force offline mode"
+                      checked={forcedOffline}
+                      onChange={(event) => {
+                        void applyForcedOfflineSetting(event.target.checked)
+                      }}
+                    />
+                  </label>
+                  <label className="settings-select-row">
+                    <span className="settings-label">Live refresh policy</span>
+                    <select
+                      aria-label="Live refresh policy"
+                      value={workspaceSettings.liveDataMode}
+                      onChange={(event) =>
+                        updateWorkspaceSettings({
+                          liveDataMode: event.target.value as WorkspaceLiveDataMode,
+                        })
+                      }
+                    >
+                      <option value="live_when_available">Live when available</option>
+                      <option value="cached_only">Cached only</option>
+                    </select>
+                  </label>
+                  <label className="settings-select-row">
+                    <span className="settings-label">Deployment profile</span>
+                    <select
+                      aria-label="Deployment profile"
+                      value={deploymentProfileId}
+                      onChange={(event) =>
+                        updateDeploymentProfile(event.target.value as DeploymentProfileId)
+                      }
+                    >
+                      {DEPLOYMENT_PROFILES.map((profile) => (
+                        <option key={profile.id} value={profile.id}>
+                          {profile.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="settings-select-row">
+                    <span className="settings-label">AI provider</span>
+                    <select
+                      aria-label="AI provider"
+                      value={aiProviderSelectionId}
+                      onChange={(event) =>
+                        updateAiProviderSelection(event.target.value as AiGatewayProviderId)
+                      }
+                    >
+                      {AI_GATEWAY_PROVIDER_OPTIONS.map((provider) => (
+                        <option key={provider.id} value={provider.id}>
+                          {provider.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  {localAiSettingsVisible ? (
+                    <>
+                      <label className="settings-select-row">
+                        <span className="settings-label">Local runtime</span>
+                        <select
+                          aria-label="Local runtime"
+                          value={localAiProviderConfig.runtimeProfile}
+                          onChange={(event) =>
+                            updateLocalAiProviderConfig({
+                              runtimeProfile: event.target.value as LocalAiRuntimeProfileId,
+                            })
+                          }
+                        >
+                          {LOCAL_AI_RUNTIME_OPTIONS.map((option) => (
+                            <option key={option.id} value={option.id}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      {!localAiUsesCustomExecutable ? (
+                        <label className="settings-text-row">
+                          <span className="settings-label">Preferred model key</span>
+                          <input
+                            type="text"
+                            aria-label="Preferred local model key"
+                            value={localAiProviderConfig.modelIdentifier}
+                            placeholder={
+                              localAiProviderConfig.runtimeProfile === 'ollama_cli'
+                                ? 'gemma3:latest'
+                                : 'lmstudio-community/gemma-4-31b-it'
+                            }
+                            onChange={(event) =>
+                              updateLocalAiProviderConfig({
+                                modelIdentifier: event.target.value,
+                              })
+                            }
+                          />
+                        </label>
+                      ) : null}
+                      <div className="settings-local-probe-card" data-testid="local-runtime-probe-card">
+                        <div className="card-header compact">
+                          <strong>Local runtime probe</strong>
+                          <span className={`metric-label probe-outcome-${latestLocalRuntimeProbe?.outcome ?? 'idle'}`}>
+                            {formatLocalRuntimeProbeOutcome(latestLocalRuntimeProbe)}
+                          </span>
+                        </div>
+                        <p>
+                          Verify that the selected local runtime is actually callable from the
+                          governed desktop app.
+                        </p>
+                        <div className="controls">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              void onProbeLocalRuntime()
+                            }}
+                            disabled={localRuntimeProbePending}
+                          >
+                            {localRuntimeProbePending ? 'Probing local runtime...' : 'Probe local runtime'}
+                          </button>
+                        </div>
+                        {latestLocalRuntimeProbe ? (
+                          <div className="probe-result-block">
+                            <p>
+                              {latestLocalRuntimeProbe.providerLabel} | {latestLocalRuntimeProbe.model}
+                              {typeof latestLocalRuntimeProbe.durationMs === 'number'
+                                ? ` | ${latestLocalRuntimeProbe.durationMs} ms`
+                                : ''}
+                            </p>
+                            <small>{latestLocalRuntimeProbe.detail}</small>
+                            {latestLocalRuntimeProbe.outputText ? (
+                              <pre className="probe-output-preview">
+                                {latestLocalRuntimeProbe.outputText}
+                              </pre>
+                            ) : null}
+                          </div>
+                        ) : (
+                          <small>
+                            No probe captured yet for the current governed local runtime selection.
+                          </small>
+                        )}
+                      </div>
+                      {localAiUsesCustomExecutable ? (
+                        <>
+                          <label className="settings-text-row">
+                            <span className="settings-label">Executable path</span>
+                            <input
+                              type="text"
+                              aria-label="Local executable path"
+                              value={localAiProviderConfig.executablePath}
+                              placeholder="C:\\path\\to\\runtime.exe"
+                              onChange={(event) =>
+                                updateLocalAiProviderConfig({
+                                  executablePath: event.target.value,
+                                })
+                              }
+                            />
+                          </label>
+                          <label className="settings-text-row">
+                            <span className="settings-label">Command args JSON</span>
+                            <textarea
+                              aria-label="Local command args JSON"
+                              rows={3}
+                              value={localAiProviderConfig.argsJson}
+                              placeholder='["chat","--yes","--prompt","{prompt}","{model_path}"]'
+                              onChange={(event) =>
+                                updateLocalAiProviderConfig({
+                                  argsJson: event.target.value,
+                                })
+                              }
+                            />
+                          </label>
+                          <label className="settings-text-row">
+                            <span className="settings-label">Model file path</span>
+                            <input
+                              type="text"
+                              aria-label="Local model file path"
+                              value={localAiProviderConfig.modelPath}
+                              placeholder="D:\\Local Models\\...\\model.gguf"
+                              onChange={(event) =>
+                                updateLocalAiProviderConfig({
+                                  modelPath: event.target.value,
+                                })
+                              }
+                            />
+                          </label>
+                          <label className="settings-text-row">
+                            <span className="settings-label">Working directory</span>
+                            <input
+                              type="text"
+                              aria-label="Local runtime working directory"
+                              value={localAiProviderConfig.workdir}
+                              placeholder="Optional working directory"
+                              onChange={(event) =>
+                                updateLocalAiProviderConfig({
+                                  workdir: event.target.value,
+                                })
+                              }
+                            />
+                          </label>
+                        </>
+                      ) : null}
+                      <p className="settings-inline-note">
+                        {selectedLocalAiRuntimeOption.description}
+                        {' '}Current resolution: {aiProviderStatus.providerLabel} / {aiProviderStatus.model}.
+                        {' '}{aiProviderStatus.detail}
+                      </p>
+                    </>
+                  ) : null}
+                </div>
+              </section>
+            ) : null}
           </div>
-        ) : (
-          <div className="status-block">
-            <span className={offline ? 'pill offline' : 'pill online'}>
-              {offline ? 'OFFLINE' : 'ONLINE'}
-            </span>
-            <span className="pill neutral">Role: {role}</span>
-            <span className="pill neutral">Marking: {marking}</span>
-            <span className="pill neutral">Mode: {mode}</span>
-            <span className="pill neutral">Bundle: {selectedBundleId || 'none'}</span>
-            <span className="pill neutral">Query v{versionedQuery.version}</span>
-          </div>
-        )}
+        </div>
       </header>
 
       <main className={`layout ${inspectorCollapsed ? 'layout-inspector-collapsed' : ''}`}>
@@ -8062,116 +9086,260 @@ function App() {
 
           {leftPanelView === 'assistant' ? (
             <div className="panel-view">
-          <h3>AI Gateway (I6)</h3>
-          <label className="field">
-            Deployment Profile
-            <select
-              value={deploymentProfileId}
-              onChange={(event) => setDeploymentProfileId(event.target.value as DeploymentProfileId)}
-            >
-              {DEPLOYMENT_PROFILES.map((profile) => (
-                <option key={profile.id} value={profile.id}>
-                  {profile.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="field">
-            Prompt
-            <textarea value={aiPrompt} onChange={(event) => setAiPrompt(event.target.value)} rows={3} />
-          </label>
-          <label className="field">
-            MCP Tool
-            <select
-              value={selectedMcpTool}
-              onChange={(event) => setSelectedMcpTool(event.target.value as McpToolName)}
-            >
-              {MCP_MINIMUM_TOOLS.map((toolName) => (
-                <option key={toolName} value={toolName}>
-                  {toolName}
-                </option>
-              ))}
-            </select>
-          </label>
-          <div className="controls">
-            <button onClick={onSubmitAiSummary}>Submit AI Analysis</button>
-            <button onClick={onRunMcpTool}>Run MCP Tool</button>
-          </div>
-          <p className="status-line">
-            Profile:{' '}
-            {DEPLOYMENT_PROFILES.find((profile) => profile.id === deploymentProfileId)?.label ??
-              deploymentProfileId}{' '}
-            | AI: {aiPolicy.analysisAllowed ? 'allowed' : 'denied'} | MCP:{' '}
-            {aiPolicy.mcpAllowed ? 'allowed' : 'denied'}
-          </p>
-          <p className="status-line">
-            Policy notes:{' '}
-            {aiPolicy.reasons.length > 0
-              ? aiPolicy.reasons.join(' | ')
-              : 'Gateway ready for governed hash-addressed evidence refs.'}
-          </p>
-          <p className="status-line">
-            Provider: {aiProviderStatus.providerLabel} | Runtime: {aiProviderStatus.runtime} |{' '}
-            {aiProviderStatus.available ? 'live-ready' : 'degraded/unavailable'}
-          </p>
-          <p className="status-line">Provider detail: {aiProviderStatus.detail}</p>
-          <article className={`artifact-callout ${artifactTone('AI-Derived Interpretation')}`}>
-            <div className="card-header compact">
-              <span className={`artifact-chip ${artifactTone('AI-Derived Interpretation')}`}>
-                {aiInterpretationEntry?.artifactLabel ?? 'AI-Derived Interpretation'}
-              </span>
-              <span>{aiInterpretationEntry?.confidenceText ?? 'Analyst acceptance required'}</span>
-            </div>
-            <p>{aiSummary || 'No AI analysis yet.'}</p>
-            <small>
-              Uncertainty:{' '}
-              {aiInterpretationEntry?.uncertaintyText ?? 'Do not treat as observed evidence.'}
-            </small>
-          </article>
-          {latestAiArtifact && (
-            <article
-              className={`artifact-callout ${artifactTone('AI-Derived Interpretation')}`}
-              data-testid="ai-analysis-card"
-            >
-              <div className="card-header compact">
-                <span className={`artifact-chip ${artifactTone('AI-Derived Interpretation')}`}>
-                  {latestAiArtifact.label}
-                </span>
-                <span>{latestAiArtifact.artifactId}</span>
+              <article className="surface-card workflow-hero-card" data-testid="assistant-workflow-card">
+                <div className="card-header">
+                  <div className="section-heading-copy">
+                    <span className="metric-label">AI Gateway (I6)</span>
+                    <strong>Ask the governed assistant first</strong>
+                    <p>
+                      Start with the prompt that should change your understanding of the current
+                      bundle. Provider, deployment, and MCP tuning stay tucked away until you need
+                      them.
+                    </p>
+                  </div>
+                  <span className={`policy-pill ${aiPolicy.analysisAllowed ? 'allowed' : 'blocked'}`}>
+                    {aiPolicy.analysisAllowed ? 'Analysis allowed' : 'Analysis restricted'}
+                  </span>
+                </div>
+                <div className="workflow-summary-grid assistant-status-grid">
+                  <article className="telemetry-card compact">
+                    <span className="metric-label">Resolved provider</span>
+                    <strong>{aiProviderStatus.providerLabel}</strong>
+                    <p>
+                      Runtime {aiProviderStatus.runtime} |{' '}
+                      {aiProviderStatus.available ? 'live-ready' : 'degraded/unavailable'}
+                    </p>
+                  </article>
+                  <article className="telemetry-card compact">
+                    <span className="metric-label">Current policy</span>
+                    <strong>
+                      AI {aiPolicy.analysisAllowed ? 'allowed' : 'denied'} | MCP{' '}
+                      {aiPolicy.mcpAllowed ? 'allowed' : 'denied'}
+                    </strong>
+                    <p>
+                      {aiPolicy.reasons.length > 0
+                        ? aiPolicy.reasons.join(' | ')
+                        : 'Gateway ready for governed hash-addressed evidence refs.'}
+                    </p>
+                  </article>
+                  <article className="telemetry-card compact">
+                    <span className="metric-label">Selected MCP tool</span>
+                    <strong>{selectedMcpTool}</strong>
+                    <p>Change the MCP tool only when the default bundle manifest is not enough.</p>
+                  </article>
+                </div>
+                <label className="field">
+                  Prompt
+                  <textarea
+                    value={aiPrompt}
+                    onChange={(event) => setAiPrompt(event.target.value)}
+                    rows={3}
+                  />
+                </label>
+                <div className="controls">
+                  <button onClick={onSubmitAiSummary}>Submit AI Analysis</button>
+                  <button type="button" className="button-secondary" onClick={onRunMcpTool}>
+                    Run MCP Tool
+                  </button>
+                  {localAiSettingsVisible ? (
+                    <button
+                      type="button"
+                      className="button-secondary"
+                      onClick={() => {
+                        void onProbeLocalRuntime()
+                      }}
+                      disabled={localRuntimeProbePending}
+                    >
+                      {localRuntimeProbePending ? 'Probing local runtime...' : 'Probe local runtime'}
+                    </button>
+                  ) : null}
+                  <button
+                    type="button"
+                    className="button-ghost"
+                    onClick={() => setSettingsMenuOpen(true)}
+                  >
+                    Open AI settings
+                  </button>
+                </div>
+                <small className="settings-inline-note">
+                  Deployment:{' '}
+                  {DEPLOYMENT_PROFILES.find((profile) => profile.id === deploymentProfileId)?.label ??
+                    deploymentProfileId}
+                  {' '}| Provider choice: {selectedAiProviderOption.label}
+                  {localAiSettingsVisible
+                    ? ` | Local runtime: ${selectedLocalAiRuntimeOption.label}`
+                    : ''}
+                </small>
+              </article>
+              {localAiSettingsVisible ? (
+                <div className="sub-panel compact probe-status-panel" data-testid="assistant-probe-status">
+                  <div className="card-header compact">
+                    <strong>Local runtime verification</strong>
+                    <span className={`metric-label probe-outcome-${latestLocalRuntimeProbe?.outcome ?? 'idle'}`}>
+                      {formatLocalRuntimeProbeOutcome(latestLocalRuntimeProbe)}
+                    </span>
+                  </div>
+                  <p>
+                    Probe the selected local runtime before relying on it for governed assistant
+                    analysis.
+                  </p>
+                  {latestLocalRuntimeProbe ? (
+                    <>
+                      <p className="status-line">
+                        Runtime {latestLocalRuntimeProbe.runtime} | Provider{' '}
+                        {latestLocalRuntimeProbe.providerLabel} | Model{' '}
+                        {latestLocalRuntimeProbe.model}
+                      </p>
+                      <small>{latestLocalRuntimeProbe.detail}</small>
+                      {latestLocalRuntimeProbe.outputText ? (
+                        <pre className="probe-output-preview">
+                          {latestLocalRuntimeProbe.outputText}
+                        </pre>
+                      ) : null}
+                    </>
+                  ) : (
+                    <small>No in-app probe has been recorded for this runtime yet.</small>
+                  )}
+                </div>
+              ) : null}
+              <button
+                type="button"
+                className="panel-disclosure"
+                aria-expanded={assistantAdvancedVisible}
+                aria-controls="assistant-advanced-controls"
+                onClick={() => setAssistantAdvancedVisible((previous) => !previous)}
+              >
+                {assistantAdvancedVisible ? 'Hide assistant controls' : 'Show assistant controls'}
+              </button>
+              <div
+                id="assistant-advanced-controls"
+                className="assistant-advanced-stack"
+                data-testid="assistant-advanced-controls"
+                hidden={!assistantAdvancedVisible}
+              >
+                <article className="surface-card compact">
+                  <div className="card-header compact">
+                    <strong>Runtime and MCP controls</strong>
+                    <span>{selectedAiProviderOption.label}</span>
+                  </div>
+                  <div className="workflow-summary-grid assistant-advanced-grid">
+                    <label className="field">
+                      Deployment Profile
+                      <select
+                        value={deploymentProfileId}
+                        onChange={(event) =>
+                          updateDeploymentProfile(event.target.value as DeploymentProfileId)
+                        }
+                      >
+                        {DEPLOYMENT_PROFILES.map((profile) => (
+                          <option key={profile.id} value={profile.id}>
+                            {profile.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="field">
+                      AI Provider
+                      <select
+                        value={aiProviderSelectionId}
+                        onChange={(event) =>
+                          updateAiProviderSelection(event.target.value as AiGatewayProviderId)
+                        }
+                      >
+                        {AI_GATEWAY_PROVIDER_OPTIONS.map((provider) => (
+                          <option key={provider.id} value={provider.id}>
+                            {provider.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="field">
+                      MCP Tool
+                      <select
+                        value={selectedMcpTool}
+                        onChange={(event) => setSelectedMcpTool(event.target.value as McpToolName)}
+                      >
+                        {MCP_MINIMUM_TOOLS.map((toolName) => (
+                          <option key={toolName} value={toolName}>
+                            {toolName}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
+                  <p className="status-line">
+                    Resolved provider: {aiProviderStatus.providerLabel} | Runtime:{' '}
+                    {aiProviderStatus.runtime} |{' '}
+                    {aiProviderStatus.available ? 'live-ready' : 'degraded/unavailable'}
+                  </p>
+                  <p className="status-line">Provider detail: {aiProviderStatus.detail}</p>
+                  {localAiSettingsVisible ? (
+                    <p className="settings-inline-note">
+                      Preferred model: {localAiProviderConfig.modelIdentifier.trim() || 'auto-detect'}
+                      {' '}| Local runtime: {selectedLocalAiRuntimeOption.label}
+                    </p>
+                  ) : null}
+                </article>
               </div>
-              <p>{latestAiArtifact.content}</p>
-              <small>
-                Marking {latestAiArtifact.marking} | Refs {latestAiArtifact.refs.length} | Bundle{' '}
-                {latestAiArtifact.bundleId}
-              </small>
-              <small>
-                Runtime {latestAiArtifact.gatewayRuntime ?? 'unknown'} | Provider{' '}
-                {latestAiArtifact.providerLabel ?? 'unknown'} | Model{' '}
-                {latestAiArtifact.providerModel ?? 'unknown'}
-              </small>
-              {latestAiArtifact.requestId && <small>Provider request {latestAiArtifact.requestId}</small>}
-              <small>Citations: {latestAiArtifact.citations.join(' | ')}</small>
-            </article>
-          )}
-          {latestMcpInvocation && (
-            <article
-              className={`artifact-callout ${artifactTone('AI-Derived Interpretation')}`}
-              data-testid="mcp-result-card"
-            >
-              <div className="card-header compact">
-                <span className={`artifact-chip ${artifactTone('AI-Derived Interpretation')}`}>
-                  MCP
-                </span>
-                <span>{latestMcpInvocation.toolName}</span>
-              </div>
-              <p>{latestMcpInvocation.summary}</p>
-              <small>
-                Status {latestMcpInvocation.status} | Bundle refs{' '}
-                {latestMcpInvocation.bundleRefs.length}
-              </small>
-              <small>{latestMcpInvocation.resultPreview}</small>
-            </article>
-          )}
+              <article className={`artifact-callout ${artifactTone('AI-Derived Interpretation')}`}>
+                <div className="card-header compact">
+                  <span className={`artifact-chip ${artifactTone('AI-Derived Interpretation')}`}>
+                    {aiInterpretationEntry?.artifactLabel ?? 'AI-Derived Interpretation'}
+                  </span>
+                  <span>{aiInterpretationEntry?.confidenceText ?? 'Analyst acceptance required'}</span>
+                </div>
+                <p>{aiSummary || 'No AI analysis yet.'}</p>
+                <small>
+                  Uncertainty:{' '}
+                  {aiInterpretationEntry?.uncertaintyText ?? 'Do not treat as observed evidence.'}
+                </small>
+              </article>
+              {latestAiArtifact ? (
+                <article
+                  className={`artifact-callout ${artifactTone('AI-Derived Interpretation')}`}
+                  data-testid="ai-analysis-card"
+                >
+                  <div className="card-header compact">
+                    <span className={`artifact-chip ${artifactTone('AI-Derived Interpretation')}`}>
+                      {latestAiArtifact.label}
+                    </span>
+                    <span>{latestAiArtifact.artifactId}</span>
+                  </div>
+                  <p>{latestAiArtifact.content}</p>
+                  <small>
+                    Marking {latestAiArtifact.marking} | Refs {latestAiArtifact.refs.length} | Bundle{' '}
+                    {latestAiArtifact.bundleId}
+                  </small>
+                  <small>
+                    Runtime {latestAiArtifact.gatewayRuntime ?? 'unknown'} | Provider{' '}
+                    {latestAiArtifact.providerLabel ?? 'unknown'} | Model{' '}
+                    {latestAiArtifact.providerModel ?? 'unknown'}
+                  </small>
+                  {latestAiArtifact.requestId ? (
+                    <small>Provider request {latestAiArtifact.requestId}</small>
+                  ) : null}
+                  <small>Citations: {latestAiArtifact.citations.join(' | ')}</small>
+                </article>
+              ) : null}
+              {latestMcpInvocation ? (
+                <article
+                  className={`artifact-callout ${artifactTone('AI-Derived Interpretation')}`}
+                  data-testid="mcp-result-card"
+                >
+                  <div className="card-header compact">
+                    <span className={`artifact-chip ${artifactTone('AI-Derived Interpretation')}`}>
+                      MCP
+                    </span>
+                    <span>{latestMcpInvocation.toolName}</span>
+                  </div>
+                  <p>{latestMcpInvocation.summary}</p>
+                  <small>
+                    Status {latestMcpInvocation.status} | Bundle refs{' '}
+                    {latestMcpInvocation.bundleRefs.length}
+                  </small>
+                  <small>{latestMcpInvocation.resultPreview}</small>
+                </article>
+              ) : null}
             </div>
           ) : null}
         </section>
@@ -8229,6 +9397,7 @@ function App() {
           <MapRuntimeSurface
             ref={mapRuntimeSurfaceRef}
             scene={mapRuntimeScene}
+            workspaceSettings={workspaceSettings}
             basemapStyleId={mapBasemapStyleId}
             mode={mode}
             marking={marking}
@@ -8242,6 +9411,7 @@ function App() {
             onTelemetryChange={setMapRuntimeTelemetry}
             onRequestExport={onExportMapImage}
             onSurfaceModeFeedback={onMapSurfaceModeFeedback}
+            selectionCommand={mapRuntimeSelectionCommand ?? undefined}
           />
           {mainCanvasDeckView === 'summary' ? (
             <div className="panel-view">
@@ -8860,146 +10030,71 @@ function App() {
             <div className="sub-panel" data-testid="scenario-panel">
               <h3>Scenario Fork / Constraint Propagation / Export (I4)</h3>
               <div className="compare-stack">
-                <div className="compare-form-grid">
-                  <label className="field">
-                    Scenario Title
-                    <input
-                      type="text"
-                      value={scenarioTitleInput}
-                      onChange={(event) => setScenarioTitleInput(event.target.value)}
-                    />
-                  </label>
-                  <label className="field">
-                    Active Scenario
-                    <select
-                      value={selectedScenario?.scenarioId ?? ''}
-                      onChange={(event) => onSelectScenarioFork(event.target.value)}
-                    >
-                      <option value="">No scenario selected</option>
-                      {scenario.scenarios.map((entry) => (
-                        <option key={entry.scenarioId} value={entry.scenarioId}>
-                          {entry.title}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="field">
-                    Compare Against
-                    <select
-                      value={comparisonScenario?.scenarioId ?? ''}
-                      onChange={(event) => onSelectComparisonScenario(event.target.value)}
-                    >
-                      <option value="">No comparison target</option>
-                      {scenario.scenarios
-                        .filter((entry) => entry.scenarioId !== selectedScenario?.scenarioId)
-                        .map((entry) => (
+                <article className="surface-card workflow-hero-card" data-testid="scenario-workflow-card">
+                  <div className="card-header">
+                    <div className="section-heading-copy">
+                      <span className="metric-label">Scenario workflow</span>
+                      <strong>Fork, compare, and export before opening raw modeling controls</strong>
+                      <p>
+                        Keep the default path focused on scenario branch selection and governed
+                        comparison. Constraint and hypothetical entity inputs stay behind advanced
+                        modeling until you need to shape a branch directly.
+                      </p>
+                    </div>
+                    <span className={`policy-pill ${selectedBundleId ? 'allowed' : 'blocked'}`}>
+                      {selectedBundleId ? 'Bundle linked' : 'Bundle required'}
+                    </span>
+                  </div>
+                  <div className="workflow-summary-grid scenario-flow-grid">
+                    <label className="field">
+                      Scenario Title
+                      <input
+                        type="text"
+                        value={scenarioTitleInput}
+                        onChange={(event) => setScenarioTitleInput(event.target.value)}
+                      />
+                    </label>
+                    <label className="field">
+                      Active Scenario
+                      <select
+                        value={selectedScenario?.scenarioId ?? ''}
+                        onChange={(event) => onSelectScenarioFork(event.target.value)}
+                      >
+                        <option value="">No scenario selected</option>
+                        {scenario.scenarios.map((entry) => (
                           <option key={entry.scenarioId} value={entry.scenarioId}>
                             {entry.title}
                           </option>
                         ))}
-                    </select>
-                  </label>
-                  <label className="field">
-                    Constraint Id
-                    <input
-                      type="text"
-                      value={scenarioConstraintIdInput}
-                      onChange={(event) => setScenarioConstraintIdInput(event.target.value)}
-                    />
-                  </label>
-                  <label className="field">
-                    Constraint Label
-                    <input
-                      type="text"
-                      value={scenarioConstraintLabelInput}
-                      onChange={(event) => setScenarioConstraintLabelInput(event.target.value)}
-                    />
-                  </label>
-                  <label className="field">
-                    Constraint Value
-                    <input
-                      type="number"
-                      value={scenarioConstraintValueInput}
-                      onChange={(event) => setScenarioConstraintValueInput(Number(event.target.value))}
-                    />
-                  </label>
-                  <label className="field">
-                    Constraint Unit
-                    <input
-                      type="text"
-                      value={scenarioConstraintUnitInput}
-                      onChange={(event) => setScenarioConstraintUnitInput(event.target.value)}
-                    />
-                  </label>
-                  <label className="field">
-                    Propagation Weight
-                    <input
-                      type="number"
-                      step={0.1}
-                      value={scenarioConstraintWeightInput}
-                      onChange={(event) => setScenarioConstraintWeightInput(Number(event.target.value))}
-                    />
-                  </label>
-                  <label className="field">
-                    Constraint Rationale
-                    <textarea
-                      rows={3}
-                      value={scenarioConstraintRationaleInput}
-                      onChange={(event) => setScenarioConstraintRationaleInput(event.target.value)}
-                    />
-                  </label>
-                  <label className="field">
-                    Entity Name
-                    <input
-                      type="text"
-                      value={scenarioEntityNameInput}
-                      onChange={(event) => setScenarioEntityNameInput(event.target.value)}
-                    />
-                  </label>
-                  <label className="field">
-                    Entity Type
-                    <select
-                      value={scenarioEntityTypeInput}
-                      onChange={(event) =>
-                        setScenarioEntityTypeInput(event.target.value as HypotheticalEntityType)
-                      }
-                    >
-                      <option value="asset">asset</option>
-                      <option value="corridor">corridor</option>
-                      <option value="policy">policy</option>
-                      <option value="actor">actor</option>
-                    </select>
-                  </label>
-                  <label className="field">
-                    Entity Change
-                    <textarea
-                      rows={3}
-                      value={scenarioEntityChangeInput}
-                      onChange={(event) => setScenarioEntityChangeInput(event.target.value)}
-                    />
-                  </label>
-                  <label className="field">
-                    Entity Provenance
-                    <input
-                      type="text"
-                      value={scenarioEntitySourceInput}
-                      onChange={(event) => setScenarioEntitySourceInput(event.target.value)}
-                    />
-                  </label>
-                  <label className="field">
-                    Entity Confidence
-                    <select
-                      value={scenarioEntityConfidenceInput}
-                      onChange={(event) =>
-                        setScenarioEntityConfidenceInput(event.target.value as EntityConfidence)
-                      }
-                    >
-                      <option value="A">A</option>
-                      <option value="B">B</option>
-                      <option value="C">C</option>
-                    </select>
-                  </label>
-                </div>
+                      </select>
+                    </label>
+                    <label className="field">
+                      Compare Against
+                      <select
+                        value={comparisonScenario?.scenarioId ?? ''}
+                        onChange={(event) => onSelectComparisonScenario(event.target.value)}
+                      >
+                        <option value="">No comparison target</option>
+                        {scenario.scenarios
+                          .filter((entry) => entry.scenarioId !== selectedScenario?.scenarioId)
+                          .map((entry) => (
+                            <option key={entry.scenarioId} value={entry.scenarioId}>
+                              {entry.title}
+                            </option>
+                          ))}
+                      </select>
+                    </label>
+                  </div>
+                  <div className="controls">
+                    <button onClick={onCreateScenarioFork}>Fork Scenario</button>
+                    <button onClick={onCompareScenarioForks}>Compare Scenarios</button>
+                    <button onClick={onExportScenarioBundle}>Export Scenario Bundle</button>
+                  </div>
+                  <small className="settings-inline-note">
+                    Advanced modeling controls are available when you need to tune constraint values
+                    or add hypothetical entities to the selected branch.
+                  </small>
+                </article>
 
                 <div className="delta-summary-grid">
                   <article className="telemetry-card">
@@ -9024,12 +10119,140 @@ function App() {
                   </article>
                 </div>
 
-                <div className="controls">
-                  <button onClick={onCreateScenarioFork}>Fork Scenario</button>
-                  <button onClick={onApplyScenarioConstraint}>Apply Constraint</button>
-                  <button onClick={onAddScenarioEntity}>Add Hypothetical Entity</button>
-                  <button onClick={onCompareScenarioForks}>Compare Scenarios</button>
-                  <button onClick={onExportScenarioBundle}>Export Scenario Bundle</button>
+                <button
+                  type="button"
+                  className="panel-disclosure"
+                  aria-expanded={scenarioAdvancedVisible}
+                  aria-controls="scenario-advanced-controls"
+                  onClick={() => setScenarioAdvancedVisible((previous) => !previous)}
+                >
+                  {scenarioAdvancedVisible ? 'Hide advanced modeling' : 'Show advanced modeling'}
+                </button>
+
+                <div
+                  id="scenario-advanced-controls"
+                  className="scenario-advanced-stack"
+                  data-testid="scenario-advanced-controls"
+                  hidden={!scenarioAdvancedVisible}
+                >
+                  <article className="surface-card compact">
+                    <div className="card-header compact">
+                      <strong>Advanced modeling controls</strong>
+                      <span>Constraint + hypothetical entity inputs</span>
+                    </div>
+                    <div className="compare-form-grid scenario-advanced-grid">
+                      <label className="field">
+                        Constraint Id
+                        <input
+                          type="text"
+                          value={scenarioConstraintIdInput}
+                          onChange={(event) => setScenarioConstraintIdInput(event.target.value)}
+                        />
+                      </label>
+                      <label className="field">
+                        Constraint Label
+                        <input
+                          type="text"
+                          value={scenarioConstraintLabelInput}
+                          onChange={(event) => setScenarioConstraintLabelInput(event.target.value)}
+                        />
+                      </label>
+                      <label className="field">
+                        Constraint Value
+                        <input
+                          type="number"
+                          value={scenarioConstraintValueInput}
+                          onChange={(event) =>
+                            setScenarioConstraintValueInput(Number(event.target.value))
+                          }
+                        />
+                      </label>
+                      <label className="field">
+                        Constraint Unit
+                        <input
+                          type="text"
+                          value={scenarioConstraintUnitInput}
+                          onChange={(event) => setScenarioConstraintUnitInput(event.target.value)}
+                        />
+                      </label>
+                      <label className="field">
+                        Propagation Weight
+                        <input
+                          type="number"
+                          step={0.1}
+                          value={scenarioConstraintWeightInput}
+                          onChange={(event) =>
+                            setScenarioConstraintWeightInput(Number(event.target.value))
+                          }
+                        />
+                      </label>
+                      <label className="field">
+                        Constraint Rationale
+                        <textarea
+                          rows={3}
+                          value={scenarioConstraintRationaleInput}
+                          onChange={(event) =>
+                            setScenarioConstraintRationaleInput(event.target.value)
+                          }
+                        />
+                      </label>
+                      <label className="field">
+                        Entity Name
+                        <input
+                          type="text"
+                          value={scenarioEntityNameInput}
+                          onChange={(event) => setScenarioEntityNameInput(event.target.value)}
+                        />
+                      </label>
+                      <label className="field">
+                        Entity Type
+                        <select
+                          value={scenarioEntityTypeInput}
+                          onChange={(event) =>
+                            setScenarioEntityTypeInput(event.target.value as HypotheticalEntityType)
+                          }
+                        >
+                          <option value="asset">asset</option>
+                          <option value="corridor">corridor</option>
+                          <option value="policy">policy</option>
+                          <option value="actor">actor</option>
+                        </select>
+                      </label>
+                      <label className="field">
+                        Entity Change
+                        <textarea
+                          rows={3}
+                          value={scenarioEntityChangeInput}
+                          onChange={(event) => setScenarioEntityChangeInput(event.target.value)}
+                        />
+                      </label>
+                      <label className="field">
+                        Entity Provenance
+                        <input
+                          type="text"
+                          value={scenarioEntitySourceInput}
+                          onChange={(event) => setScenarioEntitySourceInput(event.target.value)}
+                        />
+                      </label>
+                      <label className="field">
+                        Entity Confidence
+                        <select
+                          value={scenarioEntityConfidenceInput}
+                          onChange={(event) =>
+                            setScenarioEntityConfidenceInput(event.target.value as EntityConfidence)
+                          }
+                        >
+                          <option value="A">A</option>
+                          <option value="B">B</option>
+                          <option value="C">C</option>
+                        </select>
+                      </label>
+                    </div>
+                    <div className="controls">
+                      <button onClick={onApplyScenarioConstraint}>Apply Constraint</button>
+                      <button onClick={onAddScenarioEntity}>Add Hypothetical Entity</button>
+                    </div>
+                  </article>
                 </div>
 
                 <article className="surface-card compact" data-testid="constraint-node-panel">
@@ -10521,6 +11744,14 @@ function App() {
               >
                 Activity
               </button>
+              <button
+                type="button"
+                className={bottomPanelView === 'timeline' ? 'is-active' : ''}
+                aria-pressed={bottomPanelView === 'timeline'}
+                onClick={() => onBottomPanelViewChange('timeline')}
+              >
+                Timeline
+              </button>
             </div>
             <button
               type="button"
@@ -10551,7 +11782,7 @@ function App() {
               <p>
                 {selectedBundleId
                   ? `Bundle ${selectedBundleId} is ready. Open Bundles when you want to review stored evidence or reopen prior work.`
-                  : 'Open Bundles or Activity only when stored evidence, runtime status, or recent actions matter to the map story.'}
+                  : 'Open Bundles, Activity, or Timeline only when stored evidence, runtime status, or the event story matters to the map.'}
               </p>
             </article>
           </div>
@@ -10608,7 +11839,10 @@ function App() {
             <article className="surface-card compact">
               <strong>Provider runtime</strong>
               <p>
-                {aiProviderStatus.providerLabel} | {aiProviderStatus.runtime}
+                {selectedAiProviderOption.label}
+                {' -> '}
+                {aiProviderStatus.providerLabel} |{' '}
+                {aiProviderStatus.runtime}
               </p>
               <small>{aiProviderStatus.detail}</small>
             </article>
@@ -10624,6 +11858,66 @@ function App() {
               <p>{auditEvents.at(-1)?.event_type ?? 'No events yet.'}</p>
               <small>{auditEvents.at(-1)?.ts ?? 'Awaiting workflow actions.'}</small>
             </article>
+          </div>
+          </div>
+        ) : null}
+
+        {!trayCollapsed && bottomPanelView === 'timeline' ? (
+          <div className="panel-view" data-testid="timeline-panel">
+          <div className="summary-grid bottom-summary-grid">
+            <article>
+              <span className="metric-label">Governed events</span>
+              <strong>{globalEventTimeline.length}</strong>
+            </article>
+            <article>
+              <span className="metric-label">Mapped markers</span>
+              <strong>{globalEventTimeline.filter((entry) => entry.mapEligible).length}</strong>
+            </article>
+            <article>
+              <span className="metric-label">Timeline-only</span>
+              <strong>{globalEventTimeline.filter((entry) => !entry.mapEligible).length}</strong>
+            </article>
+            <article>
+              <span className="metric-label">Latest event</span>
+              <strong>{globalEventTimeline[0]?.occurredAtLabel ?? 'No events yet'}</strong>
+            </article>
+          </div>
+          <div className="context-card-list timeline-event-list">
+            {globalEventTimeline.length === 0 && (
+              <article className="surface-card compact">
+                <strong>No governed events recorded yet.</strong>
+                <p>
+                  Register context, run a deviation watch, or materialize a curated OSINT event to
+                  build the first timeline entry.
+                </p>
+              </article>
+            )}
+            {globalEventTimeline.map((entry) => (
+              <article
+                key={entry.eventId}
+                className="context-card timeline-event-card"
+                data-testid="timeline-event-card"
+              >
+                <div className="card-header compact">
+                  <span className={`artifact-chip ${entry.tone}`}>
+                    {formatTimelineCategoryLabel(entry.category)}
+                  </span>
+                  <span>{entry.occurredAtLabel}</span>
+                </div>
+                <strong>{entry.label}</strong>
+                <p>{entry.summary}</p>
+                <small>
+                  {entry.aoiLabel} | {entry.source} | {entry.cadence} | {entry.confidence}
+                  {entry.aggregateOnly ? ' | Aggregate-only AOI context' : ''}
+                  {!entry.mapEligible ? ' | Timeline only / not mapped' : ''}
+                </small>
+                <div className="button-row timeline-event-actions">
+                  <button type="button" onClick={() => onSelectGlobalEvent(entry)}>
+                    {entry.mapEligible ? 'Focus on map' : 'Focus AOI'}
+                  </button>
+                </div>
+              </article>
+            ))}
           </div>
           </div>
         ) : null}

@@ -6,7 +6,7 @@ Linked Test Suite: .gov/workflow/wp_test_suites/TS-WP-GOV-BRIDGE-002.md
 Linked WP Check Script: .gov/workflow/wp_checks/check-WP-GOV-BRIDGE-002.ps1
 Packet Class Snapshot: IMPLEMENTATION
 Workflow Version Snapshot: 4.0
-WP Status Snapshot: IN-PROGRESS
+WP Status Snapshot: IMPLEMENTED
 Iteration: All
 
 ## Scope
@@ -23,9 +23,9 @@ Concrete extraction of requirement and primitive obligations this WP must satisf
 
 ## Change Ledger Snapshot
 
-- What Became Real: Governance now tracks the missing bridge-interaction seam as its own cross-cutting packet with explicit proof criteria tied to the `WP-I6-004` seeded-state workaround.
-- What Remains Simulated: Until this packet lands, the bridge still cannot invoke the in-app local-runtime probe, so visual proof of that flow requires a temporary recorder-state seed.
-- Next Blocking Real Seam: Implement `POST /agent/action`, wire it to a real frontend action registry, and capture live navigate/action/snapshot proof against the desktop app.
+- What Became Real: the localhost bridge now exposes `POST /agent/action`, the frontend registers approved named actions through a governed registry, `/agent/state` reports live shell metadata through the correct Tauri payload contract, and the desktop app can run `probe-local-runtime` and capture truthful post-action settings/assistant snapshots without seeded recorder state.
+- What Remains Simulated: arbitrary DOM clicking, coordinate automation, map gestures, and browser/jsdom desktop-bridge behavior remain intentionally out of scope.
+- Next Blocking Real Seam: No blocking seam remains for the current named-action scope; if future live workflows need bridge execution, add them through a successor packet instead of widening this packet into generic automation.
 
 ## Requirement Extraction
 
@@ -39,7 +39,7 @@ Concrete extraction of requirement and primitive obligations this WP must satisf
 
 | Primitive | Name | Contract | REQs | First Iter | Status |
 |-----------|------|----------|------|------------|--------|
-| PRIM-0075 | Governed Agent Action Bridge | Expose a localhost-only named-action bridge for approved UI workflows and structured completion results so agents can interact with the running app without focus stealing or input simulation | REQ-0013, REQ-0019, REQ-0020 | All | IN-PROGRESS |
+| PRIM-0075 | Governed Agent Action Bridge | Expose a localhost-only named-action bridge for approved UI workflows and structured completion results so agents can interact with the running app without focus stealing or input simulation | REQ-0013, REQ-0019, REQ-0020 | All | IMPLEMENTED |
 
 ## Traceability Hooks
 

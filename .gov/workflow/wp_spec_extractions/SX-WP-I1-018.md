@@ -1,12 +1,12 @@
 # SX-WP-I1-018 - Spec Extraction Snapshot
 
-Generated On: 2026-04-09
+Generated On: 2026-04-10
 Linked Work Packet: WP-I1-018
 Linked Test Suite: .gov/workflow/wp_test_suites/TS-WP-I1-018.md
 Linked WP Check Script: .gov/workflow/wp_checks/check-WP-I1-018.ps1
 Packet Class Snapshot: IMPLEMENTATION
 Workflow Version Snapshot: 4.0
-WP Status Snapshot: SPEC-MAPPED
+WP Status Snapshot: IMPLEMENTED
 Iteration: I1
 
 ## Scope
@@ -15,17 +15,17 @@ Concrete extraction of requirement and primitive obligations this WP must satisf
 
 ## Reality Boundary Snapshot
 
-- Real Seam: see WP for details
-- User-Visible Win: see WP for details
-- Proof Target: see WP for details
-- Allowed Temporary Fallbacks: see WP for details
-- Promotion Guard: RESEARCH and SCAFFOLD packets do not promote linked requirements or primitives to E2E-VERIFIED.
+- Real Seam: the live assistant and scenario surfaces are reorganized around guided workflow cards, explicit advanced disclosures, and settings-linked runtime access while preserving the verified AI analysis, MCP, scenario compare, and scenario export seams.
+- User-Visible Win: analysts see a clearer assistant entry point and a clearer scenario workflow, with the dense configuration fields moved out of the default path and the next action readable at a glance.
+- Proof Target: assistant/scenario regressions pass, `pnpm build` passes, `check-WP-I1-018.ps1` passes, and the live bridge captures the simplified assistant and scenario surfaces.
+- Allowed Temporary Fallbacks: browser/jsdom remains a non-desktop proof environment; disclosure state may remain ephemeral as long as the underlying AI/scenario state and results stay deterministic and restore correctly.
+- Promotion Guard: RESEARCH and SCAFFOLD packets do not promote linked requirements or primitives to `E2E-VERIFIED`.
 
 ## Change Ledger Snapshot
 
-- What Became Real: see WP for details
-- What Remains Simulated: see WP for details
-- Next Blocking Real Seam: see WP for details
+- What Became Real: the assistant surface now leads with a governed workflow card while provider/runtime/MCP tuning sits behind explicit disclosure, and the scenario surface now leads with fork/compare/export while raw constraint/entity controls stay behind advanced modeling disclosure. The headless bridge now also enters scenario/compare workflows through the full-workbench path so live proof reaches the shipped surface without recorder-state hacks.
+- What Remains Simulated: browser/jsdom remains a non-desktop proof environment relative to the live Tauri shell; no new simulated runtime behavior was added to product code outside tests.
+- Next Blocking Real Seam: no additional implementation seam remains inside this packet; user sign-off is the remaining blocker before any `E2E-VERIFIED` promotion.
 
 ## Requirement Extraction
 

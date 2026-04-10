@@ -4,6 +4,14 @@ export type AiGatewayMarking = 'PUBLIC' | 'INTERNAL' | 'RESTRICTED'
 
 export type DeploymentProfileId = 'connected' | 'restricted' | 'air_gapped'
 
+export type AiGatewayProviderId = 'auto' | 'codex_cli' | 'openai_responses' | 'local_model'
+
+export type LocalAiRuntimeProfileId =
+  | 'auto_detect'
+  | 'lmstudio_cli'
+  | 'ollama_cli'
+  | 'custom_executable'
+
 export interface BundleReference {
   bundle_id: string
   asset_id: string
@@ -94,7 +102,14 @@ export type AiGatewayExecutionRuntime =
   | 'local-simulated'
   | AiGatewayProviderRuntime
 
+export type AiGatewayLocalRuntimeProbeOutcome =
+  | 'success'
+  | 'failure'
+  | 'unavailable'
+  | 'simulated'
+
 export interface AiGatewayProviderStatus {
+  providerId: AiGatewayProviderId
   runtime: AiGatewayProviderRuntime
   available: boolean
   providerLabel: string
@@ -102,7 +117,26 @@ export interface AiGatewayProviderStatus {
   detail: string
 }
 
+export interface AiGatewayLocalRuntimeProbeRequest {
+  deploymentProfile: DeploymentProfileId
+  localProviderConfig?: LocalAiProviderConfig
+}
+
+export interface AiGatewayLocalRuntimeProbeResult {
+  providerId: 'local_model'
+  runtime: AiGatewayProviderRuntime
+  providerLabel: string
+  model: string
+  outcome: AiGatewayLocalRuntimeProbeOutcome
+  detail: string
+  outputText?: string
+  durationMs?: number
+  probedAt: string
+}
+
 export interface AiGatewayProviderAnalysisRequest {
+  providerSelection: AiGatewayProviderId
+  localProviderConfig?: LocalAiProviderConfig
   deploymentProfile: DeploymentProfileId
   marking: AiGatewayMarking
   prompt: string
@@ -111,6 +145,7 @@ export interface AiGatewayProviderAnalysisRequest {
 }
 
 export interface AiGatewayProviderAnalysisResult {
+  providerId: AiGatewayProviderId
   runtime: AiGatewayProviderRuntime
   providerLabel: string
   model: string
@@ -123,6 +158,8 @@ export interface AiGatewayProviderAnalysisResult {
 export interface AiAnalysisRequest {
   role: AiGatewayRole
   marking: AiGatewayMarking
+  providerSelection: AiGatewayProviderId
+  localProviderConfig?: LocalAiProviderConfig
   deploymentProfile: DeploymentProfileId
   allowed: boolean
   refs: AiEvidenceRef[]
@@ -162,8 +199,32 @@ export interface McpInvocationRecord {
 
 export interface AiGatewaySnapshot {
   deploymentProfile: DeploymentProfileId
+  providerSelection: AiGatewayProviderId
+  localProviderConfig?: LocalAiProviderConfig
   latestAnalysis?: AiGatewayArtifact
   latestMcpInvocation?: McpInvocationRecord
+  latestLocalRuntimeProbe?: AiGatewayLocalRuntimeProbeResult
+}
+
+export interface AiGatewayProviderOption {
+  id: AiGatewayProviderId
+  label: string
+  description: string
+}
+
+export interface LocalAiProviderConfig {
+  runtimeProfile: LocalAiRuntimeProfileId
+  modelIdentifier: string
+  executablePath: string
+  argsJson: string
+  modelPath: string
+  workdir: string
+}
+
+export interface LocalAiRuntimeOption {
+  id: LocalAiRuntimeProfileId
+  label: string
+  description: string
 }
 
 export interface McpToolResult {
@@ -219,16 +280,98 @@ export const DEPLOYMENT_PROFILES: DeploymentProfile[] = [
   },
 ]
 
+export const AI_GATEWAY_PROVIDER_OPTIONS: AiGatewayProviderOption[] = [
+  {
+    id: 'auto',
+    label: 'Auto',
+    description: 'Use the first configured governed provider in the runtime preference order.',
+  },
+  {
+    id: 'codex_cli',
+    label: 'Codex CLI',
+    description: 'Use the governed Codex CLI runtime when a local ChatGPT/Codex login is available.',
+  },
+  {
+    id: 'openai_responses',
+    label: 'OpenAI Responses',
+    description: 'Use the OpenAI Responses API through the governed Tauri runtime when configured.',
+  },
+  {
+    id: 'local_model',
+    label: 'Local model runtime',
+    description:
+      'Use a governed local runtime through LM Studio, Ollama, or a custom executable adapter.',
+  },
+]
+
+export const LOCAL_AI_RUNTIME_OPTIONS: LocalAiRuntimeOption[] = [
+  {
+    id: 'auto_detect',
+    label: 'Auto-detect',
+    description:
+      'Prefer explicit local config, then LM Studio, then Ollama, while keeping the provider selection truthful.',
+  },
+  {
+    id: 'lmstudio_cli',
+    label: 'LM Studio CLI',
+    description: 'Use the local `lms` runtime and a model key available in LM Studio.',
+  },
+  {
+    id: 'ollama_cli',
+    label: 'Ollama CLI',
+    description: 'Use the local `ollama` runtime and an installed model name.',
+  },
+  {
+    id: 'custom_executable',
+    label: 'Custom executable',
+    description:
+      'Run a governed local command with explicit arguments and optional model file substitution.',
+  },
+]
+
 const DEFAULT_DEPLOYMENT_PROFILE: DeploymentProfileId = 'connected'
 
-const DEFAULT_BROWSER_SIMULATED_PROVIDER_STATUS: AiGatewayProviderStatus = {
+export const DEFAULT_AI_PROVIDER_ID: AiGatewayProviderId = 'auto'
+
+export const DEFAULT_LOCAL_AI_PROVIDER_CONFIG: LocalAiProviderConfig = {
+  runtimeProfile: 'auto_detect',
+  modelIdentifier: '',
+  executablePath: '',
+  argsJson: '',
+  modelPath: '',
+  workdir: '',
+}
+
+const describeAiGatewayProvider = (providerId: AiGatewayProviderId): string =>
+  AI_GATEWAY_PROVIDER_OPTIONS.find((provider) => provider.id === providerId)?.label ?? 'Auto'
+
+const describeLocalAiRuntime = (runtimeProfile: LocalAiRuntimeProfileId): string =>
+  LOCAL_AI_RUNTIME_OPTIONS.find((option) => option.id === runtimeProfile)?.label ?? 'Auto-detect'
+
+const buildBrowserSimulatedProviderDetail = (
+  providerId: AiGatewayProviderId,
+  localProviderConfig: LocalAiProviderConfig,
+): string =>
+  providerId === 'auto'
+    ? 'Browser and jsdom fallback uses a local simulated gateway; live provider access requires the governed Tauri runtime and approved environment configuration.'
+    : providerId === 'local_model'
+      ? `Browser and jsdom fallback cannot execute the selected ${describeLocalAiRuntime(localProviderConfig.runtimeProfile)} local runtime; live provider access requires the governed Tauri runtime and a detected or configured local model launcher.`
+      : `Browser and jsdom fallback cannot execute the selected ${describeAiGatewayProvider(providerId)} provider; live provider access requires the governed Tauri runtime and approved environment configuration.`
+
+const buildDefaultBrowserSimulatedProviderStatus = (
+  providerId: AiGatewayProviderId,
+  localProviderConfig: LocalAiProviderConfig = DEFAULT_LOCAL_AI_PROVIDER_CONFIG,
+): AiGatewayProviderStatus => ({
+  providerId,
   runtime: 'browser-simulated',
   available: false,
   providerLabel: 'Browser Simulated Gateway',
-  model: 'local-simulated',
-  detail:
-    'Browser and jsdom fallback uses a local simulated gateway; live external provider access requires the Tauri runtime and approved environment configuration.',
-}
+  model:
+    providerId === 'local_model' && localProviderConfig.modelIdentifier.trim().length > 0
+      ? localProviderConfig.modelIdentifier.trim()
+      : 'local-simulated',
+  detail: buildBrowserSimulatedProviderDetail(providerId, localProviderConfig),
+})
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -262,6 +405,18 @@ const stableFingerprint = (value: unknown): string => {
 const isDeploymentProfileId = (value: unknown): value is DeploymentProfileId =>
   value === 'connected' || value === 'restricted' || value === 'air_gapped'
 
+const isAiGatewayProviderId = (value: unknown): value is AiGatewayProviderId =>
+  value === 'auto' ||
+  value === 'codex_cli' ||
+  value === 'openai_responses' ||
+  value === 'local_model'
+
+const isLocalAiRuntimeProfileId = (value: unknown): value is LocalAiRuntimeProfileId =>
+  value === 'auto_detect' ||
+  value === 'lmstudio_cli' ||
+  value === 'ollama_cli' ||
+  value === 'custom_executable'
+
 const isMarking = (value: unknown): value is AiGatewayMarking =>
   value === 'PUBLIC' || value === 'INTERNAL' || value === 'RESTRICTED'
 
@@ -270,6 +425,12 @@ const isMcpToolName = (value: unknown): value is McpToolName =>
 
 const isProviderRuntime = (value: unknown): value is AiGatewayProviderRuntime =>
   value === 'browser-simulated' || value === 'tauri-live' || value === 'tauri-unconfigured'
+
+const isLocalRuntimeProbeOutcome = (value: unknown): value is AiGatewayLocalRuntimeProbeOutcome =>
+  value === 'success' ||
+  value === 'failure' ||
+  value === 'unavailable' ||
+  value === 'simulated'
 
 const isPathAbuseText = (value: string): boolean =>
   /([A-Za-z]:\\|\\\\|(?:^|[\s'"])\.\.[\\/]|bundle_relative_path|select\s+.+\s+from|drop\s+table)/i.test(
@@ -415,20 +576,77 @@ const normalizeMcpInvocation = (value: unknown): McpInvocationRecord | undefined
   }
 }
 
+export const normalizeLocalAiProviderConfig = (value: unknown): LocalAiProviderConfig => {
+  if (!isRecord(value)) {
+    return DEFAULT_LOCAL_AI_PROVIDER_CONFIG
+  }
+
+  return {
+    runtimeProfile: isLocalAiRuntimeProfileId(value.runtimeProfile)
+      ? value.runtimeProfile
+      : DEFAULT_LOCAL_AI_PROVIDER_CONFIG.runtimeProfile,
+    modelIdentifier:
+      typeof value.modelIdentifier === 'string'
+        ? value.modelIdentifier
+        : DEFAULT_LOCAL_AI_PROVIDER_CONFIG.modelIdentifier,
+    executablePath:
+      typeof value.executablePath === 'string'
+        ? value.executablePath
+        : DEFAULT_LOCAL_AI_PROVIDER_CONFIG.executablePath,
+    argsJson:
+      typeof value.argsJson === 'string' ? value.argsJson : DEFAULT_LOCAL_AI_PROVIDER_CONFIG.argsJson,
+    modelPath:
+      typeof value.modelPath === 'string'
+        ? value.modelPath
+        : DEFAULT_LOCAL_AI_PROVIDER_CONFIG.modelPath,
+    workdir:
+      typeof value.workdir === 'string' ? value.workdir : DEFAULT_LOCAL_AI_PROVIDER_CONFIG.workdir,
+  }
+}
+
 export const createAiGatewaySnapshot = (
   deploymentProfile: DeploymentProfileId = DEFAULT_DEPLOYMENT_PROFILE,
+  providerSelection: AiGatewayProviderId = DEFAULT_AI_PROVIDER_ID,
+  localProviderConfig: LocalAiProviderConfig = DEFAULT_LOCAL_AI_PROVIDER_CONFIG,
 ): AiGatewaySnapshot => ({
   deploymentProfile,
+  providerSelection,
+  localProviderConfig,
 })
 
-export const createBrowserSimulatedAiProviderStatus = (): AiGatewayProviderStatus => ({
-  ...DEFAULT_BROWSER_SIMULATED_PROVIDER_STATUS,
-})
+export const createBrowserSimulatedLocalRuntimeProbeResult = (
+  deploymentProfile: DeploymentProfileId = DEFAULT_DEPLOYMENT_PROFILE,
+  localProviderConfig: LocalAiProviderConfig = DEFAULT_LOCAL_AI_PROVIDER_CONFIG,
+): AiGatewayLocalRuntimeProbeResult => {
+  const runtimeLabel = describeLocalAiRuntime(localProviderConfig.runtimeProfile)
+  const profile =
+    DEPLOYMENT_PROFILES.find((entry) => entry.id === deploymentProfile) ?? DEPLOYMENT_PROFILES[0]
+  const policyBlocked = !profile.aiEnabled
+    ? ` ${profile.label} blocks governed AI execution in this mode.`
+    : ''
+
+  return {
+    providerId: 'local_model',
+    runtime: 'browser-simulated',
+    providerLabel: runtimeLabel,
+    model: localProviderConfig.modelIdentifier.trim() || 'operator-configured',
+    outcome: 'simulated',
+    detail: `Browser and jsdom fallback cannot execute the selected ${runtimeLabel} local runtime; live probing requires the governed Tauri runtime.${policyBlocked}`,
+    probedAt: new Date().toISOString(),
+  }
+}
+
+export const createBrowserSimulatedAiProviderStatus = (
+  providerId: AiGatewayProviderId = DEFAULT_AI_PROVIDER_ID,
+  localProviderConfig: LocalAiProviderConfig = DEFAULT_LOCAL_AI_PROVIDER_CONFIG,
+): AiGatewayProviderStatus => buildDefaultBrowserSimulatedProviderStatus(providerId, localProviderConfig)
 
 export const createUnavailableAiProviderStatus = (
   detail: string,
   providerLabel = 'OpenAI Responses API',
+  providerId: AiGatewayProviderId = DEFAULT_AI_PROVIDER_ID,
 ): AiGatewayProviderStatus => ({
+  providerId,
   runtime: 'tauri-unconfigured',
   available: false,
   providerLabel,
@@ -441,21 +659,51 @@ export const normalizeAiGatewayProviderStatus = (value: unknown): AiGatewayProvi
     return createBrowserSimulatedAiProviderStatus()
   }
 
+  const providerId = isAiGatewayProviderId(value.providerId) ? value.providerId : DEFAULT_AI_PROVIDER_ID
+  const fallback = buildDefaultBrowserSimulatedProviderStatus(providerId)
+
   return {
-    runtime: isProviderRuntime(value.runtime) ? value.runtime : 'browser-simulated',
+    providerId,
+    runtime: isProviderRuntime(value.runtime) ? value.runtime : fallback.runtime,
     available: value.available === true,
     providerLabel:
       typeof value.providerLabel === 'string'
         ? value.providerLabel
-        : DEFAULT_BROWSER_SIMULATED_PROVIDER_STATUS.providerLabel,
+        : fallback.providerLabel,
+    model:
+      typeof value.model === 'string' ? value.model : fallback.model,
+    detail:
+      typeof value.detail === 'string' ? value.detail : fallback.detail,
+  }
+}
+
+export const normalizeAiGatewayLocalRuntimeProbeResult = (
+  value: unknown,
+): AiGatewayLocalRuntimeProbeResult | undefined => {
+  if (!isRecord(value)) {
+    return undefined
+  }
+
+  return {
+    providerId: 'local_model',
+    runtime: isProviderRuntime(value.runtime) ? value.runtime : 'tauri-unconfigured',
+    providerLabel:
+      typeof value.providerLabel === 'string'
+        ? value.providerLabel
+        : describeLocalAiRuntime(DEFAULT_LOCAL_AI_PROVIDER_CONFIG.runtimeProfile),
     model:
       typeof value.model === 'string'
         ? value.model
-        : DEFAULT_BROWSER_SIMULATED_PROVIDER_STATUS.model,
+        : DEFAULT_LOCAL_AI_PROVIDER_CONFIG.modelIdentifier.trim() || 'operator-configured',
+    outcome: isLocalRuntimeProbeOutcome(value.outcome) ? value.outcome : 'unavailable',
     detail:
       typeof value.detail === 'string'
         ? value.detail
-        : DEFAULT_BROWSER_SIMULATED_PROVIDER_STATUS.detail,
+        : 'Local runtime probe did not return a valid detail message.',
+    outputText: typeof value.outputText === 'string' ? value.outputText : undefined,
+    durationMs: typeof value.durationMs === 'number' ? value.durationMs : undefined,
+    probedAt:
+      typeof value.probedAt === 'string' ? value.probedAt : '1970-01-01T00:00:00.000Z',
   }
 }
 
@@ -468,8 +716,13 @@ export const normalizeAiGatewaySnapshot = (value: unknown): AiGatewaySnapshot =>
     deploymentProfile: isDeploymentProfileId(value.deploymentProfile)
       ? value.deploymentProfile
       : DEFAULT_DEPLOYMENT_PROFILE,
+    providerSelection: isAiGatewayProviderId(value.providerSelection)
+      ? value.providerSelection
+      : DEFAULT_AI_PROVIDER_ID,
+    localProviderConfig: normalizeLocalAiProviderConfig(value.localProviderConfig),
     latestAnalysis: normalizeAiGatewayArtifact(value.latestAnalysis),
     latestMcpInvocation: normalizeMcpInvocation(value.latestMcpInvocation),
+    latestLocalRuntimeProbe: normalizeAiGatewayLocalRuntimeProbeResult(value.latestLocalRuntimeProbe),
   }
 }
 
@@ -607,6 +860,7 @@ const buildAiGatewayArtifact = ({
   const citations = request.refs.map((ref) => buildCitation(ref))
   const fingerprint = stableFingerprint({
     deploymentProfile: request.deploymentProfile,
+    providerSelection: request.providerSelection,
     gatewayRuntime,
     marking: request.marking,
     model: providerModel,
@@ -631,6 +885,7 @@ const buildAiGatewayArtifact = ({
       : 'Inference only; provider output requires analyst validation.',
     lineage: [
       `gateway:${request.deploymentProfile}`,
+      `provider_selection:${request.providerSelection}`,
       `provider:${providerLabel}`,
       `model:${providerModel}`,
       `runtime:${gatewayRuntime}`,
@@ -663,7 +918,10 @@ export const submitAiAnalysis = (request: AiAnalysisRequest): AiGatewayArtifact 
 export const runAiGatewayAnalysis = async (
   request: AiAnalysisRequest,
   {
-    providerStatus = createBrowserSimulatedAiProviderStatus(),
+    providerStatus = createBrowserSimulatedAiProviderStatus(
+      request.providerSelection,
+      request.localProviderConfig,
+    ),
     runProviderAnalysis,
   }: {
     providerStatus?: AiGatewayProviderStatus
@@ -707,6 +965,8 @@ export const runAiGatewayAnalysis = async (
   }
 
   const providerResult = await runProviderAnalysis({
+    providerSelection: request.providerSelection,
+    localProviderConfig: request.localProviderConfig,
     deploymentProfile: request.deploymentProfile,
     marking: request.marking,
     prompt: request.prompt,

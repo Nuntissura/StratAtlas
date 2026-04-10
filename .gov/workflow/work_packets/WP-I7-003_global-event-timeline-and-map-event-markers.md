@@ -1,7 +1,7 @@
 # WP-I7-003 - Global Event Timeline and Map Event Markers
 
 Date Opened: 2026-04-09
-Status: IN-PROGRESS
+Status: IMPLEMENTED
 Iteration: I7
 Workflow Version: 4.0
 Packet Class: IMPLEMENTATION
@@ -126,7 +126,7 @@ Materialize the already-governed deviation and OSINT artifacts into a global eve
 
 ## Change Ledger
 
-- What Became Real: pending implementation.
+- What Became Real: the live shell now derives a deterministic global event timeline from restored deviation, aggregate-alert, and OSINT event artifacts; renders zoom-aware event markers and clusters in the real map runtime; exposes a tray timeline plus in-map recent-event rail; and lets the governed bridge reopen a real bundle and focus a selected global event into the map/runtime inspector flow.
 - What Remains Simulated: browser/jsdom remains a non-desktop proof environment; no packet-specific runtime fallback is approved beyond that.
 - Next Blocking Real Seam: `WP-I7-004` must add the broader geopolitical baseline dataset and "what's happening now" first-launch context after this event-story seam exists.
 
@@ -153,10 +153,10 @@ Materialize the already-governed deviation and OSINT artifacts into a global eve
 
 ## Evidence
 
-- Test Suite Execution:
-- Logs:
-- Screenshots/Exports:
-- Build Artifacts:
+- Test Suite Execution: `.product/build_target/tool_artifacts/wp_runs/WP-I7-003/20260410_024715/UI-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I7-003/20260410_024715/FUNC-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I7-003/20260410_024715/COR-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I7-003/20260410_024715/EXT-002.log`
+- Logs: `.product/build_target/tool_artifacts/wp_runs/WP-I7-003/20260410_024715/summary.md`; `.product/build_target/tool_artifacts/wp_runs/WP-I7-003/20260410_024149/visual_proof/bridge_health.json`; `.product/build_target/tool_artifacts/wp_runs/WP-I7-003/20260410_024149/visual_proof/bridge_action_open_bundle.json`; `.product/build_target/tool_artifacts/wp_runs/WP-I7-003/20260410_024149/visual_proof/bridge_action_focus_event.json`
+- Screenshots/Exports: `.product/build_target/tool_artifacts/wp_runs/WP-I7-003/20260410_024149/visual_proof/timeline_live.png`; `.product/build_target/tool_artifacts/wp_runs/WP-I7-003/20260410_024149/visual_proof/map_event_focus_live.png`; `.product/build_target/tool_artifacts/wp_runs/WP-I7-003/20260410_024149/visual_proof_summary.md`
+- Build Artifacts: `.product/build_target/tool_artifacts/wp_runs/WP-I7-003/20260410_024715/EXT-001.log`
 - Proof Artifact: .product/build_target/tool_artifacts/wp_runs/WP-I7-003/
 - User Sign-off:
 
@@ -164,3 +164,5 @@ Materialize the already-governed deviation and OSINT artifacts into a global eve
 
 - 2026-04-09: WP scaffold created via .gov/repo_scripts/new_work_packet.ps1.
 - 2026-04-10: Rewrote the packet from placeholder state around the real seam: derived global event timeline, zoom-aware map event markers, and event-to-AOI linking over the already-real I7/I8/I9 artifacts.
+- 2026-04-10: Implemented the derived event-model seam in the live shell, added clustered event markers plus a timeline tray/recent-event rail, and wired map focus/inspect selection through the governed bridge action path.
+- 2026-04-10: Passed `.gov/workflow/wp_checks/check-WP-I7-003.ps1` with final evidence under `.product/build_target/tool_artifacts/wp_runs/WP-I7-003/20260410_024715/` and live bridge proof under `.product/build_target/tool_artifacts/wp_runs/WP-I7-003/20260410_024149/`.

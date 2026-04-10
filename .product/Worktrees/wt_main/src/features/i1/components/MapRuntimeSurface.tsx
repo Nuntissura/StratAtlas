@@ -4,6 +4,7 @@ import {
   useEffectEvent,
   useImperativeHandle,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
 } from 'react'
@@ -20,7 +21,8 @@ import type {
 import 'cesium/Build/Cesium/Widgets/widgets.css'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import './MapRuntimeSurface.css'
-import type { SensitivityMarking } from '../../../contracts/i0'
+import type { SensitivityMarking, WorkspaceUiSettings } from '../../../contracts/i0'
+import type { GlobalEventTimelineEntry } from '../../i7/eventTimeline'
 import {
   runtimeAoiView,
   runtimeToneColor,
@@ -51,6 +53,7 @@ import type { UiMode } from '../modes'
 
 interface MapRuntimeSurfaceProps {
   scene: MapRuntimeScene
+  workspaceSettings: WorkspaceUiSettings
   basemapStyleId: MapBasemapStyleId
   mode: UiMode
   marking: SensitivityMarking
@@ -64,6 +67,7 @@ interface MapRuntimeSurfaceProps {
   onTelemetryChange?: (telemetry: MapRuntimeTelemetry) => void
   onRequestExport?: () => void | Promise<void>
   onSurfaceModeFeedback?: (surfaceMode: SurfaceMode, measuredMs: number) => void
+  selectionCommand?: MapRuntimeSelectionCommand
 }
 
 export interface MapRuntimeSurfaceHandle {
@@ -90,6 +94,13 @@ export interface MapRuntimeSurfaceHandle {
   }>
   requestSurfaceMode: (nextMode: SurfaceMode) => void
   switchSurfaceMode: (nextMode: SurfaceMode) => Promise<number>
+}
+
+export interface MapRuntimeSelectionCommand {
+  requestId: number
+  focusAoiId?: string
+  inspectId?: string
+  openContext?: boolean
 }
 
 const GRATICULE: Exclude<GeoJSONSourceSpecification['data'], string> = {
@@ -143,6 +154,8 @@ const GRATICULE: Exclude<GeoJSONSourceSpecification['data'], string> = {
 }
 
 type BasemapState = 'online-live' | 'fallback-offline' | 'fallback-load-failure' | 'fallback-runtime'
+
+const EVENT_SIGNAL_CATEGORIES = ['deviation', 'osint'] as const
 
 const toneClass = (tone: RuntimeTone): string => `map-runtime-chip tone-${tone}`
 
@@ -213,6 +226,25 @@ const syncGeoJsonSource = (
   })
 }
 
+const syncClusteredGeoJsonSource = (
+  map: MapLibreMap,
+  sourceId: string,
+  data: GeoJSONSourceSpecification['data'],
+) => {
+  const source = map.getSource(sourceId) as GeoJSONSource | undefined
+  if (source) {
+    source.setData(data as Parameters<GeoJSONSource['setData']>[0])
+    return
+  }
+  map.addSource(sourceId, {
+    type: 'geojson',
+    data,
+    cluster: true,
+    clusterMaxZoom: 7,
+    clusterRadius: 54,
+  })
+}
+
 const ensureRuntimeLayers = (map: MapLibreMap) => {
   if (!map.getLayer('i1-surface-fill')) {
     map.addLayer({
@@ -268,6 +300,7 @@ const ensureRuntimeLayers = (map: MapLibreMap) => {
       id: 'i1-signal-halo',
       type: 'circle',
       source: 'i1-signals',
+      filter: ['!', ['in', ['get', 'category'], ['literal', [...EVENT_SIGNAL_CATEGORIES]]]],
       paint: {
         'circle-color': [
           'match',
@@ -295,6 +328,7 @@ const ensureRuntimeLayers = (map: MapLibreMap) => {
       id: 'i1-signal-core',
       type: 'circle',
       source: 'i1-signals',
+      filter: ['!', ['in', ['get', 'category'], ['literal', [...EVENT_SIGNAL_CATEGORIES]]]],
       paint: {
         'circle-color': [
           'match',
@@ -318,12 +352,93 @@ const ensureRuntimeLayers = (map: MapLibreMap) => {
       },
     })
   }
+  if (!map.getLayer('i1-event-clusters')) {
+    map.addLayer({
+      id: 'i1-event-clusters',
+      type: 'circle',
+      source: 'i1-event-markers',
+      filter: ['has', 'point_count'],
+      paint: {
+        'circle-color': '#193147',
+        'circle-radius': [
+          'step',
+          ['get', 'point_count'],
+          16,
+          3,
+          20,
+          6,
+          24,
+        ],
+        'circle-stroke-color': '#9bc7ff',
+        'circle-stroke-width': 1.5,
+        'circle-opacity': 0.92,
+      },
+    })
+  }
+  if (!map.getLayer('i1-event-cluster-count')) {
+    map.addLayer({
+      id: 'i1-event-cluster-count',
+      type: 'symbol',
+      source: 'i1-event-markers',
+      filter: ['has', 'point_count'],
+      layout: {
+        'text-field': ['get', 'point_count_abbreviated'],
+        'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+        'text-size': 11,
+      },
+      paint: {
+        'text-color': '#f5fbff',
+      },
+    })
+  }
+  if (!map.getLayer('i1-event-marker-halo')) {
+    map.addLayer({
+      id: 'i1-event-marker-halo',
+      type: 'circle',
+      source: 'i1-event-markers',
+      filter: ['!', ['has', 'point_count']],
+      paint: {
+        'circle-color': [
+          'match',
+          ['get', 'tone'],
+          'context',
+          '#87f5b5',
+          '#ff6e80',
+        ],
+        'circle-radius': ['get', 'haloRadius'],
+        'circle-opacity': ['get', 'haloOpacity'],
+        'circle-blur': 0.7,
+      },
+    })
+  }
+  if (!map.getLayer('i1-event-marker-core')) {
+    map.addLayer({
+      id: 'i1-event-marker-core',
+      type: 'circle',
+      source: 'i1-event-markers',
+      filter: ['!', ['has', 'point_count']],
+      paint: {
+        'circle-color': [
+          'match',
+          ['get', 'tone'],
+          'context',
+          '#87f5b5',
+          '#ff6e80',
+        ],
+        'circle-radius': ['get', 'radius'],
+        'circle-stroke-width': 1.6,
+        'circle-stroke-color': '#09121b',
+        'circle-opacity': 0.98,
+      },
+    })
+  }
 }
 
 const syncRuntimeScene = (map: MapLibreMap, scene: MapRuntimeScene) => {
   syncGeoJsonSource(map, 'i1-surfaces', scene.surfaces)
   syncGeoJsonSource(map, 'i1-corridors', scene.corridors)
   syncGeoJsonSource(map, 'i1-signals', scene.signals)
+  syncClusteredGeoJsonSource(map, 'i1-event-markers', scene.eventMarkers)
   ensureRuntimeLayers(map)
 }
 
@@ -347,8 +462,34 @@ const selectAoiId = (feature?: MapGeoJSONFeature): string | undefined => {
   return typeof candidate === 'string' ? candidate : undefined
 }
 
+const selectNumericProperty = (
+  feature: MapGeoJSONFeature | undefined,
+  propertyName: string,
+): number | undefined => {
+  const value = feature?.properties?.[propertyName]
+  return typeof value === 'number' ? value : undefined
+}
+
+interface RuntimeHelperCard {
+  id: string
+  badge: string
+  tone: RuntimeTone
+  label: string
+  detail: string
+  meta: string
+  contextLine?: string
+}
+
+const formatRuntimeCategory = (value: string): string =>
+  value
+    .split('_')
+    .filter(Boolean)
+    .map((segment) => segment[0].toUpperCase() + segment.slice(1))
+    .join(' ')
+
 export const MapRuntimeSurface = forwardRef<MapRuntimeSurfaceHandle, MapRuntimeSurfaceProps>(function MapRuntimeSurface({
   scene,
+  workspaceSettings,
   basemapStyleId,
   mode,
   marking,
@@ -362,6 +503,7 @@ export const MapRuntimeSurface = forwardRef<MapRuntimeSurfaceHandle, MapRuntimeS
   onTelemetryChange,
   onRequestExport,
   onSurfaceModeFeedback,
+  selectionCommand,
 }, ref) {
   const planarContainerRef = useRef<HTMLDivElement | null>(null)
   const orbitalContainerRef = useRef<HTMLDivElement | null>(null)
@@ -393,6 +535,11 @@ export const MapRuntimeSurface = forwardRef<MapRuntimeSurfaceHandle, MapRuntimeS
   const [surfaceMode, setSurfaceMode] = useState<SurfaceMode>('planar')
   const [selectedInspectId, setSelectedInspectId] = useState<string>(scene.inspectCards[0]?.id ?? '')
   const [selectedFocusAoiId, setSelectedFocusAoiId] = useState<string>(scene.focusAoiId)
+  const [hoveredHelper, setHoveredHelper] = useState<RuntimeHelperCard | null>(null)
+  const [contextDrawerOpen, setContextDrawerOpen] = useState<boolean>(
+    () => !workspaceSettings.compactChrome,
+  )
+  const [legendTrayOpen, setLegendTrayOpen] = useState<boolean>(() => !workspaceSettings.compactChrome)
   const [planarReady, setPlanarReady] = useState<boolean>(false)
   const [orbitalReady, setOrbitalReady] = useState<boolean>(false)
   const [mapError, setMapError] = useState<string>('')
@@ -409,10 +556,140 @@ export const MapRuntimeSurface = forwardRef<MapRuntimeSurfaceHandle, MapRuntimeS
   )
   const activeBasemapStyleIdRef = useRef<MapBasemapStyleId>(basemapStyleId)
   const basemapLoadTimeoutRef = useRef<number>(0)
+  const compactChromeRef = useRef<boolean>(workspaceSettings.compactChrome)
+
+  const signalPropertiesById = useMemo(
+    () =>
+      new Map(
+        [...scene.eventMarkers.features, ...scene.signals.features].map((feature) => [
+          feature.properties.featureId,
+          feature.properties,
+        ]),
+      ),
+    [scene.eventMarkers.features, scene.signals.features],
+  )
+  const surfacePropertiesByAoiId = useMemo(
+    () =>
+      new Map(scene.surfaces.features.map((feature) => [feature.properties.aoiId, feature.properties])),
+    [scene.surfaces.features],
+  )
+  const inspectCardByLabel = useMemo(
+    () => new Map(scene.inspectCards.map((card) => [card.label, card])),
+    [scene.inspectCards],
+  )
+  const inspectCountByAoiId = useMemo(() => {
+    const counts = new Map<string, number>()
+    for (const card of scene.inspectCards) {
+      counts.set(card.aoiId, (counts.get(card.aoiId) ?? 0) + 1)
+    }
+    return counts
+  }, [scene.inspectCards])
+
+  const buildFocusHelper = (aoiId: string): RuntimeHelperCard => {
+    const focusOption = scene.focusOptions.find((option) => option.aoiId === aoiId) ?? scene.focusOptions[0]
+    const surface = surfacePropertiesByAoiId.get(aoiId)
+    const inspectCount = inspectCountByAoiId.get(aoiId) ?? 0
+    return {
+      id: `focus:${aoiId}`,
+      badge: 'AOI focus',
+      tone: 'support',
+      label: focusOption?.label ?? aoiId.toUpperCase(),
+      detail: surface?.detail ?? focusOption?.subtitle ?? 'Governed runtime focus area.',
+      meta: `${inspectCount} inspect target${inspectCount === 1 ? '' : 's'} ready`,
+    }
+  }
+
+  const buildInspectHelper = (cardId: string): RuntimeHelperCard | null => {
+    const card = scene.inspectCards.find((candidate) => candidate.id === cardId)
+    if (!card) {
+      return null
+    }
+    const contextLine = [card.source, card.cadence, card.confidence].filter(Boolean).join(' | ')
+    return {
+      id: `inspect:${card.id}`,
+      badge: formatRuntimeCategory(card.category),
+      tone: card.tone,
+      label: card.label,
+      detail: card.detail,
+      meta: card.observedAt ? `AOI ${card.aoiId} | ${card.observedAt}` : `AOI ${card.aoiId}`,
+      contextLine,
+    }
+  }
+
+  const buildLegendHelper = (legendId: string): RuntimeHelperCard | null => {
+    const item = scene.legend.find((candidate) => candidate.id === legendId)
+    if (!item) {
+      return null
+    }
+    return {
+      id: `legend:${item.id}`,
+      badge: 'Legend',
+      tone: item.tone,
+      label: item.label,
+      detail: item.detail,
+      meta: `${formatRuntimeCategory(item.tone)} signal family`,
+    }
+  }
+
+  const buildSignalHelper = (featureId: string): RuntimeHelperCard | null => {
+    const signal = signalPropertiesById.get(featureId)
+    if (!signal) {
+      return null
+    }
+    const contextLine = [signal.source, signal.cadence, signal.confidence].filter(Boolean).join(' | ')
+    return {
+      id: `signal:${signal.featureId}`,
+      badge: formatRuntimeCategory(signal.category),
+      tone: signal.tone,
+      label: signal.label,
+      detail: signal.detail,
+      meta: signal.observedAt ? `AOI ${signal.aoiId} | ${signal.observedAt}` : `AOI ${signal.aoiId}`,
+      contextLine,
+    }
+  }
+
+  const buildSurfaceHelper = (aoiId: string): RuntimeHelperCard | null => {
+    const surface = surfacePropertiesByAoiId.get(aoiId)
+    if (!surface) {
+      return null
+    }
+    return {
+      id: `surface:${surface.featureId}`,
+      badge: 'Surface',
+      tone: 'support',
+      label: surface.label,
+      detail: surface.detail,
+      meta: `AOI ${surface.aoiId}`,
+    }
+  }
+
+  const buildClusterHelper = (feature?: MapGeoJSONFeature): RuntimeHelperCard | null => {
+    const pointCount = selectNumericProperty(feature, 'point_count')
+    if (!pointCount) {
+      return null
+    }
+    return {
+      id: `cluster:${pointCount}`,
+      badge: 'Event cluster',
+      tone: 'alert',
+      label: `${pointCount} governed event${pointCount === 1 ? '' : 's'}`,
+      detail: 'This cluster expands as you zoom in or click it, so the map keeps event density readable without losing AOI linkage.',
+      meta: 'Click to zoom into the cluster',
+    }
+  }
 
   useEffect(() => {
     offlineRef.current = offline
   }, [offline])
+
+  useEffect(() => {
+    if (compactChromeRef.current === workspaceSettings.compactChrome) {
+      return
+    }
+    compactChromeRef.current = workspaceSettings.compactChrome
+    setContextDrawerOpen(!workspaceSettings.compactChrome)
+    setLegendTrayOpen(!workspaceSettings.compactChrome)
+  }, [workspaceSettings.compactChrome])
 
   const clearBasemapLoadTimeout = useEffectEvent(() => {
     if (basemapLoadTimeoutRef.current) {
@@ -519,16 +796,83 @@ export const MapRuntimeSurface = forwardRef<MapRuntimeSurfaceHandle, MapRuntimeS
     }
   }, [scene.inspectCards, selectedInspectId])
 
+  useEffect(() => {
+    if (!selectionCommand || selectionCommand.requestId <= 0) {
+      return
+    }
+
+    if (selectionCommand.focusAoiId) {
+      setSelectedFocusAoiId(selectionCommand.focusAoiId)
+    }
+
+    if (
+      selectionCommand.inspectId &&
+      scene.inspectCards.some((card) => card.id === selectionCommand.inspectId)
+    ) {
+      setSelectedInspectId(selectionCommand.inspectId)
+    }
+
+    const helper =
+      (selectionCommand.inspectId ? buildInspectHelper(selectionCommand.inspectId) : null) ??
+      (selectionCommand.focusAoiId ? buildFocusHelper(selectionCommand.focusAoiId) : null)
+    setHoveredHelper(helper)
+
+    if (selectionCommand.openContext !== false && workspaceSettings.autoOpenContextualInspector) {
+      setContextDrawerOpen(true)
+    }
+  }, [
+    scene.inspectCards,
+    selectionCommand,
+    workspaceSettings.autoOpenContextualInspector,
+  ])
+
   const onSignalClick = useEffectEvent((featureId?: string) => {
     if (featureId) {
+      const signal = signalPropertiesById.get(featureId)
       setSelectedInspectId(featureId)
+      if (signal?.aoiId) {
+        setSelectedFocusAoiId(signal.aoiId)
+      }
+      const helper = buildSignalHelper(featureId)
+      if (helper) {
+        setHoveredHelper(helper)
+      }
+      if (workspaceSettings.autoOpenContextualInspector) {
+        setContextDrawerOpen(true)
+      }
     }
   })
 
   const onSurfaceClick = useEffectEvent((aoiId?: string) => {
     if (aoiId) {
       setSelectedFocusAoiId(aoiId)
+      const helper = buildSurfaceHelper(aoiId) ?? buildFocusHelper(aoiId)
+      setHoveredHelper(helper)
+      if (workspaceSettings.autoOpenContextualInspector) {
+        setContextDrawerOpen(true)
+      }
     }
+  })
+
+  const onSignalHover = useEffectEvent((featureId?: string) => {
+    if (!workspaceSettings.hoverHelpers) {
+      return
+    }
+    setHoveredHelper(featureId ? buildSignalHelper(featureId) : null)
+  })
+
+  const onSurfaceHover = useEffectEvent((aoiId?: string) => {
+    if (!workspaceSettings.hoverHelpers) {
+      return
+    }
+    setHoveredHelper(aoiId ? buildSurfaceHelper(aoiId) ?? buildFocusHelper(aoiId) : null)
+  })
+
+  const onClusterHover = useEffectEvent((feature?: MapGeoJSONFeature) => {
+    if (!workspaceSettings.hoverHelpers) {
+      return
+    }
+    setHoveredHelper(feature ? buildClusterHelper(feature) : null)
   })
 
   const requestSurfaceModeChange = useEffectEvent((nextMode: SurfaceMode): void => {
@@ -935,20 +1279,77 @@ export const MapRuntimeSurface = forwardRef<MapRuntimeSurfaceHandle, MapRuntimeS
       map.on('click', 'i1-signal-core', (event) => {
         onSignalClick(selectFeatureId(event.features?.[0]))
       })
+      map.on('click', 'i1-event-marker-core', (event) => {
+        onSignalClick(selectFeatureId(event.features?.[0]))
+      })
+      map.on('click', 'i1-event-clusters', (event) => {
+        const feature = event.features?.[0]
+        const clusterId = selectNumericProperty(feature, 'cluster_id')
+        if (typeof clusterId !== 'number' || !feature) {
+          return
+        }
+        const source = map.getSource('i1-event-markers') as
+          | (GeoJSONSource & {
+              getClusterExpansionZoom?: (
+                clusterId: number,
+                callback: (error: Error | null, zoom: number) => void,
+              ) => void
+            })
+          | undefined
+        source?.getClusterExpansionZoom?.(clusterId, (error, zoom) => {
+          if (error || feature.geometry.type !== 'Point') {
+            return
+          }
+          map.easeTo({
+            center: [feature.geometry.coordinates[0], feature.geometry.coordinates[1]],
+            zoom,
+            duration: workspaceSettings.motionProfile === 'full' ? 540 : 220,
+            essential: true,
+          })
+        })
+      })
       map.on('click', 'i1-surface-fill', (event) => {
         onSurfaceClick(selectAoiId(event.features?.[0]))
       })
       map.on('mouseenter', 'i1-signal-core', () => {
         map.getCanvas().style.cursor = 'pointer'
       })
+      map.on('mouseenter', 'i1-event-marker-core', () => {
+        map.getCanvas().style.cursor = 'pointer'
+      })
+      map.on('mouseenter', 'i1-event-clusters', () => {
+        map.getCanvas().style.cursor = 'pointer'
+      })
+      map.on('mousemove', 'i1-signal-core', (event) => {
+        onSignalHover(selectFeatureId(event.features?.[0]))
+      })
+      map.on('mousemove', 'i1-event-marker-core', (event) => {
+        onSignalHover(selectFeatureId(event.features?.[0]))
+      })
+      map.on('mousemove', 'i1-event-clusters', (event) => {
+        onClusterHover(event.features?.[0])
+      })
       map.on('mouseleave', 'i1-signal-core', () => {
         map.getCanvas().style.cursor = ''
+        onSignalHover(undefined)
+      })
+      map.on('mouseleave', 'i1-event-marker-core', () => {
+        map.getCanvas().style.cursor = ''
+        onSignalHover(undefined)
+      })
+      map.on('mouseleave', 'i1-event-clusters', () => {
+        map.getCanvas().style.cursor = ''
+        onClusterHover(undefined)
       })
       map.on('mouseenter', 'i1-surface-fill', () => {
         map.getCanvas().style.cursor = 'pointer'
       })
+      map.on('mousemove', 'i1-surface-fill', (event) => {
+        onSurfaceHover(selectAoiId(event.features?.[0]))
+      })
       map.on('mouseleave', 'i1-surface-fill', () => {
         map.getCanvas().style.cursor = ''
+        onSurfaceHover(undefined)
       })
       map.on('error', (event) => {
         const message = event.error instanceof Error ? event.error.message : 'Map runtime error'
@@ -1059,7 +1460,7 @@ export const MapRuntimeSurface = forwardRef<MapRuntimeSurfaceHandle, MapRuntimeS
           zoom: 3.4,
           pitch: 24,
           bearing: 0,
-          duration: 900,
+          duration: workspaceSettings.motionProfile === 'full' ? 900 : 280,
           essential: true,
         })
         return
@@ -1079,7 +1480,7 @@ export const MapRuntimeSurface = forwardRef<MapRuntimeSurfaceHandle, MapRuntimeS
     }
 
     map.once('styledata', applyPlanarViewport)
-  }, [planarReady, selectedFocusAoiId, surfaceMode])
+  }, [planarReady, selectedFocusAoiId, surfaceMode, workspaceSettings.motionProfile])
 
   useEffect(() => {
     if (!interactiveSupportedRef.current) {
@@ -1179,6 +1580,9 @@ export const MapRuntimeSurface = forwardRef<MapRuntimeSurfaceHandle, MapRuntimeS
 
   const selectedInspect =
     scene.inspectCards.find((card) => card.id === selectedInspectId) ?? scene.inspectCards[0]
+  const selectedInspectHelper = selectedInspect ? buildInspectHelper(selectedInspect.id) : null
+  const activeHelper = workspaceSettings.hoverHelpers ? hoveredHelper : null
+  const recentEvents = scene.eventTimeline.slice(0, 4)
   const activeBasemapStyle = getMapBasemapStyle(basemapStyleId)
   const basemapStatusLabel =
     basemapState === 'online-live'
@@ -1197,15 +1601,37 @@ export const MapRuntimeSurface = forwardRef<MapRuntimeSurfaceHandle, MapRuntimeS
           ? 'Offline mode keeps the planar surface readable with the local schematic fallback.'
           : 'The current runtime cannot mount the interactive online basemap, so the schematic fallback remains active.'
   const basemapStatusTone = basemapState === 'online-live' ? 'allowed' : 'blocked'
+  const surfaceModeLabel = surfaceMode === 'orbital' ? '3D globe' : '2D situation map'
+  const selectTimelineEntry = (entry: GlobalEventTimelineEntry) => {
+    setSelectedFocusAoiId(entry.aoiId)
+    if (entry.mapEligible && scene.inspectCards.some((card) => card.id === entry.inspectId)) {
+      setSelectedInspectId(entry.inspectId)
+    }
+    setHoveredHelper(
+      (entry.mapEligible ? buildInspectHelper(entry.inspectId) : null) ?? buildFocusHelper(entry.aoiId),
+    )
+    if (workspaceSettings.autoOpenContextualInspector) {
+      setContextDrawerOpen(true)
+    }
+  }
 
   return (
     <section className="map-runtime-shell" data-testid="map-runtime-surface">
-      <div className="map-runtime-toolbar">
-        <div>
-          <h3>{surfaceMode === 'orbital' ? '3D globe' : '2D situation map'}</h3>
+      <div
+        className={`map-runtime-stage ${workspaceSettings.ambientMapEffects ? 'is-ambient' : ''} motion-${workspaceSettings.motionProfile}`}
+      >
+        <div className="map-runtime-headline map-runtime-glass">
+          <div className="card-header compact">
+            <span className="artifact-chip evidence">Map-linked workspace</span>
+            <span>{mode} workflow</span>
+          </div>
+          <h3>{surfaceModeLabel}</h3>
           <p className="map-runtime-copy">{scene.narrative}</p>
+          <p className="status-line">{scene.statusLine}</p>
+          {mapError && <small className="status-line warning">{mapError}</small>}
         </div>
-        <div className="map-runtime-actions">
+
+        <div className="map-runtime-actions" aria-label="Map runtime actions">
           <div className="map-runtime-toggle-group" aria-label="Map surface mode">
             <button
               type="button"
@@ -1259,19 +1685,26 @@ export const MapRuntimeSurface = forwardRef<MapRuntimeSurfaceHandle, MapRuntimeS
           >
             {exportBusy ? 'Exporting 4K...' : 'Export 4K PNG'}
           </button>
-          <span className={degradedBudgetCount > 0 ? 'policy-pill blocked' : 'policy-pill allowed'}>
-            {degradedBudgetCount > 0 ? 'Aggregation mode active' : 'Budget-safe interaction'}
-          </span>
-          <span
-            className={`policy-pill ${basemapStatusTone}`}
-            data-testid="map-runtime-basemap-status"
-          >
-            {basemapStatusLabel}
-          </span>
+          {workspaceSettings.telemetryChips ? (
+            <div className="map-runtime-chip-strip">
+              <span
+                className={degradedBudgetCount > 0 ? 'policy-pill blocked' : 'policy-pill allowed'}
+              >
+                {degradedBudgetCount > 0 ? 'Aggregation mode active' : 'Budget-safe interaction'}
+              </span>
+              <span
+                className={`policy-pill ${basemapStatusTone}`}
+                data-testid="map-runtime-basemap-status"
+              >
+                {basemapStatusLabel}
+              </span>
+              <span className={offline ? 'pill offline' : 'pill online'}>
+                {offline ? 'Cached runtime' : 'Connected runtime'}
+              </span>
+            </div>
+          ) : null}
         </div>
-      </div>
 
-      <div className="map-runtime-stage">
         <div className="map-runtime-focus-strip" aria-label="AOI focus controls">
           {scene.focusOptions.map((option) => (
             <button
@@ -1279,13 +1712,83 @@ export const MapRuntimeSurface = forwardRef<MapRuntimeSurfaceHandle, MapRuntimeS
               type="button"
               className={selectedFocusAoiId === option.aoiId ? 'is-active' : ''}
               aria-pressed={selectedFocusAoiId === option.aoiId}
-              onClick={() => setSelectedFocusAoiId(option.aoiId)}
+              onClick={() => {
+                setSelectedFocusAoiId(option.aoiId)
+                setHoveredHelper(buildFocusHelper(option.aoiId))
+                if (workspaceSettings.autoOpenContextualInspector) {
+                  setContextDrawerOpen(true)
+                }
+              }}
+              onMouseEnter={() => {
+                if (workspaceSettings.hoverHelpers) {
+                  setHoveredHelper(buildFocusHelper(option.aoiId))
+                }
+              }}
+              onMouseLeave={() => {
+                if (workspaceSettings.hoverHelpers) {
+                  setHoveredHelper(null)
+                }
+              }}
+              onFocus={() => {
+                if (workspaceSettings.hoverHelpers) {
+                  setHoveredHelper(buildFocusHelper(option.aoiId))
+                }
+              }}
+              onBlur={() => {
+                if (workspaceSettings.hoverHelpers) {
+                  setHoveredHelper(null)
+                }
+              }}
             >
               <strong>{option.label}</strong>
               <span>{option.subtitle}</span>
             </button>
           ))}
         </div>
+
+        {recentEvents.length > 0 ? (
+          <div className="map-runtime-event-rail map-runtime-glass" data-testid="map-runtime-event-rail">
+            <div className="card-header compact">
+              <span className="artifact-chip context">Global Event Timeline</span>
+              <span>{scene.eventTimeline.length} event(s)</span>
+            </div>
+            <div className="map-runtime-event-rail-list" aria-label="Recent governed events">
+              {recentEvents.map((entry) => (
+                <button
+                  key={entry.eventId}
+                  type="button"
+                  className={selectedInspectId === entry.inspectId ? 'is-active' : ''}
+                  aria-pressed={selectedInspectId === entry.inspectId}
+                  data-testid="map-runtime-event-pill"
+                  onClick={() => selectTimelineEntry(entry)}
+                  onMouseEnter={() => {
+                    if (workspaceSettings.hoverHelpers) {
+                      setHoveredHelper(
+                        (entry.mapEligible ? buildInspectHelper(entry.inspectId) : null) ??
+                          buildFocusHelper(entry.aoiId),
+                      )
+                    }
+                  }}
+                  onMouseLeave={() => {
+                    if (workspaceSettings.hoverHelpers) {
+                      setHoveredHelper(null)
+                    }
+                  }}
+                >
+                  <span className={toneClass(entry.tone)}>
+                    {formatRuntimeCategory(entry.category)}
+                  </span>
+                  <strong>{entry.label}</strong>
+                  <small>
+                    {entry.aoiLabel} | {entry.occurredAtLabel}
+                    {entry.aggregateOnly ? ' | aggregate-only' : ''}
+                    {!entry.mapEligible ? ' | timeline only' : ''}
+                  </small>
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : null}
 
         <div
           className={`map-runtime-canvas ${!interactiveSupportedRef.current ? 'is-fallback' : ''}`}
@@ -1314,7 +1817,23 @@ export const MapRuntimeSurface = forwardRef<MapRuntimeSurfaceHandle, MapRuntimeS
                     left: `${18 + index * 18}%`,
                     top: `${index % 2 === 0 ? 26 : 58}%`,
                   }}
-                  onClick={() => setSelectedFocusAoiId(option.aoiId)}
+                  onClick={() => {
+                    setSelectedFocusAoiId(option.aoiId)
+                    setHoveredHelper(buildFocusHelper(option.aoiId))
+                    if (workspaceSettings.autoOpenContextualInspector) {
+                      setContextDrawerOpen(true)
+                    }
+                  }}
+                  onMouseEnter={() => {
+                    if (workspaceSettings.hoverHelpers) {
+                      setHoveredHelper(buildFocusHelper(option.aoiId))
+                    }
+                  }}
+                  onMouseLeave={() => {
+                    if (workspaceSettings.hoverHelpers) {
+                      setHoveredHelper(null)
+                    }
+                  }}
                 >
                   {option.label}
                 </button>
@@ -1323,19 +1842,35 @@ export const MapRuntimeSurface = forwardRef<MapRuntimeSurfaceHandle, MapRuntimeS
           )}
         </div>
 
-        <div className="map-runtime-overlay">
-          <div className="map-runtime-headline">
+        {activeHelper ? (
+          <aside className="map-runtime-helper-card map-runtime-glass" data-testid="map-runtime-helper-card">
             <div className="card-header compact">
-              <span className="artifact-chip evidence">Map-linked workspace</span>
-              <span>
-                {surfaceMode === 'orbital' ? 'Cesium globe' : 'MapLibre surface'} execution
-              </span>
+              <span className={toneClass(activeHelper.tone)}>{activeHelper.badge}</span>
+              <span>{activeHelper.meta}</span>
             </div>
-            <p>{scene.statusLine}</p>
-            {mapError && <small className="status-line warning">{mapError}</small>}
-          </div>
+            <h4>{activeHelper.label}</h4>
+            <p>{activeHelper.detail}</p>
+            {activeHelper.contextLine ? (
+              <small className="map-runtime-helper-supporting">{activeHelper.contextLine}</small>
+            ) : null}
+          </aside>
+        ) : null}
 
-          <aside className="map-runtime-inspector">
+        <div className={`map-runtime-context-drawer ${contextDrawerOpen ? 'is-open' : 'is-closed'}`}>
+          <button
+            type="button"
+            className="map-runtime-drawer-toggle"
+            aria-expanded={contextDrawerOpen}
+            aria-controls="map-runtime-context-panel"
+            onClick={() => setContextDrawerOpen((previous) => !previous)}
+          >
+            {contextDrawerOpen ? 'Hide contextual map details' : 'Show contextual map details'}
+          </button>
+          <aside
+            id="map-runtime-context-panel"
+            className="map-runtime-inspector"
+            hidden={!contextDrawerOpen}
+          >
             <div className="map-runtime-metrics">
               {scene.metrics.map((metric) => (
                 <article key={metric.label}>
@@ -1346,16 +1881,23 @@ export const MapRuntimeSurface = forwardRef<MapRuntimeSurfaceHandle, MapRuntimeS
               ))}
             </div>
 
-            {selectedInspect && (
+            {selectedInspect && selectedInspectHelper ? (
               <article className="map-runtime-detail-card">
                 <div className="card-header compact">
-                  <span className={toneClass(selectedInspect.tone)}>{selectedInspect.category}</span>
-                  <span>{selectedInspect.aoiId}</span>
+                  <span className={toneClass(selectedInspect.tone)}>
+                    {formatRuntimeCategory(selectedInspect.category)}
+                  </span>
+                  <span>{selectedInspectHelper.meta}</span>
                 </div>
                 <h4>{selectedInspect.label}</h4>
                 <p>{selectedInspect.detail}</p>
+                {selectedInspectHelper.contextLine ? (
+                  <small className="map-runtime-helper-supporting">
+                    {selectedInspectHelper.contextLine}
+                  </small>
+                ) : null}
               </article>
-            )}
+            ) : null}
 
             <div className="map-runtime-inspect-list" aria-label="Map inspect targets">
               {scene.inspectCards.map((card) => (
@@ -1367,9 +1909,36 @@ export const MapRuntimeSurface = forwardRef<MapRuntimeSurfaceHandle, MapRuntimeS
                   onClick={() => {
                     setSelectedInspectId(card.id)
                     setSelectedFocusAoiId(card.aoiId)
+                    const helper = buildInspectHelper(card.id)
+                    if (helper) {
+                      setHoveredHelper(helper)
+                    }
+                    if (workspaceSettings.autoOpenContextualInspector) {
+                      setContextDrawerOpen(true)
+                    }
+                  }}
+                  onMouseEnter={() => {
+                    if (workspaceSettings.hoverHelpers) {
+                      setHoveredHelper(buildInspectHelper(card.id))
+                    }
+                  }}
+                  onMouseLeave={() => {
+                    if (workspaceSettings.hoverHelpers) {
+                      setHoveredHelper(null)
+                    }
+                  }}
+                  onFocus={() => {
+                    if (workspaceSettings.hoverHelpers) {
+                      setHoveredHelper(buildInspectHelper(card.id))
+                    }
+                  }}
+                  onBlur={() => {
+                    if (workspaceSettings.hoverHelpers) {
+                      setHoveredHelper(null)
+                    }
                   }}
                 >
-                  <span className={toneClass(card.tone)}>{card.category}</span>
+                  <span className={toneClass(card.tone)}>{formatRuntimeCategory(card.category)}</span>
                   <strong>{card.label}</strong>
                   <small>{card.aoiId}</small>
                 </button>
@@ -1377,51 +1946,82 @@ export const MapRuntimeSurface = forwardRef<MapRuntimeSurfaceHandle, MapRuntimeS
             </div>
           </aside>
         </div>
-      </div>
 
-      <div className="map-runtime-footer">
-        <div className="legend-row" aria-label="Map runtime legend">
-          {scene.legend.map((item) => (
+        <div className={`map-runtime-legend-tray ${legendTrayOpen ? 'is-open' : 'is-closed'}`}>
+          <div className="map-runtime-stage-footer map-runtime-glass">
+            <div className="map-runtime-stage-footer-copy">
+              <p className="status-line" data-testid="map-runtime-provenance-strip">
+                Marking {marking} | Visible governed layers {visibleLayerCount} | Bundle-linked
+                export policy enforced
+              </p>
+              <p className="status-line">{basemapStatusDetail}</p>
+              {exportBlockedReason && <p className="status-line warning">{exportBlockedReason}</p>}
+              {latestExportArtifactId && !exportBlockedReason && (
+                <p className="status-line">Last 4K export: {latestExportArtifactId}</p>
+              )}
+            </div>
             <button
-              key={item.id}
               type="button"
-              className={toneClass(item.tone)}
-              aria-pressed={selectedInspect?.label === item.label}
-              onClick={() => {
-                const inspectTarget = scene.inspectCards.find((card) => card.label === item.label)
-                if (inspectTarget) {
-                  setSelectedInspectId(inspectTarget.id)
-                  setSelectedFocusAoiId(inspectTarget.aoiId)
-                }
-              }}
-              title={item.detail}
+              className="map-runtime-tray-toggle"
+              aria-expanded={legendTrayOpen}
+              aria-controls="map-runtime-legend-panel"
+              onClick={() => setLegendTrayOpen((previous) => !previous)}
             >
-              {item.label}
+              {legendTrayOpen ? 'Hide legend and provenance' : 'Show legend and provenance'}
             </button>
-          ))}
+          </div>
+          <div id="map-runtime-legend-panel" className="map-runtime-footer" hidden={!legendTrayOpen}>
+            <div className="legend-row" aria-label="Map runtime legend">
+              {scene.legend.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  className={toneClass(item.tone)}
+                  aria-pressed={selectedInspect?.label === item.label}
+                  onClick={() => {
+                    const inspectTarget = inspectCardByLabel.get(item.label)
+                    if (inspectTarget) {
+                      setSelectedInspectId(inspectTarget.id)
+                      setSelectedFocusAoiId(inspectTarget.aoiId)
+                    }
+                    if (workspaceSettings.autoOpenContextualInspector) {
+                      setContextDrawerOpen(true)
+                    }
+                    if (workspaceSettings.hoverHelpers) {
+                      setHoveredHelper(buildLegendHelper(item.id))
+                    }
+                  }}
+                  onMouseEnter={() => {
+                    if (workspaceSettings.hoverHelpers) {
+                      setHoveredHelper(buildLegendHelper(item.id))
+                    }
+                  }}
+                  onMouseLeave={() => {
+                    if (workspaceSettings.hoverHelpers) {
+                      setHoveredHelper(null)
+                    }
+                  }}
+                  title={item.detail}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+            <p className="status-line" aria-label="Tone palette semantics">
+              Tone palette:{' '}
+              {(['evidence', 'context', 'model', 'ai', 'alert', 'support'] as const).map((tone) => (
+                <span key={tone} className="map-runtime-tone-key" data-testid="map-runtime-tone-key">
+                  <span
+                    className="map-runtime-tone-dot"
+                    style={{ backgroundColor: runtimeToneColor(tone) }}
+                    aria-hidden="true"
+                  />
+                  <span className="map-runtime-tone-label">{tone}</span>
+                </span>
+              ))}
+            </p>
+          </div>
         </div>
-        <p className="status-line" data-testid="map-runtime-provenance-strip">
-          Marking {marking} | Visible governed layers {visibleLayerCount} | Bundle-linked export
-          policy enforced
-        </p>
-        <p className="status-line">{basemapStatusDetail}</p>
-        <p className="status-line" aria-label="Tone palette semantics">
-          Tone palette:{' '}
-          {(['evidence', 'context', 'model', 'ai', 'alert', 'support'] as const).map((tone) => (
-            <span key={tone} className="map-runtime-tone-key" data-testid="map-runtime-tone-key">
-              <span
-                className="map-runtime-tone-dot"
-                style={{ backgroundColor: runtimeToneColor(tone) }}
-                aria-hidden="true"
-              />
-              <span className="map-runtime-tone-label">{tone}</span>
-            </span>
-          ))}
-        </p>
-        {exportBlockedReason && <p className="status-line warning">{exportBlockedReason}</p>}
-        {latestExportArtifactId && !exportBlockedReason && (
-          <p className="status-line">Last 4K export: {latestExportArtifactId}</p>
-        )}
       </div>
     </section>
   )

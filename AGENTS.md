@@ -105,37 +105,43 @@ Do not implement:
 ## Built-in Visual Debugger (WP-GOV-DEBUGGER-001)
 
 - Agents can capture a snapshot of the current workbench surface for visual debugging and QA.
-- **Hotkey**: `Ctrl + Shift + S` — saves to `snapshots/manual/` under app data.
-- **JS global**: `window.__stratatlasRequestSnapshot(subfolder?, label?)` — returns absolute file path to saved PNG.
+- **Hotkey**: `Ctrl + Shift + S` - saves to `snapshots/manual/` under app data.
+- **JS global**: `window.__stratatlasRequestSnapshot(subfolder?, label?)` - returns absolute file path to saved PNG.
 - Snapshots saved to `<app_data>/stratatlas/snapshots/<subfolder>/<label>_<timestamp>.png`.
 
-## Headless Agent Bridge (WP-GOV-BRIDGE-001)
+## Headless Agent Bridge (WP-GOV-BRIDGE-001 / WP-GOV-BRIDGE-002)
 
-- Localhost-only HTTP API so agents can navigate and capture without focus stealing.
+- Localhost-only HTTP API so agents can navigate, invoke approved named actions, and capture without focus stealing.
 - Port written to `<app_data>/stratatlas/agent_bridge_port.txt` on startup.
 - Endpoints:
-  - `GET /agent/health` — liveness check
-  - `GET /agent/state` — current panel
-  - `POST /agent/navigate` — `{"panel":"..."}` switch panel
-  - `POST /agent/snapshot` — `{"subfolder":"...","label":"..."}` capture snapshot, blocks up to 30s
+  - `GET /agent/health` - liveness check
+  - `GET /agent/state` - current panel
+  - `POST /agent/navigate` - `{"panel":"..."}` switch panel
+  - `POST /agent/action` - `{"action":"probe-local-runtime","timeoutMs":120000}` invoke an approved named workflow and wait for structured completion
+  - `POST /agent/snapshot` - `{"subfolder":"...","label":"..."}` capture snapshot, blocks up to 30s
+- JS globals:
+  - `window.__stratatlasNavigate(panel)` - navigate inside the running WebView
+  - `window.__stratatlasInvokeAgentAction(action, payload?)` - invoke an approved named action inside the running WebView
+  - `window.__stratatlasRequestSnapshot(subfolder?, label?)` - capture a governed snapshot inside the running WebView
 
 ### When to use the bridge and visual debugger
 
-- **After any UI implementation work**: capture a snapshot of every affected panel to visually verify the change landed correctly. Do not rely only on build-passes — visual confirmation catches layout breaks, missing elements, and state bugs that compilation misses.
+- **After any UI implementation work**: capture a snapshot of every affected panel to visually verify the change landed correctly. Do not rely only on build-passes - visual confirmation catches layout breaks, missing elements, and state bugs that compilation misses.
 - **During UX audits or smoke passes**: navigate all panels and capture labeled snapshots in one batch. Use a descriptive subfolder (e.g. `audit_2026-04-09`, `WP-I1-014`).
 - **Before closing a WP**: capture evidence snapshots for the proof artifact bundle. Link snapshot paths in the WP evidence section.
 - **When debugging reported issues**: capture a baseline snapshot, make the fix, then capture an after snapshot to confirm the fix visually.
-- **Bridge discovery**: read the port file at `<app_data>/stratatlas/agent_bridge_port.txt`, verify health with `GET /agent/health`, then use navigate + snapshot.
-- **Never use keyboard/mouse simulation** (PowerShell keybd_event, SendKeys, etc.) to interact with the app — always use the headless bridge HTTP API instead.
+- **When a live proof depends on pressing a real UI control**: use `POST /agent/action` for the approved named workflow instead of seeding recorder state or simulating clicks.
+- **Bridge discovery**: read the port file at `<app_data>/stratatlas/agent_bridge_port.txt`, verify health with `GET /agent/health`, then use navigate + action + snapshot as needed.
+- **Never use keyboard/mouse simulation** (PowerShell keybd_event, SendKeys, etc.) to interact with the app - always use the headless bridge HTTP API instead.
 
 ### Example workflow (from agent script or terminal)
 
 ```bash
-PORT=$(cat "$APPDATA/com.stratatlas.dev/stratatlas/agent_bridge_port.txt")
+PORT=$(cat "$APPDATA/com.stratatlas.desktop/stratatlas/agent_bridge_port.txt")
 curl -s http://127.0.0.1:$PORT/agent/health
-curl -s -X POST http://127.0.0.1:$PORT/agent/navigate -d '{"panel":"map"}'
-sleep 3
-curl -s -X POST http://127.0.0.1:$PORT/agent/snapshot -d '{"subfolder":"WP-I1-014","label":"map_after_fix"}'
+curl -s -X POST http://127.0.0.1:$PORT/agent/navigate -d '{"panel":"settings"}'
+curl -s -X POST http://127.0.0.1:$PORT/agent/action -d '{"action":"probe-local-runtime","timeoutMs":120000}'
+curl -s -X POST http://127.0.0.1:$PORT/agent/snapshot -d '{"subfolder":"WP-GOV-BRIDGE-002","label":"settings_after_probe"}'
 ```
 
 ## 7) Always-Maintained Sentiment

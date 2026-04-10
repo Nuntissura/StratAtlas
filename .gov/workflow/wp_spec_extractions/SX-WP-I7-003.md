@@ -6,7 +6,7 @@ Linked Test Suite: .gov/workflow/wp_test_suites/TS-WP-I7-003.md
 Linked WP Check Script: .gov/workflow/wp_checks/check-WP-I7-003.ps1
 Packet Class Snapshot: IMPLEMENTATION
 Workflow Version Snapshot: 4.0
-WP Status Snapshot: IN-PROGRESS
+WP Status Snapshot: IMPLEMENTED
 Iteration: I7
 
 ## Scope
@@ -23,7 +23,7 @@ Concrete extraction of requirement and primitive obligations this WP must satisf
 
 ## Change Ledger Snapshot
 
-- What Became Real: pending implementation.
+- What Became Real: the live shell now derives a deterministic global event timeline from restored deviation, aggregate-alert, and OSINT event artifacts; renders zoom-aware event markers and clusters in the real map runtime; exposes a tray timeline plus in-map recent-event rail; and lets the governed bridge reopen a real bundle and focus a selected global event into the map/runtime inspector flow.
 - What Remains Simulated: browser/jsdom remains a non-desktop proof environment; no packet-specific runtime fallback is approved beyond that.
 - Next Blocking Real Seam: `WP-I7-004` must add the broader geopolitical baseline dataset and "what's happening now" first-launch context after this event-story seam exists.
 
@@ -41,7 +41,7 @@ Concrete extraction of requirement and primitive obligations this WP must satisf
 | Primitive | Name | Contract | REQs | First Iter | Status |
 |-----------|------|----------|------|------------|--------|
 | PRIM-0045 | Dual Surface Geospatial Runtime | Deliver governed 2D and 3D canvas surfaces with mode-aware layer orchestration, labeling contracts, and stable shell integration | REQ-0011, REQ-0012, REQ-0014, REQ-0015, REQ-0016, REQ-0200, REQ-0201, REQ-0202, REQ-0203, REQ-0206, REQ-0207, REQ-0208, REQ-0209, REQ-0210, REQ-0211, REQ-0212 | I1 | E2E-VERIFIED |
-| PRIM-0076 | Context Event Timeline Projection | Materialize already-governed deviation and OSINT artifacts into a deterministic analyst timeline and zoom-aware map event-marker layer with explicit source, cadence, confidence, and AOI-link semantics | REQ-0804, REQ-0805, REQ-0808, REQ-0809 | I7 | IN-PROGRESS |
+| PRIM-0076 | Context Event Timeline Projection | Materialize already-governed deviation and OSINT artifacts into a deterministic analyst timeline and zoom-aware map event-marker layer with explicit source, cadence, confidence, and AOI-link semantics | REQ-0804, REQ-0805, REQ-0808, REQ-0809 | I7 | IMPLEMENTED |
 
 ## Traceability Hooks
 

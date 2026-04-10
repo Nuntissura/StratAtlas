@@ -18,7 +18,7 @@ This file defines default AI coding-agent behavior for the StratAtlas repository
 3. `.gov/Spec/PRIMITIVES_INDEX.md` and `.gov/Spec/PRIMITIVES_MATRIX.md`
 4. Active Work Packet in `.gov/workflow/work_packets/` + linked suite in `.gov/workflow/wp_test_suites/`
 5. Linked extraction/check artifacts in `.gov/workflow/wp_spec_extractions/` and `.gov/workflow/wp_checks/`
-5. `.product/` implementation details
+6. `.product/` implementation details
 
 If implementation and governance diverge, pause and reconcile governance first.
 
@@ -89,10 +89,12 @@ If a requested change is ambiguous, high-risk, or conflicts with governance cons
 
 ## 9A) Visual Feedback and Headless Bridge Usage
 
-- After implementing UI changes, the agent SHOULD use the headless agent bridge to capture visual snapshots of affected panels and verify the change visually — not just rely on build-passes.
-- When the app is running, discover the bridge port from `<app_data>/stratatlas/agent_bridge_port.txt` and use `GET /agent/health` to confirm connectivity before issuing navigate/snapshot commands.
-- Never use keyboard/mouse simulation (PowerShell SendKeys, keybd_event, etc.) to interact with the app. Always use the HTTP bridge endpoints instead.
-- When preparing WP evidence, include visual snapshot paths from the bridge in the proof artifact set.
+- After implementing UI changes or debugging a live desktop flow, the agent MUST prefer the built-in visual debugger plus headless bridge over manual keyboard/mouse simulation.
+- When the app is running, discover the bridge port from `<app_data>/stratatlas/agent_bridge_port.txt` and use `GET /agent/health` to confirm connectivity before issuing bridge commands.
+- Use `POST /agent/navigate` for panel changes, `POST /agent/action` for approved named workflows such as `probe-local-runtime`, and `POST /agent/snapshot` for visual proof capture.
+- If the bridge can exercise the real workflow, do not fall back to seeded recorder-state screenshots as the default proof path.
+- Never use keyboard/mouse simulation (PowerShell SendKeys, keybd_event, etc.) to interact with the app. Always use the HTTP bridge endpoints or the JS globals inside the WebView instead.
+- When preparing WP evidence, include visual snapshot paths from the bridge/debugger in the proof artifact set.
 - See `AGENTS.md` for endpoint reference, example workflows, and when-to-use guidance.
 
 ## 10) Done Standard and Status Integrity

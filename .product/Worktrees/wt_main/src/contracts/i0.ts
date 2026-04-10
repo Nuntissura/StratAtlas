@@ -22,6 +22,20 @@ export type UserRole = 'viewer' | 'analyst' | 'administrator' | 'auditor'
 
 export type SensitivityMarking = 'PUBLIC' | 'INTERNAL' | 'RESTRICTED'
 
+export type WorkspaceMotionProfile = 'full' | 'reduced'
+
+export type WorkspaceLiveDataMode = 'live_when_available' | 'cached_only'
+
+export interface WorkspaceUiSettings {
+  compactChrome: boolean
+  hoverHelpers: boolean
+  autoOpenContextualInspector: boolean
+  motionProfile: WorkspaceMotionProfile
+  telemetryChips: boolean
+  ambientMapEffects: boolean
+  liveDataMode: WorkspaceLiveDataMode
+}
+
 export interface ProvenanceRef {
   source: string
   license: string
@@ -92,6 +106,7 @@ export interface WorkspaceStateSnapshot {
   workflowMode: UiMode
   note: string
   activeLayers: string[]
+  settings?: WorkspaceUiSettings
   basemapStyleId?: MapBasemapStyleId
   layerFamilyVisibility?: Record<string, boolean>
   layerFamilyExpanded?: Record<string, boolean>

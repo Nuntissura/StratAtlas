@@ -1,8 +1,8 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
-import type { QueryStateSnapshot } from './contracts/i0'
+import type { QueryStateSnapshot, RecorderState } from './contracts/i0'
 import {
   DEFAULT_COLLABORATION_ARTIFACT_ID,
   createCollaborationSnapshot,
@@ -176,6 +176,15 @@ const buildStoredQueryState = ({
 
 const buildStoredAiSnapshot = (): AiGatewaySnapshot => ({
   deploymentProfile: 'restricted',
+  providerSelection: 'local_model',
+  localProviderConfig: {
+    runtimeProfile: 'lmstudio_cli',
+    modelIdentifier: 'lmstudio-community/gemma-4-31b-it',
+    executablePath: '',
+    argsJson: '',
+    modelPath: '',
+    workdir: '',
+  },
   latestAnalysis: {
     artifactId: 'ai-interpretation-hydrated',
     bundleId: 'bundle-hydrated',
@@ -213,6 +222,17 @@ const buildStoredAiSnapshot = (): AiGatewaySnapshot => ({
     ],
     invokedAt: '2026-03-06T00:26:00.000Z',
     resultPreview: 'Hydrated MCP summary',
+  },
+  latestLocalRuntimeProbe: {
+    providerId: 'local_model',
+    runtime: 'tauri-live',
+    providerLabel: 'LM Studio CLI',
+    model: 'google/gemma-4-26b-a4b',
+    outcome: 'success',
+    detail: 'LM Studio CLI executed a governed local runtime probe successfully.',
+    outputText: 'READY_LOCAL_OK',
+    durationMs: 864,
+    probedAt: '2026-04-09T20:45:00.000Z',
   },
 })
 
@@ -348,6 +368,68 @@ const buildStoredGameModelSnapshot = () => {
   })
 }
 
+const buildHydratedRecorderState = (): RecorderState => ({
+  workspace: {
+    mode: 'Offline (forced)',
+    workflowMode: 'replay',
+    note: 'Hydrated note',
+    activeLayers: ['base-map'],
+    replayCursor: 64,
+    forcedOffline: true,
+    uiVersion: 'i0-recorder-hardening',
+  },
+  query: buildStoredQueryState({
+    version: 4,
+    speedThreshold: 28,
+    activeContextDomainIds: ['ctx-1'],
+  }),
+  context: buildStoredContextSnapshot({
+    domains: [
+      {
+        domain_id: 'ctx-1',
+        domain_name: 'Port Throughput',
+        domain_class: 'economic_indicator',
+        source_name: 'UNCTAD',
+        source_url: 'https://example.test/context',
+        license: 'public',
+        update_cadence: 'monthly',
+        spatial_binding: 'aoi_correlated',
+        temporal_resolution: 'monthly',
+        sensitivity_class: 'PUBLIC',
+        confidence_baseline: 'A',
+        methodology_notes: 'Official aggregation',
+        offline_behavior: 'pre_cacheable',
+        presentation_type: 'map_overlay',
+        prohibited_uses: ['MUST NOT be used for individual entity tracking'],
+      },
+    ],
+    activeDomainIds: ['ctx-1'],
+    correlationAoi: 'aoi-7',
+  }),
+  compare: {
+    baselineWindow: {
+      start: '2026-Q1 baseline',
+      end: '2026-Q1 baseline',
+      label: '2026-Q1 baseline',
+    },
+    eventWindow: {
+      start: '2026-Q2 event',
+      end: '2026-Q2 event',
+      label: '2026-Q2 event',
+    },
+    baselineSeries: [4, 5, 6],
+    eventSeries: [6, 7, 9],
+  },
+  collaboration: buildStoredCollaborationSnapshot('Hydrated shared note', 'zoom-6'),
+  scenario: buildStoredScenarioSnapshot(),
+  ai: buildStoredAiSnapshot(),
+  deviation: buildStoredDeviationSnapshot(),
+  osint: buildStoredOsintSnapshot(),
+  gameModel: buildStoredGameModelSnapshot(),
+  selectedBundleId: undefined,
+  savedAt: '2026-03-06T00:00:00.000Z',
+})
+
 const openLeftPanelTab = async (user: ReturnType<typeof userEvent.setup>, name: string) => {
   await user.click(
     within(screen.getByTestId('region-left-panel')).getByRole('button', { name }),
@@ -379,9 +461,36 @@ const revealFullWorkbenchIfAvailable = async (user: ReturnType<typeof userEvent.
   }
 }
 
+const openWorkspaceSettings = async (user: ReturnType<typeof userEvent.setup>) => {
+  await user.click(screen.getByRole('button', { name: 'Open workspace settings' }))
+  return screen.findByTestId('workspace-settings-menu')
+}
+
+const openAssistantControls = async (user: ReturnType<typeof userEvent.setup>) => {
+  const disclosure =
+    screen.queryByRole('button', { name: 'Show assistant controls' }) ??
+    screen.queryByRole('button', { name: 'Hide assistant controls' })
+  if (disclosure?.getAttribute('aria-expanded') !== 'true') {
+    await user.click(screen.getByRole('button', { name: 'Show assistant controls' }))
+  }
+}
+
+const openScenarioAdvancedModeling = async (user: ReturnType<typeof userEvent.setup>) => {
+  const disclosure =
+    screen.queryByRole('button', { name: 'Show advanced modeling' }) ??
+    screen.queryByRole('button', { name: 'Hide advanced modeling' })
+  if (disclosure?.getAttribute('aria-expanded') !== 'true') {
+    await user.click(screen.getByRole('button', { name: 'Show advanced modeling' }))
+  }
+}
+
 describe('App', () => {
   beforeEach(() => {
     localStorage.clear()
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
   })
 
   it('creates a bundle through the I0 shell flow', async () => {
@@ -473,11 +582,15 @@ describe('App', () => {
       expect(screen.getByText(/Active context domains: \d+ \| Correlation AOI: aoi-7/)).toBeInTheDocument()
       expect(screen.getByText('OFFLINE')).toBeInTheDocument()
       await openLeftPanelTab(user, 'Assistant')
+      expect(screen.getByTestId('assistant-advanced-controls')).toHaveAttribute('hidden')
+      await openAssistantControls(user)
       expect(screen.getByLabelText('Deployment Profile')).toHaveValue('restricted')
       expect(within(screen.getByTestId('ai-analysis-card')).getByText('Hydrated AI summary')).toBeInTheDocument()
       expect(
         within(screen.getByTestId('mcp-result-card')).getAllByText('Hydrated MCP summary').length,
       ).toBeGreaterThan(0)
+      expect(within(screen.getByTestId('assistant-probe-status')).getByText('READY_LOCAL_OK')).toBeInTheDocument()
+      expect(within(screen.getByTestId('assistant-probe-status')).getByText(/Probe succeeded/)).toBeInTheDocument()
       await openRightPanelTab(user, 'Monitor')
       expect(within(screen.getByTestId('osint-alert-card')).getByText(/Aggregate-only alert for aoi-7/)).toBeInTheDocument()
       expect(within(screen.getByTestId('osint-event-card')).getByText('ACLED')).toBeInTheDocument()
@@ -558,22 +671,29 @@ describe('App', () => {
   })
 
   it('exposes pressed-state and non-color semantics on the live map runtime', async () => {
+    const user = userEvent.setup()
     render(<App />)
 
     const surface = await screen.findByTestId('map-runtime-surface')
     const focusControls = within(surface).getByLabelText('AOI focus controls')
-    const inspectTargets = within(surface).getByLabelText('Map inspect targets')
 
     expect(
       within(focusControls)
         .getAllByRole('button')
         .every((button) => button.hasAttribute('aria-pressed')),
     ).toBe(true)
+    await user.click(
+      within(surface).getByRole('button', { name: 'Show contextual map details' }),
+    )
+    const inspectTargets = within(surface).getByLabelText('Map inspect targets')
     expect(
       within(inspectTargets)
         .getAllByRole('button')
         .every((button) => button.hasAttribute('aria-pressed')),
     ).toBe(true)
+    await user.click(
+      within(surface).getByRole('button', { name: 'Show legend and provenance' }),
+    )
     expect(within(surface).getByLabelText('Tone palette semantics')).toBeInTheDocument()
     expect(within(surface).getAllByTestId('map-runtime-tone-key')).toHaveLength(6)
     expect(within(surface).getByTestId('map-runtime-provenance-strip')).toHaveTextContent(
@@ -637,6 +757,327 @@ describe('App', () => {
     ).toBeInTheDocument()
   })
 
+  it('surfaces hover helpers and opens contextual details from the map runtime', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    const surface = await screen.findByTestId('map-runtime-surface')
+    const focusControls = within(surface).getByLabelText('AOI focus controls')
+    const singaporeFocus = within(focusControls).getByRole('button', { name: /Singapore Strait/i })
+
+    await user.hover(singaporeFocus)
+    expect(await within(surface).findByTestId('map-runtime-helper-card')).toHaveTextContent(
+      'Singapore Strait',
+    )
+
+    await user.unhover(singaporeFocus)
+    await waitFor(() =>
+      expect(within(surface).queryByTestId('map-runtime-helper-card')).not.toBeInTheDocument(),
+    )
+
+    await user.click(singaporeFocus)
+    expect(
+      within(surface).getByRole('button', { name: 'Hide contextual map details' }),
+    ).toHaveAttribute('aria-expanded', 'true')
+    expect(within(surface).getByLabelText('Map inspect targets')).toBeInTheDocument()
+  })
+
+  it('shows the global event timeline in the tray and can focus the map from a timeline entry', async () => {
+    const user = userEvent.setup()
+    await backend.saveRecorderState({
+      role: 'analyst',
+      state: buildHydratedRecorderState(),
+    })
+
+    render(<App />)
+
+    await openBottomTrayTab(user, 'Timeline')
+
+    const timelinePanel = await screen.findByTestId('timeline-panel')
+    const timelineCards = within(timelinePanel).getAllByTestId('timeline-event-card')
+    expect(timelineCards.length).toBeGreaterThan(0)
+    expect(timelineCards[0]).toHaveTextContent('Aggregate alert')
+    expect(timelineCards[0]).toHaveTextContent('Aggregate-only AOI context')
+
+    await user.click(within(timelineCards[0]).getByRole('button', { name: 'Focus on map' }))
+
+    const surface = await screen.findByTestId('map-runtime-surface')
+    expect(
+      within(surface).getByRole('button', { name: 'Hide contextual map details' }),
+    ).toHaveAttribute('aria-expanded', 'true')
+    expect(within(surface).getAllByText(/Aggregate-only alert for aoi-7/).length).toBeGreaterThan(0)
+  })
+
+  it('persists workspace settings and restores the governed shell behavior', async () => {
+    const user = userEvent.setup()
+    const firstRender = render(<App />)
+
+    const settingsMenu = await openWorkspaceSettings(user)
+    await user.click(within(settingsMenu).getByRole('checkbox', { name: 'Compact map chrome' }))
+    await user.click(within(settingsMenu).getByRole('checkbox', { name: 'Telemetry chips' }))
+    await user.selectOptions(within(settingsMenu).getByLabelText('Motion profile'), 'reduced')
+    await user.selectOptions(within(settingsMenu).getByLabelText('Live refresh policy'), 'cached_only')
+    await user.selectOptions(within(settingsMenu).getByLabelText('Deployment profile'), 'restricted')
+    await user.selectOptions(within(settingsMenu).getByLabelText('AI provider'), 'local_model')
+    await user.selectOptions(within(settingsMenu).getByLabelText('Local runtime'), 'lmstudio_cli')
+    fireEvent.change(within(settingsMenu).getByLabelText('Preferred local model key'), {
+      target: { value: 'lmstudio-community/gemma-4-31b-it' },
+    })
+
+    await revealFullWorkbenchIfAvailable(user)
+
+    await waitFor(async () => {
+      const restored = await backend.loadRecorderState()
+      expect(restored.state?.workspace.settings).toMatchObject({
+        compactChrome: false,
+        telemetryChips: false,
+        motionProfile: 'reduced',
+        liveDataMode: 'cached_only',
+      })
+      expect(restored.state?.ai?.deploymentProfile).toBe('restricted')
+      expect(restored.state?.ai?.providerSelection).toBe('local_model')
+      expect(restored.state?.ai?.localProviderConfig).toMatchObject({
+        runtimeProfile: 'lmstudio_cli',
+        modelIdentifier: 'lmstudio-community/gemma-4-31b-it',
+      })
+    })
+
+    firstRender.unmount()
+
+    const secondUser = userEvent.setup()
+    render(<App />)
+
+    await revealFullWorkbenchIfAvailable(secondUser)
+    await openWorkspaceSettings(secondUser)
+
+    expect(screen.getByRole('checkbox', { name: 'Compact map chrome' })).not.toBeChecked()
+    expect(screen.getByRole('checkbox', { name: 'Telemetry chips' })).not.toBeChecked()
+    expect(screen.getByLabelText('Motion profile')).toHaveValue('reduced')
+    expect(screen.getByLabelText('Live refresh policy')).toHaveValue('cached_only')
+    expect(screen.getByLabelText('Deployment profile')).toHaveValue('restricted')
+    expect(screen.getByLabelText('AI provider')).toHaveValue('local_model')
+    expect(screen.getByLabelText('Local runtime')).toHaveValue('lmstudio_cli')
+    expect(screen.getByLabelText('Preferred local model key')).toHaveValue(
+      'lmstudio-community/gemma-4-31b-it',
+    )
+    expect(screen.getByRole('button', { name: 'Collapse Inspector' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Collapse Tray' })).toBeInTheDocument()
+  }, 15000)
+
+  it('runs a local runtime probe from settings and persists the latest result into the assistant surface', async () => {
+    const user = userEvent.setup()
+    const probeSpy = vi.spyOn(backend, 'probeLocalAiRuntime').mockResolvedValue({
+      providerId: 'local_model',
+      runtime: 'tauri-live',
+      providerLabel: 'LM Studio CLI',
+      model: 'google/gemma-4-26b-a4b',
+      outcome: 'success',
+      detail: 'LM Studio CLI executed a governed local runtime probe successfully.',
+      outputText: 'READY_LOCAL_OK',
+      durationMs: 913,
+      probedAt: '2026-04-09T21:10:00.000Z',
+    })
+
+    render(<App />)
+    await revealFullWorkbenchIfAvailable(user)
+
+    const settingsMenu = await openWorkspaceSettings(user)
+    const probeCard = within(settingsMenu).getByTestId('local-runtime-probe-card')
+
+    expect(probeCard).toHaveTextContent('Not probed yet.')
+
+    await user.click(within(probeCard).getByRole('button', { name: 'Probe local runtime' }))
+
+    expect(await within(probeCard).findByText('READY_LOCAL_OK')).toBeInTheDocument()
+    expect(probeSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        deploymentProfile: 'connected',
+        localProviderConfig: expect.objectContaining({
+          runtimeProfile: 'auto_detect',
+        }),
+      }),
+    )
+
+    await waitFor(async () => {
+      const restored = await backend.loadRecorderState()
+      expect(restored.state?.ai?.latestLocalRuntimeProbe).toMatchObject({
+        providerId: 'local_model',
+        runtime: 'tauri-live',
+        model: 'google/gemma-4-26b-a4b',
+        outcome: 'success',
+        outputText: 'READY_LOCAL_OK',
+      })
+    })
+
+    await openLeftPanelTab(user, 'Assistant')
+    const assistantProbe = await screen.findByTestId('assistant-probe-status')
+    expect(within(assistantProbe).getByText('READY_LOCAL_OK')).toBeInTheDocument()
+    expect(within(assistantProbe).getByText(/Probe succeeded/)).toBeInTheDocument()
+  })
+
+  it('exposes a governed agent action hook for the local runtime probe without seeded state', async () => {
+    const user = userEvent.setup()
+    const probeSpy = vi.spyOn(backend, 'probeLocalAiRuntime').mockResolvedValue({
+      providerId: 'local_model',
+      runtime: 'tauri-live',
+      providerLabel: 'LM Studio CLI',
+      model: 'google/gemma-4-26b-a4b',
+      outcome: 'success',
+      detail: 'Agent bridge executed the governed local runtime probe successfully.',
+      outputText: 'READY_AGENT_ACTION',
+      durationMs: 841,
+      probedAt: '2026-04-09T21:40:00.000Z',
+    })
+
+    render(<App />)
+    await revealFullWorkbenchIfAvailable(user)
+
+    expect(window.__stratatlasInvokeAgentAction).toBeTypeOf('function')
+
+    let bridgeResult: unknown
+    await act(async () => {
+      bridgeResult = await window.__stratatlasInvokeAgentAction?.('probe-local-runtime', {
+        runtimeProfile: 'lmstudio_cli',
+        modelIdentifier: 'google/gemma-4-26b-a4b',
+      })
+    })
+    expect(bridgeResult).toMatchObject({
+      runtime: 'tauri-live',
+      outcome: 'success',
+      outputText: 'READY_AGENT_ACTION',
+    })
+
+    expect(probeSpy).toHaveBeenCalledTimes(1)
+    expect(probeSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        localProviderConfig: expect.objectContaining({
+          runtimeProfile: 'lmstudio_cli',
+          modelIdentifier: 'google/gemma-4-26b-a4b',
+        }),
+      }),
+    )
+
+    await openWorkspaceSettings(user)
+    const probeCard = await screen.findByTestId('local-runtime-probe-card')
+    expect(within(probeCard).getByText('READY_AGENT_ACTION')).toBeInTheDocument()
+    expect(screen.getByLabelText('Local runtime')).toHaveValue('lmstudio_cli')
+    expect(screen.getByLabelText('Preferred local model key')).toHaveValue(
+      'google/gemma-4-26b-a4b',
+    )
+
+    await openLeftPanelTab(user, 'Assistant')
+    const assistantProbe = await screen.findByTestId('assistant-probe-status')
+    expect(within(assistantProbe).getByText('READY_AGENT_ACTION')).toBeInTheDocument()
+
+    await act(async () => {
+      await expect(
+        window.__stratatlasInvokeAgentAction?.('unsupported-action'),
+      ).rejects.toThrow('Unsupported agent action: unsupported-action')
+    })
+  })
+
+  it('exposes a governed agent action hook for reopening a governed bundle', async () => {
+    const user = userEvent.setup()
+    const manifest = await backend.createBundle({
+      role: 'analyst',
+      marking: 'INTERNAL',
+      state: buildHydratedRecorderState(),
+      provenance_refs: [
+        {
+          source: 'workspace.session',
+          license: 'internal',
+          retrievedAt: '2026-04-10T00:00:00.000Z',
+          pipelineVersion: 'i0-002',
+        },
+      ],
+    })
+
+    render(<App />)
+    await openBottomTrayTab(user, 'Bundles')
+    expect(await screen.findByText(manifest.bundle_id)).toBeInTheDocument()
+
+    expect(window.__stratatlasInvokeAgentAction).toBeTypeOf('function')
+
+    let bridgeResult: unknown
+    await act(async () => {
+      bridgeResult = await window.__stratatlasInvokeAgentAction?.('open-bundle', {
+        bundleId: manifest.bundle_id,
+      })
+    })
+
+    expect(bridgeResult).toMatchObject({
+      bundleId: manifest.bundle_id,
+      marking: 'INTERNAL',
+    })
+    expect(await screen.findByDisplayValue('Hydrated note')).toBeInTheDocument()
+    expect(within(screen.getByTestId('region-header')).getByText(`Bundle: ${manifest.bundle_id}`)).toBeInTheDocument()
+  })
+
+  it('exposes a governed agent action hook for focusing a global event on the map', async () => {
+    await backend.saveRecorderState({
+      role: 'analyst',
+      state: buildHydratedRecorderState(),
+    })
+
+    render(<App />)
+    expect(await screen.findByDisplayValue('Hydrated note')).toBeInTheDocument()
+
+    expect(window.__stratatlasInvokeAgentAction).toBeTypeOf('function')
+
+    let bridgeResult: unknown
+    await act(async () => {
+      bridgeResult = await window.__stratatlasInvokeAgentAction?.('focus-global-event', {
+        index: 0,
+      })
+    })
+
+    expect(bridgeResult).toMatchObject({
+      label: 'Aggregate alert',
+      aggregateOnly: true,
+      mapEligible: true,
+    })
+
+    expect(await screen.findByTestId('timeline-panel')).toBeInTheDocument()
+    const surface = await screen.findByTestId('map-runtime-surface')
+    expect(
+      within(surface).getByRole('button', { name: 'Hide contextual map details' }),
+    ).toHaveAttribute('aria-expanded', 'true')
+    expect(within(surface).getAllByText(/Aggregate-only alert for aoi-7/).length).toBeGreaterThan(0)
+  })
+
+  it(
+    'lets the governed bridge switch into scenario workflow mode',
+    async () => {
+    render(<App />)
+
+    expect(window.__stratatlasNavigate).toBeTypeOf('function')
+
+    await act(async () => {
+      await window.__stratatlasNavigate?.('scenario')
+    })
+
+    await waitFor(() => {
+      expect(screen.getByText('Mode: scenario')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Planning' })).toHaveAttribute(
+        'aria-pressed',
+        'true',
+      )
+      expect(screen.getByRole('button', { name: 'Collapse Inspector' })).toBeInTheDocument()
+    })
+
+    const scenarioWorkflowCard = await screen.findByTestId('scenario-workflow-card', undefined, {
+      timeout: 5000,
+    })
+    expect(scenarioWorkflowCard).toBeInTheDocument()
+    const scenarioPanel = scenarioWorkflowCard.closest('[data-testid="scenario-panel"]')
+    expect(scenarioPanel).not.toBeNull()
+    expect(
+      within(scenarioPanel as HTMLElement).getByRole('button', { name: 'Show advanced modeling' }),
+    ).toHaveAttribute('aria-expanded', 'false')
+    },
+    15000,
+  )
+
   it('persists the selected basemap style through recorder state, bundle reopen, and warm restore', async () => {
     const user = userEvent.setup()
     const firstRender = render(<App />)
@@ -680,7 +1121,7 @@ describe('App', () => {
     expect(
       screen.getByRole('button', { name: 'Use Bright basemap' }),
     ).toHaveAttribute('aria-pressed', 'true')
-  })
+  }, 15000)
 
   it('normalizes invalid restored basemap style ids back to the governed default', async () => {
     const user = userEvent.setup()
@@ -1260,9 +1701,9 @@ describe('App', () => {
     await user.click(screen.getByRole('button', { name: 'Create Bundle' }))
     expect((await screen.findAllByText(/Bundle .* created/)).length).toBeGreaterThan(0)
     await openLeftPanelTab(user, 'Assistant')
-    expect(await screen.findByText(/Provider: Browser Simulated Gateway/)).toBeInTheDocument()
+    expect(await screen.findByText('Browser Simulated Gateway')).toBeInTheDocument()
+    expect(screen.getByTestId('assistant-advanced-controls')).toHaveAttribute('hidden')
 
-    await user.selectOptions(screen.getByLabelText('Deployment Profile'), 'connected')
     await user.clear(screen.getByLabelText('Prompt'))
     await user.type(screen.getByLabelText('Prompt'), 'Summarize governed evidence only.')
     await user.click(screen.getByRole('button', { name: 'Submit AI Analysis' }))
@@ -1272,7 +1713,6 @@ describe('App', () => {
     expect(aiScope.getByText(/ai-interpretation-/)).toBeInTheDocument()
     expect(aiScope.getByText(/workspace-state/)).toBeInTheDocument()
 
-    await user.selectOptions(screen.getByLabelText('MCP Tool'), 'get_bundle_manifest')
     await user.click(screen.getByRole('button', { name: 'Run MCP Tool' }))
 
     const mcpCard = await screen.findByTestId('mcp-result-card')
@@ -1285,6 +1725,50 @@ describe('App', () => {
     expect(await screen.findByText('ai.gateway.submit')).toBeInTheDocument()
     expect((await screen.findAllByText('mcp.tool_invoked')).length).toBeGreaterThan(0)
   }, 30000)
+
+  it('keeps assistant and scenario advanced controls hidden until explicitly requested', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    await revealFullWorkbenchIfAvailable(user)
+    await openLeftPanelTab(user, 'Assistant')
+
+    expect(screen.getByRole('button', { name: 'Show assistant controls' })).toHaveAttribute(
+      'aria-expanded',
+      'false',
+    )
+    expect(screen.getByTestId('assistant-advanced-controls')).toHaveAttribute('hidden')
+
+    await user.click(screen.getByRole('button', { name: 'Show assistant controls' }))
+
+    expect(screen.getByRole('button', { name: 'Hide assistant controls' })).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    )
+    expect(screen.getByTestId('assistant-advanced-controls')).not.toHaveAttribute('hidden')
+    expect(screen.getByLabelText('Deployment Profile')).toBeInTheDocument()
+    expect(screen.getByLabelText('MCP Tool')).toBeInTheDocument()
+
+    await openLeftPanelTab(user, 'Workspace')
+    await user.selectOptions(screen.getByLabelText('Mode'), 'scenario')
+    await openMainCanvasTab(user, 'Workflow')
+
+    expect(screen.getByRole('button', { name: 'Show advanced modeling' })).toHaveAttribute(
+      'aria-expanded',
+      'false',
+    )
+    expect(screen.getByTestId('scenario-advanced-controls')).toHaveAttribute('hidden')
+
+    await user.click(screen.getByRole('button', { name: 'Show advanced modeling' }))
+
+    expect(screen.getByRole('button', { name: 'Hide advanced modeling' })).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    )
+    expect(screen.getByTestId('scenario-advanced-controls')).not.toHaveAttribute('hidden')
+    expect(screen.getByLabelText('Constraint Value')).toBeInTheDocument()
+    expect(screen.getByLabelText('Entity Name')).toBeInTheDocument()
+  })
 
   it('prepares a briefing artifact from compare mode with bundle and context overlays', async () => {
     const user = userEvent.setup()
@@ -1405,6 +1889,7 @@ describe('App', () => {
     await user.click(screen.getByRole('button', { name: 'Fork Scenario' }))
     expect((await screen.findAllByText('Baseline scenario')).length).toBeGreaterThan(0)
 
+    await openScenarioAdvancedModeling(user)
     await user.clear(screen.getByLabelText('Constraint Value'))
     await user.type(screen.getByLabelText('Constraint Value'), '72')
     await user.click(screen.getByRole('button', { name: 'Apply Constraint' }))
@@ -1799,6 +2284,7 @@ describe('App', () => {
       await user.clear(screen.getByLabelText('Scenario Title'))
       await user.type(screen.getByLabelText('Scenario Title'), 'Saved baseline')
       await user.click(screen.getByRole('button', { name: 'Fork Scenario' }))
+      await openScenarioAdvancedModeling(user)
       await user.clear(screen.getByLabelText('Constraint Value'))
       await user.type(screen.getByLabelText('Constraint Value'), '68')
       await user.click(screen.getByRole('button', { name: 'Apply Constraint' }))

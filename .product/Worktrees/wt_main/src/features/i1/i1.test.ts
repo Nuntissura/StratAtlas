@@ -24,6 +24,7 @@ import {
   buildSampleContextRecords,
   type ContextDomain,
 } from '../i7/contextIntake'
+import { buildGlobalEventTimeline } from '../i7/eventTimeline'
 import { detectDeviation } from '../i8/deviation'
 import { aggregateAlerts, buildOsintEvent } from '../i9/osint'
 import { buildPayoffProxy, createGameModelSnapshot } from '../i10/gameModeling'
@@ -420,6 +421,12 @@ describe('I1 contracts', () => {
         retrievedAt: '2026-03-06T18:00:00.000Z',
       }),
     ]
+    const timelineEvents = buildGlobalEventTimeline({
+      domains,
+      latestDeviationEvent,
+      osintSummary: aggregateAlerts(osintEvents, 'aoi-7'),
+      osintEvents,
+    })
     const scene = buildMapRuntimeScene({
       mode: 'scenario',
       offline: false,
@@ -454,6 +461,7 @@ describe('I1 contracts', () => {
       osintSummary: aggregateAlerts(osintEvents, 'aoi-7'),
       osintEvents,
       osintAoi: 'aoi-7',
+      timelineEvents,
       gameModelSnapshot: createGameModelSnapshot('bundle-test'),
       payoffProxy: buildPayoffProxy('throughput_resilience', 112, 14),
     })
@@ -466,7 +474,6 @@ describe('I1 contracts', () => {
     ).toBe(true)
     expect(scene.signals.features.some((feature) => feature.properties.category === 'scenario')).toBe(true)
     expect(scene.signals.features.some((feature) => feature.properties.category === 'ai')).toBe(true)
-    expect(scene.signals.features.some((feature) => feature.properties.category === 'osint')).toBe(true)
     expect(scene.signals.features.some((feature) => feature.properties.category === 'air_traffic')).toBe(true)
     expect(scene.signals.features.some((feature) => feature.properties.category === 'awareness')).toBe(true)
     expect(scene.signals.features.some((feature) => feature.properties.category === 'maritime')).toBe(true)
@@ -487,6 +494,9 @@ describe('I1 contracts', () => {
           feature.properties.label.includes('delta'),
       ),
     ).toBe(true)
+    expect(scene.eventTimeline.length).toBeGreaterThanOrEqual(3)
+    expect(scene.eventMarkers.features.some((feature) => feature.properties.category === 'deviation')).toBe(true)
+    expect(scene.eventMarkers.features.some((feature) => feature.properties.label === 'Aggregate alert')).toBe(true)
     expect(
       scene.signals.features.some(
         (feature) => feature.properties.label === 'Jurong Island Refining Cluster',

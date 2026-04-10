@@ -394,7 +394,7 @@ For quick lookup: "What requirements does this component implement?"
 
 | WP-I1-018 | I1 | REQ-0013, REQ-0500, REQ-0700 | PRIM-0071 | .gov/workflow/wp_test_suites/TS-WP-I1-018.md | IMPLEMENTED | .gov/workflow/wp_spec_extractions/SX-WP-I1-018.md; `.gov/Spec/sub-specs/I1_ai_and_scenario_ux_simplification.md`; proof: `.product/build_target/tool_artifacts/wp_runs/WP-I1-018/20260410_004711/`; assistant/scenario workflow simplification shipped without broadening AI or scenario capability |
 
-| WP-I7-003 | I7 | REQ-0804, REQ-0805, REQ-0808, REQ-0809 | PRIM-0045, PRIM-0076 | .gov/workflow/wp_test_suites/TS-WP-I7-003.md | IN-PROGRESS | .gov/workflow/wp_spec_extractions/SX-WP-I7-003.md |
+| WP-I7-003 | I7 | REQ-0804, REQ-0805, REQ-0808, REQ-0809 | PRIM-0045, PRIM-0076 | .gov/workflow/wp_test_suites/TS-WP-I7-003.md | IMPLEMENTED | .gov/workflow/wp_spec_extractions/SX-WP-I7-003.md; `.product/build_target/tool_artifacts/wp_runs/WP-I7-003/20260410_024715/`; live bridge proof under `.product/build_target/tool_artifacts/wp_runs/WP-I7-003/20260410_024149/`; derived event timeline, clustered map markers, and bridge-driven bundle reopen/event-focus are now real |
 
 | WP-I7-004 | I7 | REQ-0800, REQ-0801, REQ-0808 | PRIM-0045 | .gov/workflow/wp_test_suites/TS-WP-I7-004.md | SPEC-MAPPED | .gov/workflow/wp_spec_extractions/SX-WP-I7-004.md |
 

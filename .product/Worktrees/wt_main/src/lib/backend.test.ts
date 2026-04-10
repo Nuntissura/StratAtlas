@@ -163,6 +163,15 @@ const buildStoredQueryState = (): QueryStateSnapshot => {
 
 const buildStoredAiSnapshot = (): AiGatewaySnapshot => ({
   deploymentProfile: 'connected',
+  providerSelection: 'local_model',
+  localProviderConfig: {
+    runtimeProfile: 'lmstudio_cli',
+    modelIdentifier: 'lmstudio-community/gemma-4-31b-it',
+    executablePath: '',
+    argsJson: '',
+    modelPath: '',
+    workdir: '',
+  },
   latestAnalysis: {
     artifactId: 'ai-interpretation-test1234',
     bundleId: 'bundle-parent',
@@ -200,6 +209,17 @@ const buildStoredAiSnapshot = (): AiGatewaySnapshot => ({
     ],
     invokedAt: '2026-03-06T00:21:00.000Z',
     resultPreview: 'Returned governed manifest for bundle bundle-parent with 1 assets.',
+  },
+  latestLocalRuntimeProbe: {
+    providerId: 'local_model',
+    runtime: 'tauri-live',
+    providerLabel: 'LM Studio CLI',
+    model: 'google/gemma-4-26b-a4b',
+    outcome: 'success',
+    detail: 'LM Studio CLI executed a governed local runtime probe successfully.',
+    outputText: 'READY_LOCAL_OK',
+    durationMs: 864,
+    probedAt: '2026-04-09T20:45:00.000Z',
   },
 })
 
@@ -444,8 +464,20 @@ describe('backend fallback', () => {
     expect(reopen.state.scenario?.parentBundleId).toBe('bundle-parent')
     expect(reopen.state.scenario?.scenarios).toHaveLength(2)
     expect(reopen.state.scenario?.exportArtifact?.artifactId).toContain('scenario-export-')
+    expect(reopen.state.ai?.providerSelection).toBe('local_model')
+    expect(reopen.state.ai?.localProviderConfig).toMatchObject({
+      runtimeProfile: 'lmstudio_cli',
+      modelIdentifier: 'lmstudio-community/gemma-4-31b-it',
+    })
     expect(reopen.state.ai?.latestAnalysis?.artifactId).toBe('ai-interpretation-test1234')
     expect(reopen.state.ai?.latestMcpInvocation?.toolName).toBe('get_bundle_manifest')
+    expect(reopen.state.ai?.latestLocalRuntimeProbe).toMatchObject({
+      providerId: 'local_model',
+      runtime: 'tauri-live',
+      providerLabel: 'LM Studio CLI',
+      outcome: 'success',
+      outputText: 'READY_LOCAL_OK',
+    })
     expect(reopen.state.deviation?.latestEvent?.event_type).toBe('context.deviation')
     expect(reopen.state.deviation?.events).toHaveLength(1)
     expect(reopen.state.osint?.latestAlert?.aggregate_only).toBe(true)
@@ -470,6 +502,12 @@ describe('backend fallback', () => {
     expect(restored.state?.collaboration?.ephemeralViewState).toBe('zoom-8')
     expect(restored.state?.scenario?.selectedScenarioId).toBe('scenario-2')
     expect(restored.state?.ai?.deploymentProfile).toBe('connected')
+    expect(restored.state?.ai?.latestLocalRuntimeProbe).toMatchObject({
+      providerId: 'local_model',
+      runtime: 'tauri-live',
+      model: 'google/gemma-4-26b-a4b',
+      outcome: 'success',
+    })
     expect(restored.state?.deviation?.latestEvent?.taxonomy_key).toBe('context.supply_chain_shift')
     expect(restored.state?.osint?.events[0]?.source).toBe('ACLED')
     expect(restored.state?.osint?.latestAlert?.threshold_refs[0]?.domain_name).toBe('Port Throughput')
@@ -522,10 +560,20 @@ describe('backend fallback', () => {
   })
 
   it('reports browser-simulated AI provider status outside the Tauri runtime', async () => {
-    const providerStatus = await backend.getAiGatewayProviderStatus()
+    const providerStatus = await backend.getAiGatewayProviderStatus('local_model', {
+      runtimeProfile: 'lmstudio_cli',
+      modelIdentifier: 'lmstudio-community/gemma-4-31b-it',
+      executablePath: '',
+      argsJson: '',
+      modelPath: '',
+      workdir: '',
+    })
     expect(providerStatus.runtime).toBe('browser-simulated')
     expect(providerStatus.available).toBe(false)
+    expect(providerStatus.providerId).toBe('local_model')
     expect(providerStatus.providerLabel).toContain('Browser Simulated')
+    expect(providerStatus.model).toBe('lmstudio-community/gemma-4-31b-it')
+    expect(providerStatus.detail).toMatch(/LM Studio CLI/i)
   })
 
   it('maintains an append-only hash chain in audit events', async () => {
@@ -542,5 +590,26 @@ describe('backend fallback', () => {
     expect(second.prev_event_hash).toBe(first.event_hash)
     const head = await backend.getAuditHead()
     expect(head.event_hash).toBe(second.event_hash)
+  })
+
+  it('returns an explicitly simulated local-runtime probe outside the governed Tauri runtime', async () => {
+    const result = await backend.probeLocalAiRuntime({
+      deploymentProfile: 'connected',
+      localProviderConfig: {
+        runtimeProfile: 'lmstudio_cli',
+        modelIdentifier: 'google/gemma-4-26b-a4b',
+        executablePath: '',
+        argsJson: '',
+        modelPath: '',
+        workdir: '',
+      },
+    })
+
+    expect(result.providerId).toBe('local_model')
+    expect(result.runtime).toBe('browser-simulated')
+    expect(result.outcome).toBe('simulated')
+    expect(result.providerLabel).toContain('LM Studio')
+    expect(result.model).toBe('google/gemma-4-26b-a4b')
+    expect(result.detail).toMatch(/governed Tauri runtime/i)
   })
 })

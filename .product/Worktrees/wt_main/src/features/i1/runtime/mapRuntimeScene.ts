@@ -4,6 +4,7 @@ import type { ScenarioComparison, ScenarioFork } from '../../i4/scenarios'
 import type { QueryRenderLayer, VersionedQuery } from '../../i5/queryBuilder'
 import type { AiGatewayArtifact } from '../../i6/aiGateway'
 import type { ContextCorrelationLink, ContextDomain, ContextRecord } from '../../i7/contextIntake'
+import type { GlobalEventTimelineEntry } from '../../i7/eventTimeline'
 import type { DeviationEvent } from '../../i8/deviation'
 import type { AggregateAlert, OsintEvent } from '../../i9/osint'
 import type { GameModelSnapshot, PayoffProxy } from '../../i10/gameModeling'
@@ -84,6 +85,11 @@ export interface RuntimeSignalProperties {
   haloOpacity: number
   emphasis: number
   altitudeMeters?: number
+  source?: string
+  cadence?: string
+  confidence?: string
+  observedAt?: string
+  aggregateOnly?: boolean
 }
 
 export interface RuntimeMetricCard {
@@ -99,6 +105,11 @@ export interface RuntimeInspectCard {
   tone: RuntimeTone
   detail: string
   aoiId: string
+  source?: string
+  cadence?: string
+  confidence?: string
+  observedAt?: string
+  aggregateOnly?: boolean
 }
 
 export interface RuntimeLegendItem {
@@ -122,10 +133,12 @@ export interface MapRuntimeScene {
   metrics: RuntimeMetricCard[]
   legend: RuntimeLegendItem[]
   inspectCards: RuntimeInspectCard[]
+  eventTimeline: GlobalEventTimelineEntry[]
   focusOptions: RuntimeFocusOption[]
   surfaces: RuntimeFeatureCollection<RuntimeSurfaceProperties>
   corridors: RuntimeFeatureCollection<RuntimeCorridorProperties>
   signals: RuntimeFeatureCollection<RuntimeSignalProperties>
+  eventMarkers: RuntimeFeatureCollection<RuntimeSignalProperties>
 }
 
 export interface MapRuntimeSceneInput {
@@ -157,6 +170,7 @@ export interface MapRuntimeSceneInput {
   osintSummary?: AggregateAlert
   osintEvents: OsintEvent[]
   osintAoi: string
+  timelineEvents: GlobalEventTimelineEntry[]
   gameModelSnapshot: GameModelSnapshot
   payoffProxy: PayoffProxy
 }
@@ -394,6 +408,17 @@ const nextSupportAoi = (aoiId: string): AoiDefinition => {
   return aoiFor(fallback)
 }
 
+const timelineOffsetForIndex = (index: number): Position => {
+  const ringIndex = Math.floor(index / 6)
+  const slot = index % 6
+  const radius = 0.12 + ringIndex * 0.08
+  const angle = (Math.PI * 2 * slot) / 6
+  return [
+    Number((Math.cos(angle) * radius).toFixed(4)),
+    Number((Math.sin(angle) * radius).toFixed(4)),
+  ]
+}
+
 export const buildMapRuntimeScene = (input: MapRuntimeSceneInput): MapRuntimeScene => {
   const focusAoiId = deriveRuntimeFocusAoiId({
     mode: input.mode,
@@ -447,6 +472,10 @@ export const buildMapRuntimeScene = (input: MapRuntimeSceneInput): MapRuntimeSce
     features: [],
   }
   const signals: MapRuntimeScene['signals'] = {
+    type: 'FeatureCollection',
+    features: [],
+  }
+  const eventMarkers: MapRuntimeScene['eventMarkers'] = {
     type: 'FeatureCollection',
     features: [],
   }
@@ -1060,65 +1089,41 @@ export const buildMapRuntimeScene = (input: MapRuntimeSceneInput): MapRuntimeSce
     )
   }
 
-  if (input.latestDeviationEvent) {
-    const deviationAoi = input.latestDeviationEvent.target_id || focusAoiId
-    pushSignal(
-      signals.features,
-      aoiFor(deviationAoi).center,
-      {
-        aoiId: deviationAoi,
-        category: 'deviation',
-        label: input.latestDeviationEvent.domain_name,
-        detail: input.latestDeviationEvent.summary,
-        tone: 'alert',
-        radius: 8,
-        haloRadius: 26 + Math.min(input.latestDeviationEvent.score * 12, 18),
-        haloOpacity: 0.28,
-        emphasis: 1,
+  const eventCountByAoi = new Map<string, number>()
+  input.timelineEvents.forEach((event) => {
+    if (!event.mapEligible) {
+      return
+    }
+    const currentCount = eventCountByAoi.get(event.aoiId) ?? 0
+    eventCountByAoi.set(event.aoiId, currentCount + 1)
+    const offset = timelineOffsetForIndex(currentCount)
+    const category: RuntimeSignalCategory = event.category === 'deviation' ? 'deviation' : 'osint'
+    const focusMatch = event.aoiId === focusAoiId
+    eventMarkers.features.push({
+      type: 'Feature',
+      geometry: {
+        type: 'Point',
+        coordinates: offsetPoint(aoiFor(event.aoiId).center, offset[0], offset[1]),
       },
-      [-0.22, -0.24],
-    )
-  }
-
-  if (input.osintSummary && input.osintSummary.count > 0) {
-    pushSignal(
-      signals.features,
-      aoiFor(input.osintAoi || focusAoiId).center,
-      {
-        aoiId: input.osintAoi || focusAoiId,
-        category: 'osint',
-        label: 'Aggregate alert',
-        detail: input.osintSummary.summary,
-        tone: 'alert',
-        radius: 8,
-        haloRadius: 30 + input.osintSummary.count * 2,
-        haloOpacity: 0.3,
-        emphasis: 1,
+      properties: {
+        featureId: event.inspectId,
+        aoiId: event.aoiId,
+        category,
+        label: event.label,
+        detail: event.summary,
+        tone: event.tone,
+        radius: event.aggregateOnly ? 7 : 6,
+        haloRadius: event.aggregateOnly ? 24 : 18,
+        haloOpacity: focusMatch ? 0.28 : 0.18,
+        emphasis: focusMatch ? 1 : 0.76 - Math.min(currentCount, 4) * 0.04,
+        source: event.source,
+        cadence: event.cadence,
+        confidence: event.confidence,
+        observedAt: event.occurredAtLabel,
+        aggregateOnly: event.aggregateOnly,
       },
-      [0.26, 0.2],
-    )
-  }
-
-  if (input.osintEvents.length > 0) {
-    input.osintEvents.slice(-2).forEach((event, index) => {
-      pushSignal(
-        signals.features,
-        aoiFor(event.aoi).center,
-        {
-          aoiId: event.aoi,
-          category: 'osint',
-          label: `${event.source} ${event.category}`,
-          detail: event.summary,
-          tone: event.verification === 'confirmed' ? 'context' : 'alert',
-          radius: 6,
-          haloRadius: 18,
-          haloOpacity: 0.18,
-          emphasis: 0.7,
-        },
-        [-0.12 + index * 0.18, 0.14 + index * 0.1],
-      )
     })
-  }
+  })
 
   pushSignal(
     signals.features,
@@ -1146,7 +1151,7 @@ export const buildMapRuntimeScene = (input: MapRuntimeSceneInput): MapRuntimeSce
     dashLength: 0.25,
   })
 
-  const inspectCards = signals.features
+  const inspectCards = [...eventMarkers.features, ...signals.features]
     .map((feature) => ({
       id: feature.properties.featureId,
       category: feature.properties.category,
@@ -1154,6 +1159,11 @@ export const buildMapRuntimeScene = (input: MapRuntimeSceneInput): MapRuntimeSce
       tone: feature.properties.tone,
       detail: feature.properties.detail,
       aoiId: feature.properties.aoiId,
+      source: feature.properties.source,
+      cadence: feature.properties.cadence,
+      confidence: feature.properties.confidence,
+      observedAt: feature.properties.observedAt,
+      aggregateOnly: feature.properties.aggregateOnly,
     }))
     .slice(0, 8)
 
@@ -1165,8 +1175,8 @@ export const buildMapRuntimeScene = (input: MapRuntimeSceneInput): MapRuntimeSce
     },
     {
       label: 'Mapped Features',
-      value: `${signals.features.length}`,
-      detail: `${corridors.features.length} corridors across ${referencedAois.size} governed AOIs.`,
+      value: `${signals.features.length + eventMarkers.features.length}`,
+      detail: `${corridors.features.length} corridors and ${eventMarkers.features.length} event marker(s) across ${referencedAois.size} governed AOIs.`,
     },
     {
       label: 'Replay Cursor',
@@ -1218,10 +1228,12 @@ export const buildMapRuntimeScene = (input: MapRuntimeSceneInput): MapRuntimeSce
     metrics,
     legend,
     inspectCards,
+    eventTimeline: input.timelineEvents,
     focusOptions,
     surfaces,
     corridors,
     signals,
+    eventMarkers,
   }
 }
 
@@ -1234,3 +1246,5 @@ export const runtimeAoiView = (aoiId: string): { center: Position; bearing: numb
     bearing: definition.bearing,
   }
 }
+
+export const runtimeAoiLabel = (aoiId: string): string => aoiFor(aoiId).label

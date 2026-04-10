@@ -1,7 +1,7 @@
 # TS-WP-I7-003 - Spec vs Code Test Suite
 
 Date Opened: 2026-04-09
-Status: IN-PROGRESS
+Status: IMPLEMENTED
 Linked Work Packet: WP-I7-003
 Iteration: I7
 
@@ -27,10 +27,10 @@ Validate that the live shell derives a truthful global event timeline from gover
 
 | Case ID | Requirement | Primitive | Category | Target | Command/Test | Expected |
 |--------|-------------|-----------|----------|--------|--------------|----------|
-| DEP-001 | REQ-0808 | PRIM-0076 | Dependency | governed frontend packet path | `pnpm build`; `powershell -ExecutionPolicy Bypass -File .gov/workflow/wp_checks/check-WP-I7-003.ps1` | timeline and marker surfaces compile and packet governance stays synchronized |
-| UI-001 | REQ-0804, REQ-0805 | PRIM-0045, PRIM-0076 | UI Contract | timeline, hover helpers, and map runtime surfaces | `pnpm exec vitest run src/App.test.tsx src/features/i1/i1.test.ts src/features/i7/i7.test.ts --reporter=verbose` | non-spatial context stays off the map while the timeline and event helper surfaces show source/cadence/confidence truthfully |
-| FUNC-001 | REQ-0808, REQ-0809 | PRIM-0076 | Functionality | global timeline and event-to-AOI linking | `pnpm exec vitest run src/App.test.tsx src/features/i1/i1.test.ts src/features/i7/i7.test.ts --reporter=verbose` | timeline entries sort deterministically, bundle-reopened events recreate the same timeline, and event selection focuses the relevant AOI/inspect state |
-| COR-001 | REQ-0804, REQ-0805 | PRIM-0045, PRIM-0076 | Code Correctness | derived event model and clustered marker contracts | `pnpm exec vitest run src/features/i1/i1.test.ts src/features/i7/i7.test.ts --reporter=verbose`; `pnpm build` | event IDs, spatial eligibility, and metadata fields stay type-safe and regression-covered |
+| DEP-001 | REQ-0808 | PRIM-0076 | Dependency | governed frontend packet path | `pnpm build`; `pnpm tauri build -d --no-bundle`; `powershell -ExecutionPolicy Bypass -File .gov/workflow/wp_checks/check-WP-I7-003.ps1` | timeline and marker surfaces compile, the desktop shell builds, and packet governance stays synchronized |
+| UI-001 | REQ-0804, REQ-0805 | PRIM-0045, PRIM-0076 | UI Contract | timeline, hover helpers, bundle reopen bridge path, and map runtime surfaces | `pnpm exec vitest run src/App.test.tsx -t "surfaces hover helpers and opens contextual details from the map runtime|shows the global event timeline in the tray and can focus the map from a timeline entry|exposes a governed agent action hook for reopening a governed bundle|exposes a governed agent action hook for focusing a global event on the map" --reporter=verbose --maxWorkers=1` | non-spatial context stays off the map while the timeline and event helper surfaces show source/cadence/confidence truthfully and the bridge can reopen governed evidence before focusing the map |
+| FUNC-001 | REQ-0808, REQ-0809 | PRIM-0076 | Functionality | global timeline derivation and event-to-AOI linking | `pnpm exec vitest run src/features/i7/i7.test.ts src/features/i1/i1.test.ts --reporter=verbose --maxWorkers=1` | timeline entries sort deterministically, eligible events become clustered markers, and event selection data remains AOI-linked and truthful |
+| COR-001 | REQ-0804, REQ-0805 | PRIM-0045, PRIM-0076 | Code Correctness | derived event model, bridge hooks, and desktop build contracts | `pnpm build`; `pnpm tauri build -d --no-bundle` | event IDs, spatial eligibility, bridge actions, and runtime metadata fields stay type-safe and build-clean |
 | RED-001 | REQ-0804, REQ-0805 | PRIM-0076 | Red Team / Abuse | false-precision and labeling constraints | targeted assertions in `src/features/i7/i7.test.ts` and `src/App.test.tsx` | aggregate-only and non-spatial context is not silently relabeled as precise map incidents |
 | EXT-001 | REQ-0809 | PRIM-0076 | Additional | live desktop proof | bridge navigate/snapshot proof under `.product/build_target/tool_artifacts/wp_runs/WP-I7-003/` | the running app shows the timeline and map-linked event flow as shipped |
 
@@ -78,11 +78,11 @@ Validate that the live shell derives a truthful global event timeline from gover
 
 ## Execution Summary
 
-- Last Run Date:
-- Result:
-- Blocking Failures:
-- Evidence Paths:
-- What Became Real: pending implementation.
+- Last Run Date: 2026-04-10
+- Result: PASS
+- Blocking Failures: none after switching the governed packet runner to targeted single-worker timeline regressions instead of the unrelated full `App.test.tsx` suite.
+- Evidence Paths: `.product/build_target/tool_artifacts/wp_runs/WP-I7-003/20260410_024715/`; `.product/build_target/tool_artifacts/wp_runs/WP-I7-003/20260410_024149/`
+- What Became Real: the app now derives a governed global event timeline, reopens real evidence bundles through the bridge, and focuses timeline events onto the live map/runtime inspector.
 - What Remains Simulated: browser/jsdom remains a non-desktop proof environment relative to the live Tauri shell.
 - Next Blocking Real Seam: `WP-I7-004` owns the broader geopolitical baseline dataset and dashboard follow-on once the event timeline surface is real.
 - Reviewer:

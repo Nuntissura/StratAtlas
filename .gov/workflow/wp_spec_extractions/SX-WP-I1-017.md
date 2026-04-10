@@ -6,7 +6,7 @@ Linked Test Suite: .gov/workflow/wp_test_suites/TS-WP-I1-017.md
 Linked WP Check Script: .gov/workflow/wp_checks/check-WP-I1-017.ps1
 Packet Class Snapshot: IMPLEMENTATION
 Workflow Version Snapshot: 4.0
-WP Status Snapshot: SPEC-MAPPED
+WP Status Snapshot: IMPLEMENTED
 Iteration: I1
 
 ## Scope
@@ -23,9 +23,9 @@ Concrete extraction of requirement and primitive obligations this WP must satisf
 
 ## Change Ledger Snapshot
 
-- What Became Real: Pending implementation.
-- What Remains Simulated: Pending implementation.
-- Next Blocking Real Seam: Pending implementation.
+- What Became Real: The map runtime now renders as a compact in-stage HUD with a floating scene capsule, top-right action cluster, collapsible contextual drawer, hover/focus helper cards, and a bottom provenance/legend tray. A header settings menu now persists compact chrome, hover helpers, contextual drawer policy, motion profile, telemetry chip visibility, ambient effects, live-refresh policy, forced-offline mode, and AI gateway deployment profile through the governed recorder path.
+- What Remains Simulated: The live desktop proof still exercises the fallback runtime in environments without interactive MapLibre/Cesium support, so hover degrades to focus/button helpers there instead of full pointer-map feature hover.
+- Next Blocking Real Seam: User review and successor packet `WP-I1-018` before any `E2E-VERIFIED` promotion.
 
 ## Requirement Extraction
 

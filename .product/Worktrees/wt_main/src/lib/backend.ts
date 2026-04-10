@@ -23,10 +23,18 @@ import type {
   SensitivityMarking,
 } from '../contracts/i0'
 import {
+  DEFAULT_AI_PROVIDER_ID,
+  DEFAULT_LOCAL_AI_PROVIDER_CONFIG,
   DEPLOYMENT_PROFILES,
   createBrowserSimulatedAiProviderStatus,
+  createBrowserSimulatedLocalRuntimeProbeResult,
+  normalizeAiGatewayLocalRuntimeProbeResult,
   type AiGatewayProviderAnalysisRequest,
   type AiGatewayProviderAnalysisResult,
+  type AiGatewayLocalRuntimeProbeRequest,
+  type AiGatewayLocalRuntimeProbeResult,
+  type LocalAiProviderConfig,
+  type AiGatewayProviderId,
   type AiGatewayProviderStatus,
   type DeploymentProfileId,
 } from '../features/i6/aiGateway'
@@ -214,6 +222,55 @@ const deploymentProfileFromState = (state: RecorderState): DeploymentProfileId =
   return isDeploymentProfileId(candidate) ? candidate : DEFAULT_GOVERNED_DEPLOYMENT_PROFILE
 }
 
+const aiProviderSelectionFromState = (state: RecorderState): AiGatewayProviderId => {
+  const candidate = state.ai?.providerSelection
+  return (
+    candidate === 'auto' ||
+    candidate === 'codex_cli' ||
+    candidate === 'openai_responses' ||
+    candidate === 'local_model'
+  )
+    ? candidate
+    : DEFAULT_AI_PROVIDER_ID
+}
+
+const localAiProviderConfigFromState = (state: RecorderState): LocalAiProviderConfig => {
+  const candidate = state.ai?.localProviderConfig
+  if (!isRecord(candidate)) {
+    return DEFAULT_LOCAL_AI_PROVIDER_CONFIG
+  }
+
+  return {
+    runtimeProfile:
+      candidate.runtimeProfile === 'auto_detect' ||
+      candidate.runtimeProfile === 'lmstudio_cli' ||
+      candidate.runtimeProfile === 'ollama_cli' ||
+      candidate.runtimeProfile === 'custom_executable'
+        ? candidate.runtimeProfile
+        : DEFAULT_LOCAL_AI_PROVIDER_CONFIG.runtimeProfile,
+    modelIdentifier:
+      typeof candidate.modelIdentifier === 'string'
+        ? candidate.modelIdentifier
+        : DEFAULT_LOCAL_AI_PROVIDER_CONFIG.modelIdentifier,
+    executablePath:
+      typeof candidate.executablePath === 'string'
+        ? candidate.executablePath
+        : DEFAULT_LOCAL_AI_PROVIDER_CONFIG.executablePath,
+    argsJson:
+      typeof candidate.argsJson === 'string'
+        ? candidate.argsJson
+        : DEFAULT_LOCAL_AI_PROVIDER_CONFIG.argsJson,
+    modelPath:
+      typeof candidate.modelPath === 'string'
+        ? candidate.modelPath
+        : DEFAULT_LOCAL_AI_PROVIDER_CONFIG.modelPath,
+    workdir:
+      typeof candidate.workdir === 'string'
+        ? candidate.workdir
+        : DEFAULT_LOCAL_AI_PROVIDER_CONFIG.workdir,
+  }
+}
+
 const mergeContextRecords = (records: ContextRecord[]): ContextRecord[] => {
   const byId = new Map<string, ContextRecord>()
   for (const record of records) {
@@ -297,8 +354,13 @@ const buildHydratedRecorderState = (state: RecorderState): RecorderState => {
     ...state,
     ai: {
       deploymentProfile: controlPlane.activeDeploymentProfileId,
+      providerSelection: aiProviderSelectionFromState(state),
+      localProviderConfig: localAiProviderConfigFromState(state),
       latestAnalysis: state.ai?.latestAnalysis,
       latestMcpInvocation: state.ai?.latestMcpInvocation,
+      latestLocalRuntimeProbe: normalizeAiGatewayLocalRuntimeProbeResult(
+        state.ai?.latestLocalRuntimeProbe,
+      ),
     },
     context: {
       ...state.context,
@@ -668,8 +730,19 @@ const fallbackSaveRecorderState = async (
   return buildHydratedRecorderState(normalized)
 }
 
-const fallbackGetAiGatewayProviderStatus = async (): Promise<AiGatewayProviderStatus> =>
-  createBrowserSimulatedAiProviderStatus()
+const fallbackGetAiGatewayProviderStatus = async (
+  providerSelection: AiGatewayProviderId = DEFAULT_AI_PROVIDER_ID,
+  localProviderConfig: LocalAiProviderConfig = DEFAULT_LOCAL_AI_PROVIDER_CONFIG,
+): Promise<AiGatewayProviderStatus> =>
+  createBrowserSimulatedAiProviderStatus(providerSelection, localProviderConfig)
+
+const fallbackProbeLocalAiRuntime = async (
+  request: AiGatewayLocalRuntimeProbeRequest,
+): Promise<AiGatewayLocalRuntimeProbeResult> =>
+  createBrowserSimulatedLocalRuntimeProbeResult(
+    request.deploymentProfile,
+    request.localProviderConfig ?? DEFAULT_LOCAL_AI_PROVIDER_CONFIG,
+  )
 
 const fallbackRunStrategicModelSolve = async (
   request: StrategicSolverRequest,
@@ -849,11 +922,17 @@ export const backend = {
     return readControlPlaneState()
   },
 
-  async getAiGatewayProviderStatus(): Promise<AiGatewayProviderStatus> {
+  async getAiGatewayProviderStatus(
+    providerSelection: AiGatewayProviderId = DEFAULT_AI_PROVIDER_ID,
+    localProviderConfig: LocalAiProviderConfig = DEFAULT_LOCAL_AI_PROVIDER_CONFIG,
+  ): Promise<AiGatewayProviderStatus> {
     if (isTauriRuntime()) {
-      return invoke<AiGatewayProviderStatus>('get_ai_gateway_provider_status')
+      return invoke<AiGatewayProviderStatus>('get_ai_gateway_provider_status', {
+        providerSelection,
+        localProviderConfig,
+      })
     }
-    return fallbackGetAiGatewayProviderStatus()
+    return fallbackGetAiGatewayProviderStatus(providerSelection, localProviderConfig)
   },
 
   async runAiGatewayProviderAnalysis(
@@ -865,6 +944,17 @@ export const backend = {
       })
     }
     throw new Error('Live AI provider analysis requires the Tauri runtime')
+  },
+
+  async probeLocalAiRuntime(
+    request: AiGatewayLocalRuntimeProbeRequest,
+  ): Promise<AiGatewayLocalRuntimeProbeResult> {
+    if (isTauriRuntime()) {
+      return invoke<AiGatewayLocalRuntimeProbeResult>('probe_local_ai_runtime', {
+        request,
+      })
+    }
+    return fallbackProbeLocalAiRuntime(request)
   },
 
   async queryContextRecords(

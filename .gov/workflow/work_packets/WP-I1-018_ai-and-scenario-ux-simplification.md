@@ -1,7 +1,7 @@
 # WP-I1-018 - AI and Scenario UX Simplification
 
 Date Opened: 2026-04-09
-Status: IN-PROGRESS
+Status: IMPLEMENTED
 Iteration: I1
 Workflow Version: 4.0
 Packet Class: IMPLEMENTATION
@@ -60,6 +60,7 @@ Simplify the verified assistant and scenario surfaces so the first action is obv
 - .gov/Spec/stratatlas_spec_v1_2.md
 - .gov/Spec/REQUIREMENTS_INDEX.md
 - .gov/Spec/TRACEABILITY_MATRIX.md
+- .gov/Spec/PRIMITIVES_INDEX.md
 - .gov/Spec/PRIMITIVES_MATRIX.md
 - .gov/Spec/sub-specs/I1_ai_and_scenario_ux_simplification.md
 - .gov/workflow/taskboard/TASK_BOARD.md
@@ -84,22 +85,22 @@ Simplify the verified assistant and scenario surfaces so the first action is obv
 - [x] Runtime compatibility checks
 
 ### UI Contract Tests
-- [ ] Required regions/modes/states
-- [ ] Error/degraded-state UX
+- [x] Required regions/modes/states
+- [x] Error/degraded-state UX
 
 ### Functional Flow Tests
-- [ ] Golden flow and edge cases
-- [ ] Persistence/replay/export flows
+- [x] Golden flow and edge cases
+- [x] Persistence/replay/export flows
 
 ### Code Correctness Tests
-- [ ] Unit tests
-- [ ] Integration tests
-- [ ] Static analysis (lint/type/schema)
+- [x] Unit tests
+- [x] Integration tests
+- [x] Static analysis (lint/type/schema)
 
 ### Red-Team and Abuse Tests
-- [ ] Non-goal enforcement (spec section 3.2)
-- [ ] Policy bypass scenarios
-- [ ] Adversarial/invalid input cases
+- [x] Non-goal enforcement (spec section 3.2)
+- [x] Policy bypass scenarios
+- [x] Adversarial/invalid input cases
 
 ### Additional Tests
 - [ ] Performance budgets
@@ -115,9 +116,9 @@ Simplify the verified assistant and scenario surfaces so the first action is obv
 
 ## Change Ledger
 
-- What Became Real: governance now scopes a concrete shell simplification seam for the assistant and scenario regions instead of a generic placeholder packet.
-- What Remains Simulated: the current default assistant and scenario surfaces still expose dense always-visible control stacks until the product implementation lands.
-- Next Blocking Real Seam: implement the simplified assistant/scenario composition in `App.tsx` and prove the live shell through tests and bridge snapshots.
+- What Became Real: the assistant surface now leads with a governed workflow card while provider/runtime/MCP tuning sits behind explicit disclosure, and the scenario surface now leads with fork/compare/export while raw constraint/entity controls stay behind advanced modeling disclosure. The headless bridge now also enters scenario/compare workflows through the full-workbench path so live proof reaches the shipped surface without recorder-state hacks.
+- What Remains Simulated: browser/jsdom remains a non-desktop proof environment relative to the live Tauri shell; no new simulated runtime behavior was added to product code outside tests.
+- Next Blocking Real Seam: no additional implementation seam remains inside this packet; user sign-off is the remaining blocker before any `E2E-VERIFIED` promotion.
 
 ## Checkpoint Commit Plan
 
@@ -142,13 +143,16 @@ Simplify the verified assistant and scenario surfaces so the first action is obv
 
 ## Evidence
 
-- Test Suite Execution:
-- Logs:
-- Screenshots/Exports:
-- Build Artifacts:
-- Proof Artifact: `.product/build_target/tool_artifacts/wp_runs/WP-I1-018/`
-- User Sign-off:
+- Test Suite Execution: `pnpm exec vitest run src/App.test.tsx`; `powershell -ExecutionPolicy Bypass -File .gov/workflow/wp_checks/check-WP-I1-018.ps1`
+- Logs: `.product/build_target/tool_artifacts/wp_runs/WP-I1-018/20260410_004711/summary.md`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-018/20260410_004711/UI-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-018/20260410_004711/FUNC-001.log`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-018/20260410_004711/COR-001.log`
+- Screenshots/Exports: `.product/build_target/tool_artifacts/wp_runs/WP-I1-018/20260410_004711/visual_proof/assistant_default_live.png`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-018/20260410_004711/visual_proof/scenario_workflow_live.png`; `.product/build_target/tool_artifacts/wp_runs/WP-I1-018/20260410_004711/visual_proof_summary.md`
+- Build Artifacts: `pnpm build`; `pnpm tauri build -d --no-bundle`; built desktop app at `.product/Worktrees/wt_main/src-tauri/target/debug/stratatlas_app.exe`
+- Proof Artifact: `.product/build_target/tool_artifacts/wp_runs/WP-I1-018/20260410_004711/`
+- User Sign-off: Pending
 
 ## Progress Log
 
 - 2026-04-09: WP scaffold created via .gov/repo_scripts/new_work_packet.ps1.
+- 2026-04-09: Governance packet, linked sub-spec, taskboard row, roadmap row, and traceability/primitives rows were rewritten from placeholder state and checkpointed in commit `b62fcad`.
+- 2026-04-10: Assistant and scenario workflow surfaces were simplified in `App.tsx`/`App.css`, regression coverage landed in `App.test.tsx`, and the WP check runner was narrowed to the packet's governed scope.
+- 2026-04-10: The headless bridge scenario route was aligned with the full-workbench workflow path, `check-WP-I1-018.ps1` passed, and live desktop snapshots for the assistant and scenario surfaces were attached under `.product/build_target/tool_artifacts/wp_runs/WP-I1-018/20260410_004711/visual_proof/`.

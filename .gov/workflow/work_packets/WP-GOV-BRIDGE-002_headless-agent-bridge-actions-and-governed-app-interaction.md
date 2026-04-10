@@ -1,7 +1,7 @@
 # WP-GOV-BRIDGE-002 - Headless Agent Bridge Actions and Governed App Interaction
 
 Date Opened: 2026-04-09
-Status: IN-PROGRESS
+Status: IMPLEMENTED
 Iteration: All
 Workflow Version: 4.0
 Packet Class: IMPLEMENTATION
@@ -85,43 +85,43 @@ Extend the localhost-only agent bridge so approved named app actions can be invo
 
 ### Dependency and Environment Tests
 - [x] Governance preflight before implementation
-- [ ] Desktop runtime bridge reachable from localhost
+- [x] Desktop runtime bridge reachable from localhost
 
 ### UI Contract Tests
-- [ ] Probe result renders in the settings surface after bridge action execution
-- [ ] Probe result remains visible in the assistant surface and degraded/error messaging stays truthful
+- [x] Probe result renders in the settings surface after bridge action execution
+- [x] Probe result remains visible in the assistant surface and degraded/error messaging stays truthful
 
 ### Functional Flow Tests
-- [ ] `POST /agent/action` runs `probe-local-runtime` and returns structured completion
-- [ ] Navigate -> action -> snapshot live proof flow works without seeded recorder state
+- [x] `POST /agent/action` runs `probe-local-runtime` and returns structured completion
+- [x] Navigate -> action -> snapshot live proof flow works without seeded recorder state
 
 ### Code Correctness Tests
-- [ ] Frontend regression coverage
-- [ ] Rust regression coverage
-- [ ] Production build and packet check
+- [x] Frontend regression coverage
+- [x] Rust regression coverage
+- [x] Production build and packet check
 
 ### Red-Team and Abuse Tests
-- [ ] Unsupported action IDs fail cleanly
-- [ ] Bridge continues to avoid keyboard/mouse simulation and arbitrary automation
-- [ ] Invalid or timed-out action requests return bounded errors
+- [x] Unsupported action IDs fail cleanly
+- [x] Bridge continues to avoid keyboard/mouse simulation and arbitrary automation
+- [x] Invalid or timed-out action requests return bounded errors
 
 ### Additional Tests
-- [ ] Action timeout/recovery behavior
-- [ ] Live desktop visual proof via snapshot capture
-- [ ] Recorder state remains truthful after the live probe
+- [x] Action timeout/recovery behavior
+- [x] Live desktop visual proof via snapshot capture
+- [x] Recorder state remains truthful after the live probe
 
 ## Fallback Register
 
-- Explicit simulated/mock/sample paths: None intended for the bridge action path; the packet exists specifically to remove the seeded recorder-state proof workaround from `WP-I6-004`.
+- Explicit simulated/mock/sample paths: None on the shipped `/agent/action` seam; unsupported actions, malformed requests, and timed-out requests return bounded errors instead of falling back to generic automation.
 - Required labels in code/UI/governance: Action IDs must be documented as approved named workflows, not generic UI automation; docs must continue to forbid keyboard/mouse simulation.
 - Successor packet or debt owner: If additional named actions are needed later, queue them in a successor bridge packet instead of broadening this packet into generic automation.
-- Exit condition to remove fallback: Live bridge proof shows `probe-local-runtime` executed and rendered through the real UI without seeded recorder data.
+- Exit condition to remove fallback: Closed in this packet via live bridge proof under `.product/build_target/tool_artifacts/wp_runs/WP-GOV-BRIDGE-002/20260409_224118/`.
 
 ## Change Ledger
 
-- What Became Real: Governance now tracks the missing bridge-interaction seam as its own cross-cutting packet with explicit proof criteria tied to the `WP-I6-004` seeded-state workaround.
-- What Remains Simulated: Until this packet lands, the bridge still cannot invoke the in-app local-runtime probe, so visual proof of that flow requires a temporary recorder-state seed.
-- Next Blocking Real Seam: Implement `POST /agent/action`, wire it to a real frontend action registry, and capture live navigate/action/snapshot proof against the desktop app.
+- What Became Real: the localhost bridge now exposes `POST /agent/action`, the frontend registers approved named actions through a governed registry, `/agent/state` reports live shell metadata through the correct Tauri payload contract, and the desktop app can run `probe-local-runtime` and capture truthful post-action settings/assistant snapshots without seeded recorder state.
+- What Remains Simulated: arbitrary DOM clicking, coordinate automation, map gestures, and browser/jsdom desktop-bridge behavior remain intentionally out of scope.
+- Next Blocking Real Seam: No blocking seam remains for the current named-action scope; if future live workflows need bridge execution, add them through a successor packet instead of widening this packet into generic automation.
 
 ## Checkpoint Commit Plan
 
@@ -131,8 +131,8 @@ Extend the localhost-only agent bridge so approved named app actions can be invo
 
 ## Proof of Implementation
 
-- Command Runs: powershell -ExecutionPolicy Bypass -File .gov/workflow/wp_checks/check-WP-GOV-BRIDGE-002.ps1
-- Proof Artifact: .product/build_target/tool_artifacts/wp_runs/WP-GOV-BRIDGE-002/
+- Command Runs: `pnpm exec vitest run src/App.test.tsx --reporter=verbose`; `cargo test --manifest-path .product/Worktrees/wt_main/src-tauri/Cargo.toml`; `pnpm build`; `powershell -ExecutionPolicy Bypass -File .gov/workflow/wp_checks/check-WP-GOV-BRIDGE-002.ps1`; `powershell -ExecutionPolicy Bypass -File .gov/repo_scripts/enforce_wp_template_compliance.ps1`
+- Proof Artifact: `.product/build_target/tool_artifacts/wp_runs/WP-GOV-BRIDGE-002/20260409_224118/`
 - Claim Standard: do not claim completion without linked command output and artifact paths.
 
 ## Exit Criteria
@@ -146,13 +146,17 @@ Extend the localhost-only agent bridge so approved named app actions can be invo
 
 ## Evidence
 
-- Test Suite Execution:
-- Logs:
-- Screenshots/Exports:
-- Build Artifacts:
-- Proof Artifact: .product/build_target/tool_artifacts/wp_runs/WP-GOV-BRIDGE-002/
+- Test Suite Execution: `pnpm exec vitest run src/App.test.tsx --reporter=verbose`; `cargo test --manifest-path .product/Worktrees/wt_main/src-tauri/Cargo.toml`; `pnpm build`; `powershell -ExecutionPolicy Bypass -File .gov/workflow/wp_checks/check-WP-GOV-BRIDGE-002.ps1`; `powershell -ExecutionPolicy Bypass -File .gov/repo_scripts/enforce_wp_template_compliance.ps1`
+- Logs: `.product/build_target/tool_artifacts/wp_runs/WP-GOV-BRIDGE-002/20260409_224118/summary.md`; `.product/build_target/tool_artifacts/wp_runs/WP-GOV-BRIDGE-002/20260409_224118/notes.md`; `.product/build_target/tool_artifacts/wp_runs/WP-GOV-BRIDGE-002/20260409_224118/visual_proof/bridge_health.json`; `.product/build_target/tool_artifacts/wp_runs/WP-GOV-BRIDGE-002/20260409_224118/visual_proof/bridge_action_probe.json`; `.product/build_target/tool_artifacts/wp_runs/WP-GOV-BRIDGE-002/20260409_224118/visual_proof/bridge_action_unsupported.json`; `.product/build_target/tool_artifacts/wp_runs/WP-GOV-BRIDGE-002/20260409_224118/visual_proof/bridge_action_probe_timeout.json`; `.product/build_target/tool_artifacts/wp_runs/WP-GOV-BRIDGE-002/20260409_225418/summary.md`; `.product/build_target/tool_artifacts/wp_runs/WP-GOV-BRIDGE-002/20260409_225418/result.json`
+- Screenshots/Exports: `.product/build_target/tool_artifacts/wp_runs/WP-GOV-BRIDGE-002/20260409_224118/visual_proof/settings_before_probe_clean.png`; `.product/build_target/tool_artifacts/wp_runs/WP-GOV-BRIDGE-002/20260409_224118/visual_proof/settings_after_probe_clean.png`; `.product/build_target/tool_artifacts/wp_runs/WP-GOV-BRIDGE-002/20260409_224118/visual_proof/assistant_after_probe_clean.png`
+- Build Artifacts: `.product/build_target/tool_artifacts/wp_runs/WP-GOV-BRIDGE-002/20260409_224118/visual_proof/bridge_state_initial.json`; `.product/build_target/tool_artifacts/wp_runs/WP-GOV-BRIDGE-002/20260409_224118/visual_proof/bridge_state_settings_before_probe.json`; `.product/build_target/tool_artifacts/wp_runs/WP-GOV-BRIDGE-002/20260409_224118/visual_proof/bridge_state_after_probe.json`; `.product/build_target/tool_artifacts/wp_runs/WP-GOV-BRIDGE-002/20260409_224118/visual_proof/bridge_state_assistant.json`; `.product/build_target/tool_artifacts/wp_runs/WP-GOV-BRIDGE-002/20260409_224118/visual_proof/navigate_settings.json`; `.product/build_target/tool_artifacts/wp_runs/WP-GOV-BRIDGE-002/20260409_224118/visual_proof/navigate_assistant.json`; `.product/build_target/tool_artifacts/wp_runs/WP-GOV-BRIDGE-002/20260409_224118/visual_proof/snapshot_settings_before_probe.json`; `.product/build_target/tool_artifacts/wp_runs/WP-GOV-BRIDGE-002/20260409_224118/visual_proof/snapshot_settings_after_probe.json`; `.product/build_target/tool_artifacts/wp_runs/WP-GOV-BRIDGE-002/20260409_224118/visual_proof/snapshot_assistant_after_probe.json`; `.product/build_target/tool_artifacts/wp_runs/WP-GOV-BRIDGE-002/20260409_224118/visual_proof/bridge_action_probe_timeout.status.txt`
+- Proof Artifact: `.product/build_target/tool_artifacts/wp_runs/WP-GOV-BRIDGE-002/20260409_224118/`
 - User Sign-off:
 
 ## Progress Log
 
 - 2026-04-09: WP scaffold created via .gov/repo_scripts/new_work_packet.ps1.
+- 2026-04-09: Implemented the `/agent/action` bridge contract, frontend action registry, and Tauri completion channel in `.product/Worktrees/wt_main/src/App.tsx` and `.product/Worktrees/wt_main/src-tauri/src/lib.rs`.
+- 2026-04-09: Fixed the live bridge state-report payload mismatch so `/agent/state` now returns truthful shell metadata through `agent_report_state`.
+- 2026-04-09: Updated `AGENTS.md`, `PROJECT_CODEX.md`, and `MODEL_BEHAVIOR.md` so future agents use the visual debugger and headless bridge as the default desktop interaction path.
+- 2026-04-09: Captured live navigate/action/snapshot proof plus unsupported-action and timeout evidence under `.product/build_target/tool_artifacts/wp_runs/WP-GOV-BRIDGE-002/20260409_224118/`, removing the seeded-state screenshot workaround left by `WP-I6-004`.

@@ -132,7 +132,7 @@ Derived from exhaustive visual inspection of the running app. Grouped by categor
 - `WP-I6-004` - IMPLEMENTED: added a first-class in-app local-runtime probe, persisted verification state, and initial bridge/debugger proof for the AI settings and assistant surfaces under `.product/build_target/tool_artifacts/wp_runs/WP-I6-004/20260409_214611/`; successor `WP-GOV-BRIDGE-002` later retired the seeded-state screenshot workaround with live `/agent/action` proof under `.product/build_target/tool_artifacts/wp_runs/WP-GOV-BRIDGE-002/20260409_224118/`
 
 ### Global Events Tracking
-- `WP-I7-003` — IN-PROGRESS: derive a global event timeline from the already-real deviation/OSINT seams, add zoom-aware map event markers, and wire event-to-AOI linking through the live map runtime
+- `WP-I7-003` — IMPLEMENTED: the live shell now derives a governed global event timeline from restored deviation/aggregate-alert/OSINT artifacts, projects map-eligible events as clustered markers, and uses bridge-driven bundle reopen plus event focus to drive the real map/runtime inspector; proof: `.product/build_target/tool_artifacts/wp_runs/WP-I7-003/20260410_024715/` with live desktop bridge evidence under `.product/build_target/tool_artifacts/wp_runs/WP-I7-003/20260410_024149/`
 - `WP-I7-004` — Pre-loaded geopolitical baseline dataset (conflicts, sanctions, alliances), "what's happening now" dashboard
 
 ### Game Theory

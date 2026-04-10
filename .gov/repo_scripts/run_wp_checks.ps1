@@ -495,6 +495,8 @@ $isGovernanceWp = $WpId -like "WP-GOV-*"
 $isWpGovInstaller003 = $WpId -eq "WP-GOV-INSTALLER-003"
 $isRuntimeGovernanceWp = $WpId -eq "WP-GOV-VERIFY-001"
 $isWpI0 = $WpId -eq "WP-I0-003"
+$isWpI1018 = $WpId -eq "WP-I1-018"
+$isWpI7003 = $WpId -eq "WP-I7-003"
 $isWpI1 = $WpId -eq "WP-I1-003" -or $WpId -eq "WP-I1-004" -or $WpId -eq "WP-I1-005" -or $WpId -eq "WP-I1-011"
 $isWpI8 = $WpId -eq "WP-I8-002"
 $isWpI9 = $WpId -eq "WP-I9-002"
@@ -638,6 +640,90 @@ elseif ($isWpI0) {
         $extCargoLiveLog = Join-Path $artifactRootAbs "EXT-003.log"
         $extCargoLive = Invoke-CheckCommand -Category "Additional" -Name "Rust live PostgreSQL/PostGIS control-plane test" -Executable "cargo" -Arguments @("test", "--manifest-path", "src-tauri/Cargo.toml", "live_control_plane_query_roundtrip", "--", "--ignored", "--nocapture") -WorkingDirectory $productAbs -LogPath $extCargoLiveLog -EnvironmentOverrides $wpI0LiveTestEnvironment
         $results.Add($extCargoLive) | Out-Null
+    }
+}
+elseif ($isWpI1018) {
+    $depPreflightLog = Join-Path $artifactRootAbs "DEP-001.log"
+    $depPreflight = Invoke-CheckCommand -Category "Dependency" -Name "Governance Preflight" -Executable "powershell" -Arguments @("-ExecutionPolicy", "Bypass", "-File", ".gov/repo_scripts/governance_preflight.ps1") -WorkingDirectory $repoRoot -LogPath $depPreflightLog
+    $results.Add($depPreflight) | Out-Null
+
+    if (-not $SkipDependencyInstall) {
+        $depInstallLog = Join-Path $artifactRootAbs "DEP-002.log"
+        $depInstall = Invoke-CheckCommand -Category "Dependency" -Name "Dependency install (frozen lockfile)" -Executable "pnpm" -Arguments @("install", "--frozen-lockfile") -WorkingDirectory $productAbs -LogPath $depInstallLog
+        $results.Add($depInstall) | Out-Null
+    }
+    else {
+        $results.Add((New-SkippedResult -Category "Dependency" -Name "Dependency install" -Details "Skipped by parameter.")) | Out-Null
+    }
+
+    $uiLog = Join-Path $artifactRootAbs "UI-001.log"
+    $ui = Invoke-CheckCommand -Category "UI Contract" -Name "Assistant and scenario disclosure contract" -Executable "pnpm" -Arguments @("exec", "vitest", "run", "src/App.test.tsx", "-t", "keeps assistant and scenario advanced controls hidden until explicitly requested") -WorkingDirectory $productAbs -LogPath $uiLog
+    $results.Add($ui) | Out-Null
+
+    $funcLog = Join-Path $artifactRootAbs "FUNC-001.log"
+    $func = Invoke-CheckCommand -Category "Functionality" -Name "Assistant and scenario retained workflows" -Executable "pnpm" -Arguments @("exec", "vitest", "run", "src/App.test.tsx", "-t", "runs governed AI analysis and MCP tool workflow with audited refs|runs the scenario fork, compare, and export workflow") -WorkingDirectory $productAbs -LogPath $funcLog
+    $results.Add($func) | Out-Null
+
+    $corLog = Join-Path $artifactRootAbs "COR-001.log"
+    $cor = Invoke-CheckCommand -Category "Code Correctness" -Name "Lint checks" -Executable "pnpm" -Arguments @("lint") -WorkingDirectory $productAbs -LogPath $corLog
+    $results.Add($cor) | Out-Null
+
+    $redLog = Join-Path $artifactRootAbs "RED-001.log"
+    $redJsonRel = "$artifactRootRel/red_team_result.json"
+    $red = Invoke-CheckCommand -Category "Red-Team" -Name "Guardrail static check" -Executable "powershell" -Arguments @("-ExecutionPolicy", "Bypass", "-File", ".gov/repo_scripts/red_team_guardrail_check.ps1", "-CodeRoot", $ProductWorktree, "-OutputJsonPath", $redJsonRel) -WorkingDirectory $repoRoot -LogPath $redLog
+    $results.Add($red) | Out-Null
+
+    $extLog = Join-Path $artifactRootAbs "EXT-001.log"
+    $ext = Invoke-CheckCommand -Category "Additional" -Name "Build checks" -Executable "pnpm" -Arguments @("build") -WorkingDirectory $productAbs -LogPath $extLog
+    $results.Add($ext) | Out-Null
+
+    $cargoManifest = Join-Path $productAbs "src-tauri/Cargo.toml"
+    if (Test-Path $cargoManifest -PathType Leaf) {
+        $extCargoLog = Join-Path $artifactRootAbs "EXT-002.log"
+        $extCargo = Invoke-CheckCommand -Category "Additional" -Name "Rust unit tests" -Executable "cargo" -Arguments @("test", "--manifest-path", "src-tauri/Cargo.toml") -WorkingDirectory $productAbs -LogPath $extCargoLog
+        $results.Add($extCargo) | Out-Null
+    }
+}
+elseif ($isWpI7003) {
+    $depPreflightLog = Join-Path $artifactRootAbs "DEP-001.log"
+    $depPreflight = Invoke-CheckCommand -Category "Dependency" -Name "Governance Preflight" -Executable "powershell" -Arguments @("-ExecutionPolicy", "Bypass", "-File", ".gov/repo_scripts/governance_preflight.ps1") -WorkingDirectory $repoRoot -LogPath $depPreflightLog
+    $results.Add($depPreflight) | Out-Null
+
+    if (-not $SkipDependencyInstall) {
+        $depInstallLog = Join-Path $artifactRootAbs "DEP-002.log"
+        $depInstall = Invoke-CheckCommand -Category "Dependency" -Name "Dependency install (frozen lockfile)" -Executable "pnpm" -Arguments @("install", "--frozen-lockfile") -WorkingDirectory $productAbs -LogPath $depInstallLog
+        $results.Add($depInstall) | Out-Null
+    }
+    else {
+        $results.Add((New-SkippedResult -Category "Dependency" -Name "Dependency install" -Details "Skipped by parameter.")) | Out-Null
+    }
+
+    $uiLog = Join-Path $artifactRootAbs "UI-001.log"
+    $ui = Invoke-CheckCommand -Category "UI Contract" -Name "Timeline and map-focus UI contract" -Executable "pnpm" -Arguments @("exec", "vitest", "run", "src/App.test.tsx", "-t", "surfaces hover helpers and opens contextual details from the map runtime|shows the global event timeline in the tray and can focus the map from a timeline entry|exposes a governed agent action hook for reopening a governed bundle|exposes a governed agent action hook for focusing a global event on the map", "--reporter=verbose", "--maxWorkers=1") -WorkingDirectory $productAbs -LogPath $uiLog
+    $results.Add($ui) | Out-Null
+
+    $funcLog = Join-Path $artifactRootAbs "FUNC-001.log"
+    $func = Invoke-CheckCommand -Category "Functionality" -Name "Iteration feature tests" -Executable "pnpm" -Arguments @("exec", "vitest", "run", "src/features/i7/i7.test.ts", "src/features/i1/i1.test.ts", "--reporter=verbose", "--maxWorkers=1") -WorkingDirectory $productAbs -LogPath $funcLog
+    $results.Add($func) | Out-Null
+
+    $corLog = Join-Path $artifactRootAbs "COR-001.log"
+    $cor = Invoke-CheckCommand -Category "Code Correctness" -Name "Build checks" -Executable "pnpm" -Arguments @("build") -WorkingDirectory $productAbs -LogPath $corLog
+    $results.Add($cor) | Out-Null
+
+    $redLog = Join-Path $artifactRootAbs "RED-001.log"
+    $redJsonRel = "$artifactRootRel/red_team_result.json"
+    $red = Invoke-CheckCommand -Category "Red-Team" -Name "Guardrail static check" -Executable "powershell" -Arguments @("-ExecutionPolicy", "Bypass", "-File", ".gov/repo_scripts/red_team_guardrail_check.ps1", "-CodeRoot", $ProductWorktree, "-OutputJsonPath", $redJsonRel) -WorkingDirectory $repoRoot -LogPath $redLog
+    $results.Add($red) | Out-Null
+
+    $extLog = Join-Path $artifactRootAbs "EXT-001.log"
+    $ext = Invoke-CheckCommand -Category "Additional" -Name "Debug desktop build" -Executable "pnpm" -Arguments @("tauri", "build", "-d", "--no-bundle") -WorkingDirectory $productAbs -LogPath $extLog
+    $results.Add($ext) | Out-Null
+
+    $cargoManifest = Join-Path $productAbs "src-tauri/Cargo.toml"
+    if (Test-Path $cargoManifest -PathType Leaf) {
+        $extCargoLog = Join-Path $artifactRootAbs "EXT-002.log"
+        $extCargo = Invoke-CheckCommand -Category "Additional" -Name "Rust unit tests" -Executable "cargo" -Arguments @("test", "--manifest-path", "src-tauri/Cargo.toml") -WorkingDirectory $productAbs -LogPath $extCargoLog
+        $results.Add($extCargo) | Out-Null
     }
 }
 elseif ($isWpI1) {
