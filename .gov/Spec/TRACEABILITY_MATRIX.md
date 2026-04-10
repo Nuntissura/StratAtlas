@@ -417,3 +417,11 @@ For quick lookup: "What requirements does this component implement?"
 | WP-GOV-BRIDGE-003 | All | REQ-0013, REQ-0019, REQ-0020 | PRIM-0075 | .gov/workflow/wp_test_suites/TS-WP-GOV-BRIDGE-003.md | SPEC-MAPPED | .gov/workflow/wp_spec_extractions/SX-WP-GOV-BRIDGE-003.md |
 
 | WP-I1-021 | I1 | REQ-0200, REQ-0212 | PRIM-0005 | .gov/workflow/wp_test_suites/TS-WP-I1-021.md | SPEC-MAPPED | .gov/workflow/wp_spec_extractions/SX-WP-I1-021.md |
+
+| WP-I6-005 | I6 | REQ-0700, REQ-0701, REQ-0702, REQ-0703, REQ-0704, REQ-0705 | PRIM-0052 | .gov/workflow/wp_test_suites/TS-WP-I6-005.md | SPEC-MAPPED | .gov/workflow/wp_spec_extractions/SX-WP-I6-005.md |
+
+| WP-I6-006 | I6 | REQ-0700, REQ-0703, REQ-0704, REQ-0705 | PRIM-0053 | .gov/workflow/wp_test_suites/TS-WP-I6-006.md | SPEC-MAPPED | .gov/workflow/wp_spec_extractions/SX-WP-I6-006.md |
+
+| WP-I6-007 | I6 | REQ-0700, REQ-0701, REQ-0706, REQ-0707, REQ-0708 | PRIM-0052 | .gov/workflow/wp_test_suites/TS-WP-I6-007.md | SPEC-MAPPED | .gov/workflow/wp_spec_extractions/SX-WP-I6-007.md |
+
+| WP-GOV-AI-REALIGN-001 | All | REQ-0700, REQ-0701, REQ-0702, REQ-0703, REQ-0704, REQ-0705, REQ-0706, REQ-0707, REQ-0708 | PRIM-0052, PRIM-0053 | .gov/workflow/wp_test_suites/TS-WP-GOV-AI-REALIGN-001.md | SPEC-MAPPED | .gov/workflow/wp_spec_extractions/SX-WP-GOV-AI-REALIGN-001.md |

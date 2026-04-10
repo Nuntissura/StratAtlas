@@ -128,7 +128,7 @@ Derived from exhaustive visual inspection of the running app. Grouped by categor
 - `WP-I1-017` is now `IMPLEMENTED`; proof: `.product/build_target/tool_artifacts/wp_runs/WP-I1-017/20260409_192533/`. The map shell now renders as a compact HUD with a floating scene capsule, top-right action cluster, contextual drawer, hover/focus helper cards, purposeful motion controls, and a governed settings menu that persists real shell/runtime behavior such as compact chrome, hover helpers, motion profile, live-refresh policy, forced offline mode, and AI gateway profile. Live bridge proof is attached under `visual_proof/`.
 
 ### Panel Layout Stability
-- `WP-I1-021` — SPEC-MAPPED: fix panel overlap, hidden-by-default retrievability (inspector/tray both collapsed with no external toggle), footer overlay on map canvas, and rigid grid breakpoint gap between 1120px and 1320px
+- `WP-I1-021` is now `IMPLEMENTED`: persistent header toggles for Inspector/Tray (always visible), footer integrated into CSS grid flow (pushes content instead of overlaying), intermediate 1320px breakpoint reduces side panels to 220px, dead breakpoint removed, Ctrl+T keyboard shortcut; 90/90 tests pass, TypeScript clean; awaits live desktop visual proof and user sign-off
 
 ### Feature UX Simplification
 - `WP-I1-018` is now `IMPLEMENTED`; proof: `.product/build_target/tool_artifacts/wp_runs/WP-I1-018/20260410_004711/`. The assistant now leads with a workflow-first AI card, the scenario surface now leads with fork/compare/export, advanced runtime/modeling controls stay behind explicit disclosure, and live desktop bridge proof is attached under `visual_proof/`; linked sub-spec: `.gov/Spec/sub-specs/I1_ai_and_scenario_ux_simplification.md`.
@@ -136,6 +136,13 @@ Derived from exhaustive visual inspection of the running app. Grouped by categor
 ### AI Runtime Expansion
 - `WP-I6-003` — IMPLEMENTED: split provider choice from deployment profile and add a governed local executable-backed provider path with LM Studio/Ollama/custom presets for operator-supplied models
 - `WP-I6-004` - IMPLEMENTED: added a first-class in-app local-runtime probe, persisted verification state, and initial bridge/debugger proof for the AI settings and assistant surfaces under `.product/build_target/tool_artifacts/wp_runs/WP-I6-004/20260409_214611/`; successor `WP-GOV-BRIDGE-002` later retired the seeded-state screenshot workaround with live `/agent/action` proof under `.product/build_target/tool_artifacts/wp_runs/WP-GOV-BRIDGE-002/20260409_224118/`
+
+### AI Technical Depth (2026-04-11 audit)
+- `WP-GOV-AI-REALIGN-001` — SPEC-MAPPED: downgrade overstated E2E-VERIFIED claims on REQ-0700..0708 and PRIM-0052/0053 to IMPLEMENTED; sub-spec approvals all Pending, OpenAI proof used Codex CLI workaround, MCP is type-only, local inference unproven; blocking: must execute before the implementation packets below can re-earn status
+- `WP-I6-005` — SPEC-MAPPED: in-app provider selector (Claude/GPT/local), API key entry, pre-flight validation, secure credential persistence in settings menu; test with Claude/GPT consumer data plans first, then API billing keys; depends on WP-GOV-AI-REALIGN-001
+- `WP-I6-006` — SPEC-MAPPED: replace simulated frontend MCP tool execution with a real JSON-RPC MCP client in the Tauri backend; depends on WP-GOV-AI-REALIGN-001
+- `WP-I6-007` — SPEC-MAPPED: prove full local inference cycle in live desktop app (LM Studio or Ollama); depends on WP-I6-005 (needs in-app provider config to drive the flow)
+- Sequencing: `WP-GOV-AI-REALIGN-001` first (governance correction), then `WP-I6-005` (provider login — primary user need), then `WP-I6-006` (MCP protocol) and `WP-I6-007` (local inference proof) in parallel
 
 ### Global Events Tracking
 - `WP-I7-003` — IMPLEMENTED: the live shell now derives a governed global event timeline from restored deviation/aggregate-alert/OSINT artifacts, projects map-eligible events as clustered markers, and uses bridge-driven bundle reopen plus event focus to drive the real map/runtime inspector; proof: `.product/build_target/tool_artifacts/wp_runs/WP-I7-003/20260410_024715/` with live desktop bridge evidence under `.product/build_target/tool_artifacts/wp_runs/WP-I7-003/20260410_024149/`
