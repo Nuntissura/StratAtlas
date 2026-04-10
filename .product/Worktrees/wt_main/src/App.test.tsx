@@ -2160,6 +2160,10 @@ describe('App', () => {
     await waitFor(() =>
       expect(within(screen.getByTestId('deviation-event-card')).getByText(/^Sanctions Regime Updates$/)).toBeInTheDocument(),
     )
+    // Wait for startTransition from applyRecorderState to flush the restored mode
+    await waitFor(() =>
+      expect(within(screen.getByTestId('region-header')).getByText('Mode: live_recent')).toBeInTheDocument(),
+    )
 
     const workspacePanel = screen.getByTestId('region-left-panel')
     await user.selectOptions(within(workspacePanel).getByLabelText('Mode'), 'scenario')
