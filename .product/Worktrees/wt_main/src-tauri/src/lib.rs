@@ -4887,6 +4887,14 @@ struct AgentBridgeFrontendState {
     surface_mode: String,
     inspector_collapsed: bool,
     tray_collapsed: bool,
+    #[serde(default)]
+    assistant_advanced_visible: bool,
+    #[serde(default)]
+    scenario_advanced_visible: bool,
+    #[serde(default)]
+    workspace_advanced_visible: bool,
+    #[serde(default)]
+    settings_menu_open: bool,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -4901,6 +4909,10 @@ struct AgentBridgeStateResponse {
     surface_mode: String,
     inspector_collapsed: bool,
     tray_collapsed: bool,
+    assistant_advanced_visible: bool,
+    scenario_advanced_visible: bool,
+    workspace_advanced_visible: bool,
+    settings_menu_open: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -4942,6 +4954,10 @@ impl From<&AgentBridgeFrontendState> for AgentBridgeStateResponse {
             surface_mode: state.surface_mode.clone(),
             inspector_collapsed: state.inspector_collapsed,
             tray_collapsed: state.tray_collapsed,
+            assistant_advanced_visible: state.assistant_advanced_visible,
+            scenario_advanced_visible: state.scenario_advanced_visible,
+            workspace_advanced_visible: state.workspace_advanced_visible,
+            settings_menu_open: state.settings_menu_open,
         }
     }
 }
@@ -5121,6 +5137,16 @@ fn handle_agent_request(mut stream: std::net::TcpStream) {
                 .and_then(|v| v.as_str())
                 .unwrap_or("")
                 .to_string();
+            let mode = parsed
+                .get("mode")
+                .and_then(|v| v.as_str())
+                .unwrap_or("full")
+                .to_string();
+            let panel_selector = parsed
+                .get("panelSelector")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string();
             let (tx, rx) = std::sync::mpsc::channel::<String>();
             {
                 agent_bridge_state().lock().unwrap().snapshot_tx = Some(tx);
@@ -5128,11 +5154,14 @@ fn handle_agent_request(mut stream: std::net::TcpStream) {
             if let Some(app) = AGENT_APP_HANDLE.get() {
                 let _ = app.emit(
                     "agent-snapshot-request",
-                    json!({"subfolder": subfolder, "label": label}),
+                    json!({"subfolder": subfolder, "label": label, "mode": mode, "panelSelector": panel_selector}),
                 );
             }
             match rx.recv_timeout(Duration::from_secs(30)) {
-                Ok(p) => ("200 OK", json!({ "path": p }).to_string()),
+                Ok(p) if !p.is_empty() => ("200 OK", json!({ "path": p }).to_string()),
+                Ok(_) => {
+                    ("500 Internal Server Error", json!({ "error": "snapshot capture failed" }).to_string())
+                }
                 Err(_) => {
                     agent_bridge_state().lock().unwrap().snapshot_tx = None;
                     (

@@ -1162,9 +1162,18 @@ type AgentBridgeActionCompletion = {
   result?: unknown
 }
 
+interface SnapshotOptions {
+  mode?: 'full' | 'panel' | 'viewport'
+  panelSelector?: string
+}
+
 declare global {
   interface Window {
-    __stratatlasRequestSnapshot?: (subfolder?: string, label?: string) => Promise<string>
+    __stratatlasRequestSnapshot?: (
+      subfolder?: string,
+      label?: string,
+      options?: SnapshotOptions,
+    ) => Promise<string>
     __stratatlasNavigate?: (panel: string) => Promise<void>
     __stratatlasInvokeAgentAction?: (action: string, payload?: unknown) => Promise<unknown>
   }
@@ -1172,6 +1181,54 @@ declare global {
 
 const isTauriRuntime = (): boolean =>
   typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window
+
+/**
+ * Capture a snapshot of the app using the requested mode.
+ * - 'full'    — captures the entire DOM at its natural scroll dimensions, not clipped to viewport
+ * - 'panel'   — captures a single panel element targeted by CSS selector
+ * - 'viewport' — legacy behaviour, captures only the visible viewport
+ */
+const captureSnapshot = async (options?: SnapshotOptions): Promise<string> => {
+  const mode = options?.mode ?? 'full'
+  const panelSelector = options?.panelSelector
+
+  if (mode === 'panel' && panelSelector) {
+    const el = document.querySelector(panelSelector)
+    if (!el || !(el instanceof HTMLElement)) {
+      throw new Error(`[Visual Debugger] panel selector not found: ${panelSelector}`)
+    }
+    const canvas = await html2canvas(el, {
+      width: el.scrollWidth,
+      height: el.scrollHeight,
+      windowWidth: el.scrollWidth,
+      windowHeight: el.scrollHeight,
+      x: 0,
+      y: 0,
+      scrollX: 0,
+      scrollY: 0,
+    })
+    return canvas.toDataURL('image/png')
+  }
+
+  if (mode === 'full') {
+    const root = document.documentElement
+    const canvas = await html2canvas(document.body, {
+      width: root.scrollWidth,
+      height: root.scrollHeight,
+      windowWidth: root.scrollWidth,
+      windowHeight: root.scrollHeight,
+      x: 0,
+      y: 0,
+      scrollX: 0,
+      scrollY: 0,
+    })
+    return canvas.toDataURL('image/png')
+  }
+
+  // viewport (legacy)
+  const canvas = await html2canvas(document.body)
+  return canvas.toDataURL('image/png')
+}
 
 const toAgentBridgeMapMode = (
   surfaceMode: MapRuntimeTelemetry['activeSurfaceMode'],
@@ -1951,6 +2008,54 @@ function App() {
           await mapRuntimeSurfaceRef.current.switchSurfaceMode('orbital')
         }
         return
+      // WP-GOV-BRIDGE-003: disclosure toggles
+      case 'assistant-advanced':
+      case 'assistant_advanced':
+        startTransition(() => {
+          setLeftPanelView('assistant')
+          setAssistantAdvancedVisible((prev) => !prev)
+        })
+        return
+      case 'scenario-advanced':
+      case 'scenario_advanced':
+        startTransition(() => {
+          setGuidedStartDismissed(true)
+          setWorkspaceAdvancedVisible(true)
+          setLeftPanelView('workspace')
+          setMode('scenario')
+          setScenarioAdvancedVisible((prev) => !prev)
+          setInspectorCollapsed(false)
+          setRightPanelView('planning')
+        })
+        return
+      case 'workspace-advanced':
+      case 'workspace_advanced':
+        startTransition(() => {
+          setLeftPanelView('workspace')
+          setWorkspaceAdvancedVisible((prev) => !prev)
+        })
+        return
+      case 'expand-all':
+      case 'expand_all':
+        startTransition(() => {
+          setInspectorCollapsed(false)
+          setTrayCollapsed(false)
+          setWorkspaceAdvancedVisible(true)
+          setAssistantAdvancedVisible(true)
+          setScenarioAdvancedVisible(true)
+        })
+        return
+      case 'collapse-all':
+      case 'collapse_all':
+        startTransition(() => {
+          setInspectorCollapsed(true)
+          setTrayCollapsed(true)
+          setWorkspaceAdvancedVisible(false)
+          setAssistantAdvancedVisible(false)
+          setScenarioAdvancedVisible(false)
+          setSettingsMenuOpen(false)
+        })
+        return
       default:
         console.warn('[Agent Bridge] unsupported navigation target:', requestedPanel)
     }
@@ -2123,6 +2228,94 @@ function App() {
             },
           }
         }
+        // WP-GOV-BRIDGE-003: audit sweep — walk all surfaces and capture labeled snapshots
+        case 'audit-sweep':
+        case 'audit_sweep': {
+          const payload =
+            requestedAction.payload && typeof requestedAction.payload === 'object'
+              ? (requestedAction.payload as Record<string, unknown>)
+              : {}
+          const sweepSubfolder =
+            typeof payload.subfolder === 'string' ? payload.subfolder : 'audit-sweep'
+          const snapPaths: Record<string, string> = {}
+
+          const sweepCapture = async (
+            target: string,
+            label: string,
+            panelSelector?: string,
+          ): Promise<void> => {
+            await handleAgentNavigate(target)
+            await new Promise((resolve) => window.setTimeout(resolve, 200))
+            try {
+              const base64Data = await captureSnapshot({ mode: 'full' })
+              const fullPath = await invoke<string>('admin_save_snapshot', {
+                base64Data,
+                subfolder: sweepSubfolder,
+                label: `full_${label}`,
+              })
+              snapPaths[`full_${label}`] = fullPath
+            } catch {
+              snapPaths[`full_${label}`] = 'capture-failed'
+            }
+            if (panelSelector) {
+              try {
+                const base64Data = await captureSnapshot({ mode: 'panel', panelSelector })
+                const panelPath = await invoke<string>('admin_save_snapshot', {
+                  base64Data,
+                  subfolder: sweepSubfolder,
+                  label: `panel_${label}`,
+                })
+                snapPaths[`panel_${label}`] = panelPath
+              } catch {
+                snapPaths[`panel_${label}`] = 'capture-failed'
+              }
+            }
+          }
+
+          // Left panel views
+          await sweepCapture('workspace', 'left_workspace', '[data-testid="left-panel"]')
+          await sweepCapture('query', 'left_query', '[data-testid="left-panel"]')
+          await sweepCapture('assistant', 'left_assistant', '[data-testid="left-panel"]')
+          // Disclosure: assistant advanced
+          await handleAgentNavigate('assistant-advanced')
+          await new Promise((resolve) => window.setTimeout(resolve, 150))
+          await sweepCapture('assistant', 'left_assistant_advanced', '[data-testid="left-panel"]')
+          // Settings overlay
+          await sweepCapture('settings', 'settings_overlay', '[data-testid="left-panel"]')
+          // Main canvas views
+          await sweepCapture('summary', 'main_summary')
+          await sweepCapture('workflow', 'main_workflow')
+          await sweepCapture('artifacts', 'main_artifacts')
+          // Right panel views
+          await sweepCapture('context', 'right_context', '[data-testid="right-panel"]')
+          await sweepCapture('monitor', 'right_monitor', '[data-testid="right-panel"]')
+          await sweepCapture('planning', 'right_planning', '[data-testid="right-panel"]')
+          await sweepCapture('audit', 'right_audit', '[data-testid="right-panel"]')
+          // Bottom tray views
+          await sweepCapture('bundles', 'bottom_bundles', '[data-testid="bottom-panel"]')
+          await sweepCapture('activity', 'bottom_activity', '[data-testid="bottom-panel"]')
+          await sweepCapture('timeline', 'bottom_timeline', '[data-testid="bottom-panel"]')
+          // Scenario with advanced
+          await sweepCapture('scenario', 'scenario_full')
+          await handleAgentNavigate('scenario-advanced')
+          await new Promise((resolve) => window.setTimeout(resolve, 150))
+          await sweepCapture('scenario', 'scenario_advanced', '[data-testid="left-panel"]')
+          // Workspace advanced
+          await sweepCapture('workspace-advanced', 'workspace_advanced', '[data-testid="left-panel"]')
+          // Map modes
+          await sweepCapture('2d', 'map_2d')
+          await sweepCapture('3d', 'map_3d')
+          // Reset to calm state
+          await handleAgentNavigate('collapse-all')
+          await handleAgentNavigate('start')
+
+          return {
+            action: 'audit-sweep',
+            success: true,
+            message: `Audit sweep captured ${Object.keys(snapPaths).length} snapshots.`,
+            result: { subfolder: sweepSubfolder, snapshots: snapPaths },
+          }
+        }
         default:
           return {
             action: normalizedAction,
@@ -2165,8 +2358,7 @@ function App() {
       if (e.shiftKey && ctrl && e.key.toLowerCase() === 's') {
         e.preventDefault()
         try {
-          const canvas = await html2canvas(document.body)
-          const base64Data = canvas.toDataURL('image/png')
+          const base64Data = await captureSnapshot({ mode: 'full' })
           const absPath = await invoke<string>('admin_save_snapshot', {
             base64Data,
             subfolder: 'manual',
@@ -2179,10 +2371,13 @@ function App() {
     }
     window.addEventListener('keydown', handleKeyDown)
 
-    window.__stratatlasRequestSnapshot = async (subfolder?: string, label?: string) => {
+    window.__stratatlasRequestSnapshot = async (
+      subfolder?: string,
+      label?: string,
+      options?: SnapshotOptions,
+    ) => {
       try {
-        const canvas = await html2canvas(document.body)
-        const base64Data = canvas.toDataURL('image/png')
+        const base64Data = await captureSnapshot(options)
         return await invoke<string>('admin_save_snapshot', {
           base64Data,
           subfolder: subfolder ?? null,
@@ -2215,25 +2410,26 @@ function App() {
           })
         )
         unlisteners.push(
-          await listen<{ subfolder?: string; label?: string }>(
-            'agent-snapshot-request',
-            async (event) => {
-              try {
-                const { subfolder, label } = event.payload ?? {}
-                const canvas = await html2canvas(document.body)
-                const base64Data = canvas.toDataURL('image/png')
-                const absPath = await invoke<string>('admin_save_snapshot', {
-                  base64Data,
-                  subfolder: subfolder || null,
-                  label: label || null,
-                })
-                await invoke('agent_snapshot_complete', { path: absPath })
-              } catch (err) {
-                console.error('[Agent Bridge] snapshot failed', err)
-                await invoke('agent_snapshot_complete', { path: '' }).catch(() => {})
-              }
-            },
-          ),
+          await listen<{
+            subfolder?: string
+            label?: string
+            mode?: 'full' | 'panel' | 'viewport'
+            panelSelector?: string
+          }>('agent-snapshot-request', async (event) => {
+            try {
+              const { subfolder, label, mode, panelSelector } = event.payload ?? {}
+              const base64Data = await captureSnapshot({ mode: mode ?? 'full', panelSelector })
+              const absPath = await invoke<string>('admin_save_snapshot', {
+                base64Data,
+                subfolder: subfolder || null,
+                label: label || null,
+              })
+              await invoke('agent_snapshot_complete', { path: absPath })
+            } catch (err) {
+              console.error('[Agent Bridge] snapshot failed', err)
+              await invoke('agent_snapshot_complete', { path: '' }).catch(() => {})
+            }
+          }),
         )
         unlisteners.push(
           await listen<AgentBridgeActionRequest>('agent-action-request', async (event) => {
@@ -2288,20 +2484,28 @@ function App() {
         surfaceMode: mapRuntimeTelemetry.activeSurfaceMode,
         inspectorCollapsed,
         trayCollapsed,
+        assistantAdvancedVisible,
+        scenarioAdvancedVisible,
+        workspaceAdvancedVisible,
+        settingsMenuOpen,
       },
     }).catch((error) => {
       console.error('[Agent Bridge] state report failed', error)
     })
   }, [
     agentBridgeCurrentPanel,
+    assistantAdvancedVisible,
     bottomPanelView,
     inspectorCollapsed,
     leftPanelView,
     mainCanvasDeckView,
     mapRuntimeTelemetry.activeSurfaceMode,
     rightPanelView,
+    scenarioAdvancedVisible,
     selectedBundleId,
+    settingsMenuOpen,
     trayCollapsed,
+    workspaceAdvancedVisible,
   ])
 
   useEffect(() => {

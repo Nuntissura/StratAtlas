@@ -111,6 +111,9 @@ This file is the execution order for capability slices. It is the scheduling bri
 - Sequencing: `WP-GOV-BRIDGE-001` depends on `WP-GOV-DEBUGGER-001` (snapshot infra must exist before the bridge can trigger it).
 - Sequencing: `WP-GOV-BRIDGE-002` depended on `WP-GOV-BRIDGE-001` for navigation/snapshot transport and on `WP-I6-004` for the initial real workflow it now drives (`probe-local-runtime`).
 - Both packets are cross-cutting tooling and do not block or change the current product remediation queue. Their remaining step before any future `E2E-VERIFIED` promotion is user sign-off rather than additional implementation.
+- `WP-GOV-DEBUGGER-002` is now `IMPLEMENTED`: captureSnapshot() helper with full/panel/viewport modes landed across hotkey, JS global, and bridge event paths; Rust bridge extended with mode/panelSelector fields; 90/90 tests pass.
+- `WP-GOV-BRIDGE-003` is now `IMPLEMENTED`: disclosure toggles (assistant-advanced, scenario-advanced, workspace-advanced, expand-all, collapse-all), state response extended with 4 disclosure visibility fields, audit-sweep action captures all panels with full-DOM + per-panel snapshots; AGENTS.md updated; 90/90 tests pass.
+- Both packets await user sign-off before any `E2E-VERIFIED` promotion.
 
 ## 2D) UX and Feature Improvement Queue (2026-04-09 inspection)
 

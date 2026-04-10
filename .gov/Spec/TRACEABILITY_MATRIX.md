@@ -411,3 +411,7 @@ For quick lookup: "What requirements does this component implement?"
 | WP-I6-004 | I6 | REQ-0700, REQ-0701, REQ-0702, REQ-0703, REQ-0704, REQ-0705, REQ-0706, REQ-0707, REQ-0708 | PRIM-0052 | .gov/workflow/wp_test_suites/TS-WP-I6-004.md | IMPLEMENTED | .gov/workflow/wp_spec_extractions/SX-WP-I6-004.md; `.product/build_target/tool_artifacts/wp_runs/WP-I6-004/20260409_214611/` |
 
 | WP-GOV-BRIDGE-002 | All | REQ-0013, REQ-0019, REQ-0020 | PRIM-0075 | .gov/workflow/wp_test_suites/TS-WP-GOV-BRIDGE-002.md | IMPLEMENTED | .gov/workflow/wp_spec_extractions/SX-WP-GOV-BRIDGE-002.md; `.product/build_target/tool_artifacts/wp_runs/WP-GOV-BRIDGE-002/20260409_224118/`; follow-on to `WP-GOV-BRIDGE-001` and `WP-I6-004`, now closing approved bridge-driven action invocation plus the removal of seeded-state proof for the in-app local-runtime probe |
+
+| WP-GOV-DEBUGGER-002 | All | REQ-0013, REQ-0019, REQ-0020 | PRIM-0075 | .gov/workflow/wp_test_suites/TS-WP-GOV-DEBUGGER-002.md | SPEC-MAPPED | .gov/workflow/wp_spec_extractions/SX-WP-GOV-DEBUGGER-002.md |
+
+| WP-GOV-BRIDGE-003 | All | REQ-0013, REQ-0019, REQ-0020 | PRIM-0075 | .gov/workflow/wp_test_suites/TS-WP-GOV-BRIDGE-003.md | SPEC-MAPPED | .gov/workflow/wp_spec_extractions/SX-WP-GOV-BRIDGE-003.md |

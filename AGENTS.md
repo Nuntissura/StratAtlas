@@ -105,29 +105,33 @@ Do not implement:
 ## Built-in Visual Debugger (WP-GOV-DEBUGGER-001)
 
 - Agents can capture a snapshot of the current workbench surface for visual debugging and QA.
-- **Hotkey**: `Ctrl + Shift + S` - saves to `snapshots/manual/` under app data.
-- **JS global**: `window.__stratatlasRequestSnapshot(subfolder?, label?)` - returns absolute file path to saved PNG.
+- **Hotkey**: `Ctrl + Shift + S` - saves full-DOM snapshot to `snapshots/manual/` under app data.
+- **JS global**: `window.__stratatlasRequestSnapshot(subfolder?, label?, options?)` - returns absolute file path to saved PNG.
+  - `options.mode`: `'full'` (default, entire DOM regardless of window size), `'panel'` (single panel by selector), `'viewport'` (legacy viewport-only)
+  - `options.panelSelector`: CSS selector for panel mode (e.g. `'[data-testid="left-panel"]'`)
 - Snapshots saved to `<app_data>/stratatlas/snapshots/<subfolder>/<label>_<timestamp>.png`.
 
-## Headless Agent Bridge (WP-GOV-BRIDGE-001 / WP-GOV-BRIDGE-002)
+## Headless Agent Bridge (WP-GOV-BRIDGE-001 / WP-GOV-BRIDGE-002 / WP-GOV-BRIDGE-003)
 
 - Localhost-only HTTP API so agents can navigate, invoke approved named actions, and capture without focus stealing.
 - Port written to `<app_data>/stratatlas/agent_bridge_port.txt` on startup.
 - Endpoints:
   - `GET /agent/health` - liveness check
-  - `GET /agent/state` - current panel
+  - `GET /agent/state` - current panel, disclosure states (`assistantAdvancedVisible`, `scenarioAdvancedVisible`, `workspaceAdvancedVisible`, `settingsMenuOpen`)
   - `POST /agent/navigate` - `{"panel":"..."}` switch panel
   - `POST /agent/action` - `{"action":"probe-local-runtime","timeoutMs":120000}` invoke an approved named workflow and wait for structured completion
-  - `POST /agent/snapshot` - `{"subfolder":"...","label":"..."}` capture snapshot, blocks up to 30s
+  - `POST /agent/snapshot` - `{"subfolder":"...","label":"...","mode":"full|panel|viewport","panelSelector":"..."}` capture snapshot (default: full-DOM), blocks up to 30s
+- Navigation targets: `map`, `summary`, `workflow`, `artifacts`, `workspace`, `start`, `query`, `assistant`, `ai`, `settings`, `ai-settings`, `context`, `monitor`, `alerts`, `planning`, `audit`, `scenario`, `compare`, `game`, `bundles`, `activity`, `status`, `timeline`, `events`, `2d`, `planar`, `3d`, `orbital`, `assistant-advanced`, `scenario-advanced`, `workspace-advanced`, `expand-all`, `collapse-all`
+- Approved actions: `probe-local-runtime`, `focus-global-event`, `open-bundle`, `open-latest-bundle`, `audit-sweep`
 - JS globals:
   - `window.__stratatlasNavigate(panel)` - navigate inside the running WebView
   - `window.__stratatlasInvokeAgentAction(action, payload?)` - invoke an approved named action inside the running WebView
-  - `window.__stratatlasRequestSnapshot(subfolder?, label?)` - capture a governed snapshot inside the running WebView
+  - `window.__stratatlasRequestSnapshot(subfolder?, label?, options?)` - capture a governed snapshot inside the running WebView
 
 ### When to use the bridge and visual debugger
 
 - **After any UI implementation work**: capture a snapshot of every affected panel to visually verify the change landed correctly. Do not rely only on build-passes - visual confirmation catches layout breaks, missing elements, and state bugs that compilation misses.
-- **During UX audits or smoke passes**: navigate all panels and capture labeled snapshots in one batch. Use a descriptive subfolder (e.g. `audit_2026-04-09`, `WP-I1-014`).
+- **During UX audits or smoke passes**: use `POST /agent/action` with `{"action":"audit-sweep","payload":{"subfolder":"audit_2026-04-10"}}` to automatically walk all panels, expand all disclosures, and capture labeled full-DOM plus per-panel snapshots in one call.
 - **Before closing a WP**: capture evidence snapshots for the proof artifact bundle. Link snapshot paths in the WP evidence section.
 - **When debugging reported issues**: capture a baseline snapshot, make the fix, then capture an after snapshot to confirm the fix visually.
 - **When a live proof depends on pressing a real UI control**: use `POST /agent/action` for the approved named workflow instead of seeding recorder state or simulating clicks.
@@ -142,6 +146,12 @@ curl -s http://127.0.0.1:$PORT/agent/health
 curl -s -X POST http://127.0.0.1:$PORT/agent/navigate -d '{"panel":"settings"}'
 curl -s -X POST http://127.0.0.1:$PORT/agent/action -d '{"action":"probe-local-runtime","timeoutMs":120000}'
 curl -s -X POST http://127.0.0.1:$PORT/agent/snapshot -d '{"subfolder":"WP-GOV-BRIDGE-002","label":"settings_after_probe"}'
+# Full-DOM snapshot (captures entire app regardless of window size)
+curl -s -X POST http://127.0.0.1:$PORT/agent/snapshot -d '{"subfolder":"audit","label":"full_app","mode":"full"}'
+# Per-panel snapshot (captures a single panel in isolation)
+curl -s -X POST http://127.0.0.1:$PORT/agent/snapshot -d '{"subfolder":"audit","label":"right_panel","mode":"panel","panelSelector":"[data-testid=\"right-panel\"]"}'
+# Audit sweep (walks all surfaces, captures everything)
+curl -s -X POST http://127.0.0.1:$PORT/agent/action -d '{"action":"audit-sweep","payload":{"subfolder":"audit_2026-04-10"},"timeoutMs":120000}'
 ```
 
 ## 7) Always-Maintained Sentiment
