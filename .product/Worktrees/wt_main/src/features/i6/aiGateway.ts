@@ -1287,3 +1287,29 @@ export interface RemoveProviderCredentialRequest {
 export interface SetActiveProviderRequest {
   providerId: string
 }
+
+// --- MCP server types (WP-I6-006) ---
+
+export interface ExecuteMcpToolViaServerRequest {
+  toolName: string
+  arguments: Record<string, unknown>
+  timeoutMs?: number
+}
+
+export interface McpToolCallResult {
+  toolName: string
+  content: unknown
+  isError: boolean
+  source: string
+}
+
+export interface McpServerConfig {
+  configured: boolean
+  command: string
+  args: string
+}
+
+export interface SaveMcpServerConfigRequest {
+  command: string
+  args: string
+}

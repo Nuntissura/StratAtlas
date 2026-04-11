@@ -179,6 +179,7 @@ import {
   type LocalAiProviderConfig,
   type LocalAiRuntimeProfileId,
   type AllProviderCredentialStatuses,
+  type McpServerConfig,
   type McpInvocationRecord,
   type McpToolName,
 } from './features/i6/aiGateway'
@@ -1373,6 +1374,9 @@ function App() {
   const [credentialValidatePending, setCredentialValidatePending] = useState<string | null>(null)
   const [openaiApiKeyInput, setOpenaiApiKeyInput] = useState<string>('')
   const [anthropicApiKeyInput, setAnthropicApiKeyInput] = useState<string>('')
+  const [mcpServerCommand, setMcpServerCommand] = useState<string>('')
+  const [mcpServerArgs, setMcpServerArgs] = useState<string>('')
+  const [mcpServerConfigured, setMcpServerConfigured] = useState<boolean>(false)
   const [assistantAdvancedVisible, setAssistantAdvancedVisible] = useState<boolean>(false)
   const [localRuntimeProbePending, setLocalRuntimeProbePending] = useState<boolean>(false)
   const [aiPrompt, setAiPrompt] = useState<string>('Summarize this selected bundle.')
@@ -3795,6 +3799,11 @@ function App() {
         setAiProviderSelectionId(statuses.activeProvider as AiGatewayProviderId)
       }
     }).catch(() => {})
+    void backend.getMcpServerConfig().then((config) => {
+      setMcpServerConfigured(config.configured)
+      setMcpServerCommand(config.command)
+      setMcpServerArgs(config.args)
+    }).catch(() => {})
   }
 
   const onSaveProviderCredential = (providerId: string, apiKey: string): void => {
@@ -5197,12 +5206,72 @@ function App() {
       toolName: selectedMcpTool,
     })
 
+    const mcpAllowed = policy.mcpAllowed && policy.allowedMcpTools.includes(selectedMcpTool)
+
+    if (mcpServerConfigured && mcpAllowed) {
+      // Route through real MCP server via Tauri backend
+      void (async () => {
+        try {
+          const serverResult = await backend.executeMcpToolViaServer({
+            toolName: selectedMcpTool,
+            arguments: {
+              bundle_id: selectedBundle.bundle_id,
+            },
+          })
+          const summary = serverResult.isError
+            ? `MCP server error for ${selectedMcpTool}: ${JSON.stringify(serverResult.content).slice(0, 200)}`
+            : `MCP server returned result for ${selectedMcpTool}.`
+          setLatestMcpInvocation({
+            invocationId: `mcp-server-${Date.now()}`,
+            toolName: selectedMcpTool,
+            status: serverResult.isError ? 'denied' : 'allowed',
+            summary,
+            bundleRefs,
+            invokedAt: new Date().toISOString(),
+            resultPreview: JSON.stringify(serverResult.content, null, 2).slice(0, 500),
+          })
+          setStatus(summary)
+          void backend
+            .appendAudit({
+              role,
+              event_type: 'mcp.tool_invoked',
+              payload: {
+                status: serverResult.isError ? 'error' : 'allowed',
+                source: 'mcp-server',
+                tool_name: selectedMcpTool,
+                deployment_profile: deploymentProfileId,
+                bundle_id: selectedBundle.bundle_id,
+                bundle_refs: bundleRefs,
+                summary,
+              },
+            })
+            .then(() => refresh())
+            .catch(() => {})
+        } catch (error) {
+          const message = `MCP server call failed: ${String(error)}`
+          setLatestMcpInvocation({
+            invocationId: `mcp-server-error-${Date.now()}`,
+            toolName: selectedMcpTool,
+            status: 'denied',
+            summary: message,
+            bundleRefs,
+            invokedAt: new Date().toISOString(),
+            resultPreview: message,
+          })
+          setStatus(message)
+        }
+        completeMeasuredAction('MCP tool invocation', startedAt)
+      })()
+      return
+    }
+
+    // Fallback: local simulation (no MCP server configured)
     try {
       const result = executeMcpTool({
         role,
         marking,
         deploymentProfile: deploymentProfileId,
-        allowed: policy.mcpAllowed && policy.allowedMcpTools.includes(selectedMcpTool),
+        allowed: mcpAllowed,
         toolName: selectedMcpTool,
         manifest: selectedBundle,
         recorderState: {
@@ -5213,19 +5282,21 @@ function App() {
         visibleLayers: visibleLayerCatalog as LayerCatalogEntry[],
         latestAnalysis: latestAiArtifact,
       })
-      setLatestMcpInvocation(result.invocation)
-      setStatus(result.summary)
+      const simulatedSummary = `${result.summary} (simulated — no MCP server configured)`
+      setLatestMcpInvocation({ ...result.invocation, summary: simulatedSummary, resultPreview: simulatedSummary })
+      setStatus(simulatedSummary)
       void backend
         .appendAudit({
           role,
           event_type: 'mcp.tool_invoked',
           payload: {
             status: 'allowed',
+            source: 'local-simulation',
             tool_name: selectedMcpTool,
             deployment_profile: deploymentProfileId,
             bundle_id: selectedBundle.bundle_id,
             bundle_refs: result.bundleRefs,
-            summary: result.summary,
+            summary: simulatedSummary,
           },
         })
         .then(() => refresh())
@@ -8775,6 +8846,71 @@ function App() {
                       </p>
                     </>
                   ) : null}
+                  <div className="settings-credential-card" data-testid="mcp-server-config-card">
+                    <div className="card-header compact">
+                      <strong>MCP server</strong>
+                      <span
+                        className={`credential-status-badge credential-status-${mcpServerConfigured ? 'configured' : 'unconfigured'}`}
+                      >
+                        {mcpServerConfigured ? 'Configured' : 'Not configured'}
+                      </span>
+                    </div>
+                    <p>
+                      Configure an MCP server to run real tool calls via JSON-RPC instead of local simulation.
+                      The server is spawned per invocation via stdio transport.
+                    </p>
+                    <label className="settings-text-row">
+                      <span className="settings-label">Command</span>
+                      <input
+                        type="text"
+                        aria-label="MCP server command"
+                        value={mcpServerCommand}
+                        placeholder="npx"
+                        onChange={(e) => setMcpServerCommand(e.target.value)}
+                      />
+                    </label>
+                    <label className="settings-text-row">
+                      <span className="settings-label">Arguments</span>
+                      <input
+                        type="text"
+                        aria-label="MCP server arguments"
+                        value={mcpServerArgs}
+                        placeholder="-y @modelcontextprotocol/server-filesystem /tmp"
+                        onChange={(e) => setMcpServerArgs(e.target.value)}
+                      />
+                    </label>
+                    <div className="credential-actions">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          void backend
+                            .saveMcpServerConfig({ command: mcpServerCommand, args: mcpServerArgs })
+                            .then((config) => setMcpServerConfigured(config.configured))
+                            .catch(() => {})
+                        }}
+                      >
+                        Save
+                      </button>
+                      {mcpServerConfigured ? (
+                        <button
+                          type="button"
+                          className="credential-remove-button"
+                          onClick={() => {
+                            void backend
+                              .saveMcpServerConfig({ command: '', args: '' })
+                              .then((config) => {
+                                setMcpServerConfigured(config.configured)
+                                setMcpServerCommand('')
+                                setMcpServerArgs('')
+                              })
+                              .catch(() => {})
+                          }}
+                        >
+                          Remove
+                        </button>
+                      ) : null}
+                    </div>
+                  </div>
                 </div>
               </section>
             ) : null}

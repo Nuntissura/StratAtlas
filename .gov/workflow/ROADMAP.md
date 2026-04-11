@@ -140,7 +140,7 @@ Derived from exhaustive visual inspection of the running app. Grouped by categor
 ### AI Technical Depth (2026-04-11 audit)
 - `WP-GOV-AI-REALIGN-001` is now `IMPLEMENTED`: downgraded REQ-0700..0708 and PRIM-0052/0053 from E2E-VERIFIED to IMPLEMENTED with cited justifications; Gate G annotated in traceability matrix; awaits user sign-off
 - `WP-I6-005` is now `IMPLEMENTED`: in-app provider selector (Claude/GPT/Codex/local), API key entry with masked input, AES-256-GCM encrypted credential persistence, pre-flight validation via real API calls, Anthropic Claude Messages API backend, env-var fallback for backward compatibility; Rust compiles, 90/90 tests pass; awaits live desktop proof and user sign-off
-- `WP-I6-006` — SPEC-MAPPED: replace simulated frontend MCP tool execution with a real JSON-RPC MCP client in the Tauri backend; depends on WP-GOV-AI-REALIGN-001
+- `WP-I6-006` is now `IMPLEMENTED`: MCP stdio JSON-RPC client in Rust backend, spawns server process per invocation, initialize/tools-call protocol, server config persisted in encrypted store, frontend routes through real server with simulated fallback labeling; Rust compiles, 90/90 tests pass; awaits live desktop proof
 - `WP-I6-007` — SPEC-MAPPED: prove full local inference cycle in live desktop app (LM Studio or Ollama); depends on WP-I6-005 (needs in-app provider config to drive the flow)
 - Sequencing: `WP-GOV-AI-REALIGN-001` first (governance correction), then `WP-I6-005` (provider login — primary user need), then `WP-I6-006` (MCP protocol) and `WP-I6-007` (local inference proof) in parallel
 

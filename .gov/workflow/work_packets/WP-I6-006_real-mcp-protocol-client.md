@@ -1,7 +1,7 @@
 # WP-I6-006 - Real MCP Protocol Client
 
 Date Opened: 2026-04-11
-Status: SPEC-MAPPED
+Status: IMPLEMENTED
 Iteration: I6
 Workflow Version: 4.0
 Packet Class: IMPLEMENTATION
@@ -112,9 +112,9 @@ Replace the simulated MCP tool execution with a real MCP protocol client that co
 
 ## Change Ledger
 
-- What Became Real: TBD (updated at implementation)
-- What Remains Simulated: TBD (updated at implementation)
-- Next Blocking Real Seam: TBD (updated at implementation)
+- What Became Real: MCP stdio client in Rust backend — spawns server process, sends initialize/initialized/tools-call via JSON-RPC 2.0 over stdin/stdout, parses responses, handles timeouts and errors. Three new Tauri commands (execute_mcp_tool, save_mcp_server_config, get_mcp_server_config). MCP server config persisted in encrypted credential store. Frontend routes tool calls through real server when configured, falls back to local simulation with explicit "(simulated)" label when not.
+- What Remains Simulated: When no MCP server is configured, the existing local simulation path runs with explicit labeling. The six tool definitions themselves are unchanged.
+- Next Blocking Real Seam: Live desktop proof — configure a real MCP server (e.g. `npx -y @modelcontextprotocol/server-filesystem`), run a tool call, capture bridge snapshot showing real server result.
 
 ## Checkpoint Commit Plan
 
@@ -149,3 +149,4 @@ Replace the simulated MCP tool execution with a real MCP protocol client that co
 ## Progress Log
 
 - 2026-04-11: WP scaffold created via .gov/repo_scripts/new_work_packet.ps1.
+- 2026-04-11: Implementation complete — MCP stdio JSON-RPC client in Rust, 3 Tauri commands, server config persistence, frontend routing with simulated fallback labeling. Rust compiles, 90/90 TS tests pass, TypeScript clean.

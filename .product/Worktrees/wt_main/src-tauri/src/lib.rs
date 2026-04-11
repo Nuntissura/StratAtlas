@@ -2015,6 +2015,8 @@ struct StoredProviderCredentials {
     openai_model: Option<String>,
     anthropic_model: Option<String>,
     active_provider: Option<String>,
+    mcp_server_command: Option<String>,
+    mcp_server_args: Option<String>,
     updated_at: Option<String>,
 }
 
@@ -5442,6 +5444,193 @@ fn agent_action_complete(completion: AgentBridgeActionCompletion) {
     }
 }
 
+// --- MCP stdio client (WP-I6-006) ---
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct ExecuteMcpToolRequest {
+    tool_name: String,
+    arguments: Value,
+    timeout_ms: Option<u64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct McpToolCallResult {
+    tool_name: String,
+    content: Value,
+    is_error: bool,
+    source: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct McpServerConfigResponse {
+    configured: bool,
+    command: String,
+    args: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct SaveMcpServerConfigRequest {
+    command: String,
+    args: String,
+}
+
+fn execute_mcp_stdio_tool_call(
+    command: &str,
+    args: &[String],
+    tool_name: &str,
+    arguments: &Value,
+    timeout_ms: u64,
+) -> CommandResult<McpToolCallResult> {
+    let mut child = Command::new(command)
+        .args(args)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null())
+        .spawn()
+        .map_err(|error| format!("Failed to spawn MCP server process `{command}`: {error}"))?;
+
+    let mut stdin = child
+        .stdin
+        .take()
+        .ok_or("Failed to acquire MCP server stdin")?;
+    let stdout = child
+        .stdout
+        .take()
+        .ok_or("Failed to acquire MCP server stdout")?;
+    let mut reader = BufReader::new(stdout);
+
+    let start = Instant::now();
+    let timeout = Duration::from_millis(timeout_ms);
+
+    // 1) Send initialize request
+    let init_request = json!({
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "initialize",
+        "params": {
+            "protocolVersion": "2024-11-05",
+            "capabilities": {},
+            "clientInfo": {
+                "name": "stratatlas",
+                "version": "0.1.12"
+            }
+        }
+    });
+    let mut init_line = serde_json::to_string(&init_request)
+        .map_err(|error| format!("Failed to serialize MCP initialize request: {error}"))?;
+    init_line.push('\n');
+    stdin
+        .write_all(init_line.as_bytes())
+        .map_err(|error| format!("Failed to write MCP initialize request: {error}"))?;
+    stdin
+        .flush()
+        .map_err(|error| format!("Failed to flush MCP stdin: {error}"))?;
+
+    // 2) Read initialize response
+    let mut response_line = String::new();
+    reader
+        .read_line(&mut response_line)
+        .map_err(|error| format!("Failed to read MCP initialize response: {error}"))?;
+    let init_response: Value = serde_json::from_str(response_line.trim())
+        .map_err(|error| format!("Failed to parse MCP initialize response: {error}"))?;
+    if init_response.get("error").is_some() {
+        let _ = child.kill();
+        return Err(format!(
+            "MCP server returned error during initialize: {}",
+            init_response["error"]
+        ));
+    }
+
+    if start.elapsed() > timeout {
+        let _ = child.kill();
+        return Err("MCP server timed out during initialization".to_string());
+    }
+
+    // 3) Send initialized notification
+    let initialized_notification = json!({
+        "jsonrpc": "2.0",
+        "method": "notifications/initialized"
+    });
+    let mut notif_line = serde_json::to_string(&initialized_notification)
+        .map_err(|error| format!("Failed to serialize MCP initialized notification: {error}"))?;
+    notif_line.push('\n');
+    stdin
+        .write_all(notif_line.as_bytes())
+        .map_err(|error| format!("Failed to write MCP initialized notification: {error}"))?;
+    stdin
+        .flush()
+        .map_err(|error| format!("Failed to flush MCP stdin: {error}"))?;
+
+    // 4) Send tools/call request
+    let call_request = json!({
+        "jsonrpc": "2.0",
+        "id": 2,
+        "method": "tools/call",
+        "params": {
+            "name": tool_name,
+            "arguments": arguments
+        }
+    });
+    let mut call_line = serde_json::to_string(&call_request)
+        .map_err(|error| format!("Failed to serialize MCP tools/call request: {error}"))?;
+    call_line.push('\n');
+    stdin
+        .write_all(call_line.as_bytes())
+        .map_err(|error| format!("Failed to write MCP tools/call request: {error}"))?;
+    stdin
+        .flush()
+        .map_err(|error| format!("Failed to flush MCP stdin: {error}"))?;
+
+    // 5) Read tools/call response (skip any notifications until we get id:2)
+    loop {
+        if start.elapsed() > timeout {
+            let _ = child.kill();
+            return Err("MCP server timed out during tool call".to_string());
+        }
+        let mut line = String::new();
+        reader
+            .read_line(&mut line)
+            .map_err(|error| format!("Failed to read MCP tools/call response: {error}"))?;
+        if line.trim().is_empty() {
+            continue;
+        }
+        let msg: Value = serde_json::from_str(line.trim())
+            .map_err(|error| format!("Failed to parse MCP response: {error}"))?;
+
+        // Skip notifications (no id field)
+        if msg.get("id").is_none() {
+            continue;
+        }
+        // Check if this is our response (id: 2)
+        if msg.get("id").and_then(Value::as_u64) == Some(2) {
+            let _ = child.kill();
+            if let Some(error) = msg.get("error") {
+                return Ok(McpToolCallResult {
+                    tool_name: tool_name.to_string(),
+                    content: error.clone(),
+                    is_error: true,
+                    source: "mcp-server".to_string(),
+                });
+            }
+            let result = msg.get("result").cloned().unwrap_or(json!(null));
+            let content = result.get("content").cloned().unwrap_or(json!([]));
+            let is_error = result.get("isError").and_then(Value::as_bool).unwrap_or(false);
+            return Ok(McpToolCallResult {
+                tool_name: tool_name.to_string(),
+                content,
+                is_error,
+                source: "mcp-server".to_string(),
+            });
+        }
+    }
+}
+
+// --- End MCP stdio client ---
+
 // --- Credential management commands (WP-I6-005) ---
 
 #[tauri::command]
@@ -5642,6 +5831,58 @@ fn set_active_provider(
         active_provider: active,
     })
 }
+
+// --- MCP server commands (WP-I6-006) ---
+
+#[tauri::command]
+fn execute_mcp_tool(
+    app: AppHandle,
+    request: ExecuteMcpToolRequest,
+) -> CommandResult<McpToolCallResult> {
+    let creds = read_stored_credentials(&app)?;
+    let command = creds
+        .mcp_server_command
+        .filter(|c| !c.trim().is_empty())
+        .ok_or("No MCP server configured. Set a server command in Settings.")?;
+    let args_str = creds.mcp_server_args.unwrap_or_default();
+    let args: Vec<String> = args_str
+        .split_whitespace()
+        .map(String::from)
+        .collect();
+    let timeout_ms = request.timeout_ms.unwrap_or(30_000);
+    execute_mcp_stdio_tool_call(&command, &args, &request.tool_name, &request.arguments, timeout_ms)
+}
+
+#[tauri::command]
+fn save_mcp_server_config(
+    app: AppHandle,
+    request: SaveMcpServerConfigRequest,
+) -> CommandResult<McpServerConfigResponse> {
+    let mut creds = read_stored_credentials(&app)?;
+    creds.mcp_server_command = Some(request.command.clone());
+    creds.mcp_server_args = Some(request.args.clone());
+    creds.updated_at = Some(Utc::now().to_rfc3339());
+    write_stored_credentials(&app, &creds)?;
+    Ok(McpServerConfigResponse {
+        configured: !request.command.trim().is_empty(),
+        command: request.command,
+        args: request.args,
+    })
+}
+
+#[tauri::command]
+fn get_mcp_server_config(app: AppHandle) -> CommandResult<McpServerConfigResponse> {
+    let creds = read_stored_credentials(&app)?;
+    let command = creds.mcp_server_command.unwrap_or_default();
+    let args = creds.mcp_server_args.unwrap_or_default();
+    Ok(McpServerConfigResponse {
+        configured: !command.trim().is_empty(),
+        command,
+        args,
+    })
+}
+
+// --- End MCP server commands ---
 
 // --- End credential management commands ---
 
@@ -5903,7 +6144,10 @@ pub fn run() {
             remove_provider_credential,
             validate_provider_credential,
             get_all_provider_credential_statuses,
-            set_active_provider
+            set_active_provider,
+            execute_mcp_tool,
+            save_mcp_server_config,
+            get_mcp_server_config
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

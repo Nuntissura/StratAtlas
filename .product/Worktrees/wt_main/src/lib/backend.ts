@@ -42,6 +42,10 @@ import {
   type RemoveProviderCredentialRequest,
   type SaveProviderCredentialRequest,
   type SetActiveProviderRequest,
+  type ExecuteMcpToolViaServerRequest,
+  type McpServerConfig,
+  type McpToolCallResult,
+  type SaveMcpServerConfigRequest,
   type ValidateProviderCredentialRequest,
   type ValidateProviderCredentialResult,
 } from '../features/i6/aiGateway'
@@ -1065,5 +1069,30 @@ export const backend = {
       return invoke<AllProviderCredentialStatuses>('set_active_provider', { request })
     }
     throw new Error('Active provider management requires the Tauri runtime')
+  },
+
+  async executeMcpToolViaServer(
+    request: ExecuteMcpToolViaServerRequest,
+  ): Promise<McpToolCallResult> {
+    if (isTauriRuntime()) {
+      return invoke<McpToolCallResult>('execute_mcp_tool', { request })
+    }
+    throw new Error('MCP server execution requires the Tauri runtime')
+  },
+
+  async saveMcpServerConfig(
+    request: SaveMcpServerConfigRequest,
+  ): Promise<McpServerConfig> {
+    if (isTauriRuntime()) {
+      return invoke<McpServerConfig>('save_mcp_server_config', { request })
+    }
+    throw new Error('MCP server configuration requires the Tauri runtime')
+  },
+
+  async getMcpServerConfig(): Promise<McpServerConfig> {
+    if (isTauriRuntime()) {
+      return invoke<McpServerConfig>('get_mcp_server_config')
+    }
+    return { configured: false, command: '', args: '' }
   },
 }

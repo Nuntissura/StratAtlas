@@ -113,9 +113,9 @@ The probe action (`probe_local_ai_runtime`) verifies connectivity but the full i
 
 ## Change Ledger
 
-- What Became Real: TBD (updated at verification)
-- What Remains Simulated: TBD (updated at verification)
-- Next Blocking Real Seam: TBD (updated at verification)
+- What Became Real: Full code path trace verified — frontend trigger → gateway routing → backend bridge → Rust provider resolution → local subprocess execution → response display → audit capture. No broken links, no type mismatches, no missing fields.
+- What Remains Simulated: Nothing in code — the path is real. Live desktop proof still pending (requires running LM Studio or Ollama).
+- Next Blocking Real Seam: Launch app with local LLM running, select local provider, click Analyze, capture bridge snapshot of real model output.
 
 ## Checkpoint Commit Plan
 
@@ -150,3 +150,4 @@ The probe action (`probe_local_ai_runtime`) verifies connectivity but the full i
 ## Progress Log
 
 - 2026-04-11: WP scaffold created via .gov/repo_scripts/new_work_packet.ps1.
+- 2026-04-11: Code path trace verified — complete chain from frontend Analyze button through Tauri subprocess to result display and audit. No bugs found. Live desktop proof pending (requires running local LLM).
