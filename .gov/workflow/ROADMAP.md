@@ -3,7 +3,9 @@
 Date: 2026-04-09
 Source anchors: `.gov/Spec/stratatlas_spec_v1_2.md` section 19 and `.gov/Spec/REQUIREMENTS_INDEX.md`
 
-This file is the execution order for capability slices. It is the scheduling bridge between the spec and day-to-day work packets.
+This file is the historical record of capability slice delivery and the scheduling bridge between the spec and day-to-day work packets.
+
+**Current execution authority:** `.gov/workflow/REFACTOR_PLAN.md` — the active UI refactor plan (WP-I1-022 through WP-I1-026).
 
 ---
 
