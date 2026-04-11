@@ -1,8 +1,8 @@
 # STRATATLAS
-## Product Specification v1.2.5
+## Product Specification v1.2.6
 *Interactive Geospatial Analysis Workstation*
 
-**Date:** 2026-03-09  
+**Date:** 2026-04-11  
 **Status:** Draft  
 **Audience:** Engineering, Product, Security/Compliance, Stakeholders  
 **Supersedes:** `stratatlas_spec_v1_1.md`, `stratatlas_spec_v1_0.md`, `stratatlas_spec_v0_4.md`, `stratatlas_spec_v1_0_reset.md`
@@ -16,7 +16,7 @@ This document uses requirement keywords:
 - **SHOULD / SHOULD NOT:** strong recommendation; exceptions require written justification
 - **MAY:** optional capability
 
-Items marked **[NEW in v1.2.2]** denote additions relative to spec v1.2.1. Items marked **[NEW in v1.2]** denote additions relative to spec v1.1. Items marked **[NEW in v1.1]** denote additions relative to spec v1.0.
+Items marked **[NEW in v1.2.6]** denote additions relative to spec v1.2.5. Items marked **[NEW in v1.2.2]** denote additions relative to spec v1.2.1. Items marked **[NEW in v1.2]** denote additions relative to spec v1.1. Items marked **[NEW in v1.1]** denote additions relative to spec v1.0.
 
 ---
 
@@ -539,6 +539,147 @@ StratAtlas SHOULD provide agent-facing tooling for automated testing and visual 
 - **Headless agent bridge**: A localhost-only HTTP server (127.0.0.1, random port) that accepts JSON commands for panel navigation (`POST /agent/navigate`), snapshot capture (`POST /agent/snapshot`), state queries (`GET /agent/state`), and health checks (`GET /agent/health`). Port written to `agent_bridge_port.txt` in app data on startup.
 - Agent tooling MUST NOT require window focus, keyboard simulation, or mouse automation.
 - Agent tooling MUST bind only to localhost and MUST NOT expose any remote access surface.
+
+### 11.10 Component Architecture [NEW in v1.2.6]
+
+Each stable region (Section 11.1) MUST be implemented as an independent component with a defined prop interface:
+
+- **HeaderBar** — identity, connectivity status, role/marking indicators, panel toggles, settings trigger
+- **LeftPanel** — task family tabs, active workspace controls, layer dock
+- **MapCanvas** — 2D/3D runtime, HUD overlays, contextual controls
+- **RightPanel** — contextual inspector, assistant surface, selection detail
+- **BottomTray** — bundles, activity, timeline, audit
+- **SettingsPanel** — all governed configuration surfaces
+
+Rules:
+- Each region component MUST own its own rendering logic and MUST NOT contain inline JSX for other regions.
+- Shared state MUST flow through a centralized state layer (reducer or context), not through prop-drilling chains of individual useState hooks.
+- Feature domains (query, AI, context, scenario, compare, layers) MUST be isolated into feature modules. A feature module exports its state slice, actions, and UI sub-components; it MUST NOT reach into another feature module's internals.
+- CSS MUST be modular per component. A region component's styles MUST NOT depend on or override another region's styles.
+
+### 11.11 Card System Contract [NEW in v1.2.6]
+
+Every non-map surface element MUST be rendered as a **card** from a governed card vocabulary. Cards are the atomic unit of information display outside the map canvas.
+
+#### 11.11.1 Card Anatomy
+
+Every card MUST have:
+- **Type badge** — one of: `status`, `data`, `action`, `insight`, `config` — displayed as a subtle top-edge label or icon
+- **Title** — concise heading describing the card's purpose
+- **Body** — content area (text, form controls, data display, or visualization)
+- **Source label** — exactly one of the Section 11.4 evidence labels (Observed Evidence, Curated Context, Modeled Output, AI-Derived Interpretation) when the card displays analytical content
+
+Cards MAY have:
+- **Actions** — buttons or controls in a footer area
+- **Collapse control** — disclosure toggle for progressive detail
+- **Timestamp** — when the content was last updated
+
+#### 11.11.2 Card Types
+
+| Type | Purpose | Example | Source Label Required |
+|------|---------|---------|---------------------|
+| `status` | Show current system/runtime state | Connectivity, mode, deployment profile | No |
+| `data` | Display evidence, context records, or query results | Bundle manifest, layer metadata, query rows | Yes |
+| `action` | Present a workflow step or operation | "Submit AI Analysis", "Fork Scenario", "Create Bundle" | No |
+| `insight` | Show AI-generated or model-derived interpretation | Copilot narration, deviation explanation, correlation finding | Yes (always AI-Derived or Modeled) |
+| `config` | Expose a governed setting or preference | Provider selection, motion profile, live refresh policy | No |
+
+#### 11.11.3 Card Behavior Rules
+
+- Cards MUST NOT overlap each other. Cards flow within their parent panel's scroll area.
+- Cards MUST NOT duplicate information that is already visible in another panel's card. Cross-reference by linking, not by repeating content.
+- A panel MUST show at most **5 cards** in its default (collapsed) state. Additional cards MUST be behind a "Show more" disclosure control.
+- Empty-state cards (no data available) MUST show a single-line explanation and a clear action to populate them, not a blank area.
+- Cards that depend on a precondition (e.g., "select a bundle first") MUST show the precondition as a brief inline prompt, not as a disabled blank card.
+
+#### 11.11.4 Card Banned Patterns
+
+The following patterns MUST NOT appear in the card system:
+- Hero blocks, KPI grids, or dashboard-style metric walls
+- Decorative gradients, glow effects, or animated backgrounds on cards
+- Pill-heavy toggle rows as primary navigation within a card
+- Uppercase eyebrow labels or decorative microcopy
+- Cards that contain only a label and no actionable content
+- Nested cards (a card inside a card)
+
+### 11.12 Task Family Architecture [NEW in v1.2.6]
+
+The left panel MUST organize controls into **task families** — groups of related analyst workflows. Task families are the primary navigation mechanism for non-map work.
+
+| Family | Tabs/Views | Purpose | Panel |
+|--------|-----------|---------|-------|
+| **Monitor** | Live, Replay, Alerts, Timeline | Understand what is happening now | Left (primary), Bottom (timeline) |
+| **Analyze** | Query, Compare, Briefing | Interrogate evidence and prepare outputs | Left (primary), Main (results) |
+| **Context** | Intake, Domains, Deviation, Events | Register enrichment and monitor change | Left (primary), Right (detail) |
+| **Plan** | Scenario, Model, Game Theory | Build and inspect hypothetical futures | Left (primary), Right (detail) |
+| **AI** | Assistant, MCP Tools, Provider Status | LLM-driven analysis and tool execution | Left (primary), Right (copilot) |
+
+Rules:
+- Only one task family is active at a time in the left panel. Switching families does NOT destroy state — inactive family state is preserved.
+- Each family's primary controls live in the left panel. Supporting detail (selection inspector, copilot responses, context metadata) lives in the right panel.
+- The bottom tray is shared across families and shows outputs: bundles, audit trail, activity log.
+- The map canvas is always visible regardless of active family.
+
+### 11.13 Settings Architecture [NEW in v1.2.6]
+
+The settings surface MUST be a dedicated panel or modal, not a dropdown menu. Settings MUST be organized into sections that correspond to their scope of effect:
+
+| Section | Scope | Examples |
+|---------|-------|---------|
+| **Shell** | Frontend-only visual preferences | Compact chrome, hover helpers, motion profile, theme |
+| **Data** | Backend-connected data policy | Live refresh policy, forced offline mode, cache policy |
+| **AI Provider** | Backend-connected AI configuration | Provider selection, API key management, model preference |
+| **MCP** | Backend-connected tool server | MCP server command, arguments, connection status |
+| **Deployment** | Backend-connected security posture | Deployment profile, marking defaults, export policy |
+
+Rules:
+- Every setting MUST show whether it affects only the frontend, only the backend, or both. This distinction MUST be visible in the UI (e.g., a scope badge or section label).
+- Settings that require the Tauri runtime MUST show a truthful "Requires desktop runtime" note when running in browser/jsdom mode.
+- Settings changes MUST take effect immediately and persist across restarts.
+- Settings MUST be restorable to defaults with a single "Reset to defaults" action per section.
+
+### 11.14 AI Interaction Surface [NEW in v1.2.6]
+
+The AI interaction surface connects the LLM to the analyst's data and app state. It MUST follow these rules:
+
+#### 11.14.1 Data Flow to LLM
+
+When the analyst submits a prompt to the AI assistant, the system MUST:
+1. Collect all active evidence references from the current bundle (bundle_id, asset_id, sha256).
+2. Include the current AOI, active layers, time window, and mode as structured context — never as raw file paths.
+3. Include active context domain values (Section 7.4) when relevant to the prompt.
+4. Send the structured context + prompt through the AI Access Gateway (Section 15.1) with full policy gating.
+
+The LLM MUST NOT receive:
+- Raw database queries or connection strings
+- File system paths or internal service endpoints
+- Unredacted API keys or credentials
+- Data from bundles the analyst has not explicitly selected
+
+#### 11.14.2 LLM Response Display
+
+AI responses MUST be displayed as `insight` cards (Section 11.11.2) in the right panel's copilot area. Every response card MUST show:
+- The provider and model that generated the response (e.g., "Claude Sonnet 4 via Anthropic API")
+- The evidence references the response was based on
+- The AI-Derived Interpretation source label
+- A confidence qualifier ("This is an AI interpretation, not observed evidence")
+
+#### 11.14.3 LLM Interaction with App State
+
+The LLM MAY interact with app state through MCP tools (Section 15.3), but:
+- MCP tool calls MUST be visible in the copilot panel with their parameters and results.
+- The LLM MUST NOT autonomously modify analyst state (annotations, AOIs, scenario forks, bundles) — all modifications require explicit analyst approval via the Section 15.5.4 approval workflow.
+- MCP tool results MUST flow back to the LLM as structured data, not as screenshots or rendered HTML.
+
+#### 11.14.4 Provider Configuration Visibility
+
+The assistant surface MUST show the current AI provider configuration state at all times:
+- Which provider is active (Claude, GPT, Codex CLI, local, or auto)
+- Whether the provider credentials are validated
+- Whether the current deployment profile allows AI access
+- The provider's connection status (live, degraded, offline, unconfigured)
+
+When no provider is configured, the assistant MUST show a clear action to configure one (link to Settings AI Provider section), not a disabled or empty card.
 
 ---
 
