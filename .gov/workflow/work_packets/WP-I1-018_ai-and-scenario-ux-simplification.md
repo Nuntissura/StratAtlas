@@ -1,7 +1,7 @@
 # WP-I1-018 - AI and Scenario UX Simplification
 
 Date Opened: 2026-04-09
-Status: IMPLEMENTED
+Status: SUPERSEDED
 Iteration: I1
 Workflow Version: 4.0
 Packet Class: IMPLEMENTATION
@@ -156,3 +156,4 @@ Simplify the verified assistant and scenario surfaces so the first action is obv
 - 2026-04-09: Governance packet, linked sub-spec, taskboard row, roadmap row, and traceability/primitives rows were rewritten from placeholder state and checkpointed in commit `b62fcad`.
 - 2026-04-10: Assistant and scenario workflow surfaces were simplified in `App.tsx`/`App.css`, regression coverage landed in `App.test.tsx`, and the WP check runner was narrowed to the packet's governed scope.
 - 2026-04-10: The headless bridge scenario route was aligned with the full-workbench workflow path, `check-WP-I1-018.ps1` passed, and live desktop snapshots for the assistant and scenario surfaces were attached under `.product/build_target/tool_artifacts/wp_runs/WP-I1-018/20260410_004711/visual_proof/`.
+- 2026-04-10: SUPERSEDED by WP-I1-024 (Task Family Architecture) + WP-I1-026 (AI Interaction Surface). AI/scenario UX simplification is absorbed into the task family architecture and AI interaction surface. Retained proof: `.product/build_target/tool_artifacts/wp_runs/WP-I1-018/20260410_004711/`.

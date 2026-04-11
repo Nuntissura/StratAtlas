@@ -1,7 +1,7 @@
 # WP-I1-015 - Map-Dominant Declutter and Progressive Disclosure
 
 Date Opened: 2026-04-09
-Status: IMPLEMENTED
+Status: SUPERSEDED
 Iteration: I1
 Workflow Version: 4.0
 Packet Class: IMPLEMENTATION
@@ -165,3 +165,4 @@ Use the current manual-smoke findings to reduce the remaining "LLM demo" feel in
 - 2026-04-09: Product seam landed in the live shell: the left rail now prioritizes the layer-family dock, support-only families stay hidden until explicitly requested, and the summary deck defaults to a calmer map-first disclosure state.
 - 2026-04-09: Added regression coverage for dock ordering, support-family reveal, and compact-summary detail disclosure without breaking existing map-family persistence flows.
 - 2026-04-09: Official packet proof passed under `.product/build_target/tool_artifacts/wp_runs/WP-I1-015/20260409_165612/`, including governed packet checks, App regression tests, lint, build, Rust verification, and live bridge-driven snapshot capture in `visual_proof/`.
+- 2026-04-10: SUPERSEDED by WP-I1-024 (Task Family Architecture). Progressive disclosure scope is now absorbed into the task family structure. Retained proof: `.product/build_target/tool_artifacts/wp_runs/WP-I1-015/20260409_165612/`.

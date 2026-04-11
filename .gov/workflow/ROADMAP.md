@@ -124,14 +124,37 @@ Derived from exhaustive visual inspection of the running app. Grouped by categor
 - `WP-I1-016` — 3D globe terrain provider, atmosphere, 3D buildings
 
 ### Declutter
-- `WP-I1-015` is now `IMPLEMENTED`; proof: `.product/build_target/tool_artifacts/wp_runs/WP-I1-015/20260409_165612/`. The full workbench now promotes map families above session controls, hides support-only families behind explicit disclosure, keeps the non-guided summary deck compact by default, and includes live desktop bridge snapshot proof under `visual_proof/`.
-- `WP-I1-017` is now `IMPLEMENTED`; proof: `.product/build_target/tool_artifacts/wp_runs/WP-I1-017/20260409_192533/`. The map shell now renders as a compact HUD with a floating scene capsule, top-right action cluster, contextual drawer, hover/focus helper cards, purposeful motion controls, and a governed settings menu that persists real shell/runtime behavior such as compact chrome, hover helpers, motion profile, live-refresh policy, forced offline mode, and AI gateway profile. Live bridge proof is attached under `visual_proof/`.
+- `WP-I1-015` is now `SUPERSEDED` by `WP-I1-024`; retained proof: `.product/build_target/tool_artifacts/wp_runs/WP-I1-015/20260409_165612/`. Progressive disclosure scope absorbed into the task family architecture.
+- `WP-I1-017` is now `SUPERSEDED` by `WP-I1-023` + `WP-I1-025`; retained proof: `.product/build_target/tool_artifacts/wp_runs/WP-I1-017/20260409_192533/`. HUD cards absorbed into the card system; governed settings absorbed into the settings panel rebuild.
 
 ### Panel Layout Stability
-- `WP-I1-021` is now `IMPLEMENTED`: persistent header toggles for Inspector/Tray (always visible), footer integrated into CSS grid flow (pushes content instead of overlaying), intermediate 1320px breakpoint reduces side panels to 220px, dead breakpoint removed, Ctrl+T keyboard shortcut; 90/90 tests pass, TypeScript clean; awaits live desktop visual proof and user sign-off
+- `WP-I1-021` is now `SUPERSEDED` by `WP-I1-022`; retained proof: 90/90 tests pass, TypeScript clean. Panel layout stability absorbed into the component architecture grid system.
+
+### UI Rebuild Track (v1.2.6 spec compliance)
+
+The UI rebuild track brings the frontend into full compliance with spec v1.2.6 sections 11.11-11.14. It supersedes four previously IMPLEMENTED packets whose scope is now absorbed into a structured five-packet decomposition.
+
+**Sequencing (strict linear dependency chain):**
+1. `WP-I1-022` (Component Architecture Decomposition) -- foundation; must complete first
+2. `WP-I1-023` (Card System Implementation) -- depends on WP-I1-022
+3. `WP-I1-024` (Task Family Architecture) -- depends on WP-I1-023
+4. `WP-I1-025` (Settings Panel Rebuild) -- depends on WP-I1-024
+5. `WP-I1-026` (AI Interaction Surface) -- depends on WP-I1-025
+
+**Supersession notes:**
+- `WP-I1-021` (Panel Layout Stability) -> SUPERSEDED by `WP-I1-022` (layout grid now part of component architecture)
+- `WP-I1-017` (HUD/Settings) -> SUPERSEDED by `WP-I1-023` (card system) + `WP-I1-025` (settings panel)
+- `WP-I1-015` (Declutter/Progressive Disclosure) -> SUPERSEDED by `WP-I1-024` (task family structure)
+- `WP-I1-018` (AI/Scenario UX) -> SUPERSEDED by `WP-I1-024` (task families) + `WP-I1-026` (AI interaction surface)
+
+**Dependency chain:**
+- `WP-I1-022` has no rebuild-track predecessor but absorbs `WP-I1-021` fixes.
+- Each subsequent packet depends on the prior packet in the chain. No parallelism within the rebuild track.
+- `WP-I1-025` and `WP-I1-026` also depend on `PRIM-0052` and `PRIM-0053` (AI gateway and MCP contracts) from the I6 track.
+- All five packets link to `PRIM-0005` (Stable UI Region Contract).
 
 ### Feature UX Simplification
-- `WP-I1-018` is now `IMPLEMENTED`; proof: `.product/build_target/tool_artifacts/wp_runs/WP-I1-018/20260410_004711/`. The assistant now leads with a workflow-first AI card, the scenario surface now leads with fork/compare/export, advanced runtime/modeling controls stay behind explicit disclosure, and live desktop bridge proof is attached under `visual_proof/`; linked sub-spec: `.gov/Spec/sub-specs/I1_ai_and_scenario_ux_simplification.md`.
+- `WP-I1-018` is now `SUPERSEDED` by `WP-I1-024` + `WP-I1-026`; retained proof: `.product/build_target/tool_artifacts/wp_runs/WP-I1-018/20260410_004711/`. AI/scenario UX simplification is absorbed into the task family architecture and AI interaction surface.
 
 ### AI Runtime Expansion
 - `WP-I6-003` — IMPLEMENTED: split provider choice from deployment profile and add a governed local executable-backed provider path with LM Studio/Ollama/custom presets for operator-supplied models

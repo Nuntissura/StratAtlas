@@ -1,7 +1,7 @@
 # WP-I1-017 - Map HUD, Contextual Hover Help, and Governed Settings
 
 Date Opened: 2026-04-09
-Status: IMPLEMENTED
+Status: SUPERSEDED
 Iteration: I1
 Workflow Version: 4.0
 Packet Class: IMPLEMENTATION
@@ -172,3 +172,4 @@ Turn the already-decluttered workbench into a more map-led analytical surface by
 - 2026-04-09: WP scaffold created via .gov/repo_scripts/new_work_packet.ps1.
 - 2026-04-09: Placeholder packet replaced with the active HUD/settings seam: compact map HUD, contextual hover/help, purposeful motion, and governed settings linked to real runtime behavior.
 - 2026-04-09: Product seam implemented in `App.tsx`, `App.css`, `contracts/i0.ts`, `MapRuntimeSurface.tsx`, `MapRuntimeSurface.css`, and `App.test.tsx`; governed test run plus bridge snapshot proof captured under `.product/build_target/tool_artifacts/wp_runs/WP-I1-017/20260409_192533/`.
+- 2026-04-10: SUPERSEDED by WP-I1-023 (Card System Implementation) + WP-I1-025 (Settings Panel Rebuild). HUD cards are absorbed into the card system; governed settings are absorbed into the settings panel rebuild. Retained proof: `.product/build_target/tool_artifacts/wp_runs/WP-I1-017/20260409_192533/`.
