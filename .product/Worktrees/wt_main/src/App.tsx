@@ -179,7 +179,6 @@ import {
   type LocalAiProviderConfig,
   type LocalAiRuntimeProfileId,
   type AllProviderCredentialStatuses,
-  type McpServerConfig,
   type McpInvocationRecord,
   type McpToolName,
 } from './features/i6/aiGateway'
